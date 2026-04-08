@@ -1,7 +1,6 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View } from 'react-native';
-
-import { HomeScreen } from '../features/home';
+import { HomeScreen } from "@/features/home";
+import { StatusBar } from "expo-status-bar";
+import { StyleSheet, View } from "react-native";
 
 /**
  * Application shell: providers and root layout will live here in later days.
@@ -18,6 +17,6 @@ export function AppRoot() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
 });

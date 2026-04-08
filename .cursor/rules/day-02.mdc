@@ -1,0 +1,184 @@
+# Day 2 — ESLint + Prettier + path alias `@/` + commit style
+
+**Trigger:** you say **“Start day 2”** — cross-check **`day-playbooks.mdc` Section 7** (Day 2 row). **`checklist.md`** is not in this repo; if you keep it elsewhere, align Day 2 there too.
+
+**Prerequisite:** Day 1 repo (Expo + TypeScript + `src/features/`, `src/shared/`, `src/app/`).
+
+**Hands-off (`project-context`):** **you** run installs and edit files locally unless you explicitly ask the AI to apply changes.
+
+---
+
+## 1. Study (Udemy)
+
+| Course | Section | What to do |
+| ------ | ------- | ---------- |
+| **TS** | Sec 3 — Type annotations | Enough to **use** types on variables, params, and return values consistently. |
+| **TS** | Sec 4 — Functions & objects | Focus on **typing props** and small **API-shaped** objects (mirrors RN components + JSON). |
+
+---
+
+## 2. Day 2 goals
+
+- **ESLint** wired for **Expo + React Native + TypeScript** (run via `yarn lint`).
+- **Prettier** for formatting; **no fighting ESLint** (use `eslint-config-prettier` or Expo’s recommended setup that already defers formatting to Prettier where applicable).
+- **Path alias** `@/` → `src/` (or your chosen root), so imports look like `import { HomeScreen } from '@/features/home'` instead of long `../../../`.
+- **`strict`:** you already have `"strict": true` in `tsconfig.json`. Day 2 is about **keeping** it and understanding **when** to relax a single line (`any`) vs fixing types—see review.
+- **Commit convention** written down (e.g. **Conventional Commits**: `feat:`, `fix:`, `chore:`, `docs:`, …).
+- **One commit** (or a small logical series) with a message like: `chore: add eslint prettier and path alias`.
+
+---
+
+## 3. Steps (you run these locally)
+
+### Step 1 — ESLint (Expo-flavored)
+
+From the project root:
+
+```bash
+yarn expo install eslint eslint-config-expo
+```
+
+Create **`eslint.config.js`** at the repo root. Expo documents **flat config** (`eslint.config.js`) for newer ESLint; if your ESLint version expects flat config, use the snippet from the current [Expo ESLint docs](https://docs.expo.dev/guides/using-eslint/).
+
+Minimal shape (adjust after `expo install` so versions match):
+
+- Extend **`eslint-config-expo`** (covers React, RN, TS).
+- Lint **`src/**/*`**, **`index.ts`**, and other root entry files; **ignore** `node_modules/`, `.expo/`, `dist/`, build outputs.
+
+Add a script to **`package.json`**:
+
+```json
+"lint": "expo lint"
+```
+
+Run:
+
+```bash
+yarn lint
+```
+
+Fix reported issues until clean (or explicitly disable a rule **once** with a short comment if you must—prefer fixing the code).
+
+---
+
+### Step 2 — Prettier
+
+```bash
+yarn add -D prettier eslint-config-prettier
+```
+
+- Add **`prettier`** to **`package.json`** scripts, e.g. `"format": "prettier --write ."` and/or `"format:check": "prettier --check ."`.
+- Add a **Prettier config** (e.g. `.prettierrc` or `prettier` key in `package.json`)—match your team taste; keep it small.
+- You already have **`.prettierignore`**; ensure it ignores `node_modules`, lockfiles if you want, and generated folders.
+
+Wire **Prettier with ESLint**: `eslint-config-prettier` turns off ESLint rules that clash with Prettier. In **`eslint.config.js`**, load `eslint-config-prettier` **last** so it overrides conflicting rules (see `eslint-config-prettier` README for flat config).
+
+Run format, then `yarn lint` again.
+
+---
+
+### Step 3 — Path alias `@/` → `src/`
+
+**TypeScript** — in **`tsconfig.json`**, under `compilerOptions` (keep `strict: true`):
+
+```json
+"baseUrl": ".",
+"paths": {
+  "@/*": ["src/*"]
+}
+```
+
+**Metro / Babel** — TS paths alone do not resolve at runtime. Add **`babel-plugin-module-resolver`**:
+
+```bash
+yarn expo install babel-plugin-module-resolver
+```
+
+Create or extend **`babel.config.js`** at the project root. Expo projects typically use:
+
+```js
+module.exports = function (api) {
+  api.cache(true);
+  return {
+    presets: ['babel-preset-expo'],
+    plugins: [
+      [
+        'module-resolver',
+        {
+          root: ['./'],
+          alias: { '@': './src' },
+          extensions: ['.ios.js', '.android.js', '.js', '.jsx', '.json', '.tsx', '.ts'],
+        },
+      ],
+    ],
+  };
+};
+```
+
+If **`babel.config.js`** did not exist, add it; then **restart** Metro (`yarn start` with cache clear if needed: `yarn start -- -c`).
+
+**Refactor one import** to prove it works, e.g. in `AppRoot.tsx`:
+
+```ts
+import { HomeScreen } from '@/features/home';
+```
+
+Run the app; if resolution fails, double-check `alias`, `extensions`, and that `src/features/home/index.ts` still exports `HomeScreen`.
+
+---
+
+### Step 4 — Commit convention (documentation)
+
+In **`README.md`** (or `CONTRIBUTING.md` if you add it later), add a **short** subsection:
+
+- **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) — examples: `feat: add login screen`, `fix: handle empty list`, `chore: bump eslint`.
+
+No tool is required on Day 2; **Husky + commitlint** can come later.
+
+---
+
+### Step 5 — Git
+
+```bash
+git add .
+git status   # review
+git commit -m "chore: add eslint, prettier, and path alias"
+```
+
+---
+
+## 4. Architecture / hygiene (from Day 2)
+
+- **Lint + format in CI later (Day 33):** for now, local `yarn lint` + format are enough.
+- **`any`:** avoid in app code; **temporary** `any` is sometimes OK at boundaries (badly typed third-party callback) with a **TODO** and ticket.
+- **Alias:** `@/` reduces brittle relative paths when moving files between `features/` and `shared/`.
+
+---
+
+## 5. Review (answer after you finish—keep it short)
+
+1. What does **`strict: true`** do for a **large team**?
+2. When is **`any`** temporarily acceptable? What do you do right after?
+
+---
+
+## 6. Interview (optional)
+
+- How do you prevent **ESLint** and **Prettier** from fighting in a RN monorepo or single app?
+- Why must **Babel/Metro** know the alias, not only **TypeScript**?
+
+---
+
+## 7. Definition of Done (DoD)
+
+- [ ] `yarn lint` (or `expo lint`) passes on the repo.
+- [ ] Prettier run is defined (`format` / `format:check`) and does not break ESLint (Prettier last in ESLint config).
+- [ ] At least **one** working import using **`@/`** (app runs with `yarn start`).
+- [ ] README (or equivalent) mentions **commit message convention**.
+- [ ] You answered the **2** review questions above.
+
+---
+
+## 8. Next: Day 3
+
+See **`day-playbooks.mdc` Section 7**, **Day 3** — light theme + shared `Text`/`Button`, typed props. Create **`day-03.mdc`** when you start Day 3 (same pattern as this file).

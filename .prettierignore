@@ -1,0 +1,3 @@
+# Cursor rule files: same grammar as Markdown; Prettier still reshapes tables/prose.
+.cursor/rules/**/*.mdc
+*.mdc

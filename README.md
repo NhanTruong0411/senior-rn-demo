@@ -1,36 +1,76 @@
 # senior-rn-demo
 
-Production-shaped **Expo + TypeScript** app for the **Senior Mobile (React Native)** track: one repo from day 1 through the 45-day roadmap (`checklist.md` / `prompt.md` in the parent `Dev` folder).
+**Lộ trình:** một repo **Senior Mobile (React Native)** theo roadmap **45 ngày** — đối chiếu `checklist.md` và `prompt.md` trong thư mục cha (`Dev`).
 
-## Goals
+## Mục tiêu ngày 1 (và của repo bootstrap)
 
-- **Architecture:** feature modules with clear boundaries (`src/features/*`), shared layer (`src/shared`), app shell (`src/app`).
-- **Learning style:** project-first, just-in-time docs — not course-then-forget.
-- **Bar:** senior-oriented structure, tests, observability, and interview-ready stories — not tutorial completionism.
+- App **Expo + TypeScript** chạy được trên simulator/emulator.
+- Cấu trúc **`src/features/`**, **`src/shared/`**, **`src/app/`** và màn **placeholder** (feature `home`).
+- README ghi mục tiêu lộ trình + lệnh chạy (file này).
 
 ## Stack
 
-- Expo SDK 54
-- React 19 / React Native 0.81
-- TypeScript (`strict: true`)
+- **Expo** (~SDK 54)
+- **React** / **React Native**
+- **TypeScript** (`strict: true` trong `tsconfig`)
 
-## Run
+## Chạy project
+
+Cài dependency (lần đầu hoặc sau khi đổi `package.json`):
 
 ```bash
-npm install
-npm start
+yarn install
 ```
 
-Then open in Expo Go or press `i` / `a` for simulator.
+Khởi động dev server (chọn một):
 
-## Layout
+```bash
+yarn start
+# hoặc
+npx expo start
+```
 
-| Path | Role |
-|------|------|
-| `src/app/` | Root shell (providers, navigation entry later). |
-| `src/features/` | Vertical slices; each feature may expose a public `index.ts`. |
-| `src/shared/` | Design tokens, shared components, cross-cutting UI. |
+Sau đó:
 
-## Roadmap note
+- Mở **Expo Go** trên điện thoại và quét QR, hoặc
+- Trong terminal bấm **`i`** (iOS Simulator) / **`a`** (Android emulator) nếu môi trường đã cấu hình.
 
-This repo stays **domain-neutral** (e.g. catalog, feed, inbox — name entities as you prefer). FinTech-only vocabulary is not required.
+Scripts khác trong `package.json`: `yarn ios`, `yarn android`, `yarn web`.
+
+## Cấu trúc thư mục
+
+```text
+src/
+  app/              # shell gốc (providers, navigation sau này)
+  features/
+    home/
+      HomeScreen.tsx
+      index.ts      # public API của feature (export ra ngoài)
+  shared/           # component / token dùng chung
+```
+
+Entry gốc: `index.ts` ở root đăng ký `AppRoot` từ `src/app`.
+
+## Quy tắc kiến trúc (từ ngày 1)
+
+- **Feature A** không import trực tiếp code nội bộ **feature B** — phần chung đưa vào **`shared/`** (hoặc layer sau trong lộ trình).
+- File **`index.ts`** của mỗi feature là **cửa export** (public API); refactor bên trong feature không nên bắt mọi nơi đổi import.
+
+## Definition of Done — ngày 1
+
+- [ ] `npx expo start` chạy được, thấy màn placeholder.
+- [ ] Có `features/` + `shared/` + `app/` rõ ràng.
+- [ ] README có mục tiêu + lệnh chạy.
+- [ ] Đã tự trả lời ngắn 3 câu ôn tập (trong tài liệu ngày 1).
+
+## Ôn tập (tự kiểm)
+
+1. Vì sao **feature-folder** tốt hơn gom hết vào `screens/` khi dự án lớn?
+2. **Public API** `index.ts` của feature dùng để làm gì?
+3. Khi nào code nên vào **`shared/`** thay vì `features/home/`?
+
+## Ghi chú lộ trình
+
+Repo giữ **trung lập domain** (catalog, feed, inbox… đặt tên tuỳ bạn). Từ vựng FinTech không bắt buộc.
+
+**Ngày tiếp theo:** xem `checklist.md` mục 7 dòng **Ngày 2** (ESLint, Prettier, path alias).

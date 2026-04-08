@@ -1,0 +1,247 @@
+# Senior React Native — Checklist & roadmap (30-day summary + **45-day Udemy map**)
+
+This document complements `prompt.md`: build **Senior Mobile App Engineer (React Native)** solidly enough to interview at **many company types** (product, agency, enterprise, startup—not locked to one vertical like FinTech), combining **project-first** work with **4 mapped Udemy courses** in **Section 7**.
+
+---
+
+## 0. “Start day N” — what the AI reads & does (shared context)
+
+This section is so when you say **“Start day 1”**, **“Start day 2”**, … **“Start day 45”** (or variants like _“Today is day 1”_, _“Do day 2”_), Cursor/AI **has context and can execute** without repeating the whole roadmap. **`prompt.md` — Strict mode:** right/wrong is explicit; if wrong, fix—and **do not** advance the day if DoD is not met.
+
+### Trigger phrases (suggested)
+
+| You say                         | Meaning                                                                                                   |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `Start day 1` … `Start day 45`  | Start exactly **one day** in the **Section 7** schedule (Udemy + project + review table)                 |
+| `Today is day N` / `Do day N` | Same as “Start day N”                                                                                     |
+
+### Context order the AI should read (priority)
+
+1. **`prompt.md`** — Senior goal, **Strict mode**, background, what you don’t want, mentor role.
+2. **`checklist.md` (this file)** — Section **0** (+ **0b–0d**) + **1** (knowledge frame) + **2–3** + **7** for **Day N** (Udemy + project + review).
+3. **`day-NN.md`** (if present in the same folder)—Detailed playbook: steps, docs, exercises, review questions, interview prompts, DoD.
+
+### Expected AI behavior
+
+- **Hands-off:** **do not** run `create-expo-app`, `npm`, `git`, etc. for you—**unless** you explicitly ask. Give **steps** and **sample commands** for **you** to run locally.
+- On **“Start day N”**: if **`day-NN.md` is missing** → **create** `day-NN.md` (guide + DoD + review questions), then follow it; if it **exists** → open and follow.
+- Second source is always **`checklist.md` Section 7** (**Day N** row).
+- **Always** state prerequisites: e.g. Day 2 needs the repo from Day 1; if missing, say to do Day 1 first.
+- Edit **files in the repo** (code, config) only when you ask for a specific fix—**do not** create a new project for you unless you ask.
+- If you use **Udemy → project → review:** give a **Udemy slice** (per **0c** or an outline you paste), **focus**, then **Expo tasks** matching **Section 7**, then **review + interview** questions.
+- **Strict mode:** grade review answers and DoD **by criteria**, no hand-waving; wrong technical takes get **pushed back** and corrected.
+
+### Quick map: Day → playbook file (update over time)
+
+| Day  | Playbook file | Notes                                                                                                   |
+| ---- | ------------- | ------------------------------------------------------------------------------------------------------- |
+| 1    | `day-01.md`   | RN + TS repo + `features/` / `shared/` / `app/` + README                                                 |
+| 2    | `day-02.md`   | ESLint + Prettier + path alias + commit convention                                                     |
+| 3–45 | `day-03.md` … | AI **creates `day-NN.md` when** you start that day (if missing); content = steps + DoD, aligned with **Section 7** |
+
+### Notes for you
+
+- Keep **one** demo app repo **production-like** across 30 days: **neutral** domain (auth + list + detail + network errors + offline)—think **feed**, **catalog**, **inbox**, **orders**… name as you like; **not** required to be FinTech.
+- **Default project stack:** **Expo + TypeScript** (you prefer Expo; RN CLI only if a Udemy lesson forces bare workflow—then note “learn the idea, apply code on Expo”).
+- **`day-NN.md`:** **created when** you say **“Start day N”** (if it doesn’t exist); it’s the playbook **you** run by hand—AI does not run commands for you (see **`prompt.md` — Hands-off**).
+
+### 0b. Udemy (4 courses) → extra docs → project (Expo) → review
+
+When you want **course first, then project** (strong reinforcement), each **“Start day N”** should deliver **one bundle**:
+
+1. **Udemy (targeted slice)** — map to **Section 7 (Day N)** + **0c** suggestions (you don’t have to finish a whole long section if that day only needs one skill).
+2. **Read more** official docs (React Native / Expo / TypeScript / Testing Library) **only** where the course is thin or off-Expo.
+3. **Do tasks in Cursor** on **one continuous repo** (same 30-day app), **Expo** preferred.
+4. **Review questions + interview prompts** tied to what you just learned and coded.
+
+**Udemy:** the AI **cannot** log in or access your Udemy account. Practical approach:
+
+- **Default:** use **section names** from the course outline (you shared: Advanced RN, TypeScript, 2 Testing courses) + **0c** to pick lectures.
+- **If you need lecture-level precision** (e.g. screenshot “Section 2 — Animations”): **paste lecture names** or an outline image—the AI can map more precisely and write “watch lectures X–Y before task Z.”
+
+**Finish the whole section or not?**
+
+- **Not required.** Prioritize **enough to complete that day’s task**; long sections (e.g. MapViews 3h+) → **split across days** or **skip** if outside your senior goal (the map is a guide).
+- **Short** sections (e.g. Expo Setup ~15 min) can be **done in one sitting** if they align with Day 1.
+
+---
+
+### 0c. Four-course abbreviations (used in Section 7)
+
+| Code   | Course                                                                      |
+| ------ | --------------------------------------------------------------------------- |
+| **AR** | Advanced React Native (Udemy)                                               |
+| **TS** | TypeScript (Udemy)                                                          |
+| **T-A** | React Testing — **Sundaes / MSW / Provider** (your “course 3”)             |
+| **T-B** | React Testing — **RTL / Jest / `act` / auth / data fetching** (course 4)  |
+
+**Note:** Web courses use **React Testing Library (web)**; on Expo use **@testing-library/react-native**—**same mindset** (query like a user, `getBy`/`findBy`, mock network).
+
+### 0d. Filtered or deprioritized content (Senior Frontend / Mobile RN)
+
+- **TS — Sec 13 “Let’s Build a Web Framework” (76 lessons):** **skip** for mobile (unless you later go deep on web).
+- **TS — Sec 14–16 Express + Decorators + Advanced Express:** **skip** (not useful for RN).
+- **TS — Sec 9–11 Design patterns + Reusable code (large):** **don’t watch all**—only when **Section 7 says so** (2–3 applicable patterns: e.g. Strategy/Adapter/Factory) + apply in **one** small repo refactor.
+- **TS — Sec 17 class components Redux:** **skip or skim** (prefer Sec **18–19** functional + Redux Toolkit + TS).
+- **AR — Sec 7 Twilio / Sec 10 Facebook:** learn **OTP/OAuth flows**, **never** commit API keys; in Expo use **mock / dev flow** equivalents.
+- **AR — Sec 11 MapViews:** **optional** (Section 7: one branch day if you need maps in portfolio; else **skip**).
+- **T-A / T-B — “Bonus / Optional extra”:** do **after** required Section 7 branch, or skip if time is short.
+
+**Which day maps to which section** is in **Section 7** (45-day table).
+
+---
+
+## 1. Senior Mobile (RN) knowledge frame — any company
+
+Use this as a **reference** when reading JDs or interviewing; the 30-day track **covers** core rows; some (animation, deep design system) can **extend** after 30 days or merge into review weeks.
+
+| Pillar                      | What to be solid on                                                                                                                                | Interview notes                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **Architecture & boundaries** | Feature/module folders, dependency direction, avoid coupling                                                                                     | “Scale to 10+ engineers?” “Avoid circular deps?” |
+| **Design system & UI**     | Reusable components, theme/tokens, empty/loading/error; **a11y**                                                                                  | “Design system from scratch?” “a11y checklist?”   |
+| **React patterns**         | Custom hooks, compound components (when fit); HOC/render props **know when / legacy**                                                            | Trade-off: readability vs maintain               |
+| **State & data**           | Server vs client state; Redux Toolkit / TanStack Query; cache, invalidation                                                                       | “When Redux vs Query?”                           |
+| **API layer**              | REST/GraphQL basics; errors; typed contracts; interceptors                                                                                        | “Single error handling layer?”                   |
+| **Performance**            | FlatList, images, re-renders, measured memo; React Profiler / Flipper                                                                            | Before/after metrics                             |
+| **RN platform**            | Complex navigation; native bridge when needed; **New Architecture** & **Hermes** (explain level); Reanimated + Gesture Handler (if JD needs UX) | “Fabric/TurboModules?”                           |
+| **Quality**                | Jest + RTL; E2E smoke (Detox/Maestro); CI lint/test                                                                                              | “Testing pyramid?”                               |
+| **Reliability**            | Sentry/Crashlytics, release health, controlled logging                                                                                            | “On-call mindset?”                               |
+| **Security & privacy**     | Tokens, secure storage, PII logging, TLS basics, OWASP Mobile                                                                                     | Any app with user data                           |
+| **Communication & leadership** | ADRs, code review, STAR stories, **English**                                                                                                  | Behavioral + system design (mobile scope)        |
+
+---
+
+## 2. Skills to add (action priority)
+
+| Skill                         | Why it matters                                                                  | Notes                                               |
+| ----------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Architecture & module boundaries | Senior isn’t only features—reduce coupling, scale teams                      | Feature folders, boundaries, dependency direction   |
+| Data layer design             | Server vs client state, cache, invalidation, offline                            | Redux Toolkit / TanStack Query patterns, trade-offs |
+| Meaningful testing            | Jest + integration + E2E for critical flows (auth, paywall, checkout—domain-dependent) | Don’t chase meaningless 100% coverage         |
+| Observability & reliability   | Sentry/Crashlytics, release health, breadcrumbs                                   | Senior “owns” stability                             |
+| CI/CD & release               | Build, test, signing, staged rollout, rollback                                    | GitHub Actions / Bitrise / Fastlane                 |
+| Security & privacy (mobile)   | Tokens, secure storage, PII logging, TLS basics                                  | Any industry, not only finance                      |
+| Accessibility & UI quality    | Screen reader, touch targets, contrast                                            | Common in JDs; social/commerce too                  |
+| Technical communication (English) | Code review, ADR, incidents, interviews                                       | Short writing + speaking with trade-offs           |
+
+---
+
+## 3. More to learn (no need to “finish the book”—need to apply)
+
+- **Advanced TypeScript for RN:** useful generics, discriminated unions, typing props/context/hooks, narrowing API errors.
+- **React / RN rendering:** intentional memoization, list virtualization, avoid pointless re-renders.
+- **Async & failure modes:** retry/backoff, timeout, cancellation, races on navigation / logout.
+- **Offline & sync (senior app level):** local write queue, simple conflict strategy, idempotency (concept).
+- **GraphQL (when JD asks):** queries, mutations, basic cache policy; vs REST on mobile.
+- **Testing:** Jest + React Native Testing Library; Detox or Maestro for smoke E2E.
+- **Observability:** Sentry setup (release, environment, anonymized user context), “error taxonomy” thinking.
+- **Pragmatic compliance:** OWASP Mobile Top 10—as a usable checklist.
+- **RN ecosystem (broad JDs):** read **New Architecture** overview; **Hermes** (when on, how to debug); **pick one** deep path: **Reanimated + Gesture Handler** or **styling at scale** (Tamagui / NativeWind / StyleSheet + tokens)—not all three in 30 days.
+
+---
+
+## 4. Practice (senior habits)
+
+- Each week **1 ADR or 1-page technical decision** (problem → options → trade-off → choice).
+- Each important feature has **test + metric** (crash rate, screen time) before/after.
+- **Mock incident:** production bug → reproduce → root cause → fix → short lesson.
+- **Code review mindset:** edge cases, security, performance, maintainability.
+- **Diverse interview prep:** **mobile system design** (cache, offline, auth, push) and **behavioral** (not only one company archetype).
+
+---
+
+## 5. Is 30 / 45 days “enough to be solid senior”?
+
+**Enough to:** show a **clear senior foundation** (production-shaped demo app), **fill common JD gaps** (testing, CI, monitoring, security mindset, a11y), **portfolio + interview stories**—**45 days** (Section 7) fits **4 courses** more comfortably than **30 days** (Section 7.0).
+
+**Not enough if you expect:** **expert** depth on **every** row in Section 1 in one short cycle—needs **prioritization** and **longer cycles** for deep native / large design systems.
+
+**Suggestion:** one **neutral-domain** demo app (auth + list + detail + network failure + offline) throughout; name entities for your domain (e.g. `items`, `posts`, `orders`).
+
+---
+
+## 6. Daily principles
+
+- **Do:** 45–90 minutes real code/config on the repo (prefer over passive video).
+- **Learn:** only enough reading/docs to finish today’s task (just-in-time).
+- **Own:** 1–3 bullets you could explain to someone else in 2 minutes.
+
+---
+
+## 7. **45-day** roadmap — 4 Udemy courses → Expo project → review
+
+**One Expo + TypeScript repo** throughout; each day: **study (Udemy)** → **build (project)** → **review (answer questions)**. When you say **“Start day N”**, use **Day N** below + **0d** (filtered content).
+
+### 7.0 Fast 30-day track
+
+Merge **two consecutive days** from the 45-day table into **one day** (longer evening sessions); or drop days marked **(optional)**—fits ~1 month.
+
+### 7.1 45-day table (Udemy + Project + Review)
+
+**Review** column: **write short answers** (or speak) after you commit that day’s work; you can ask the AI to grade pasted answers.
+
+| Day    | Study (Udemy — section / focus)                                                                                                 | Build (Expo project)                                                                                 | Review (drill questions)                                                                    |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **1**  | **AR** Sec 1 Expo Setup (full). **TS** Sec 1 Getting Started + Sec 2 What is a Type System (skim).                            | `create-expo-app` (TS), `src/features`, `src/shared`, `src/app`, README goals, placeholder screen. | Why feature folders vs dumping `screens/`? What is a feature `index.ts` public API for?   |
+| **2**  | **TS** Sec 3 Type Annotations + Sec 4 Functions & Objects (props/API parts).                                               | ESLint + Prettier + path alias `@/`; `strict` gradually; commit convention.                        | What does `strict: true` do for a large team? When is `any` temporarily OK?                 |
+| **3**  | **TS** Sec 7 Interface + Sec 8 Classes (**typing models** only, not heavy OOP). **AR** Sec 5 Component Reusability (start). | Light theme + `Text`/`Button` in `shared/`; typed props.                                          | When to split `shared/` vs keep in feature?                                                 |
+| **4**  | **TS** Sec 5 Typed Arrays + Sec 6 Tuples (enough for list + pair).                                                                | `api/` layer + list response types; mock token interceptor.                                    | How do API response types differ from domain/UI types?                           |
+| **5**  | **TS** Sec 12 Advanced Generics (**generic `ApiResponse<T>`**).                                                          | Mock `GET /items` (JSON or MSW if you know it); map to UI model.                                  | Write `Result<T, E>`—when union instead of generic?                     |
+| **6**  | **AR** Sec 5 Component Reusability (continue).                                                                                        | `FlatList` + loading/empty/error + `keyExtractor` + minimal a11y labels.                          | Bugs from wrong `keyExtractor`? `windowSize` effect?                                   |
+| **7**  | **TS** review Sec 3–4 + React Navigation typing docs.                                                                              | Stack/tab + **typed params** for 2 screens (list → detail).                                            | What refactor bugs do typed routes prevent?                                            |
+| **8**  | **TS** Sec 18 React Functional + Sec 19 Redux/RTK with TS (skip class-heavy 17).                                                      | Redux Toolkit **or** TanStack Query + one slice/query demo.                                    | When should server state use RTK Query/TanStack vs “plain” Redux?                     |
+| **9**  | **AR** Sec 6 OTP Authentication (flow, **no** real keys).                                                                       | Fake login form + mock token storage + validate; note Keychain.                                      | Why AsyncStorage isn’t enough for real refresh tokens?                                        |
+| **10** | **AR** Sec 8 Client-side OTP (short) or review Sec 6.                                                                             | Protected navigation: auth stack vs app stack; mock 401 → logout.                                  | Describe auth state machine (3–4 states).                                                  |
+| **11** | **T-B** Sec 1 Dive in + Sec 2 Whirlwind (through “First test”, roles, matchers).                                                      | Jest + **@testing-library/react-native**; test a pure mapper function.                      | What is the mobile testing pyramid?                                                           |
+| **12** | **T-B** Sec 3 Understanding Element Roles + Sec 4 Query Functions (`getBy`/`findBy`).                                             | 2 component tests: list + error; prefer `getByRole`/`getByText` before `testID`.              | `getBy` vs `findBy` with async?                                                    |
+| **13** | **T-B** Sec 5 Query suffixes + Sec 6 Matchers (custom matcher **optional**).                                                      | Test button / mock navigation; add `testID` only where needed.                                             | When is `testID` **required** on mobile?                                             |
+| **14** | **T-B** Sec 8 The `act` function (focus: warnings, async).                                                                    | Fix async tests (`waitFor` / `findBy`) for a screen with mocked fetch.                                           | What is `act` and where does RTL/RN wrap it?                                                   |
+| **15** | **T-A** Sec 1–2 + Sec 3 ESLint/Prettier for tests (if any).                                                                        | Lint rules for `__tests__/`; split `setupTests`.                                                | Why separate test env config?                                                     |
+| **16** | **T-A** Sec 4–5 Sundaes + **MSW** (Initial setup, handlers).                                                                      | MSW (or mock fetch) for API in integration tests (web course → same intercept idea on RN).   | How is MSW different from `jest.mock('./api')`?                                                      |
+| **17** | **T-A** Sec 6 Testing components wrapped in Provider.                                                                             | Mock `Provider` (Redux/Query) in tests; test error from context.                                   | Mock provider vs real provider with test store?                               |
+| **18** | **T-A** Sec 7 Final Exam Order Phases (**Tips MSW**, debugging—no need to clone full web app).                                | **One** integration test: mock login → list visible.                                         | How do you debug a failing test—in what order?                                        |
+| **19** | **T-B** Sec 9 Handling Data Fetching in Tests + MSW advanced (reusable server).                                                   | Reusable handlers for `GET /items` + 500 error case.                                       | How to test “loading → success” and “loading → error” without flakes?                          |
+| **20** | **T-B** Sec 10 Tests Around Authentication (skip pure-web parts if not applicable).                                             | Test: logged out → login; after login → list (mock session).                              | How to avoid auth tests depending on file order?                                              |
+| **21** | **T-B** Sec 7 Big Project Overview (process debugging)—**lessons**.                                                     | Refactor tests for “stable queries”; remove redundant `beforeEach`.                                  | What makes a “senior” test different from a junior one?                                         |
+| **22** | **AR** Sec 2 Animations (module, timing; **skip** complex swipe deck if behind).                                         | Small animation (opacity/translate) on one component.                                  | Animated API vs Reanimated—when do you need Reanimated?                                        |
+| **23** | **AR** Sec 3 Handling Gestures + Sec 4 Animation Styling (half).                                                               | Simple gesture (pan or press) + animated styles.                                                | What does Gesture Handler solve vs plain touchables?                               |
+| **24** | **AR** Sec 2–4 (finish remainder **or** review).                                                                             | Polish micro-interactions; feel for jank + Profiler if possible.                           | Trade-off: smooth animation vs dev time?                                                 |
+| **25** | **AR** Sec 12 Offline Data Persistence (overview).                                                                                | Fake offline: banner + list cache (Query persist or light AsyncStorage).                            | What does stale-while-revalidate mean on mobile?                                              |
+| **26** | **AR** Sec 13 Push Notifications (overview).                                                                                      | **(Optional)** local notification or docs + stub `expo-notifications`—no real server needed.        | Push vs in-app messaging?                                                 |
+| **27** | — (review AR list perf).                                                                                                              | Profile list screen: reduce re-renders in one component; note before/after.                                    | When is `useCallback` **not** needed?                                                  |
+| **28** | —                                                                                                                                 | Images: sizing, placeholder, avoid OOM.                                                         | Risks of images without fixed dimensions on RN?                                          |
+| **29** | —                                                                                                                                 | Deep link skeleton (`expo-linking`) **or** small native module (pick one).                           | When is **native code** unavoidable?                                                      |
+| **30** | Sentry RN docs.                                                                                                                    | Sentry + `beforeSend` redact PII + release/env.                                                    | What must **not** go to crash reports?                                            |
+| **31** | —                                                                                                                                 | Error UI + logging wrapper (disable noisy prod logs).                                                     | Recoverable vs fatal errors—different UX?                                  |
+| **32** | **T-A/T-B** review MSW + auth tests if needed.                                                                                         | Green `npm test` locally for CI; fix flakes.                                                  | Why do integration tests flake—async or shared state?                            |
+| **33** | GitHub Actions docs.                                                                                                               | CI: lint + test on PR; cache dependencies.                                                       | How does CI help senior teams beyond “it runs”?                                          |
+| **34** | —                                                                                                                                 | CI: Android debug artifact (iOS if your machine allows).                                           | What are build artifacts for in review?                                                 |
+| **35** | Maestro or Detox docs.                                                                                                           | E2E smoke: mock login → see list.                                                                 | Why few but **critical-path** E2E tests?                                             |
+| **36** | —                                                                                                                                 | A11y pass on 2 screens (short VoiceOver/TalkBack).                                                         | `accessibilityLabel` vs `accessible`?                                               |
+| **37** | **AR** Sec 11 MapViews **(optional)**—if **skip**, review Sec 5–6 instead.                                                         | **(If doing)** static map + mock markers; else small feature (search/filter).          | When does a map SDK bloat bundle / hurt cold start?                                    |
+| **38** | **TS** Sec 9–11: only **one** pattern (e.g. Adapter) in one module.                                                                 | Small refactor: API → domain adapter.                                                           | What pain does your pattern fix?                                          |
+| **39** | —                                                                                                                                 | `ARCHITECTURE.md`: data flow, auth, errors.                                                        | Explain the app in 2 minutes to a non-technical PM.                                         |
+| **40** | OWASP Mobile (short read).                                                                                                          | `THREAT_MODEL.md`: 5 risks + mitigation.                                                          | Threat vs vulnerability in *your* app?                                     |
+| **41** | —                                                                                                                                 | **AR** Sec 7 Twilio + Sec 10 Facebook: **read outline** / watch intro only (no keys).                | OAuth redirect on mobile vs web?                                                  |
+| **42** | —                                                                                                                                 | Polish README + screenshots; `.env.example`.                                                           | How does README get a stranger running in 15 minutes?                                        |
+| **43** | STAR method (short article).                                                                                                           | Write 5 STAR outlines (English) tied to the project.                                                         | One story with a concrete metric?                                                             |
+| **44** | Mock interview (record yourself).                                                                                                       | Dry-run: repo walkthrough + hardest bug.                                                           | Recording—where does your logic sound weak?                                                  |
+| **45** | —                                                                                                                                 | Tag release `v0.1-demo`; Section 8 checklist.                                                          | “What senior skill does this repo prove?”                              |
+
+---
+
+## 8. Quick checklist (check when done)
+
+- [ ] TypeScript repo + lint + CI runs test/lint
+- [ ] Fake auth flow + protected navigation
+- [ ] List + error/offline + unified API layer
+- [ ] Jest + a few RTL tests
+- [ ] At least one E2E smoke (Maestro or Detox)
+- [ ] Sentry (or equivalent) + redact PII
+- [ ] `ARCHITECTURE.md` + `THREAT_MODEL.md`
+- [ ] 5 STAR stories (English outlines)
+- [ ] Basic a11y pass
+
+---
+
+_This document is the frame—**Section 7** maps **4 Udemy courses** to **45 days**; you can compress to **30 days** per **Section 7.0**. Keep the loop: **targeted learning → continuous Expo app → review → docs → interview**. Most JDs still map to the pillars in **Section 1**._
