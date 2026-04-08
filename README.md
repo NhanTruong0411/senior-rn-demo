@@ -37,6 +37,47 @@ Sau đó:
 
 Scripts khác trong `package.json`: `yarn ios`, `yarn android`, `yarn web`.
 
+## Commit message (Conventional Commits)
+
+Dự án dùng [Conventional Commits](https://www.conventionalcommits.org/) cho message rõ ý đồ, ví dụ:
+
+- `feat: add login screen`
+- `fix: handle empty list`
+- `chore: bump eslint`
+- `docs: update readme`
+
+Có thể dùng `yarn commit` (Commitizen) để được gợi ý type + subject.
+
+## Ngày 2 — tra cứu nhanh (đã làm trong repo)
+
+Dùng mục này để **đối chiếu lại** với playbook `.cursor/rules/day-02.mdc` khi cần.
+
+| Hạng mục | Trong repo |
+| -------- | ---------- |
+| ESLint (Expo, flat config) | `eslint.config.mjs` — `eslint-config-expo/flat.js`; script **`yarn lint`** (= `expo lint`) |
+| Prettier | `.prettierrc`, `.prettierignore`; **`yarn format`**, **`yarn format:check`** |
+| ESLint ↔ Prettier | `eslint-plugin-prettier/recommended` trong `eslint.config.mjs` (Prettier chạy như rule ESLint; không xung đột với format) |
+| Path alias `@/` → `src/` | `tsconfig.json`: `paths` `@/*`; **`babel.config.js`**: `babel-plugin-module-resolver`, `alias: { "@": "./src" }` |
+| Ví dụ import `@/` | `src/app/AppRoot.tsx`: `import { HomeScreen } from "@/features/home"` |
+| Commit style | Mục **Commit message** ở trên + `yarn commit` / `.cz-config.js` (kiểu Conventional Commits) |
+| Khác (tuỳ chọn sau này) | `husky`, `lint-staged` trong `package.json` — có thể bật hook sau |
+
+**Kiểm tra nhanh sau khi đổi cấu hình:**
+
+```bash
+yarn lint
+yarn format:check
+yarn start
+```
+
+**Definition of Done — ngày 2**
+
+- [x] `yarn lint` sạch trên repo.
+- [x] Có `format` / `format:check`; ESLint và Prettier không “đánh nhau”.
+- [x] Có ít nhất một import `@/` chạy được (app lên với `yarn start`).
+- [x] README ghi quy ước commit (mục **Commit message**).
+- [x] Đã tự trả lời 2 câu review trong `day-02.mdc` (mục 5).
+
 ## Cấu trúc thư mục
 
 ```text
@@ -73,4 +114,4 @@ Entry gốc: `index.ts` ở root đăng ký `AppRoot` từ `src/app`.
 
 Repo giữ **trung lập domain** (catalog, feed, inbox… đặt tên tuỳ bạn). Từ vựng FinTech không bắt buộc.
 
-**Ngày tiếp theo:** xem `checklist.md` mục 7 dòng **Ngày 2** (ESLint, Prettier, path alias).
+**Ngày tiếp theo:** xem `day-playbooks.mdc` / `checklist.md` mục 7 — **Ngày 3** (theme nhẹ, `Text`/`Button` dùng chung, props có type). Tạo `.cursor/rules/day-03.mdc` khi bắt đầu.

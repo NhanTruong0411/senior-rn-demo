@@ -1,5 +1,7 @@
 # Day 2 — ESLint + Prettier + path alias `@/` + commit style
 
+**Status:** **Closed / done.** What landed in the repo is summarized in **`README.md`** → section **“Ngày 2 — tra cứu nhanh”** (quick audit vs this playbook).
+
 **Trigger:** you say **“Start day 2”** — cross-check **`day-playbooks.mdc` Section 7** (Day 2 row). **`checklist.md`** is not in this repo; if you keep it elsewhere, align Day 2 there too.
 
 **Prerequisite:** Day 1 repo (Expo + TypeScript + `src/features/`, `src/shared/`, `src/app/`).
@@ -163,7 +165,7 @@ git commit -m "chore: add eslint, prettier, and path alias"
 2. When is **`any`** temporarily acceptable? What do you do right after?
 - any is temporarily acceptable when dealing with untyped third-party libraries or complex edge cases where proper typing is not immediately feasible. After that, you should add a TODO comment and replace any with proper types as soon as possible to maintain type safety.
 
----123
+---
 
 ## 6. Interview (optional)
 
