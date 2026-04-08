@@ -158,24 +158,30 @@ git commit -m "chore: add eslint, prettier, and path alias"
 ## 5. Review (answer after you finish—keep it short)
 
 1. What does **`strict: true`** do for a **large team**?
-2. When is **`any`** temporarily acceptable? What do you do right after?
+- It enforces strict type-checking across the entire codebase, helping catch errors at compile time instead of runtime. For a large team, this ensures consistency, reduces bugs, and makes the codebase more predictable and maintainable across different developers.
 
----
+2. When is **`any`** temporarily acceptable? What do you do right after?
+- any is temporarily acceptable when dealing with untyped third-party libraries or complex edge cases where proper typing is not immediately feasible. After that, you should add a TODO comment and replace any with proper types as soon as possible to maintain type safety.
+
+---123
 
 ## 6. Interview (optional)
 
-- How do you prevent **ESLint** and **Prettier** from fighting in a RN monorepo or single app?
-- Why must **Babel/Metro** know the alias, not only **TypeScript**?
+1) How do you prevent **ESLint** and **Prettier** from fighting in a RN monorepo or single app?
+- You prevent conflicts by using eslint-config-prettier and placing it last in your ESLint configuration to disable formatting rules that clash with Prettier. This ensures Prettier handles formatting while ESLint focuses on code quality
+
+2) Why must **Babel/Metro** know the alias, not only **TypeScript**?
+- Because TypeScript path aliases are only used during type checking and compilation, not at runtime. Babel/Metro is responsible for resolving modules when the app runs, so it must also understand the alias to correctly locate files during execution.
 
 ---
 
 ## 7. Definition of Done (DoD)
 
-- [ ] `yarn lint` (or `expo lint`) passes on the repo.
-- [ ] Prettier run is defined (`format` / `format:check`) and does not break ESLint (Prettier last in ESLint config).
-- [ ] At least **one** working import using **`@/`** (app runs with `yarn start`).
-- [ ] README (or equivalent) mentions **commit message convention**.
-- [ ] You answered the **2** review questions above.
+- [x] `yarn lint` (or `expo lint`) passes on the repo.
+- [x] Prettier run is defined (`format` / `format:check`) and does not break ESLint (Prettier last in ESLint config).
+- [x] At least **one** working import using **`@/`** (app runs with `yarn start`).
+- [x] README (or equivalent) mentions **commit message convention**.
+- [x] You answered the **2** review questions above.
 
 ---
 
