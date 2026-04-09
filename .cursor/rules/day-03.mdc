@@ -1,0 +1,119 @@
+# Day 3 — Theme nhẹ + `Text` / `Button` trong `shared/` + props có type
+
+**Status:** **Hoàn thành** — theme light, `AppText`, `Button` trong `shared/`; `README` có mục tra cứu ngày 3.
+
+**Trigger:** bạn nói **“Bắt đầu ngày 03”** / **“Start day 3”** — đối chiếu **`day-playbooks.mdc` Section 7**, hàng **Day 3**. File **`checklist.md`** không nằm trong repo này; nếu bạn giữ bản ở chỗ khác, đồng bộ Day 3 ở đó.
+
+**Điều kiện trước:** đã có repo Day 1 (Expo + TS + `src/features/`, `src/shared/`, `src/app/`) và đã qua Day 2 (ESLint, Prettier, alias `@/`, commit convention).
+
+**Hands-off (`project-context`):** **bạn** chạy lệnh và sửa file trên máy trừ khi **explicit** nhờ AI apply thay đổi.
+
+---
+
+## 1. Study (Udemy)
+
+| Course | Section / focus | Việc cần làm |
+| ------ | ----------------- | ------------- |
+| **TS** | Sec 7 — Interface | Dùng **interface** cho object shape; props component, model nhỏ. |
+| **TS** | Sec 8 — Classes | Chỉ phần **type cho model** / factory nhẹ nếu cần — **không** ép OOP nặng trong RN. |
+| **AR** | Sec 5 — Component Reusability (bắt đầu) | Tách UI tái dùng; props rõ; tránh duplicate style cho “chuẩn app”. |
+
+**Gợi ý:** Day 3 không cần xem hết Sec 5 AR — đủ để áp dụng 1–2 component dùng chung.
+
+---
+
+## 2. Mục tiêu ngày 3
+
+- **Theme sáng (light)** dạng **token** (màu nền, chữ chính/phụ, accent tối thiểu, có thể thêm spacing/font size cơ bản).
+- **`Text`** và **`Button`** (hoặc tên `AppText` / `PrimaryButton` — chọn một quy ước và giữ nhất quán) đặt trong **`src/shared/`**, **props gõ TypeScript rõ** (`interface` / `type`, extend `TextProps`, `PressableProps` hoặc tương đương).
+- **Một màn** (ví dụ `HomeScreen`) **dùng** theme + 2 component shared để chứng minh luồng — không cần dark mode trong ngày này.
+- **Một commit** kiểu: `feat: add light theme and shared text button`.
+
+---
+
+## 3. Steps (bạn chạy local)
+
+### Step 1 — Theme light
+
+Tạo module theme, ví dụ:
+
+- `src/shared/theme/colors.ts` — object màu (`background`, `textPrimary`, `textSecondary`, `accent`, …), hoặc
+- `src/shared/theme/index.ts` — gom `colors` + `spacing` (số nhỏ: `xs`, `sm`, `md`).
+
+**Nguyên tắc:** theme là **dữ liệu** (object/constants), không nhét logic nặng. TypeScript: có thể `as const` + `typeof` để infer type nếu bạn muốn strict hơn.
+
+### Step 2 — `Text` dùng chung
+
+- File ví dụ: `src/shared/components/AppText.tsx` (hoặc `ThemedText.tsx`).
+- Props: extend `TextProps` từ `react-native`, thêm variant tùy chọn (ví dụ `title` | `body` | `caption`) **hoặc** chỉ `variant` + map sang `style` dựa trên theme.
+- Mặc định màu chữ lấy từ theme (không hard-code `#555` rải rác trong feature nếu đã có token).
+
+### Step 3 — `Button` dùng chung
+
+- File ví dụ: `src/shared/components/Button.tsx`.
+- Dùng `Pressable` (hoặc `TouchableOpacity` nếu bạn thích — nhất quán một pattern).
+- Props có type: `label: string`, `onPress`, optional `disabled`, optional `variant` (primary/secondary) map sang style + `accessibilityRole="button"` (tối thiểu a11y).
+- Style nút dùng màu từ theme.
+
+### Step 4 — Public API `shared/`
+
+- Cập nhật **`src/shared/index.ts`**: export theme + `AppText` + `Button` (hoặc export từ `components/index.ts` rồi re-export ở `shared/index.ts` — chọn cấu trúc phẳng hoặc một cấp `components/`, đừng over-engineer).
+
+### Step 5 — Gắn vào feature
+
+- Sửa **`HomeScreen`** (hoặc `AppRoot` nếu chỉ đổi nền): dùng màu nền từ theme, thay `Text` RN bằng component shared, thêm một `Button` (ví dụ `onPress` chỉ `console.log` hoặc `Alert.alert` tạm).
+
+Chạy:
+
+```bash
+yarn lint
+yarn start
+```
+
+Sửa lỗi lint/type cho đến khi sạch.
+
+### Step 6 — Git
+
+```bash
+git add .
+git status
+git commit -m "feat: add light theme and shared text button"
+```
+
+---
+
+## 4. Kiến trúc / hygiene
+
+- **`shared/`** cho thứ **dùng lại ở nhiều feature** hoặc **chuẩn UI toàn app**; tránh nhét business logic đặc thù một màn vào đây.
+- **Feature** giữ layout + data + điều hướng; nhận “cái nhìn” từ shared qua props/variant.
+
+---
+
+## 5. Review (trả lời ngắn sau khi xong)
+
+1. **Khi nào** tách sang **`shared/`**, **khi nào** giữ trong feature?
+
+*(Tham chiếu Section 7: cùng câu hỏi “Review” của Day 3.)*
+
+---
+
+## 6. Interview (tuỳ chọn)
+
+1. Bạn **type props** cho component dùng chung như thế nào khi vừa cần `TextProps` vừa có variant riêng?
+2. Theme object **static** vs **Context** — Day 3 chưa cần Context; khi nào bạn sẽ nâng lên `ThemeProvider`?
+
+---
+
+## 7. Definition of Done (DoD)
+
+- [x] Có **theme light** (ít nhất màu nền + chữ chính/phụ) ở `src/shared/` hoặc submodule rõ ràng.
+- [x] Có **`Text`** và **`Button`** shared, **props có type TypeScript** (interface/type + extend props RN khi phù hợp).
+- [x] **`HomeScreen`** (hoặc màn demo) **dùng** theme + 2 component đó; app chạy (`yarn start`) và **`yarn lint`** pass.
+- [x] **`src/shared/index.ts`** export được phần bạn muốn feature import (ví dụ `import { AppText, Button, theme } from '@/shared'` hoặc tương đương).
+- [ ] Đã trả lời **câu review** ở mục 5.
+
+---
+
+## 8. Next: Day 4
+
+Theo **`day-playbooks.mdc` Section 7**, **Day 4** — `api/` layer + kiểu response list; mock token interceptor. Tạo **`day-04.mdc`** khi bắt đầu ngày 4 (cùng pattern file này).

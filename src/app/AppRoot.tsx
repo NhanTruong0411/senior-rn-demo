@@ -1,4 +1,5 @@
 import { HomeScreen } from "@/features/home";
+import { theme } from "@/shared";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
 
@@ -9,7 +10,7 @@ export function AppRoot() {
   return (
     <View style={styles.root}>
       <HomeScreen />
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
     </View>
   );
 }
@@ -17,6 +18,6 @@ export function AppRoot() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: theme.colors.background,
   },
 });

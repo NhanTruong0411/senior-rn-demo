@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { AppText, Button, theme } from "@/shared";
+import { Alert, StyleSheet, View } from "react-native";
 
 /**
  * Placeholder for the first vertical slice (list/detail/auth will follow the roadmap).
@@ -6,8 +7,17 @@ import { StyleSheet, Text, View } from "react-native";
 export function HomeScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Senior RN demo</Text>
-      <Text style={styles.subtitle}>Day 1 — scaffold + feature folders</Text>
+      <AppText variant="title">Senior RN demo</AppText>
+      <AppText variant="caption" style={styles.subtitle}>
+        Day 3 — light theme + shared AppText and Button
+      </AppText>
+      <Button
+        label="Tap me"
+        onPress={() => {
+          Alert.alert("Day 3", "Shared Button works.");
+        }}
+        style={styles.button}
+      />
     </View>
   );
 }
@@ -17,16 +27,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 24,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 8,
+    padding: theme.spacing.lg,
+    backgroundColor: theme.colors.background,
   },
   subtitle: {
-    fontSize: 15,
-    color: "#555",
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
     textAlign: "center",
+  },
+  button: {
+    marginTop: theme.spacing.sm,
+    minWidth: 160,
   },
 });

@@ -52,15 +52,15 @@ Có thể dùng `yarn commit` (Commitizen) để được gợi ý type + subjec
 
 Dùng mục này để **đối chiếu lại** với playbook `.cursor/rules/day-02.mdc` khi cần.
 
-| Hạng mục | Trong repo |
-| -------- | ---------- |
-| ESLint (Expo, flat config) | `eslint.config.mjs` — `eslint-config-expo/flat.js`; script **`yarn lint`** (= `expo lint`) |
-| Prettier | `.prettierrc`, `.prettierignore`; **`yarn format`**, **`yarn format:check`** |
-| ESLint ↔ Prettier | `eslint-plugin-prettier/recommended` trong `eslint.config.mjs` (Prettier chạy như rule ESLint; không xung đột với format) |
-| Path alias `@/` → `src/` | `tsconfig.json`: `paths` `@/*`; **`babel.config.js`**: `babel-plugin-module-resolver`, `alias: { "@": "./src" }` |
-| Ví dụ import `@/` | `src/app/AppRoot.tsx`: `import { HomeScreen } from "@/features/home"` |
-| Commit style | Mục **Commit message** ở trên + `yarn commit` / `.cz-config.js` (kiểu Conventional Commits) |
-| Khác (tuỳ chọn sau này) | `husky`, `lint-staged` trong `package.json` — có thể bật hook sau |
+| Hạng mục                   | Trong repo                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| ESLint (Expo, flat config) | `eslint.config.mjs` — `eslint-config-expo/flat.js`; script **`yarn lint`** (= `expo lint`)                                |
+| Prettier                   | `.prettierrc`, `.prettierignore`; **`yarn format`**, **`yarn format:check`**                                              |
+| ESLint ↔ Prettier          | `eslint-plugin-prettier/recommended` trong `eslint.config.mjs` (Prettier chạy như rule ESLint; không xung đột với format) |
+| Path alias `@/` → `src/`   | `tsconfig.json`: `paths` `@/*`; **`babel.config.js`**: `babel-plugin-module-resolver`, `alias: { "@": "./src" }`          |
+| Ví dụ import `@/`          | `src/app/AppRoot.tsx`: `import { HomeScreen } from "@/features/home"`                                                     |
+| Commit style               | Mục **Commit message** ở trên + `yarn commit` / `.cz-config.js` (kiểu Conventional Commits)                               |
+| Khác (tuỳ chọn sau này)    | `husky`, `lint-staged` trong `package.json` — có thể bật hook sau                                                         |
 
 **Kiểm tra nhanh sau khi đổi cấu hình:**
 
@@ -114,4 +114,30 @@ Entry gốc: `index.ts` ở root đăng ký `AppRoot` từ `src/app`.
 
 Repo giữ **trung lập domain** (catalog, feed, inbox… đặt tên tuỳ bạn). Từ vựng FinTech không bắt buộc.
 
-**Ngày tiếp theo:** xem `day-playbooks.mdc` / `checklist.md` mục 7 — **Ngày 3** (theme nhẹ, `Text`/`Button` dùng chung, props có type). Tạo `.cursor/rules/day-03.mdc` khi bắt đầu.
+## Ngày 3 — tra cứu nhanh (theme + `AppText` + `Button`)
+
+Đối chiếu `.cursor/rules/day-03.mdc`. Sau khi triển khai đủ mục dưới, đánh dấu DoD trong playbook.
+
+| Hạng mục            | Trong repo (mục tiêu)                                                                                    |
+| ------------------- | -------------------------------------------------------------------------------------------------------- |
+| Theme light (token) | `src/shared/theme/colors.ts`, `spacing.ts`, `src/shared/theme/index.ts` — export `theme`                 |
+| `AppText`           | `src/shared/components/AppText.tsx` — `variant`: `title` \| `body` \| `caption`, props có type           |
+| `Button`            | `src/shared/components/Button.tsx` — `Pressable`, `primary` \| `secondary`, `accessibilityRole="button"` |
+| Public API          | `src/shared/index.ts` — export `theme`, `AppText`, `Button`                                              |
+| Màn demo            | `HomeScreen` dùng `theme.colors.background`, `AppText`, `Button` (ví dụ `Alert.alert`)                   |
+| Root                | `AppRoot` nền theo `theme.colors.background`                                                             |
+
+**Kiểm tra:**
+
+```bash
+yarn lint
+yarn start
+```
+
+**Definition of Done — ngày 3**
+
+- [x] Theme light + `AppText` + `Button` shared, props TypeScript rõ.
+- [x] `HomeScreen` dùng theme và hai component shared; `yarn lint` pass.
+- [ ] Đã trả lời câu review trong `day-03.mdc` (mục 5).
+
+**Ngày tiếp theo:** **Ngày 4** — lớp `api/` + kiểu response list; mock token interceptor (xem `day-playbooks.mdc` Section 7). Tạo `day-04.mdc` khi bắt đầu.
