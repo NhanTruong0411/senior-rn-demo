@@ -52,7 +52,7 @@
 Tạo `src/shared/api/types.ts`:
 - `type ApiResponse<T> = { data: T; message?: string; ... }`
 - `type ApiError = { code: string; message: string; status?: number }`
-- `type Result<T, E> = { ok: true; data: T } | { ok: false; error: E }`
+- `type Result<T, E> = { status: "success"; data: T } | { status: "error"; error: E }`
 
 ### Step 2 — Client wrapper
 
@@ -70,7 +70,7 @@ Tạo `src/shared/api/client.ts`:
 ### Step 4 — Dùng thử ở một flow nhỏ
 
 - Tạo một API call mẫu ở feature `home` hoặc mock service.
-- UI chỉ xử lý theo `result.ok` thay vì `try/catch` rải rác.
+- UI chỉ xử lý theo `result.status` thay vì `try/catch` rải rác.
 
 ### Step 5 — Verify
 

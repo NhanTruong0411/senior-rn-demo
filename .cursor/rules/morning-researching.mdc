@@ -1,0 +1,658 @@
+---
+alwaysApply: false
+---
+
+
+🧱 PHASE 1 — FUNDAMENTALS (KHÔNG BAO GIỜ LỖI THỜI)
+
+Đây là thứ giúp bạn không bị AI dắt mũi
+
+	•	JavaScript Deep Understanding
+→ Hiểu bản chất: closure, event loop, async, promise
+→ Dùng để: debug bug “ảo ma” mà AI tạo ra
+→ (2026 vẫn là core skill bắt buộc  ￼)
+
+⸻
+
+	•	TypeScript Thinking (không phải syntax)
+→ Hiểu: type system, generics, inference
+→ Dùng để:
+	•	thiết kế API sạch
+	•	tránh bug từ đầu
+→ Senior = “design bằng type”
+
+⸻
+
+	•	Rendering Mental Model (Web + RN)
+→ Hiểu:
+	•	React render flow
+	•	reconciliation
+	•	re-render trigger
+→ Dùng để:
+	•	fix lag
+	•	tránh re-render thừa
+
+⸻
+
+	•	State & Data Flow Fundamentals
+→ Hiểu:
+	•	global vs local state
+	•	server state vs client state
+→ Dùng để:
+	•	tránh spaghetti state
+	•	design app lớn
+
+⸻
+
+🧠 PHASE 2 — ARCHITECTURE (LEVEL UP THỰC SỰ)
+
+Đây là thứ phân biệt Mid vs Senior
+
+⸻
+
+	•	Component Architecture
+→ Tách component đúng:
+	•	dumb vs smart
+	•	reusable vs domain-specific
+→ Dùng để:
+	•	scale UI mà không nát code
+
+⸻
+
+	•	Separation of Concerns
+→ Tách:
+	•	UI / business logic / data layer
+→ Dùng để:
+	•	dễ maintain
+	•	dễ test
+
+⸻
+
+	•	Feature-based Structure (Modularization)
+→ Tổ chức code theo feature, không phải theo file type
+→ Dùng để:
+	•	team lớn vẫn scale được
+
+⸻
+
+	•	Clean Architecture (Frontend/Mobile)
+→ Layers:
+	•	UI
+	•	domain
+	•	data
+→ Dùng để:
+	•	đổi API không vỡ app
+
+⸻
+
+	•	API Contract Thinking
+→ Hiểu:
+	•	request/response shape
+	•	error handling
+	•	edge cases
+→ Dùng để:
+	•	không phụ thuộc backend
+
+⸻
+
+⚙️ PHASE 3 — PERFORMANCE & SYSTEM
+
+AI code chạy được, nhưng thường chạy ngu
+
+⸻
+
+	•	Rendering Performance
+→ memo, useCallback, virtualization
+→ Dùng để:
+	•	giảm lag UI
+
+⸻
+
+	•	Network Optimization
+→ caching, retry, debounce, batching
+→ Dùng để:
+	•	app nhanh & ổn định
+
+⸻
+
+	•	Bundle Optimization
+→ code splitting, lazy load
+→ Dùng để:
+	•	giảm load time
+
+⸻
+
+	•	Mobile Performance (RN-specific)
+→ bridge cost, JS thread vs UI thread
+→ Dùng để:
+	•	fix lag animation / scroll
+
+⸻
+
+	•	Memory & Lifecycle Management
+→ cleanup, avoid leaks
+→ Dùng để:
+	•	tránh crash ngầm
+
+⸻
+
+🔍 PHASE 4 — DEBUGGING (SKILL QUAN TRỌNG NHẤT THỜI AI)
+
+AI càng mạnh → bug càng khó hiểu
+
+⸻
+
+	•	Debugging Mindset
+→ Không đoán, luôn trace
+→ Dùng để:
+	•	xử lý bug production
+
+⸻
+
+	•	Reading Unknown Code
+→ Đọc code người khác / AI viết
+→ Dùng để:
+	•	onboard nhanh
+	•	fix nhanh
+
+⸻
+
+	•	State Debugging
+→ Track data flow
+→ Dùng để:
+	•	fix bug logic khó
+
+⸻
+
+	•	Async Debugging
+→ race condition, timing issue
+→ Dùng để:
+	•	tránh bug “random”
+
+⸻
+
+🤖 PHASE 5 — AI ERA SKILLS (CỰC KỲ QUAN TRỌNG)
+
+Đây là thứ giúp bạn không bị thay thế
+
+⸻
+
+	•	Prompt Engineering for Dev
+→ Viết prompt rõ:
+	•	context
+	•	constraint
+	•	expectation
+→ Dùng để:
+	•	AI code đúng ngay từ đầu
+
+⸻
+
+	•	AI Code Review Skill
+→ Biết:
+	•	code AI đúng/sai chỗ nào
+→ Dùng để:
+	•	không bị “ảo tưởng code đúng”
+
+⸻
+
+	•	AI Orchestration
+→ Chia task:
+	•	UI → AI
+	•	logic → manual
+→ Dùng để:
+	•	tăng tốc x3–5 lần
+
+⸻
+
+	•	Knowing When NOT to Use AI
+→ Ví dụ:
+	•	auth
+	•	payment
+	•	critical logic
+→ Dùng để:
+	•	tránh bug nguy hiểm
+
+⸻
+
+	•	Context Engineering
+→ Feed đúng context cho AI
+→ Dùng để:
+	•	tránh AI dùng pattern lỗi thời  ￼
+
+⸻
+
+🎯 PHASE 6 — PRODUCT & UX THINKING
+
+Senior không chỉ code — mà build “product”
+
+⸻
+
+	•	UX Thinking
+→ Hiểu user dùng như thế nào
+→ Dùng để:
+	•	không build feature vô nghĩa
+
+⸻
+
+	•	Business Thinking
+→ Feature impact gì?
+→ Dùng để:
+	•	ưu tiên đúng
+
+⸻
+
+	•	Edge Case Thinking
+→ User làm ngu thì sao?
+→ Dùng để:
+	•	tránh bug production
+
+⸻
+
+🔗 PHASE 7 — FULLSTACK AWARENESS
+
+Xu hướng 2026: FE → Fullstack  ￼
+
+⸻
+
+	•	API Design Basics
+→ REST / GraphQL
+→ Dùng để:
+	•	làm việc độc lập
+
+⸻
+
+	•	Authentication Flow
+→ token, refresh, security
+→ Dùng để:
+	•	build app thật
+
+⸻
+
+	•	Database Thinking (basic)
+→ relational vs NoSQL
+→ Dùng để:
+	•	hiểu data flow
+
+⸻
+
+	•	Realtime Systems
+→ websocket / streaming
+→ Dùng để:
+	•	build app modern
+
+⸻
+
+🧪 PHASE 8 — TESTING & QUALITY
+
+⸻
+
+	•	Unit Testing
+→ test logic
+→ Dùng để:
+	•	tránh regression
+
+⸻
+
+	•	Integration Testing
+→ test flow
+→ Dùng để:
+	•	đảm bảo feature chạy thật
+
+⸻
+
+	•	E2E Testing
+→ test user flow
+→ Dùng để:
+	•	confidence deploy
+
+⸻
+
+	•	Code Quality Mindset
+→ readable > clever
+→ Dùng để:
+	•	team scale
+
+⸻
+
+🧑‍💼 PHASE 9 — SENIOR BEHAVIOR (NHIỀU NGƯỜI BỎ QUA)
+
+⸻
+
+	•	Decision Making
+→ chọn solution, không phải code
+→ Dùng để:
+	•	lead technical direction
+
+⸻
+
+	•	Trade-off Thinking
+→ nhanh vs sạch vs scale
+→ Dùng để:
+	•	phù hợp business
+
+⸻
+
+	•	Communication
+→ explain cho:
+	•	PM
+	•	designer
+	•	junior
+→ Dùng để:
+	•	trở thành lead
+
+⸻
+
+	•	Mentoring
+→ giúp người khác grow
+→ Dùng để:
+	•	lên Senior/Lead thật sự
+
+⸻
+
+🧭 Cách bạn nên dùng roadmap này
+
+Mỗi sáng:
+	1.	Pick 1 keyword
+	2.	Tự hỏi:
+	•	“Cái này dùng để giải quyết vấn đề gì?”
+	3.	Search:
+	•	blog
+	•	GitHub
+	•	production case
+	4.	Không cần code ngay — chỉ cần hiểu sâu
+
+  Dưới đây là phiên bản Interview Checklist (cực thực chiến) — mình convert từ roadmap trước thành dạng:
+
+❓ Câu hỏi interview thật
+🎯 Nhà tuyển dụng đang test cái gì
+⚠️ Red flag nếu trả lời sai
+
+Bạn chỉ cần mỗi sáng pick 1–2 câu → tự trả lời → research → là lên trình rất nhanh.
+
+⸻
+
+🧱 1. FUNDAMENTALS (FAIL LÀ OUT SỚM)
+
+⸻
+
+❓ Explain event loop trong JavaScript
+	•	🎯 Test:
+	•	Hiểu async thật sự hay chỉ dùng async/await
+	•	⚠️ Red flag:
+	•	Không phân biệt microtask vs macrotask
+	•	Không giải thích được Promise chạy khi nào
+
+⸻
+
+❓ Khi nào dùng useMemo vs useCallback?
+	•	🎯 Test:
+	•	Hiểu render optimization
+	•	⚠️ Red flag:
+	•	“Dùng để optimize” nhưng không biết optimize cái gì
+
+⸻
+
+❓ React re-render khi nào?
+	•	🎯 Test:
+	•	Hiểu core React (rất quan trọng)
+	•	⚠️ Red flag:
+	•	Trả lời mơ hồ kiểu “khi state thay đổi”
+
+⸻
+
+❓ Difference giữa state vs ref?
+	•	🎯 Test:
+	•	Render behavior
+	•	⚠️ Red flag:
+	•	Không hiểu ref không trigger re-render
+
+⸻
+
+🧠 2. ARCHITECTURE (CÂU NÀY QUYẾT ĐỊNH SENIOR HAY KHÔNG)
+
+⸻
+
+❓ Design architecture cho 1 app React Native lớn
+	•	🎯 Test:
+	•	Modular thinking
+	•	Boundaries
+	•	⚠️ Red flag:
+	•	Chỉ nói folder structure
+
+👉 Interview thực tế:
+
+Senior phải nói về module boundaries + contracts, không chỉ folder  ￼
+
+⸻
+
+❓ Bạn organize code theo cách nào?
+	•	🎯 Test:
+	•	Feature-based vs layer-based
+	•	⚠️ Red flag:
+	•	“Tôi chia components, screens, utils…”
+
+⸻
+
+❓ Làm sao tránh coupling giữa các module?
+	•	🎯 Test:
+	•	Clean architecture
+	•	⚠️ Red flag:
+	•	Import lung tung giữa các feature
+
+⸻
+
+❓ Làm sao handle shared state giữa nhiều feature?
+	•	🎯 Test:
+	•	State strategy
+	•	⚠️ Red flag:
+	•	Đẩy hết vào Redux
+
+⸻
+
+⚙️ 3. PERFORMANCE (AI CODE FAIL Ở ĐÂY)
+
+⸻
+
+❓ App bị lag → bạn debug thế nào?
+	•	🎯 Test:
+	•	Systematic thinking
+	•	⚠️ Red flag:
+	•	“Tôi dùng memo”
+
+👉 Đúng phải là:
+	1.	Profile
+	2.	Identify bottleneck (JS/UI/bridge)
+	3.	Fix đúng chỗ  ￼
+
+⸻
+
+❓ FlatList optimize như thế nào?
+	•	🎯 Test:
+	•	RN real experience
+	•	⚠️ Red flag:
+	•	Không biết windowing / keyExtractor
+
+⸻
+
+❓ JS thread vs UI thread khác gì?
+	•	🎯 Test:
+	•	Deep RN knowledge
+	•	⚠️ Red flag:
+	•	Không biết animation chạy ở đâu
+
+⸻
+
+❓ Khi nào dùng native module?
+	•	🎯 Test:
+	•	Trade-off thinking
+	•	⚠️ Red flag:
+	•	“Khi cần performance” (quá chung chung)
+
+⸻
+
+🔍 4. DEBUGGING (QUAN TRỌNG NHẤT THỜI AI)
+
+⸻
+
+❓ Bạn debug bug production như thế nào?
+	•	🎯 Test:
+	•	Process
+	•	⚠️ Red flag:
+	•	Không có flow rõ ràng
+
+⸻
+
+❓ Làm sao debug race condition?
+	•	🎯 Test:
+	•	Async understanding
+	•	⚠️ Red flag:
+	•	Không biết reproduce bug
+
+⸻
+
+❓ Bạn đọc code người khác như thế nào?
+	•	🎯 Test:
+	•	Senior mindset
+	•	⚠️ Red flag:
+	•	Nhảy vào sửa ngay
+
+⸻
+
+🤖 5. AI ERA (CÂU MỚI 2026)
+
+⸻
+
+❓ Bạn dùng AI trong dev workflow như thế nào?
+	•	🎯 Test:
+	•	Practical AI usage
+	•	⚠️ Red flag:
+	•	“Tôi dùng ChatGPT để code”
+
+⸻
+
+❓ Làm sao kiểm tra code AI viết đúng?
+	•	🎯 Test:
+	•	Critical thinking
+	•	⚠️ Red flag:
+	•	Trust AI blindly
+
+⸻
+
+❓ Khi nào KHÔNG nên dùng AI?
+	•	🎯 Test:
+	•	Judgment
+	•	⚠️ Red flag:
+	•	“AI dùng mọi thứ”
+
+⸻
+
+🎯 6. PRODUCT THINKING
+
+⸻
+
+❓ Feature này có nên build không?
+	•	🎯 Test:
+	•	Business thinking
+	•	⚠️ Red flag:
+	•	Chỉ nói technical
+
+⸻
+
+❓ Bạn handle edge case như thế nào?
+	•	🎯 Test:
+	•	Real-world thinking
+	•	⚠️ Red flag:
+	•	Không nghĩ tới user “ngu”
+
+⸻
+
+🔗 7. FULLSTACK AWARENESS
+
+⸻
+
+❓ Design API cho feature này
+	•	🎯 Test:
+	•	Backend thinking
+	•	⚠️ Red flag:
+	•	Chỉ nói frontend
+
+⸻
+
+❓ Authentication flow hoạt động như thế nào?
+	•	🎯 Test:
+	•	Security awareness
+	•	⚠️ Red flag:
+	•	Không biết refresh token
+
+⸻
+
+🧪 8. TESTING
+
+⸻
+
+❓ Bạn test app như thế nào?
+	•	🎯 Test:
+	•	Quality mindset
+	•	⚠️ Red flag:
+	•	“QA test”
+
+⸻
+
+❓ Test gì là đủ?
+	•	🎯 Test:
+	•	Prioritization
+	•	⚠️ Red flag:
+	•	Test mọi thứ / không test gì
+
+⸻
+
+🧑‍💼 9. SENIOR BEHAVIOR (ROUND CUỐI RẤT HAY HỎI)
+
+⸻
+
+❓ Bạn handle tech debt như thế nào?
+	•	🎯 Test:
+	•	Decision making
+	•	⚠️ Red flag:
+	•	“Refactor hết”
+
+⸻
+
+❓ Bạn disagree với PM thì làm gì?
+	•	🎯 Test:
+	•	Communication
+	•	⚠️ Red flag:
+	•	Emotional / passive
+
+⸻
+
+❓ Bạn mentor junior như thế nào?
+	•	🎯 Test:
+	•	Leadership
+	•	⚠️ Red flag:
+	•	“Tôi giúp khi họ hỏi”
+
+⸻
+
+🔥 CÁI QUAN TRỌNG NHẤT (NHIỀU NGƯỜI FAIL)
+
+👉 Theo thực tế interview:
+	•	Senior interview KHÔNG hỏi:
+	•	syntax
+	•	trivia
+	•	Mà hỏi:
+	•	trade-off
+	•	why
+	•	real experience  ￼
+
+⸻
+
+🧭 Cách dùng checklist này (cực hiệu quả)
+
+Mỗi ngày:
+	1.	Pick 1 câu hỏi
+	2.	Trả lời thành tiếng (quan trọng)
+	3.	Tự hỏi thêm:
+	•	“Why?”
+	•	“Trade-off là gì?”
+	4.	Search case thực tế
