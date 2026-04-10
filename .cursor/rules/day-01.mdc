@@ -2,18 +2,17 @@
 
 **Trigger:** you say **“Start day 1”** — cross-check `checklist.md` **Section 7** (Day 1 row) + `prompt.md` (Strict mode + **Hands-off**: **you** run commands locally; AI does not scaffold for you unless you explicitly ask).
 
+## 0. Presentation rules for Day files
+
+- Keep content short and easy to scan.
+- Each bullet should contain one clear point.
+- Prefer direct instructions over long paragraphs.
+- Avoid heavy decorative formatting.
+- Add a brief day recap to `review.mdc` after completion.
+
 ---
 
-## 1. Study (Udemy)
-
-| Course | Section                                                  | What to do                                                               |
-| ------ | -------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **AR** | Sec 1 — Expo Setup                                       | Watch the **full** section (short).                                      |
-| **TS** | Sec 1 — Getting Started + Sec 2 — What is a Type System? | **Skim** enough to remember: types catch errors early; what `strict` is. |
-
----
-
-## 2. Day 1 goals
+## 1. Day 1 goals
 
 - A working **Expo + TypeScript** repo on simulator/emulator.
 - Structure **`src/features/`, `src/shared/`, `src/app/`** (or equivalent) + a **placeholder screen**.
@@ -201,4 +200,4 @@ II. Trade-offs of feature-based architecture?
 
 ## 8. Next: Day 2
 
-See `checklist.md` Section 7, **Day 2** row (ESLint, Prettier, path alias). When you start: if missing, create **`day-02.md`** using the same pattern.
+See `checklist.md` Section 7, Day 2 row (ESLint, Prettier, path alias). When you start, create `day-02.md` if missing, and keep the same concise format.

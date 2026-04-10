@@ -1,0 +1,117 @@
+# Day 4 — `api/` layer + typed response + mock token interceptor
+
+**Status:** Started.
+
+**Trigger:** bạn nói **“Bắt đầu day-04”** / **“Start day 4”**.
+
+**Prerequisite:** Day 3 đã done (theme + shared components + lint/start pass).
+
+**Hands-off:** bạn tự chạy lệnh trên máy; AI chỉ hướng dẫn và review trừ khi bạn yêu cầu AI sửa code trực tiếp.
+
+---
+
+## 0. Quy tắc trình bày
+
+- Viết ngắn, rõ, mỗi bullet một ý.
+- Ưu tiên hướng dẫn thực dụng.
+- Không dùng format dày, rối mắt.
+- Sau khi done, cập nhật `review.mdc`.
+
+---
+
+## 1. Mục tiêu Day 4
+
+- Tạo `api/` layer rõ ràng, tách khỏi UI.
+- Chuẩn hóa kiểu response: `ApiResponse<T>` và `Result<T, E>`.
+- Có một HTTP client wrapper (fetch hoặc axios) dùng chung.
+- Có interceptor/mock middleware để gắn token (và chỗ xử lý 401 cơ bản).
+
+---
+
+## 2. Kết quả cần có (scope)
+
+- `src/shared/api/types.ts`
+  - `ApiResponse<T>`
+  - `ApiError`
+  - `Result<T, E>`
+- `src/shared/api/client.ts`
+  - Hàm request dùng chung (`get`, `post` tối thiểu một hàm).
+  - Trả về `Result<T, ApiError>` thay vì throw bừa bãi.
+- `src/shared/api/interceptors.ts` (hoặc trong `client.ts`)
+  - Mock token attach vào header `Authorization`.
+  - Chuẩn bị hook xử lý 401 (log/clear token/mock logout event).
+- `src/shared/index.ts`
+  - Export các kiểu/hàm API cần dùng ở feature.
+
+---
+
+## 3. Steps (bạn chạy local)
+
+### Step 1 — Type contracts trước (contract-first)
+
+Tạo `src/shared/api/types.ts`:
+- `type ApiResponse<T> = { data: T; message?: string; ... }`
+- `type ApiError = { code: string; message: string; status?: number }`
+- `type Result<T, E> = { ok: true; data: T } | { ok: false; error: E }`
+
+### Step 2 — Client wrapper
+
+Tạo `src/shared/api/client.ts`:
+- Viết `request<T>()` chung.
+- Map success/error về `Result<T, ApiError>`.
+- Không để UI tự parse lỗi thô từ network layer.
+
+### Step 3 — Mock token interceptor
+
+- Viết logic inject token vào headers trước request.
+- Thêm nhánh bắt 401 để chuẩn hóa behavior (ví dụ trả `UNAUTHORIZED`).
+- Day 4 chỉ cần mock token, chưa cần secure storage thật.
+
+### Step 4 — Dùng thử ở một flow nhỏ
+
+- Tạo một API call mẫu ở feature `home` hoặc mock service.
+- UI chỉ xử lý theo `result.ok` thay vì `try/catch` rải rác.
+
+### Step 5 — Verify
+
+Chạy:
+
+```bash
+yarn lint
+yarn start
+```
+
+---
+
+## 4. Tiêu chí senior cho Day 4
+
+- **Boundary rõ:** UI không biết chi tiết network internals.
+- **Type rõ:** dữ liệu thành công/lỗi có contract, không “stringly typed”.
+- **Một nơi xử lý lỗi chung:** tránh duplicate logic ở nhiều màn.
+- **Mở rộng được:** dễ thêm retry/refresh token ở ngày sau.
+
+---
+
+## 5. Review (trả lời sau khi xong)
+
+1. API response type khác domain/UI type ở điểm nào?
+2. Khi nào nên dùng `Result<T, E>` union thay vì throw exception trực tiếp?
+3. Vì sao interceptor là điểm tốt để xử lý token và 401?
+
+---
+
+## 6. Definition of Done (DoD)
+
+- [ ] Có `api/` layer riêng trong `shared` (hoặc layer tương đương rõ ràng).
+- [ ] Có `ApiResponse<T>`, `ApiError`, `Result<T, E>` và đang dùng thực tế.
+- [ ] Có mock token interceptor (gắn `Authorization`).
+- [ ] Có xử lý nhánh 401 ở một điểm tập trung.
+- [ ] Ít nhất 1 flow trong UI dùng client mới.
+- [ ] `yarn lint` pass và app chạy được.
+- [ ] Đã trả lời 3 câu review ở mục 5.
+
+---
+
+## 7. Next: Day 5
+
+Day 5 đi vào auth flow: login giả lập, lưu token an toàn, protected navigation, và mock logout khi gặp 401.

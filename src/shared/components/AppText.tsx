@@ -1,17 +1,21 @@
 import { theme } from "@/shared/theme";
+import type { AppTheme } from "@/shared/theme";
 import type { TextProps } from "react-native";
-import { Text } from "react-native";
+import { StyleSheet, Text } from "react-native";
 
 export type AppTextVariant = "title" | "body" | "caption";
+export type AppTextColorToken = keyof AppTheme["colors"];
 
 export interface AppTextProps extends TextProps {
   variant?: AppTextVariant;
+  colorToken?: AppTextColorToken;
+  themeOverride?: AppTheme;
 }
 
-const variantStyle = {
+const variantStyles = StyleSheet.create({
   title: {
     fontSize: 20,
-    fontWeight: "600" as const,
+    fontWeight: "700",
     color: theme.colors.textPrimary,
   },
   body: {
@@ -22,8 +26,21 @@ const variantStyle = {
     fontSize: 14,
     color: theme.colors.textSecondary,
   },
-};
+});
 
-export function AppText({ variant = "body", style, ...rest }: AppTextProps) {
-  return <Text style={[variantStyle[variant], style]} {...rest} />;
+export function AppText({
+  variant = "body",
+  colorToken,
+  themeOverride,
+  style,
+  ...rest
+}: AppTextProps) {
+  const activeTheme = themeOverride ?? theme;
+  const defaultColor =
+    variant === "caption" ? activeTheme.colors.textSecondary : activeTheme.colors.textPrimary;
+  const colorStyle = {
+    color: colorToken ? activeTheme.colors[colorToken] : defaultColor,
+  };
+
+  return <Text style={[variantStyles[variant], colorStyle, style]} {...rest} />;
 }

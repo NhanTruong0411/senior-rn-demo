@@ -1,4 +1,17 @@
 /**
+ * Shared color token shape for all theme modes.
+ */
+export type ThemeColors = {
+  background: string;
+  textPrimary: string;
+  textSecondary: string;
+  accent: string;
+  accentPressed: string;
+  onAccent: string;
+  border: string;
+};
+
+/**
  * Light theme color tokens — data only, no logic.
  */
 export const lightColors = {
@@ -9,6 +22,17 @@ export const lightColors = {
   accentPressed: "#1D4ED8",
   onAccent: "#FFFFFF",
   border: "#E5E7EB",
-} as const;
+} satisfies ThemeColors;
 
-export type LightColors = typeof lightColors;
+/**
+ * Dark theme color tokens — same keys as lightColors.
+ */
+export const darkColors = {
+  background: "#0B1220",
+  textPrimary: "#F3F4F6",
+  textSecondary: "#9CA3AF",
+  accent: "#60A5FA",
+  accentPressed: "#3B82F6",
+  onAccent: "#0B1220",
+  border: "#1F2937",
+} satisfies ThemeColors;

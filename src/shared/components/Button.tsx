@@ -1,22 +1,96 @@
 import { theme } from "@/shared/theme";
-import type { PressableProps } from "react-native";
-import { Pressable, StyleSheet, Text } from "react-native";
+import type { AppTheme } from "@/shared/theme";
+import { useState } from "react";
+import type {
+  GestureResponderEvent,
+  StyleProp,
+  TouchableOpacityProps,
+  ViewStyle,
+} from "react-native";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
 export type ButtonVariant = "primary" | "secondary";
 
-export interface ButtonProps extends Omit<PressableProps, "children"> {
+export interface ButtonProps extends Omit<TouchableOpacityProps, "children" | "style"> {
   label: string;
   variant?: ButtonVariant;
   disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
+  themeOverride?: AppTheme;
 }
 
-export function Button({ label, onPress, variant = "primary", disabled = false, accessibilityRole = "button", style, ...rest }: ButtonProps) {
+export function Button({
+  label,
+  onPress,
+  onPressIn,
+  onPressOut,
+  variant = "primary",
+  disabled = false,
+  accessibilityRole = "button",
+  accessibilityLabel,
+  activeOpacity = 0.85,
+  style,
+  themeOverride,
+  accessibilityState,
+  ...rest
+}: ButtonProps) {
+  const [isPressed, setIsPressed] = useState(false);
+  const activeTheme = themeOverride ?? theme;
   const isPrimary = variant === "primary";
+  const mergedAccessibilityState = {
+    ...accessibilityState,
+    disabled,
+  } as const;
+
+  const handlePressIn = (event: GestureResponderEvent) => {
+    setIsPressed(true);
+    onPressIn?.(event);
+  };
+
+  const handlePressOut = (event: GestureResponderEvent) => {
+    setIsPressed(false);
+    onPressOut?.(event);
+  };
+
+  const buttonStyle = [
+    styles.base,
+    {
+      backgroundColor: isPrimary ? activeTheme.colors.accent : "transparent",
+      borderWidth: isPrimary ? 0 : 1,
+      borderColor: isPrimary ? "transparent" : activeTheme.colors.border,
+    },
+    isPressed &&
+      !disabled &&
+      (isPrimary ? { backgroundColor: activeTheme.colors.accentPressed } : styles.secondaryPressed),
+    disabled && styles.disabled,
+    style,
+  ];
 
   return (
-    <Pressable accessibilityRole={accessibilityRole} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.base, isPrimary ? styles.primary : styles.secondary, pressed && !disabled && (isPrimary ? styles.primaryPressed : styles.secondaryPressed), disabled && styles.disabled, style]} {...rest}>
-      <Text style={[styles.label, isPrimary ? styles.labelOnPrimary : styles.labelSecondary, disabled && styles.labelDisabled]}>{label}</Text>
-    </Pressable>
+    <TouchableOpacity
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={mergedAccessibilityState}
+      activeOpacity={activeOpacity}
+      disabled={disabled}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={buttonStyle}
+      {...rest}
+    >
+      <Text
+        style={[
+          styles.label,
+          {
+            color: isPrimary ? activeTheme.colors.onAccent : activeTheme.colors.textPrimary,
+          },
+          disabled && styles.labelDisabled,
+        ]}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
   );
 }
 
@@ -29,17 +103,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 44,
   },
-  primary: {
-    backgroundColor: theme.colors.accent,
-  },
-  primaryPressed: {
-    backgroundColor: theme.colors.accentPressed,
-  },
-  secondary: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
   secondaryPressed: {
     opacity: 0.85,
   },
@@ -49,12 +112,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: "600",
-  },
-  labelOnPrimary: {
-    color: theme.colors.onAccent,
-  },
-  labelSecondary: {
-    color: theme.colors.textPrimary,
   },
   labelDisabled: {
     opacity: 0.9,

@@ -8,18 +8,17 @@
 
 **Hands-off (`project-context`):** **you** run installs and edit files locally unless you explicitly ask the AI to apply changes.
 
+## 0. Presentation rules for Day files
+
+- Keep sections short and scannable.
+- Use one idea per bullet.
+- Prefer practical examples over long theory.
+- Avoid decorative or dense formatting.
+- Add a short recap to `review.mdc` when the day is done.
+
 ---
 
-## 1. Study (Udemy)
-
-| Course | Section | What to do |
-| ------ | ------- | ---------- |
-| **TS** | Sec 3 — Type annotations | Enough to **use** types on variables, params, and return values consistently. |
-| **TS** | Sec 4 — Functions & objects | Focus on **typing props** and small **API-shaped** objects (mirrors RN components + JSON). |
-
----
-
-## 2. Day 2 goals
+## 1. Day 2 goals
 
 - **ESLint** wired for **Expo + React Native + TypeScript** (run via `yarn lint`).
 - **Prettier** for formatting; **no fighting ESLint** (use `eslint-config-prettier` or Expo’s recommended setup that already defers formatting to Prettier where applicable).
@@ -189,4 +188,4 @@ git commit -m "chore: add eslint, prettier, and path alias"
 
 ## 8. Next: Day 3
 
-See **`day-playbooks.mdc` Section 7**, **Day 3** — light theme + shared `Text`/`Button`, typed props. Create **`day-03.mdc`** when you start Day 3 (same pattern as this file).
+See `day-playbooks.mdc` Section 7. Day 3 focuses on light/dark theme and shared typed `Text`/`Button`. Create `day-03.mdc` when you start Day 3, using the same concise format.
