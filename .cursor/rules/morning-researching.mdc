@@ -656,3 +656,54 @@ Mỗi ngày:
 	•	“Why?”
 	•	“Trade-off là gì?”
 	4.	Search case thực tế
+
+⸻
+
+📅 MORNING PLAN — 30 NGÀY (MỖI NGÀY 30 PHÚT)
+
+Format 30 phút cố định mỗi ngày:
+	•	10' trả lời thành tiếng (không nhìn tài liệu)
+	•	15' research docs/blog/GitHub
+	•	5' chốt 3 ý: definition, trade-off, khi áp dụng
+
+Tuần 1 — Fundamentals (nền tảng không lệch)
+	•	Day 1: Event loop, microtask vs macrotask, Promise chạy khi nào [x]
+	•	Day 2: Closure, scope chain, ứng dụng thực tế trong React hook [ ]
+	•	Day 3: Async/await, error propagation, tránh swallow error [ ]
+	•	Day 4: React re-render trigger, reconciliation, render flow [ ]
+	•	Day 5: useMemo vs useCallback vs React.memo (khi nào KHÔNG dùng) [ ]
+	•	Day 6: state vs ref vs derived state, anti-pattern thường gặp [ ]
+	•	Day 7: TypeScript inference, generics, type narrowing cho API/UI [ ]
+
+Tuần 2 — Architecture (tách biệt Mid và Senior)
+	•	Day 8: Component architecture: dumb/smart, reusable/domain-specific [ ]
+	•	Day 9: Separation of concerns: UI, business logic, data layer [ ]
+	•	Day 10: Feature-based structure vs layer-based structure [ ]
+	•	Day 11: Module boundaries + contracts (interface, input/output) [ ]
+	•	Day 12: Shared state strategy: local, global, server state [ ]
+	•	Day 13: API contract thinking: request/response/error/edge case [ ]
+	•	Day 14: Coupling và dependency direction giữa các feature [ ]
+
+Tuần 3 — Performance + Debugging (kỹ năng sống còn)
+	•	Day 15: Profiling mindset: đo trước, tối ưu sau [ ]
+	•	Day 16: FlatList optimization: keyExtractor, windowing, item memo [ ]
+	•	Day 17: JS thread vs UI thread, bridge cost trong React Native [ ]
+	•	Day 18: Network optimization: caching, retry, debounce, batching [ ]
+	•	Day 19: Memory & lifecycle: cleanup, leak pattern thường gặp [ ]
+	•	Day 20: Debug production bug flow: reproduce -> isolate -> verify fix [ ]
+	•	Day 21: Debug race condition và timing issue (async tracing) [ ]
+
+Tuần 4 — Senior behaviors + Interview readiness
+	•	Day 22: AI code review checklist: correctness, edge case, security [ ]
+	•	Day 23: Khi nào không dùng AI (auth, payment, critical logic) [ ]
+	•	Day 24: Product thinking: feature impact, KPI, ưu tiên theo business [ ]
+	•	Day 25: Edge-case thinking: loading/error/empty/offline state [ ]
+	•	Day 26: Authentication flow: access token, refresh token, logout safety [ ]
+	•	Day 27: Testing strategy: unit/integration/e2e, test gì là đủ [ ]
+	•	Day 28: Tech debt handling: impact, cost, rollout plan [ ]
+	•	Day 29: Disagree with PM: data-first communication, trade-off rõ ràng [ ]
+	•	Day 30: Mentoring + decision making: hướng dẫn junior, chốt solution [ ]
+
+Checkpoint cuối mỗi tuần (thêm 5 phút nếu có thể):
+	•	Tự ghi âm 2 phút trả lời 1 câu interview bất kỳ của tuần đó
+	•	Tự chấm: rõ ràng chưa, có trade-off chưa, có ví dụ production chưa

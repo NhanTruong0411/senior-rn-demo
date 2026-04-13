@@ -1,117 +1,137 @@
-# Day 4 — `api/` layer + typed response + mock token interceptor
+---
+description: Day 4 — API layer co ban, lam dung scope, giai thich truoc khi code
+alwaysApply: false
+---
+
+# Day 4 — API layer co ban
 
 **Status:** Started.
 
-**Trigger:** bạn nói **“Bắt đầu day-04”** / **“Start day 4”**.
+## 0. Luat lam bai
 
-**Prerequisite:** Day 3 đã done (theme + shared components + lint/start pass).
-
-**Hands-off:** bạn tự chạy lệnh trên máy; AI chỉ hướng dẫn và review trừ khi bạn yêu cầu AI sửa code trực tiếp.
-
----
-
-## 0. Quy tắc trình bày
-
-- Viết ngắn, rõ, mỗi bullet một ý.
-- Ưu tiên hướng dẫn thực dụng.
-- Không dùng format dày, rối mắt.
-- Sau khi done, cập nhật `review.mdc`.
+- Lam toi step nao, chi code dung step do.
+- Khong them tinh nang cua step sau.
+- Moi step xong phai dung, tu review 1 lan roi moi qua step tiep.
+- Neu code vuot qua muc can cho step hien tai: cat bot ngay.
+- AI phai **giai thich concept truoc** khi viet code. Khong duoc dum code xuong ma khong giai thich.
 
 ---
 
-## 1. Mục tiêu Day 4
+## 1. Muc tieu Day 4
 
-- Tạo `api/` layer rõ ràng, tách khỏi UI.
-- Chuẩn hóa kiểu response: `ApiResponse<T>` và `Result<T, E>`.
-- Có một HTTP client wrapper (fetch hoặc axios) dùng chung.
-- Có interceptor/mock middleware để gắn token (và chỗ xử lý 401 cơ bản).
+Ban dang hoc cach tao 1 API layer — noi duy nhat de goi server, xu ly loi, va tra ket qua ve cho UI.
 
----
-
-## 2. Kết quả cần có (scope)
-
-- `src/shared/api/types.ts`
-  - `ApiResponse<T>`
-  - `ApiError`
-  - `Result<T, E>`
-- `src/shared/api/client.ts`
-  - Hàm request dùng chung (`get`, `post` tối thiểu một hàm).
-  - Trả về `Result<T, ApiError>` thay vì throw bừa bãi.
-- `src/shared/api/interceptors.ts` (hoặc trong `client.ts`)
-  - Mock token attach vào header `Authorization`.
-  - Chuẩn bị hook xử lý 401 (log/clear token/mock logout event).
-- `src/shared/index.ts`
-  - Export các kiểu/hàm API cần dùng ở feature.
+Tai sao can lam dieu nay?
+- Neu khong co API layer, moi man hinh tu goi fetch, tu xu ly loi — code lap lai va kho bao tri.
+- Voi API layer, UI chi can nhan ket qua (thanh cong hoac loi) ma khong can biet chi tiet network.
 
 ---
 
-## 3. Steps (bạn chạy local)
+## 2. Scope tung step
 
-### Step 1 — Type contracts trước (contract-first)
+### Step 1 — Types (xong moi qua Step 2)
 
-Tạo `src/shared/api/types.ts`:
-- `type ApiResponse<T> = { data: T; message?: string; ... }`
-- `type ApiError = { code: string; message: string; status?: number }`
-- `type Result<T, E> = { status: "success"; data: T } | { status: "error"; error: E }`
+File: `src/shared/api/types.ts`
 
-### Step 2 — Client wrapper
+**Concept:** Dinh nghia "hop dong" giua API layer va UI. UI biet API se tra ve dang gi.
 
-Tạo `src/shared/api/client.ts`:
-- Viết `request<T>()` chung.
-- Map success/error về `Result<T, ApiError>`.
-- Không để UI tự parse lỗi thô từ network layer.
+Chi can:
+- `ApiResponse<T>` — dang data server tra ve.
+- `ApiError` — dang loi chuan.
+- `Result<T, E>` — "thanh cong hoac loi", UI check 1 cho duy nhat.
 
-### Step 3 — Mock token interceptor
+Khong lam them: helper phuc tap, mapper domain, utility generic nang cao.
 
-- Viết logic inject token vào headers trước request.
-- Thêm nhánh bắt 401 để chuẩn hóa behavior (ví dụ trả `UNAUTHORIZED`).
-- Day 4 chỉ cần mock token, chưa cần secure storage thật.
+### Step 2 — Client wrapper (step hien tai)
 
-### Step 4 — Dùng thử ở một flow nhỏ
+File: `src/shared/api/client.ts`
 
-- Tạo một API call mẫu ở feature `home` hoặc mock service.
-- UI chỉ xử lý theo `result.status` thay vì `try/catch` rải rác.
+**Concept:** Ham goi fetch dung chung, tra ve Result de UI khong can try/catch.
+
+Chi can:
+- `request<T>()` — ham chinh goi fetch.
+- `get<T>()` — shortcut cho GET.
+- `post<T, TBody>()` — shortcut cho POST.
+- Tat ca tra ve `Result<T, ApiError>`.
+
+**Khong lam them o Step 2:**
+- Interceptor
+- Token attach Authorization
+- Refresh token
+- Retry/backoff
+- Cache layer
+
+### Step 3 — Mock token + 401
+
+Chi khi Step 2 on moi lam:
+- Inject mock token vao header.
+- Chuan hoa nhanh 401 (tra ve UNAUTHORIZED).
+
+### Step 4 — Dung thu 1 flow nho
+
+- Dung client moi o 1 API call.
+- UI xu ly qua `result.status`.
 
 ### Step 5 — Verify
 
-Chạy:
-
-```bash
-yarn lint
-yarn start
-```
+- `yarn lint`
+- `yarn start`
 
 ---
 
-## 4. Tiêu chí senior cho Day 4
+## 3. Definition of Done theo tung step
 
-- **Boundary rõ:** UI không biết chi tiết network internals.
-- **Type rõ:** dữ liệu thành công/lỗi có contract, không “stringly typed”.
-- **Một nơi xử lý lỗi chung:** tránh duplicate logic ở nhiều màn.
-- **Mở rộng được:** dễ thêm retry/refresh token ở ngày sau.
+### DoD cho Step 1
+
+- [ ] Co `types.ts` voi `ApiResponse<T>`, `ApiError`, `Result<T, E>`.
+- [ ] Moi type co comment giai thich no la gi, dung khi nao.
+
+### DoD cho Step 2
+
+- [ ] `client.ts` don gian, doc 1 lan hieu duoc.
+- [ ] Co `request/get/post`, tat ca tra ve `Result<T, ApiError>`.
+- [ ] Khong throw loi tho ra UI.
+- [ ] Khong co logic interceptor/token.
+- [ ] Moi function co comment giai thich: lam gi, dung khi nao, tai sao can.
+
+**Chi khi du cac muc tren moi duoc qua Step 3.**
+
+### DoD cho Step 3
+
+- [ ] Co mock token duoc inject vao header.
+- [ ] Co xu ly nhanh 401.
+
+### DoD cho Step 4
+
+- [ ] Co 1 API call that su dung client moi.
+- [ ] UI chi check `result.status`, khong tu parse loi.
+
+### DoD cho Step 5
+
+- [ ] `yarn lint` pass.
+- [ ] `yarn start` chay duoc.
 
 ---
 
-## 5. Review (trả lời sau khi xong)
+## 4. Tieu chi senior can giu
 
-1. API response type khác domain/UI type ở điểm nào?
-2. Khi nào nên dùng `Result<T, E>` union thay vì throw exception trực tiếp?
-3. Vì sao interceptor là điểm tốt để xử lý token và 401?
-
----
-
-## 6. Definition of Done (DoD)
-
-- [ ] Có `api/` layer riêng trong `shared` (hoặc layer tương đương rõ ràng).
-- [ ] Có `ApiResponse<T>`, `ApiError`, `Result<T, E>` và đang dùng thực tế.
-- [ ] Có mock token interceptor (gắn `Authorization`).
-- [ ] Có xử lý nhánh 401 ở một điểm tập trung.
-- [ ] Ít nhất 1 flow trong UI dùng client mới.
-- [ ] `yarn lint` pass và app chạy được.
-- [ ] Đã trả lời 3 câu review ở mục 5.
+- Don gian truoc, mo rong sau.
+- Boundary ro giua UI va network.
+- Khong over-engineer o ngay hoc nen tang.
+- Code de doc = code tot. Code kho doc = code can viet lai.
 
 ---
 
-## 7. Next: Day 5
+## 5. Review ngan sau moi step
 
-Day 5 đi vào auth flow: login giả lập, lưu token an toàn, protected navigation, và mock logout khi gặp 401.
+### Sau Step 1:
+1. `ApiResponse<T>` khac gi voi kieu du lieu UI dung tren man hinh?
+2. `Result<T, E>` giup UI nhu the nao so voi try/catch?
+
+### Sau Step 2:
+1. Vi sao Step 2 chua nen them interceptor?
+2. Phan nao trong `client.ts` con co the don gian them?
+
+### Sau Step 3:
+1. Vi sao interceptor la cho tot de gan token?
+2. Khi nhan 401, app nen lam gi?

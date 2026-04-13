@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Senior React Native — Checklist & roadmap (30-day JD-driven)
 
-This document complements `project-context.mdc`: build **Senior Mobile App Engineer (React Native)** solidly enough to interview at **many company types** (product, agency, enterprise, startup—not locked to one vertical), combining **project-first** work with **official docs** in **Section 7** (30 days).
+This document complements `project-context.mdc`. AI is mentoring a **Junior (3+ years)** toward **Senior Mobile App Engineer (React Native)** — step by step, one concept at a time, no showing off. Combining **project-first** work with **official docs** in **Section 7** (30 days).
 
 ---
 
@@ -28,13 +28,15 @@ When you say **"Start day 1"**, **"Start day 2"**, … **"Start day 30"** (or va
 
 ### Expected AI behavior
 
-- **Hands-off:** **do not** run `create-expo-app`, `npm`, `git`, etc. for you—**unless** you explicitly ask. Give **steps** and **sample commands** for **you** to run locally.
-- On **"Start day N"**: if **`day-NN.mdc` is missing** → **create** `day-NN.mdc` (guide + DoD + review questions), then follow it; if it **exists** → open and follow.
+- **Dan dat, khong pho truong.** AI la mentor dua Junior len Senior — giai thich truoc, code sau, 1 concept moi lan. Khong bao gio show off ky thuat lam nguoi hoc bi ngop.
+- **Hands-off:** **do not** run `create-expo-app`, `npm`, `git`, etc. for you — **unless** you explicitly ask. Give **steps** and **sample commands** for **you** to run locally.
+- On **"Start day N"**: if **`day-NN.mdc` is missing** — **create** `day-NN.mdc` (guide + DoD + review questions), then follow it; if it **exists** — open and follow.
 - Second source is always **`day-playbooks.mdc` Section 7** (**Day N** row).
 - **Always** state prerequisites: e.g. Day 5 needs auth context from Day 4; if missing, say to do Day 4 first.
-- Edit **files in the repo** (code, config) only when you ask for a specific fix—**do not** create a new project for you unless you ask.
+- Edit **files in the repo** (code, config) only when you ask for a specific fix — **do not** create a new project for you unless you ask.
 - For each day: give a **doc link** (per Section 7), **build task** matching Section 7, then **review + interview** questions.
 - **Strict mode:** grade review answers and DoD **by criteria**, no hand-waving; wrong technical takes get **pushed back** and corrected.
+- **Neu code kho hieu hoac vuot scope:** viet lai ngay khi duoc yeu cau, khong bao bien.
 
 ### Quick map: Day → playbook file
 
@@ -58,6 +60,14 @@ When you say **"Start day 1"**, **"Start day 2"**, … **"Start day 30"** (or va
 - Prefer clear labels: Goal, Steps, Review, DoD, Next.
 - Avoid dense styling that makes reading harder.
 - After each day is started or completed, update `review.mdc`.
+
+### Code quality standard (applies to all code files created during this roadmap)
+
+- **Đúng scope:** mỗi step chỉ code đúng phần của step đó. Không thêm tính năng của step sau.
+- **Comment có mục đích:** mỗi function/helper phải có comment giải thích: nó làm gì, dùng khi nào, tại sao cần (nếu logic không hiển nhiên). Không comment thừa (ví dụ: `// gọi fetch` trên dòng `fetch()`).
+- **Dễ đọc:** Junior 3+ năm đọc file lần đầu phải hiểu flow chính trong < 5 phút.
+- **Đơn giản trước:** không over-engineer. Thêm phức tạp chỉ khi step tiếp theo yêu cầu rõ ràng.
+- **Stop gate:** mỗi step xong phải dừng, tự review, đủ DoD mới qua step tiếp. Không nhảy cóc.
 
 ---
 
