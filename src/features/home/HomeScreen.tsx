@@ -1,15 +1,23 @@
-import { AppText, Button, getTheme, spacing, type ThemeMode } from "@/shared";
-import { useMemo, useState } from "react";
-import { Alert, StyleSheet, View, useColorScheme } from "react-native";
+import { AppText, Button, spacing } from "@/shared";
+import { Alert, StyleSheet, View } from "react-native";
+import { useHomeLogic } from "./hooks/useHomeLogic";
+import { useHomeUI } from "./hooks/useHomeUI";
 
 /**
  * Placeholder for the first vertical slice (list/detail/auth will follow the roadmap).
  */
 export function HomeScreen() {
-  const systemScheme = useColorScheme();
-  const [manualMode, setManualMode] = useState<ThemeMode | null>(null);
-  const activeMode: ThemeMode = manualMode ?? (systemScheme === "dark" ? "dark" : "light");
-  const activeTheme = useMemo(() => getTheme(activeMode), [activeMode]);
+  /**
+   * UI state (theme, mode) duoc lay tu useHomeUI.
+   * Muc dich: HomeScreen chi con render + bind event, khong giu qua nhieu state.
+   */
+  const { activeMode, activeTheme, toggleThemeMode } = useHomeUI();
+
+  /**
+   * Business logic (goi API + xu ly ket qua) duoc lay tu useHomeLogic.
+   * Muc dich: tach logic nghiep vu khoi UI layer de de scale.
+   */
+  const { apiMessage, runApiDemo } = useHomeLogic();
 
   return (
     <View style={[styles.container, { backgroundColor: activeTheme.colors.background }]}>
@@ -17,7 +25,7 @@ export function HomeScreen() {
         Senior RN demo
       </AppText>
       <AppText variant="caption" themeOverride={activeTheme} style={styles.subtitle}>
-        Day 3 — shared AppText/Button + light/dark theme
+        Day 4 — Step 4 API flow with result.status
       </AppText>
       <Button
         label="Tap me"
@@ -31,11 +39,18 @@ export function HomeScreen() {
         label={`Switch to ${activeMode === "light" ? "dark" : "light"} mode`}
         variant="secondary"
         themeOverride={activeTheme}
-        onPress={() => {
-          setManualMode(activeMode === "light" ? "dark" : "light");
-        }}
+        onPress={toggleThemeMode}
         style={styles.button}
       />
+      <Button
+        label="Run Step 4 API call"
+        themeOverride={activeTheme}
+        onPress={runApiDemo}
+        style={styles.button}
+      />
+      <AppText variant="caption" themeOverride={activeTheme} style={styles.apiMessage}>
+        {apiMessage}
+      </AppText>
     </View>
   );
 }
@@ -55,5 +70,9 @@ const styles = StyleSheet.create({
   button: {
     marginTop: spacing.sm,
     minWidth: 160,
+  },
+  apiMessage: {
+    marginTop: spacing.md,
+    textAlign: "center",
   },
 });

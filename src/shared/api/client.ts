@@ -1,23 +1,25 @@
 /**
- * client.ts — HTTP client dung chung cho toan app.
+ * client.ts — HTTP client dùng chung cho toàn app.
  *
- * Day la noi DUY NHAT goi API. UI khong goi fetch truc tiep.
+ * Đây là nơi DUY NHẤT gọi API. UI không gọi fetch trực tiếp.
  *
- * Cach hoat dong:
- *   1. UI goi get() hoac post().
- *   2. Ham request() ben trong goi fetch, xu ly response.
- *   3. Tra ve Result: { status: "success", data } hoac { status: "error", error }.
- *   4. UI chi can check result.status — khong can try/catch.
+ * Cách hoạt động:
+ *   1. UI gọi get() hoặc post().
+ *   2. Hàm request() bên trong gọi fetch, xử lý response.
+ *   3. Trả về Result: { status: "success", data } hoặc { status: "error", error }.
+ *   4. UI chỉ cần check result.status — không cần try/catch.
  *
- * Scope hien tai (Step 2 — Day 4):
- *   Chi co request(), get(), post().
- *   Chua co: interceptor, token, retry, cache.
+ * Scope hiện tại (Step 2 — Day 4):
+ *   - request(), get(), post().
+ *   - Mock token attach vào header Authorization.
+ *   - Có điểm xử lý tập trung khi server trả 401.
+ *   - Chưa có: refresh token, retry, cache.
  */
 
 import type { ApiError, ApiResponse, Result } from "./types";
 
 // ----------------------------------------------------------------
-// Types — cau hinh cho moi request
+// Types — cấu hình cho mỗi request
 // ----------------------------------------------------------------
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -36,9 +38,16 @@ type RequestConfig = {
 
 const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
+/**
+ * Mock token dùng cho Step 3.
+ * Mục đích: giả lập user đã đăng nhập để test flow Authorization.
+ * Day 5 sẽ đổi sang token thật (đọc từ secure storage).
+ */
+const MOCK_ACCESS_TOKEN = "mock-access-token-step-3";
+
 // ----------------------------------------------------------------
-// Helper duy nhat — ghep base URL va path thanh full URL.
-// Vi du: ("https://api.example.com", "/users") => "https://api.example.com/users"
+// Helper duy nhất — ghép base URL và path thành full URL.
+// Ví dụ: ("https://api.example.com", "/users") => "https://api.example.com/users"
 // ----------------------------------------------------------------
 const buildUrl = (baseUrl: string, path: string): string => {
   if (!baseUrl) return path;
@@ -49,14 +58,32 @@ const buildUrl = (baseUrl: string, path: string): string => {
   return `${base}${route}`;
 };
 
+/**
+ * Lấy token để gắn vào request headers.
+ * Hiện tại trả về mock token.
+ * Sau này có thể thay bằng: đọc token từ secure storage.
+ */
+const getMockAccessToken = (): string | null => MOCK_ACCESS_TOKEN;
+
+/**
+ * Điểm xử lý tập trung khi server trả về 401.
+ * Mục đích:
+ *   - Không để mỗi màn hình tự xử lý 401 riêng lẻ.
+ *   - Có sẵn cho Day 5 (logout, clear token, navigate login).
+ * Hiện tại chỉ log cảnh báo để dễ nhận biết trong lúc dev.
+ */
+const handleUnauthorized = (): void => {
+  console.warn("[API] 401 Unauthorized. Token có thể đã hết hạn hoặc không hợp lệ.");
+};
+
 // ----------------------------------------------------------------
-// Ham chinh — doc tu tren xuong duoi la hieu toan bo flow
+// Hàm chính — đọc từ trên xuống dưới là hiểu toàn bộ flow
 // ----------------------------------------------------------------
 
 /**
- * request() — goi fetch va tra ve Result<T, ApiError>.
+ * request() — gọi fetch và trả về Result<T, ApiError>.
  *
- * Vi du su dung:
+ * Ví dụ sử dụng:
  *   const result = await request<User[]>({ path: "/users" });
  *
  *   if (result.status === "success") {
@@ -66,7 +93,7 @@ const buildUrl = (baseUrl: string, path: string): string => {
  *     console.log(result.error.message); // "Not found" ...
  *   }
  *
- * Ham nay KHONG BAO GIO throw. Moi loi deu nam trong result.error.
+ * Hàm này KHÔNG BAO GIỜ throw. Mọi lỗi đều nằm trong result.error.
  */
 export const request = async <T>({
   path,
@@ -76,7 +103,7 @@ export const request = async <T>({
   body,
 }: RequestConfig): Promise<Result<T, ApiError>> => {
   try {
-    // --- Buoc 1: Chuan bi headers ---
+    // --- Bước 1: Chuẩn bị headers ---
     const requestHeaders: Record<string, string> = {
       Accept: "application/json",
       ...headers,
@@ -86,15 +113,23 @@ export const request = async <T>({
       requestHeaders["Content-Type"] = "application/json";
     }
 
-    // --- Buoc 2: Goi fetch ---
+    // --- Bước 2 (Step 3): Gắn mock token vào Authorization header ---
+    // Nếu có token, mọi request sẽ gửi kèm token.
+    // Nếu không có token (null), bỏ qua header này.
+    const accessToken = getMockAccessToken();
+    if (accessToken) {
+      requestHeaders.Authorization = `Bearer ${accessToken}`;
+    }
+
+    // --- Bước 3: Gọi fetch ---
     const response = await fetch(buildUrl(baseUrl, path), {
       method,
       headers: requestHeaders,
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
 
-    // --- Buoc 3: Doc response body (JSON) ---
-    // Neu body khong phai JSON (vi du HTML 502), json() se throw => ta bat va tra undefined.
+    // --- Bước 4: Đọc response body (JSON) ---
+    // Nếu body không phải JSON (ví dụ HTML 502), json() sẽ throw => ta bắt và trả undefined.
     let payload: unknown;
     try {
       payload = await response.json();
@@ -102,8 +137,13 @@ export const request = async <T>({
       payload = undefined;
     }
 
-    // --- Buoc 4: Neu server tra loi (4xx, 5xx) => tra ve error ---
-    if (!response.status) {
+    // --- Bước 5: Nếu server trả lỗi (4xx, 5xx) => trả về error ---
+    if (!response.ok) {
+      // (Step 3) Nếu là 401, gọi điểm xử lý tập trung.
+      if (response.status === 401) {
+        handleUnauthorized();
+      }
+
       return {
         status: "error",
         error: {
@@ -120,9 +160,9 @@ export const request = async <T>({
       };
     }
 
-    // --- Buoc 5: Thanh cong => lay data tu response ---
-    // Nhieu API tra ve { data: T, message: "..." }. Ta chi can T.
-    // Neu response khong co field "data", tra nguyen payload.
+    // --- Bước 6: Thành công => lấy data từ response ---
+    // Nhiều API trả về { data: T, message: "..." }. Ta chỉ cần T.
+    // Nếu response không có field "data", trả nguyên payload.
     let data: T;
 
     if (typeof payload === "object" && payload !== null && "data" in payload) {
@@ -133,7 +173,7 @@ export const request = async <T>({
 
     return { status: "success", data };
   } catch (error: unknown) {
-    // --- Buoc 6: Fetch throw (mat mang, DNS fail, ...) => tra ve network error ---
+    // --- Bước 7: Fetch throw (mất mạng, DNS fail, ...) => trả về network error ---
     return {
       status: "error",
       error: {
@@ -145,12 +185,12 @@ export const request = async <T>({
 };
 
 // ----------------------------------------------------------------
-// Shortcuts — de UI goi ngan gon hon
+// Shortcuts — để UI gọi ngắn gọn hơn
 // ----------------------------------------------------------------
 
 /**
- * get() — shortcut cho GET request (lay data, khong co body).
- * Vi du: const result = await get<User[]>("/users");
+ * get() — shortcut cho GET request (lấy data, không có body).
+ * Ví dụ: const result = await get<User[]>("/users");
  */
 export const get = <T>(
   path: string,
@@ -158,8 +198,8 @@ export const get = <T>(
 ): Promise<Result<T, ApiError>> => request<T>({ ...config, path, method: "GET" });
 
 /**
- * post() — shortcut cho POST request (gui data len server).
- * Vi du: const result = await post<LoginResponse>("/auth/login", { email, password });
+ * post() — shortcut cho POST request (gửi data lên server).
+ * Ví dụ: const result = await post<LoginResponse>("/auth/login", { email, password });
  */
 export const post = <T, TBody = unknown>(
   path: string,
