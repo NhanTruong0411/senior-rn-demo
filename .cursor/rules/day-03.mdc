@@ -120,13 +120,13 @@ I chose useColorScheme + fallback to local state.
 
 2. Theme object **static** vs **Context** — khi nào đủ dùng static, khi nào nâng lên `ThemeProvider`?
 	-	Static theme object is enough when:
-    •	Theme does not change at runtime
-    •	App is small/simple
-    •	No need for global re-render
+        •	Theme does not change at runtime
+        •	App is small/simple
+        •	No need for global re-render
 	-	Use Context (ThemeProvider) when:
-    •	Theme can change dynamically (light/dark toggle, user preference)
-    •	Want global access without prop drilling
-    •	Need consistent re-render across the app
+        •	Theme can change dynamically (light/dark toggle, user preference)
+        •	Want global access without prop drilling
+        •	Need consistent re-render across the app
 
 ---
 

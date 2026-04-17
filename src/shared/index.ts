@@ -13,3 +13,6 @@ export {
   themes,
 } from "./theme";
 export type { AppTheme, ThemeMode } from "./theme";
+export type { ApiError, ApiErrorCode, ApiResponse, Result } from "./api/types";
+export { get, post, request } from "./api/client";
+export type { HttpMethod, RequestConfig } from "./api/client";
