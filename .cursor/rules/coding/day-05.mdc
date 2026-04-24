@@ -1,0 +1,485 @@
+---
+description: Day 5 — Auth flow + SecureStore + protected navigation
+alwaysApply: false
+---
+
+# Day 5 — Auth flow: SecureStore + protected navigation + mock 401 → logout
+
+**Status:** ✅ Done — all 7 steps verified, DoD met.
+
+## 0. Luật làm bài
+
+- Làm tới step nào, chỉ code đúng step đó.
+- Không thêm tính năng của step sau.
+- Mỗi step xong phải dừng, tự review 1 lần rồi mới qua step tiếp.
+- Nếu code vượt quá mức cần cho step hiện tại: cắt bớt ngay.
+- AI phải **giải thích concept trước** khi viết code. Không được dump code mà không giải thích.
+
+---
+
+## 1. Mục tiêu Day 5
+
+Bạn đang học cách xây dựng **auth flow cơ bản** cho mobile app — từ login đến bảo vệ navigation.
+
+**Tại sao cần?**
+- Hầu hết mọi app production đều có auth. Đây là skill bắt buộc cho Senior.
+- Auth flow đúng = user không thấy màn hình họ không có quyền.
+- Token lưu sai chỗ = lỗ hổng bảo mật nghiêm trọng.
+
+**Prerequisite:** Day 4 phải done (API layer với `Result<T, E>`, mock token, 401 handling).
+
+---
+
+## 2. Docs cần đọc (15–30 phút)
+
+Đọc **trước** khi code. Chỉ đọc phần liên quan, không cần đọc hết.
+
+| Doc | URL | Đọc phần nào |
+|-----|-----|--------------|
+| Expo SecureStore | `docs.expo.dev/versions/latest/sdk/securestore` | Toàn bộ (ngắn). Hiểu `setItemAsync`, `getItemAsync`, `deleteItemAsync`. |
+| React Navigation — Auth flow | `reactnavigation.org/docs/auth-flow` | Toàn bộ. Hiểu pattern conditional navigator (auth stack vs app stack). |
+| React Navigation — Getting started | `reactnavigation.org/docs/getting-started` | Phần installation cho Expo. |
+
+---
+
+## 3. Scope từng step
+
+### Step 1 — Install dependencies
+
+**Concept:** React Navigation cần vài package để hoạt động trên Expo. SecureStore là SDK có sẵn của Expo.
+
+Các lệnh cần chạy (bạn tự chạy):
+
+```bash
+# React Navigation core + native stack
+npx expo install @react-navigation/native @react-navigation/native-stack
+
+# Dependencies bắt buộc cho React Navigation trên Expo
+npx expo install react-native-screens react-native-safe-area-context
+
+# SecureStore — lưu token an toàn
+npx expo install expo-secure-store
+```
+
+**Không cần thêm:** `react-native-gesture-handler` (Day 16 mới cần).
+
+### Step 2 — Token storage service (SecureStore)
+
+File: `src/shared/auth/tokenStorage.ts`
+
+**Concept:** Tại sao SecureStore chứ không phải AsyncStorage?
+
+- **AsyncStorage** = lưu data dạng plain text trong file system. Bất kỳ app nào có root access đều đọc được.
+- **SecureStore** = lưu vào **iOS Keychain** / **Android Keystore** — được mã hoá bởi hệ điều hành. Ngay cả khi device bị jailbreak, data vẫn khó đọc hơn nhiều.
+- **Quy tắc:** token (access + refresh) = bí mật → phải dùng SecureStore. Data không nhạy cảm (theme preference, onboarding flag) → AsyncStorage OK.
+
+Chỉ cần:
+- `saveTokens(accessToken, refreshToken)` — lưu cả 2.
+- `getAccessToken()` — lấy access token.
+- `getRefreshToken()` — lấy refresh token (dùng cho refresh flow sau này).
+- `clearTokens()` — xoá cả 2 (dùng khi logout).
+
+**Không làm thêm:** encryption layer riêng, biometric lock, token rotation.
+
+### Step 3 — Auth state machine (AuthProvider)
+
+File: `src/shared/auth/AuthContext.tsx`
+
+**Concept:** Auth có 4 trạng thái — đây là "state machine" đơn giản nhất.
+
+```
+ ┌─────────┐
+│  IDLE    │ ← App vừa mở, chưa biết user đã login chưa
+└────┬─────┘
+     │ (check SecureStore)
+     ▼
+┌──────────────┐     ┌────────────────────┐
+│ AUTHENTICATED│ ←───│ LOGIN thành công   │
+└──────┬───────┘     └────────────────────┘
+       │ (logout / 401)
+       ▼
+┌──────────────────┐
+│ UNAUTHENTICATED  │ ← Chưa login hoặc token hết hạn
+└──────────────────┘
+```
+
+Trạng thái thứ 4: **LOADING** — đang gọi API login, chờ server phản hồi. UI hiện spinner.
+
+Chỉ cần:
+- `AuthProvider` wrap toàn app — cung cấp auth state + actions.
+- `useAuth()` hook — component nào cần auth thì gọi hook này.
+- State: `idle | loading | authenticated | unauthenticated`.
+- Actions: `login(email, password)`, `logout()`, `restoreToken()`.
+- `restoreToken()` chạy khi app mở — check SecureStore xem có token không.
+
+**Không làm thêm:** refresh token flow, biometric re-auth, role-based access.
+
+### Step 4 — Navigation setup (auth stack vs app stack)
+
+Files:
+- `src/app/navigation/RootNavigator.tsx`
+- `src/app/navigation/AuthStack.tsx`
+- `src/app/navigation/AppStack.tsx`
+
+**Concept:** Conditional navigator — React Navigation docs gọi là "auth flow pattern".
+
+```
+RootNavigator
+├── auth state === "idle"         → SplashScreen (hoặc loading)
+├── auth state === "unauthenticated" → AuthStack (LoginScreen)
+└── auth state === "authenticated"   → AppStack (HomeScreen, ...)
+```
+
+Bạn **không** dùng `navigation.navigate("Login")` để chuyển. Thay vào đó, **state quyết định stack nào hiển thị**. Khi auth state thay đổi, React Navigation tự animate chuyển stack.
+
+Chỉ cần:
+- `RootNavigator` đọc auth state, render đúng stack.
+- `AuthStack` chứa `LoginScreen`.
+- `AppStack` chứa `HomeScreen` (screen hiện có).
+- Update `AppRoot.tsx` để wrap `NavigationContainer` + `AuthProvider`.
+
+**Không làm thêm:** deep linking, tab navigator, drawer.
+
+### Step 5 — Login screen (fake login)
+
+File: `src/features/auth/LoginScreen.tsx`
+
+Chỉ cần:
+- 2 input: email + password.
+- 1 nút Login.
+- Gọi `useAuth().login(email, password)`.
+- Login logic: **mock** — bất kỳ email/password nào cũng thành công. Trả về mock JWT. Lưu vào SecureStore.
+- Hiện loading state khi đang "gọi API".
+- Hiện error nếu email trống.
+
+**Không làm thêm:** form validation phức tạp, forgot password, register, social login.
+
+### Step 6 — Connect 401 → logout
+
+File: update `src/shared/api/client.ts`
+
+**Concept:** Nối 401 handler (Day 4) với auth state machine (Day 5).
+
+- Khi `handleUnauthorized()` chạy → gọi `clearTokens()` + cập nhật auth state thành `unauthenticated`.
+- `getMockAccessToken()` → đổi thành `getAccessToken()` từ SecureStore.
+- Vì `getAccessToken()` là async, cần cập nhật `request()` cho phù hợp.
+
+**Lưu ý:** Đây là phần kết nối Day 4 → Day 5. Đảm bảo service call hiện có (`getSampleTodoService`) vẫn hoạt động.
+
+### Step 7 — Verify
+
+- `yarn lint` pass.
+- `yarn start` chạy được.
+- Flow test thủ công:
+  1. Mở app → thấy Login screen (chưa có token).
+  2. Nhập email + password → bấm Login → chuyển sang Home screen.
+  3. Đóng app, mở lại → vẫn ở Home screen (token đã lưu).
+  4. (Optional) Test 401: HomeScreen gọi API bị 401 → tự chuyển về Login.
+
+---
+
+## 4. Definition of Done theo từng step
+
+### DoD cho Step 1
+
+- [x] Đã cài `@react-navigation/native`, `@react-navigation/native-stack`.
+- [x] Đã cài `react-native-screens`, `react-native-safe-area-context`.
+- [x] Đã cài `expo-secure-store`.
+- [x] `yarn start` vẫn chạy được (không break app hiện tại).
+
+### DoD cho Step 2
+
+- [x] Có `tokenStorage.ts` với `saveTokens`, `getAccessToken`, `getRefreshToken`, `clearTokens`.
+- [x] Mỗi function có comment giải thích.
+- [x] Dùng `expo-secure-store`, không dùng AsyncStorage cho token.
+
+### DoD cho Step 3
+
+- [x] Có `AuthProvider` và `useAuth()` hook.
+- [x] Auth state có 4 trạng thái: `idle`, `loading`, `authenticated`, `unauthenticated`.
+- [x] `restoreToken()` chạy khi mount — check SecureStore.
+- [x] `login()` lưu mock token vào SecureStore.
+- [x] `logout()` xoá token + set state `unauthenticated`.
+
+### DoD cho Step 4
+
+- [x] Có `RootNavigator`, `AuthStack`, `AppStack`.
+- [x] Auth state `idle` → loading/splash.
+- [x] Auth state `unauthenticated` → AuthStack (LoginScreen).
+- [x] Auth state `authenticated` → AppStack (HomeScreen).
+- [x] `AppRoot.tsx` updated: `NavigationContainer` + `AuthProvider`.
+
+### DoD cho Step 5
+
+- [x] Có `LoginScreen` với email + password input.
+- [x] Bấm Login → gọi `useAuth().login()` → chuyển sang Home.
+- [x] Có loading state khi đang login.
+- [x] Có basic validation (email không để trống).
+
+### DoD cho Step 6
+
+- [x] `client.ts` dùng `getAccessToken()` từ SecureStore (thay mock token).
+- [x] `handleUnauthorized()` gọi `clearTokens()` + trigger logout.
+- [x] Service call hiện có vẫn hoạt động.
+
+### DoD cho Step 7
+
+- [x] `yarn lint` pass.
+- [x] `yarn start` chạy được.
+- [x] Flow hoạt động: Login → Home → persist → 401 → back to Login.
+
+---
+
+## 5. Tiêu chí senior cần giữ
+
+- **Auth là state machine** — không phải tập hợp boolean (`isLoggedIn`, `isLoading`, ...). Dùng 1 state duy nhất.
+- **Token ở nơi an toàn** — SecureStore, không phải AsyncStorage hay global variable.
+- **Navigation theo state** — không `navigate("Login")` thủ công. State thay đổi → stack tự chuyển.
+- **Single source of truth** — auth state ở 1 nơi (AuthProvider), mọi component đọc từ đó.
+- **Boundary rõ ràng:** Auth logic ở `shared/auth/`, navigation ở `app/navigation/`, screen ở `features/`.
+
+---
+
+## 6. Review ngắn sau mỗi step (câu hỏi)
+
+### Sau Step 2:
+1. Tại sao AsyncStorage không đủ an toàn cho refresh token?
+2. SecureStore lưu data ở đâu trên iOS vs Android?
+
+### Sau Step 3:
+1. Auth state machine có bao nhiêu trạng thái? Mô tả mỗi trạng thái.
+2. Tại sao dùng 1 state duy nhất thay vì nhiều boolean (`isLoggedIn`, `isLoading`)?
+
+### Sau Step 4:
+1. Tại sao không dùng `navigation.navigate("Login")` khi 401?
+2. React Navigation xử lý animation thế nào khi stack thay đổi?
+
+### Sau Step 6:
+1. 401 handler hiện tại làm gì? Flow đầy đủ từ 401 → login screen?
+2. Khi nào cần refresh token thay vì logout thẳng?
+
+---
+
+## 7. Review — Đáp án chi tiết
+
+> AI trả lời trực tiếp để bạn đọc, hiểu, và ghi nhớ.
+
+### Sau Step 2
+
+**Q1: Tại sao AsyncStorage không đủ an toàn cho refresh token?**
+
+AsyncStorage lưu data dưới dạng **plain text** trong file system:
+- **iOS:** SQLite file trong app sandbox.
+- **Android:** SQLite hoặc RocksDB trong app data folder.
+
+Vấn đề:
+- Trên device rooted/jailbroken, bất kỳ app nào cũng đọc được folder data của app khác.
+- Backup device (iCloud, Google) có thể chứa luôn file AsyncStorage → token bị lộ.
+- Nếu ai đó có physical access + device rooted → đọc token trực tiếp.
+
+SecureStore dùng:
+- **iOS Keychain** — data được mã hoá bằng hardware key. Ngay cả Apple cũng không đọc được.
+- **Android Keystore** — data mã hoá bằng key do hardware chip quản lý.
+
+**Quy tắc nhớ:** Bất kỳ thứ gì có thể dùng để "giả danh" user (token, password, API key) → **phải** dùng secure storage.
+
+---
+
+**Q2: SecureStore lưu data ở đâu trên iOS vs Android?**
+
+| Platform | Storage backend | Encryption |
+|----------|----------------|------------|
+| iOS | Keychain Services | AES-256, key do Secure Enclave quản lý |
+| Android | Android Keystore + SharedPreferences (encrypted) | AES, key do hardware-backed Keystore quản lý |
+
+Lưu ý: SecureStore của Expo có giới hạn **2048 bytes** per value. Token JWT thường < 1KB nên OK. Nếu cần lưu data lớn hơn → dùng giải pháp khác (encrypted database).
+
+---
+
+### Sau Step 3
+
+**Q1: Auth state machine có bao nhiêu trạng thái? Mô tả mỗi trạng thái.**
+
+4 trạng thái:
+
+| State | Nghĩa | UI hiển thị |
+|-------|--------|-------------|
+| `idle` | App vừa mở, đang check SecureStore xem có token không | Splash / loading screen |
+| `loading` | Đang gọi API login, chờ server phản hồi | Login screen + spinner |
+| `authenticated` | Có token hợp lệ, user đã đăng nhập | App stack (Home, ...) |
+| `unauthenticated` | Không có token, hoặc token đã bị xoá (logout / 401) | Auth stack (Login) |
+
+**Flow chính:**
+```
+App mở → idle → (có token?) → authenticated
+                             → unauthenticated → (login) → loading → authenticated
+authenticated → (401 / logout) → unauthenticated
+```
+
+---
+
+**Q2: Tại sao dùng 1 state duy nhất thay vì nhiều boolean?**
+
+Nếu dùng boolean:
+```typescript
+// ❌ Nhiều boolean → dễ conflict
+const [isLoggedIn, setIsLoggedIn] = useState(false);
+const [isLoading, setIsLoading] = useState(false);
+const [isChecking, setIsChecking] = useState(true);
+```
+
+Vấn đề:
+- `isLoggedIn = true` + `isLoading = true` → trạng thái vô nghĩa. Đang login lại khi đã login?
+- 3 boolean = 8 tổ hợp (2³). Nhưng chỉ có 4 trạng thái hợp lệ. 4 tổ hợp còn lại là **trạng thái không thể xảy ra** (impossible states) — nhưng code vẫn phải xử lý chúng.
+- Dễ bug: quên set 1 boolean → UI hiện sai.
+
+Nếu dùng 1 state (discriminated union):
+```typescript
+// ✅ 1 state = 4 giá trị hợp lệ. Không có impossible state.
+type AuthStatus = "idle" | "loading" | "authenticated" | "unauthenticated";
+```
+
+- TypeScript kiểm tra tất cả case (exhaustive check).
+- Không ai có thể tạo ra trạng thái vô nghĩa.
+- UI logic đơn giản: `switch (status)` → render đúng component.
+
+> **Nhớ:** "Make impossible states impossible" — đây là tư duy senior.
+
+---
+
+### Sau Step 4
+
+**Q1: Tại sao không dùng `navigation.navigate("Login")` khi 401?**
+
+Nếu dùng `navigate("Login")`:
+- Login screen nằm **trong cùng stack** với Home → user bấm Back → quay lại Home (dù chưa login lại). Bug bảo mật.
+- Phải gọi `navigation` từ bên ngoài component (ví dụ: từ API interceptor). Phức tạp, cần `navigationRef` global.
+- Nhiều edge case: deep link + navigate cùng lúc, race condition.
+
+Nếu dùng **state-driven navigation** (pattern của React Navigation):
+- Auth state = `unauthenticated` → React Navigation tự render AuthStack. **Không có Home screen trong stack** → user không bấm Back được.
+- Interceptor chỉ cần đổi auth state → navigation tự xử lý.
+- Không cần `navigationRef`, không cần import navigation ở API layer.
+
+> **Nhớ:** State drives navigation, not the other way around.
+
+---
+
+**Q2: React Navigation xử lý animation thế nào khi stack thay đổi?**
+
+Khi bạn dùng conditional rendering trong `NavigationContainer`:
+```tsx
+{isAuthenticated ? <AppStack /> : <AuthStack />}
+```
+
+React Navigation detect rằng toàn bộ stack bị swap. Nó tự:
+1. Unmount stack cũ (tất cả screen trong đó).
+2. Mount stack mới.
+3. Apply **default transition animation** (slide hoặc fade, tuỳ platform).
+
+Bạn **không cần** viết animation thủ công. Nếu muốn custom, dùng `animationTypeForReplace` option.
+
+---
+
+### Sau Step 6
+
+**Q1: 401 handler hiện tại làm gì? Flow từ 401 → login screen?**
+
+Flow:
+1. API trả 401 → `request()` detect `response.status === 401`.
+2. `handleUnauthorized()` chạy → gọi `clearTokens()` (xoá token khỏi SecureStore).
+3. `clearTokens()` xong → auth state chuyển thành `unauthenticated`.
+4. `RootNavigator` detect state change → swap sang `AuthStack`.
+5. User thấy Login screen.
+
+Toàn bộ flow xảy ra **tự động**. UI không cần biết "tại sao" chuyển về login — chỉ biết auth state đổi.
+
+---
+
+**Q2: Khi nào cần refresh token thay vì logout thẳng?**
+
+**Logout thẳng** khi:
+- Refresh token cũng hết hạn (server trả 401 cho cả refresh call).
+- User chủ động bấm Logout.
+- Server revoke tất cả token (ví dụ: đổi mật khẩu).
+
+**Refresh trước** khi:
+- Access token hết hạn nhưng refresh token còn hạn.
+- Flow: 401 → gửi refresh token → nhận access token mới → retry request ban đầu → user không biết gì.
+
+**Day 5 chưa làm refresh token** — đúng scope. Đây là nâng cấp cho ngày sau (khi cần thiết).
+
+> **Nhớ:** 401 ≠ logout ngay. Thử refresh trước. Chỉ logout khi refresh cũng fail.
+
+---
+
+## 8. Interview Q&A — Day 5
+
+### Q1: Describe the auth state machine for a mobile app.
+
+**Answer:**
+
+A mobile auth flow has 4 states:
+- **Idle** — app just opened, checking secure storage for existing tokens.
+- **Loading** — login API call in progress.
+- **Authenticated** — valid token exists, user has access.
+- **Unauthenticated** — no token, or token was invalidated (expired, revoked, 401).
+
+Transitions:
+- `idle` → check storage → `authenticated` (token found) or `unauthenticated` (no token).
+- `unauthenticated` → user submits credentials → `loading` → `authenticated` (success) or `unauthenticated` (failure).
+- `authenticated` → 401 response or manual logout → `unauthenticated`.
+
+I represent this as a single state variable, not multiple booleans, to make impossible states impossible.
+
+---
+
+### Q2: Why is AsyncStorage not enough for refresh tokens?
+
+**Answer:**
+
+AsyncStorage stores data as **plain text** in the file system — SQLite on iOS, SQLite or RocksDB on Android. On a rooted or jailbroken device, any app can read another app's data directory. Device backups may also include this data.
+
+A refresh token is a long-lived credential that can generate new access tokens. If stolen, an attacker can impersonate the user indefinitely until the token is revoked server-side.
+
+SecureStore uses **iOS Keychain** and **Android Keystore** — both are hardware-backed encrypted storage. Even with physical access to the device, the data is encrypted by keys managed by the secure enclave or hardware security module.
+
+Rule of thumb: anything that can be used to impersonate a user (tokens, passwords, API keys) must use secure storage. Non-sensitive preferences (theme, language) can use AsyncStorage.
+
+---
+
+### Q3: How do you handle auth-protected navigation in React Native?
+
+**Answer:**
+
+I use the **state-driven pattern** recommended by React Navigation:
+
+1. An `AuthProvider` holds the auth state (idle, loading, authenticated, unauthenticated).
+2. The root navigator conditionally renders different stacks based on that state.
+3. When auth state changes (login success, 401, logout), React Navigation automatically swaps the entire stack — no manual `navigate()` calls needed.
+
+Benefits:
+- The user **cannot** press Back to reach a protected screen after logout, because that screen is not in the current stack.
+- The API layer only needs to update auth state on 401 — it does not need a navigation reference.
+- No race conditions between navigation and auth state.
+
+---
+
+### Q4: What security considerations apply to token storage on mobile?
+
+**Answer:**
+
+1. **Use secure storage** (Keychain/Keystore) — never plain text for tokens.
+2. **Minimize token lifetime** — short-lived access tokens (15–60 min) + longer refresh tokens.
+3. **Clear tokens on logout** — both access and refresh.
+4. **Don't log tokens** — no `console.log(token)` in production.
+5. **HTTPS only** — tokens in transit must be encrypted.
+6. **Consider biometric lock** for re-authentication on sensitive actions (not in scope today).
+
+OWASP Mobile Top 10 — M9 (Insecure Data Storage) directly addresses this.
+
+---
+
+## 9. Next
+
+Day 6 sẽ dùng auth flow đã dựng để refactor types: discriminated union cho API error states, `Readonly<>`, `Pick<>`, `Partial<>`, branded `UserId`.

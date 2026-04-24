@@ -1,0 +1,213 @@
+---
+description: English linkers & fillers cheatsheet — 9 groups distributed across the 30-day roadmap, pull on any day that touches linking words
+alwaysApply: false
+---
+
+# English Linkers & Fillers — full reference
+
+Master list of the linking words + fillers I want to own by Day 30. Each group is mapped to the day it's formally introduced, and to the day it's drilled again (spaced repetition). When any `day-NN.mdc` references linkers, AI should pull the relevant group(s) from this file instead of re-listing them inline.
+
+---
+
+## 0. How this file is used
+
+- **Introduce:** first day that formally teaches the group.
+- **Drill again:** a later day where the group gets pressure-tested in a new scenario.
+- **Own-list:** by Day 30, target is 5+ phrases **per group** that come out without translating.
+
+| Group | Introduce | Drill again |
+| --- | --- | --- |
+| 1. Conditional / IF-type | Day 11 (API / integration) | Day 25 (incidents) |
+| 2. Contrast | Day 5 (linkers core) | Day 14 (week review) |
+| 3. Addition | Day 5 (linkers core) | Day 14 |
+| 4. Cause / Result | Day 5 (linkers core) | Day 14 |
+| 5. Examples / Explanation | Day 2 (explaining bugs) | Day 18 (system design) |
+| 6. Time / Sequence | Day 1 (standup) | Day 25 (incident timeline) |
+| 7. Emphasis | Day 4 (thinking phrases) | Day 21 (career pitch) |
+| 8. Fillers (very US) | Day 4 (thinking phrases) | Day 29 (mock interview) |
+| 9. Conclusion / Closing | Day 23 (leading meeting) | Day 30 (wrap-up) |
+
+---
+
+## 1. Conditional / IF-type
+
+*"What if X?" "Do Y, otherwise Z."*
+
+| Phrase | Meaning | Dev example |
+| --- | --- | --- |
+| **Otherwise** | if not → nếu không | *"Refresh the token, **otherwise** the request will fail with 401."* |
+| **Or else** | otherwise (casual) | *"We need to merge today, **or else** we'll block the release."* |
+| **In case** | phòng khi | *"I added a retry **in case** the network drops."* |
+| **As long as** | miễn là | *"It works **as long as** the user has a valid session."* |
+| **Even if** | kể cả nếu | *"**Even if** the cache fails, the app still loads."* |
+
+**Mini-drill:** rewrite each in 1 sentence about your current repo.
+
+---
+
+## 2. Contrast — BUT / HOWEVER family
+
+*"I agree, but…" "It works, however…"*
+
+| Phrase | Register | Dev example |
+| --- | --- | --- |
+| **However** | formal (better than `but` in PR comments) | *"The fix works. **However,** it adds 200ms to startup."* |
+| **Though / Although** | neutral | *"**Although** the API is stable, the UI still glitches."* |
+| **Even though** | emphatic | *"**Even though** I added memoization, the list still re-renders."* |
+| **Nonetheless / Nevertheless** | strong formal | *"The approach is risky. **Nevertheless,** it's the fastest option."* |
+| **Still** | very spoken, natural | *"I was tired. **Still,** I shipped the PR."* |
+| **On the other hand** | balancing trade-offs | *"REST is simpler. **On the other hand,** GraphQL gives us typed contracts."* |
+
+**Senior habit:** in code review comments, use **`However,`** or **`That said,`** — sounds balanced, not aggressive. Avoid bare `but` at the start of a review.
+
+---
+
+## 3. Addition — ADD MORE
+
+*"Also, …" "Besides, …"*
+
+| Phrase | Position | Dev example |
+| --- | --- | --- |
+| **Also** | middle / start | *"We should fix the bug. **Also,** the test is flaky."* |
+| **As well** | end of sentence | *"I'll update the docs **as well**."* |
+| **Besides** | casual, add a reason | *"It's faster. **Besides,** it's easier to test."* |
+| **In addition** | formal | *"**In addition** to the retry, we added circuit breaker logic."* |
+| **Plus** | very US, casual | *"It's cheap. **Plus,** it works great."* |
+
+**Note:** in spoken English, `also` and `plus` dominate. `In addition` is rare in standup; save it for docs/ADRs.
+
+---
+
+## 4. Cause / Result
+
+*"…because …" "…, so …"*
+
+| Phrase | Use when | Dev example |
+| --- | --- | --- |
+| **Because** | direct cause | *"I rolled back **because** the error rate spiked."* |
+| **Since** | softer "because" | *"**Since** the API is down, I'll mock the response."* |
+| **So** | casual result (very common) | *"CI is failing, **so** I'll debug first."* |
+| **That's why** | emphatic result | *"The token wasn't persisted. **That's why** the login kept failing."* |
+| **Therefore** | formal (ADRs, docs) | *"The cost exceeds the benefit. **Therefore,** we'll defer this."* |
+| **As a result** | formal consequence | *"Queries were uncached. **As a result,** we hit the API 10× more."* |
+
+**Pattern to memorize first: `…, so …`** — this single linker covers ~40% of your daily standup needs.
+
+---
+
+## 5. Examples / Explanation
+
+*"For example…" "In other words…"*
+
+| Phrase | Register | Dev example |
+| --- | --- | --- |
+| **For example / For instance** | neutral | *"We have performance issues — **for example,** the feed re-renders on every scroll."* |
+| **Such as** | listing items | *"Errors **such as** 401 and 403 trigger a logout."* |
+| **Like** | very US, casual | *"Frameworks **like** RN and Flutter have similar trade-offs."* |
+| **In other words** | clarify / rephrase | *"He's not available — **in other words,** we have to ship without him."* |
+
+**When explaining a bug, always have one example ready.** Senior devs don't speak abstractly — they ground every claim in a concrete case.
+
+---
+
+## 6. Time / Sequence
+
+*"First, then, after that, finally."*
+
+| Phrase | Position in flow | Dev example |
+| --- | --- | --- |
+| **First** | opener | *"**First,** I reproduced the bug locally."* |
+| **Then / After that** | next step | *"**Then,** I checked the Sentry logs."* |
+| **Before** | prerequisite | *"**Before** I deployed, I ran the tests."* |
+| **While** | simultaneous | *"I debugged the UI **while** the backend team fixed the API."* |
+| **Meanwhile** | parallel action | *"**Meanwhile,** the staging env was still broken."* |
+| **Eventually** | final outcome | *"**Eventually,** we traced it to a caching bug."* |
+
+**Incident timeline template (Day 25 preview):**
+> *"**First,** alerts fired at 10:03. **Then,** I checked Sentry — CPU spike. **Meanwhile,** the on-call engineer rolled back. **Eventually,** we identified a memory leak in the new feature."*
+
+---
+
+## 7. Emphasis — very US
+
+*"Actually, honestly, basically…"*
+
+| Phrase | Meaning | Dev example |
+| --- | --- | --- |
+| **Actually** | correct a misconception | *"**Actually,** the bug is in the selector, not the reducer."* |
+| **Basically** | simplify | *"**Basically,** the hook runs twice on mount."* |
+| **Literally** | emphasize (don't overuse!) | *"The app **literally** crashes on the login screen."* |
+| **Seriously** | strong commitment | *"**Seriously,** this is the third time this week."* |
+| **Honestly** | sincerity | *"**Honestly,** I don't think Redux fits here."* |
+
+> ⚠️ **Overuse warning:** `literally` and `basically` are the 2 most overused words by non-native devs trying to sound American. Use each **once** per standup max. Otherwise you sound like a startup YouTuber.
+
+---
+
+## 8. Fillers — very US (natural, not "lazy")
+
+*"Well… you know… I mean…"*
+
+| Phrase | Function | Dev example |
+| --- | --- | --- |
+| **Well…** | soft opener, buying time | *"**Well,** it's not that simple."* |
+| **You know** | shared context | *"It's the usual caching issue, **you know.**"* |
+| **I mean** | clarify / restart sentence | *"It's broken. **I mean,** it works, but slowly."* |
+| **Kind of / Sort of** | hedge, uncertainty | *"It's **kind of** working — pass on iOS, fail on Android."* |
+| **Right?** | confirm | *"We agreed on Redux for auth, **right?**"* |
+| **You see** | explain reasoning | *"**You see,** the cache was stale when the user returned."* |
+
+**Insight:** fillers are what makes speech sound **native**, not "uneducated". Non-native speakers avoid them and end up sounding robotic. Sprinkle 1–2 per 30 seconds of speech.
+
+---
+
+## 9. Conclusion / Closing
+
+*"So, anyway, at the end of the day…"*
+
+| Phrase | Function | Dev example |
+| --- | --- | --- |
+| **So** | most common closer | *"**So,** that's my update."* |
+| **Anyway** | move on from digression | *"**Anyway,** let's get back to the API design."* |
+| **In the end** | final outcome | *"**In the end,** we went with the simpler approach."* |
+| **At the end of the day** | pragmatic summary | *"**At the end of the day,** the user just wants it to load fast."* |
+| **To wrap up** | meeting close (formal) | *"**To wrap up** — we ship Friday, QA Thursday."* |
+| **That's about it** | casual close | *"**That's about it** from me."* |
+
+**Senior move:** closing a meeting with *"To wrap up — decision, owner, deadline."* — this single habit will make you look 2 years more senior.
+
+---
+
+## 10. The real American speech pattern
+
+American devs **do not** use fancy words. They repeat the same core set constantly:
+
+> **so, but, like, actually, just, kind of, you know, I mean**
+
+Natural-sounding sentence:
+
+> *"I was tired, **but** I **still** went out, **you know**, **just** to relax **a bit**."*
+
+Or dev version:
+
+> *"I was debugging all morning, **but** I **still** couldn't repro it, **you know**, **kind of** intermittent, **so** I filed a ticket."*
+
+Target: **sprinkle** fillers + emphasis naturally. Don't try to speak "polished" English — that sounds like a news anchor, not a dev.
+
+---
+
+## 11. Own-list progress (fill as you master each)
+
+Tick a phrase when it comes out of your mouth in < 2 seconds without translating.
+
+- [ ] Group 1: otherwise · in case · as long as · even if
+- [ ] Group 2: however · though · still · on the other hand
+- [ ] Group 3: also · as well · besides · plus
+- [ ] Group 4: because · since · so · that's why · therefore
+- [ ] Group 5: for example · such as · like · in other words
+- [ ] Group 6: first · then · while · meanwhile · eventually
+- [ ] Group 7: actually · basically · honestly
+- [ ] Group 8: well · you know · I mean · kind of · right?
+- [ ] Group 9: so · anyway · at the end of the day · to wrap up
+
+**Day 30 target:** 30/36 ticked. If < 20 at Day 14, redo Week 2 linker drills.

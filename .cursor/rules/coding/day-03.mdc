@@ -1,3 +1,9 @@
+
+---
+description: Day 3 — Theme (light + dark) + `Text` / `Button` trong `shared/` + props có type
+alwaysApply: false
+---
+
 # Day 3 — Theme (light + dark) + `Text` / `Button` trong `shared/` + props có type
 
 **Status:** **Cập nhật scope Day 3** — theme light + dark, `AppText`, `Button` trong `shared/`; `README` có mục tra cứu ngày 3.

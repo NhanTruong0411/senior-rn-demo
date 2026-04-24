@@ -1,0 +1,500 @@
+---
+description: Day 6 — Utility types + Mapped types + Discriminated unions (refactor existing types)
+alwaysApply: false
+---
+
+# Day 6 — Refactor types: Discriminated unions · Utility types · Branded types
+
+**Status:** Started.
+
+## 0. Luật làm bài
+
+- Làm tới step nào, chỉ code đúng step đó.
+- Không thêm tính năng của step sau.
+- Mỗi step xong phải dừng, tự review 1 lần rồi mới qua step tiếp.
+- Nếu code vượt mức cần cho step hiện tại: cắt bớt ngay.
+- AI phải **giải thích concept trước** khi viết code. Không dump code không có lý do.
+
+---
+
+## 1. Mục tiêu Day 6
+
+Day 6 không xây tính năng mới. Day 6 là **ngày về TypeScript** — dùng đúng công cụ của TS để làm code **an toàn hơn** và **dễ đọc hơn**.
+
+**3 chủ đề:**
+
+1. **Discriminated unions** — một union có field "tag" để TS **tự narrow** về variant đúng.
+2. **Utility types** (`Readonly`, `Pick`, `Partial`, `Omit`) — biến đổi type có sẵn thay vì viết lại.
+3. **Branded types** — phân biệt `string` "bình thường" với `string` có nghĩa (ví dụ `UserId` không được lẫn với `OrderId`).
+
+**Tại sao Senior cần?**
+
+- Type đúng = bug ít đi ở compile-time, không phải runtime.
+- Người đọc code 6 tháng sau (có thể là bạn) hiểu intent ngay.
+- Interview mobile senior **luôn** hỏi discriminated union + state machine (xem Q3 Day 5).
+
+**Prerequisite:** Day 4 + Day 5 done. Bạn đã có:
+
+- `Result<T, E>` — **đã là** discriminated union (`status: "success" | "error"`).
+- `ApiError` — object phẳng với `code` union. **Chưa** là discriminated union.
+- `AuthStatus` — union literal, chưa có payload theo state.
+
+---
+
+## 2. Docs cần đọc (15–30 phút)
+
+Đọc **trước** khi code. Chỉ đọc phần được trỏ, không cần đọc hết Handbook.
+
+| Doc                   | URL                                                            | Đọc phần nào                                                                        |
+| --------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Discriminated unions  | `typescriptlang.org/docs/handbook/2/narrowing#discriminated-unions` | Toàn phần. Hiểu tại sao TS narrow được khi có common literal field.              |
+| Utility types         | `typescriptlang.org/docs/handbook/utility-types`               | Đọc: `Partial`, `Required`, `Readonly`, `Pick`, `Omit`, `Record`. Bỏ qua phần còn lại. |
+| Mapped types          | `typescriptlang.org/docs/handbook/2/mapped-types`              | Toàn phần (ngắn). Hiểu `[K in keyof T]` và modifier `readonly` / `?`.               |
+| Template literal types| `typescriptlang.org/docs/handbook/2/template-literal-types`    | Chỉ phần đầu — đủ để hiểu branded type pattern ở Step 4.                            |
+
+---
+
+## 3. Scope từng step
+
+### Step 1 — Làm sạch & review types hiện có
+
+**Concept:** Trước khi refactor, **đọc và đánh giá** types đang có. Junior hay skip bước này — nhảy vào sửa ngay. Senior đọc trước, quyết định **cái gì đáng sửa**, cái gì **để yên**.
+
+Mở và đọc kỹ:
+
+- `src/shared/api/types.ts` — `ApiResponse`, `ApiError`, `ApiErrorCode`, `Result`.
+- `src/shared/auth/AuthContext.tsx` — `AuthStatus`, `AuthContextValue`.
+- `src/features/home/services/index.ts` — `SampleTodo`.
+
+Tự trả lời 3 câu:
+
+1. `Result<T, E>` đã tốt chưa? Có đáng refactor không?
+2. `ApiError` hiện dùng `code: ApiErrorCode | (string & {})`. Khi có `code === "VALIDATION_ERROR"`, bạn có thể ép buộc field `details` phải tồn tại không?
+3. `AuthStatus` là 4 literal string. Khi `status === "authenticated"`, có nên có `user: User` kèm theo không?
+
+**Không code ở step này.** Chỉ đọc + ghi 1-2 dòng ý kiến riêng vào chat.
+
+### Step 2 — Refactor `ApiError` thành discriminated union
+
+**Concept: Discriminated union là gì?**
+
+Một union các object, tất cả **cùng có một field literal** (ví dụ `kind`) với giá trị khác nhau. Field đó gọi là **discriminant** (hay *tag*).
+
+```typescript
+// ❌ "Cờ boolean" — dễ tạo impossible state
+type Error1 = {
+  isNetwork: boolean;
+  isValidation: boolean;
+  fields?: Record<string, string[]>;
+  status?: number;
+};
+// Ai đó có thể set cả 2 cờ = true. Hoặc fields tồn tại khi isValidation = false. Loạn.
+
+// ✅ Discriminated union — TS narrow tự động
+type Error2 =
+  | { kind: "network"; message: string }
+  | { kind: "validation"; message: string; fields: Record<string, string[]> }
+  | { kind: "http"; message: string; status: number };
+
+function render(e: Error2) {
+  if (e.kind === "validation") {
+    // TS biết chắc e.fields tồn tại ở đây. Không cần optional chaining.
+    console.log(e.fields);
+  }
+}
+```
+
+**Senior nhớ:** "Make impossible states impossible." Boolean flag = dễ tạo trạng thái sai. Discriminated union = chỉ có các trạng thái hợp lệ.
+
+**Việc cần làm:**
+
+Trong `src/shared/api/types.ts`, refactor `ApiError` thành discriminated union dùng `kind`:
+
+- `{ kind: "network"; message: string }` — mất mạng, DNS fail, fetch throw.
+- `{ kind: "unauthorized"; message: string; status: 401 }` — 401, trigger logout.
+- `{ kind: "validation"; message: string; status: 422; fields: Record<string, string[]> }` — server trả 422 với chi tiết lỗi field.
+- `{ kind: "http"; message: string; status: number; code?: string }` — các lỗi HTTP khác (400, 403, 404, 500, ...).
+
+Giữ `ApiErrorCode` hay bỏ? **Bỏ.** `kind` đã đảm nhận vai trò đó. Nếu cần phân biệt sâu hơn trong variant `http`, dùng field `code?: string` bên trong variant.
+
+Update `client.ts` để **produce đúng variant**:
+
+- Catch `fetch` throw → `{ kind: "network", ... }`.
+- `response.status === 401` → `{ kind: "unauthorized", ... }`.
+- `response.status === 422` → `{ kind: "validation", ... }` (nếu body có `errors` field thì nhồi vào `fields`; nếu không có, trả `fields: {}`).
+- Còn lại `!response.ok` → `{ kind: "http", status, ... }`.
+
+Update các chỗ đọc error:
+
+- `useHomeLogic.ts` đang đọc `result.error.message` và `result.error.code` → giờ dùng `result.error.message` + `result.error.kind`.
+
+**Không làm thêm:** exhaustive `switch` helper, `never` check — để step 5 (verify) nếu muốn bonus.
+
+### Step 3 — Utility types trên domain model
+
+**Concept 3 utility types bắt buộc nhớ:**
+
+| Utility           | Làm gì                                                                      | Dùng khi nào                                                                        |
+| ----------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `Readonly<T>`     | Mọi field thành read-only — không assign được nữa (compile-time).          | Domain model lấy từ server → UI chỉ đọc, không mutate.                              |
+| `Pick<T, K>`      | Chọn ra một số field của T.                                                 | Tạo "view model" nhỏ hơn (list item chỉ cần `id` + `title`, không cần cả body).     |
+| `Partial<T>`      | Mọi field thành optional.                                                   | Form update — user chỉ sửa 1-2 field, không phải gửi cả object.                     |
+| `Omit<T, K>`      | Ngược với `Pick` — bỏ đi một số field.                                      | DTO tạo mới — bỏ `id`, `createdAt` vì server gán.                                   |
+
+**Mapped types — nền tảng của utility types:**
+
+```typescript
+// Đây chính là định nghĩa thật của Readonly<T>:
+type Readonly<T> = {
+  readonly [K in keyof T]: T[K];
+};
+
+// Đây là Partial<T>:
+type Partial<T> = {
+  [K in keyof T]?: T[K];
+};
+```
+
+`[K in keyof T]` gọi là **mapped type** — lặp qua mọi key của T và chế biến. Hiểu 2 dòng trên = hiểu hầu hết utility types.
+
+**Việc cần làm:**
+
+Trong `src/features/home/services/index.ts`:
+
+- Đổi `export type SampleTodo` hiện tại thành "shape raw" (từ server).
+- Thêm 2 type phái sinh, **dùng utility types chứ không viết lại**:
+  - `SampleTodoView = Readonly<Pick<SampleTodo, "id" | "title" | "completed">>` — dùng cho UI list.
+  - `SampleTodoPatch = Partial<Omit<SampleTodo, "id">>` — dùng cho "update" hypothetical (chưa gọi, chỉ cần có type).
+
+Sau đó update `useHomeLogic.ts` — nơi nhận `result.data`, ép kiểu về `SampleTodoView` khi hiển thị (chỉ dùng `id` + `title`). Không đổi UI, chỉ đổi type.
+
+**Không làm thêm:** tạo endpoint PATCH giả, thêm form update, viết mapper phức tạp.
+
+### Step 4 — Branded type cho `UserId`
+
+**Concept:** Tại sao cần branded type?
+
+```typescript
+function deleteUser(id: string) { /* ... */ }
+
+const orderId: string = "ord-123";
+deleteUser(orderId); // ❌ Code chạy, xoá sai record. TS không cản.
+```
+
+Cả `userId` và `orderId` đều là `string` → TS coi là giống nhau. Bug nguy hiểm ở production.
+
+**Branded type** gắn thêm một "nhãn" tàng hình vào type để TS coi chúng **khác nhau**:
+
+```typescript
+type Brand<T, B> = T & { readonly __brand: B };
+type UserId = Brand<string, "UserId">;
+type OrderId = Brand<string, "OrderId">;
+
+function deleteUser(id: UserId) { /* ... */ }
+
+const orderId = "ord-123" as OrderId;
+deleteUser(orderId); // ✅ Compile error: OrderId không phải UserId.
+```
+
+Runtime: cả 2 vẫn chỉ là `string`. Compile-time: TS phân biệt. Không cost runtime, an toàn hơn hẳn.
+
+**Việc cần làm:**
+
+1. Tạo file mới `src/shared/auth/types.ts`:
+   - Type `Brand<T, B>` (helper chung).
+   - Type `UserId = Brand<string, "UserId">`.
+   - Helper `createUserId(raw: string): UserId` — chỉ làm `return raw as UserId`. Mục đích: **một nơi duy nhất** cast, các chỗ khác dùng helper thay vì cast lung tung.
+   - Type `User = Readonly<{ id: UserId; email: string }>`.
+2. Export từ `src/shared/auth/index.ts`.
+3. **Không** tích hợp vào `AuthContext` ở step này (scope đã đủ). Giữ type sẵn sàng cho day sau.
+
+**Không làm thêm:** encode/decode từ JWT, nhiều branded id khác (OrderId, PostId), validation runtime.
+
+### Step 5 — Exhaustive check + verify
+
+**Concept:** Khi discriminated union được `switch` qua, ta có thể ép TS kiểm tra đã cover hết variant chưa bằng `never`:
+
+```typescript
+function describe(e: ApiError): string {
+  switch (e.kind) {
+    case "network":      return "Lost connection.";
+    case "unauthorized": return "Please sign in again.";
+    case "validation":   return `Invalid fields: ${Object.keys(e.fields).join(", ")}`;
+    case "http":         return `Server error ${e.status}.`;
+    default:
+      // Nếu sau này thêm variant mới mà quên case → TS báo lỗi chỗ này.
+      const _exhaustive: never = e;
+      return _exhaustive;
+  }
+}
+```
+
+**Việc cần làm:**
+
+1. Viết helper `describeApiError(e: ApiError): string` trong `src/shared/api/` (file mới `errorMessage.ts` hoặc thêm vào `types.ts` tuỳ bạn). Dùng pattern `never` ở default.
+2. Dùng helper trong `useHomeLogic.ts` thay cho chuỗi `result.error.message (code)` thủ công → gọi `describeApiError(result.error)`.
+3. Chạy:
+   - `yarn tsc --noEmit` (hoặc `yarn lint` nếu lint đã có type-check) — phải pass.
+   - `yarn start` — app chạy, nút "Run API demo" + "Simulate 401" vẫn work.
+4. Thử cố tình break: xoá `case "validation"` trong switch → TS phải báo lỗi ở dòng `const _exhaustive: never = e`. Đây là **proof** exhaustive check hoạt động. Xong thì khôi phục lại.
+
+---
+
+## 4. Definition of Done theo từng step
+
+### DoD cho Step 1
+
+- [ ] Đã đọc 4 file được liệt kê.
+- [ ] Viết 3 dòng đánh giá vào chat (không code).
+
+### DoD cho Step 2
+
+- [ ] `ApiError` là discriminated union với 4 variant dùng `kind`.
+- [ ] `ApiErrorCode` đã xoá (hoặc không còn được dùng).
+- [ ] `client.ts` produce đúng variant cho `network`, `unauthorized`, `validation`, `http`.
+- [ ] `useHomeLogic.ts` đọc error qua field mới (`kind`), không còn đọc `code` cũ.
+
+### DoD cho Step 3
+
+- [ ] `SampleTodoView` dùng `Readonly<Pick<...>>`.
+- [ ] `SampleTodoPatch` dùng `Partial<Omit<...>>`.
+- [ ] Không tự viết tay — phải qua utility types.
+- [ ] `useHomeLogic.ts` hoặc `HomeScreen.tsx` dùng `SampleTodoView` ở chỗ hiển thị.
+
+### DoD cho Step 4
+
+- [ ] Có `src/shared/auth/types.ts` với `Brand`, `UserId`, `createUserId`, `User`.
+- [ ] Export từ `src/shared/auth/index.ts`.
+- [ ] Không cast `as UserId` ở đâu khác ngoài `createUserId`.
+
+### DoD cho Step 5
+
+- [ ] Có `describeApiError(e: ApiError): string` với exhaustive `never` check.
+- [ ] `useHomeLogic.ts` dùng helper này.
+- [ ] Test break (xoá 1 case) → TS báo lỗi → khôi phục → TS pass.
+- [ ] `yarn tsc --noEmit` pass, `yarn start` chạy.
+
+---
+
+## 5. Tiêu chí senior cần giữ
+
+- **Types mô tả intent, không chỉ shape.** `ApiError` là "chuyện gì xảy ra", không phải "bag of fields".
+- **Không dùng boolean thay union.** Nếu thấy `isX`, `isY` kèm nhau → 99% là nên thành discriminated union.
+- **Utility types > copy-paste.** Nếu thấy mình viết lại gần giống một type đã có — dùng `Pick`/`Omit`/`Partial`.
+- **Brand cho ID quan trọng.** Từ ngày đầu. Thêm sau khi đã lẫn `UserId` với `OrderId` thì trễ.
+- **Exhaustive check ở mọi union quan trọng.** `never` là người gác cửa. Không có nó, thêm variant = quên xử lý = bug production.
+
+---
+
+## 6. Review ngắn sau mỗi step (câu hỏi)
+
+### Sau Step 2
+
+1. Khi nào discriminated union tốt hơn boolean flag?
+2. `kind: "unauthorized"` có `status: 401` hard-coded. Có cần không? Tại sao?
+
+### Sau Step 3
+
+1. `Readonly<T>` là compile-time hay runtime protection?
+2. Khi nào dùng `Pick` vs khi nào dùng `Omit`?
+
+### Sau Step 4
+
+1. Branded type có thay đổi gì runtime không?
+2. Tại sao cần `createUserId` helper thay vì cast trực tiếp?
+
+### Sau Step 5
+
+1. Exhaustive check dùng `never` hoạt động thế nào?
+2. Nếu thêm variant mới cho `ApiError`, cái gì bảo đảm bạn không quên xử lý?
+
+---
+
+## 7. Review — Đáp án chi tiết
+
+> AI trả lời trực tiếp. Bạn đọc, hiểu, ghi nhớ.
+
+### Sau Step 2
+
+**Q1: Khi nào discriminated union tốt hơn boolean flag?**
+
+Luôn luôn tốt hơn — khi bạn có **một tập hữu hạn các trạng thái loại trừ nhau**. Ví dụ: loading / success / error là 3 trạng thái loại trừ — không thể đồng thời loading và success.
+
+Lý do:
+
+- **Boolean flag** tạo `2^n` tổ hợp. Chỉ `n` trong đó hợp lệ. `2^n - n` là impossible state — nhưng code vẫn phải xử lý chúng (hoặc quên → bug).
+- **Discriminated union** tạo đúng `n` trạng thái. TypeScript ép bạn xử lý đủ. Impossible state không biểu diễn được → không tạo ra được.
+
+Ví dụ cụ thể trong repo: `Result<T, E>` có 2 trạng thái. Nếu dùng boolean: `{ isSuccess: boolean; data?: T; error?: E }` → user có thể set `isSuccess: true` nhưng không có `data`. Hoặc `isSuccess: false` nhưng không có `error`. Cả 2 là impossible state mà code vẫn phải guard.
+
+Với discriminated union: `{ status: "success"; data: T } | { status: "error"; error: E }` — nếu `status === "success"` thì `data` **chắc chắn** có (non-optional). Không cần guard thừa.
+
+---
+
+**Q2: `kind: "unauthorized"` có `status: 401` hard-coded. Có cần không?**
+
+Cần, vì 2 lý do:
+
+1. **Tự document:** Người đọc type biết ngay 401 là status code của variant này — không cần đọc `client.ts` để suy ra.
+2. **Chặt chẽ hơn ở consumer:** Nếu ai đó viết `if (error.kind === "unauthorized" && error.status === 500)` → TS báo lỗi vì `500` không thể là `401`. Sớm bắt bug.
+
+Đây là pattern "literal type narrowing" — càng literal, TS càng narrow sâu.
+
+---
+
+### Sau Step 3
+
+**Q1: `Readonly<T>` là compile-time hay runtime protection?**
+
+**Compile-time only.** Nếu bạn ép kiểu hoặc dùng `any`, runtime vẫn mutate được object.
+
+```typescript
+const user: Readonly<User> = { id: "u1", email: "a@b.com" };
+user.email = "x"; // ❌ TS error.
+(user as any).email = "x"; // ✅ Chạy. Object đã mutate.
+```
+
+**Khi nào đủ?** Trong codebase tử tế (có type check, không dùng `any` lung tung), `Readonly<T>` đủ để chặn 99% vô tình mutate. Nó là **contract**, không phải **lock**.
+
+**Khi cần runtime immutability?** Dùng `Object.freeze(obj)` hoặc Immer. Cost thêm, chỉ dùng khi thật sự cần (ví dụ config được share nhiều process).
+
+---
+
+**Q2: Khi nào dùng `Pick` vs `Omit`?**
+
+| Tình huống                                                 | Dùng cái nào  |
+| ---------------------------------------------------------- | ------------- |
+| Type gốc có 10 field, chỉ cần 2                            | `Pick` (liệt kê 2) |
+| Type gốc có 5 field, cần 4 (chỉ bỏ `id` chẳng hạn)         | `Omit` (bỏ 1)  |
+| Type thường xuyên thêm field mới, DTO luôn cần bỏ `createdAt` | `Omit` — an toàn với field mới |
+
+**Rule of thumb:** chọn cái **ít cần maintain** nhất. Nếu type gốc hay thay đổi → `Omit` tự động bắt thêm field mới. Nếu type gốc ổn định và view model chỉ cần subset nhỏ → `Pick` làm intent rõ hơn.
+
+---
+
+### Sau Step 4
+
+**Q1: Branded type có thay đổi gì runtime không?**
+
+**Không.** Sau khi TypeScript compile → JS, branded type **biến mất hoàn toàn**. `UserId` chạy ra đời là `string` thường.
+
+Cost: **0 runtime**. Benefit: TS phân biệt được `UserId` với `OrderId` ở compile-time.
+
+Đây là pattern "zero-cost abstraction" — an toàn hơn mà không chậm đi.
+
+---
+
+**Q2: Tại sao cần `createUserId` helper thay vì cast trực tiếp?**
+
+3 lý do:
+
+1. **Một nơi duy nhất cast.** Nếu sau này thêm validation (ví dụ: `UserId` phải khớp regex UUID), chỉ sửa trong `createUserId`. Không grep `as UserId` khắp repo.
+2. **Intent rõ hơn khi đọc code.** `createUserId(raw)` nói: "đây là chỗ tôi biết raw là hợp lệ và tôi chuyển nó thành UserId". Còn `raw as UserId` trông như "tôi lười type".
+3. **Lint rule dễ hơn.** Có thể cấm `as UserId` everywhere trừ trong `types.ts` → enforce pattern này tự động.
+
+---
+
+### Sau Step 5
+
+**Q1: Exhaustive check dùng `never` hoạt động thế nào?**
+
+`never` là type "không có giá trị nào thuộc về". Khi bạn viết `const x: never = value`, TS kiểm tra `value` đã được narrow về `never` chưa.
+
+Trong `switch` trên discriminated union:
+
+```typescript
+function describe(e: ApiError) {
+  switch (e.kind) {
+    case "network": return "...";
+    case "unauthorized": return "...";
+    case "validation": return "...";
+    case "http": return "...";
+    default:
+      const _exhaustive: never = e; // ← e đã được narrow về never nếu tất cả case đã handle
+      return _exhaustive;
+  }
+}
+```
+
+- Nếu đã cover hết 4 case: ở `default`, TS narrow `e` về `never` → gán vào `const _exhaustive: never` OK.
+- Nếu thiếu 1 case (ví dụ thêm `kind: "timeout"` vào union mà quên handle): ở `default`, `e` có kiểu `{ kind: "timeout"; ... }` → gán vào `never` **fail compile**. Bug bắt được ngay khi viết code, không đợi runtime.
+
+---
+
+**Q2: Nếu thêm variant mới, cái gì bảo đảm không quên xử lý?**
+
+**Exhaustive `never` check.** Đó là lý do phải luôn có nó ở mọi `switch` quan trọng.
+
+Quy trình an toàn khi thêm variant:
+
+1. Thêm variant vào union: `| { kind: "timeout"; message: string }`.
+2. Chạy `yarn tsc --noEmit`.
+3. TS báo lỗi ở **mọi `switch`** chưa handle "timeout".
+4. Fix từng chỗ → TS xanh lại → deploy an toàn.
+
+Không có exhaustive check → TS xanh dù chưa handle → user gặp bug → bạn debug nửa đêm. Khác nhau chỉ ở **1 dòng code** (`const _exhaustive: never = e`).
+
+---
+
+## 8. Interview Q&A — Day 6
+
+### Q1: When is a discriminated union better than `isError: boolean`?
+
+**Answer:**
+
+Almost always, when the states are **mutually exclusive**. A boolean flag allows `2^n` combinations for `n` flags, but only some of those combinations are valid. The invalid ones are **impossible states** — and code still has to guard against them, which is noisy and error-prone.
+
+A discriminated union (`{ kind: "a" } | { kind: "b" }`) represents **exactly** the valid states. TypeScript then narrows automatically inside conditionals, so fields specific to a variant (like `fields` in a validation error) are **guaranteed** to exist — no optional chaining, no runtime undefined checks.
+
+Concrete example from my repo: I changed `ApiError` from a flat object with an optional `fields` to a union with a `kind` discriminant. Before, the UI code had to do `if (error.fields)` even though fields only ever existed for validation errors. After, a `case "validation":` branch gives direct typed access to `error.fields`.
+
+---
+
+### Q2: Why use branded types for IDs?
+
+**Answer:**
+
+In a typical app, you have `UserId`, `OrderId`, `PostId`, etc., all stored as strings. The compiler treats them as interchangeable, so swapping one for another compiles fine but blows up in production — worst case, you delete the wrong record.
+
+A branded type adds a phantom marker to the string at the type level: `type UserId = string & { __brand: "UserId" }`. At runtime, it's still a string — zero cost. At compile time, TypeScript refuses to pass `OrderId` where `UserId` is expected.
+
+I funnel all casts through a single `createUserId(raw)` helper, so if I later need to add validation (e.g., reject empty strings or check UUID format), there is one place to change.
+
+Trade-off: a small learning curve for the team, and sometimes you have to cast at trust boundaries (API response, local storage). But for any real product with multiple ID types, it pays for itself the first time it catches a mixup in review.
+
+---
+
+### Q3: Give me an example of `Readonly<>`, `Pick<>`, and `Partial<>` working together.
+
+**Answer:**
+
+From my repo: I have a domain model `SampleTodo` with four fields (`userId`, `id`, `title`, `completed`). I derived two views with utility types:
+
+- `type SampleTodoView = Readonly<Pick<SampleTodo, "id" | "title" | "completed">>` — used in the list. I don't need `userId` in the UI, and the list should not mutate the item.
+- `type SampleTodoPatch = Partial<Omit<SampleTodo, "id">>` — for a hypothetical PATCH endpoint. `id` must be in the URL, not the body, and only changed fields need to be sent.
+
+Both types update automatically when `SampleTodo` changes, which is the main reason to prefer utility types over hand-written duplicates.
+
+---
+
+### Q4: Explain exhaustive checking with `never`.
+
+**Answer:**
+
+When I `switch` on a discriminated union, I always end with:
+
+```typescript
+default:
+  const _exhaustive: never = e;
+  return _exhaustive;
+```
+
+TypeScript narrows the discriminant as each case matches. If all variants are handled, the default case receives `never` and the assignment compiles. If I later add a new variant and forget to handle it, `e` is no longer `never` in the default — assigning it to `never` fails, and the compiler points me at the switch.
+
+This turns "add a new variant, forget to handle it, ship the bug" into a compile error. It costs one extra line per switch — the best-value-per-character pattern in the TypeScript toolkit.
+
+---
+
+## 9. Next
+
+Day 7 sẽ dùng những types này để viết **ADR-001** (feature structure) và **ARCHITECTURE.md** — ghi lại quyết định, không code mới.

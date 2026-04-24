@@ -1,0 +1,206 @@
+---
+description: English Day 01 — Daily standup communication (90-second dev update without translating from Vietnamese)
+alwaysApply: false
+---
+
+# Day 01 — Daily Standup Communication
+
+**Trigger:** you say **"Start english day 1"** / **"Bắt đầu english ngày 1"** — cross-check `english-playbooks.mdc` Section 1 (Day 1 row) + `english-context.mdc` (Coaching approach + Strict mode + Hands-off).
+
+**Daily Focus:** deliver a **90-second standup update** in clear, confident English without translating word-by-word from Vietnamese. Standup is the most frequent 2-minute English moment in a dev's week — win it, win your daily confidence.
+
+---
+
+## 1. Core Knowledge (10 min read)
+
+### 1.1 Key phrases (10) — dev context
+
+| # | Phrase | When to use |
+| --- | --- | --- |
+| 1 | **Yesterday I finished X.** | Open with past work |
+| 2 | **Today I'll focus on Y.** | State today's plan |
+| 3 | **I'm blocked by Z.** | Signal a blocker clearly |
+| 4 | **I'm waiting on the API from the backend team.** | External dependency |
+| 5 | **I pushed a PR — could you take a look?** | Request review |
+| 6 | **I'll sync with [name] right after standup.** | Defer detail to a 1:1 |
+| 7 | **Heads up — the build is failing on `main`.** | Team-wide alert |
+| 8 | **No blockers on my side.** | Clean, confident close |
+| 9 | **I'll pair with [name] on this after standup.** | Ask for help without sounding stuck |
+| 10 | **Quick question — is the new endpoint live?** | Interrupt politely |
+
+> Memorize phrases **1, 2, 3, 8** today. Those four cover ~80% of your daily standup.
+
+### 1.2 Linking words (5) — make your update sound structured
+
+- **First, …** → sequence opener
+- **Then / After that, …** → next step
+- **However, …** → contrast ("done, but there's an issue")
+- **So, …** → consequence ("…, so I'll switch tasks")
+- **In the meantime, …** → parallel action while blocked
+
+**Example — 4 linkers in one update:**
+> **First,** I finished the login screen. **Then,** I pushed the PR. **However,** CI is failing on `main`, **so** I'll debug it this morning. **In the meantime,** I'll start on the profile screen.
+
+### 1.3 Thinking phrases (3) — buy 2–3 seconds
+
+- **Let me think for a second.**
+- **Give me a moment — I want to phrase this right.**
+- **That's a good question — let me check.**
+
+> Use these instead of *"uhh… ờ… à…"*. Silence with a thinking phrase sounds senior. Silence without one sounds lost.
+
+### 1.4 Softening sentences (3) — hedge without sounding weak
+
+- **I could be wrong, but it looks like a race condition.**
+- **It might be related to the new auth flow — I'm not sure yet.**
+- **I'm not 100% sure, but I think it's the caching layer.**
+
+> Senior devs hedge on root cause until they have evidence. Softening is **professional honesty**, not weakness.
+
+### 1.5 Structured answer templates (2)
+
+**Template A — YTB (Yesterday / Today / Blockers)**
+
+> Yesterday I **[past work]**. Today I'll **[plan]**. Blocker: **[blocker or "none"]**.
+
+**Template B — PPP (Progress / Plan / Problems)**
+
+> Progress: **[what's done]**. Plan: **[what's next]**. Problems: **[what's stuck, or "nothing for now"]**.
+
+> YTB is faster for routine days. PPP works better when you have 2–3 things in flight at once.
+
+---
+
+## 2. Real Dev Examples (read aloud once each)
+
+### Example 1 — Fixing a login bug (clean day)
+
+> Yesterday I fixed the login bug where the token wasn't saved in SecureStore. Today I'll add an integration test for the auth flow. No blockers on my side.
+
+### Example 2 — Waiting on backend API (blocker day)
+
+> Yesterday I finished the UI for the order list. Today I'm blocked — I'm waiting on the `GET /orders` endpoint from the backend team. In the meantime, I'll mock the response and write the unit tests.
+
+### Example 3 — Performance investigation (senior-style, uncertain day)
+
+> Yesterday I profiled the feed screen with React DevTools. I could be wrong, but it looks like the image list re-renders on every scroll. Today I'll add `React.memo` and fix the `keyExtractor`. I might need to pair with Alex on the virtualization part.
+
+---
+
+## 3. Speaking Practice — MANDATORY (15 min)
+
+### A. Shadowing — say each sentence aloud 3× (match rhythm, not just words)
+
+1. Yesterday I finished the login screen.
+2. Today I'll focus on the profile API.
+3. I'm blocked by a missing backend endpoint.
+4. Heads up — the build is failing on `main`.
+5. I'll sync with Alex right after standup.
+
+> **Rule:** standups are fast. Don't slow-motion every syllable. Aim for ~2.5 seconds per sentence.
+
+### B. Build your own answer — 30 seconds each
+
+1. **"What did you work on yesterday?"** → use **Template A (YTB)**. Record or type your answer.
+2. **"Do you have any blockers today?"** → use a **softening pattern** from 1.4 ("I'm not 100% sure, but…"). Record or type.
+
+### C. Real scenario simulation — 90 seconds
+
+> You're on Zoom standup. You have 90 seconds. Yesterday you fixed a bug but couldn't push because CI failed. Today you want to pair with a teammate on a Reanimated animation. Give the update now.
+
+**Rules:** use **at least 2 key phrases** from 1.1, **at least 2 linkers** from 1.2, and **one softening phrase** from 1.4. Record yourself or paste the script to AI for review.
+
+---
+
+## 4. Fast Response Training — ≤ 5 seconds each (10 min)
+
+Speed matters more than perfection. If you hesitate, start with a thinking phrase ("Let me think for a second…"), then answer.
+
+1. **"How's it going?"**
+   → Not *"fine"*. Try: *"Pretty good, just finishing up a PR."*
+2. **"Any updates on the login bug?"**
+   → *"Yeah — turned out to be a SecureStore issue. Fix is up for review."*
+3. **"Can you join the design sync at 3?"**
+   → *"Sure, I'll be there."* **or** *"I have a conflict — can we move it 15 minutes?"*
+
+> **Drill:** set a 5-second timer. Answer before it beeps. Repeat each question 3×.
+
+---
+
+## 5. Thinking in English — pattern, not translation
+
+The trap: translating VN word-by-word produces grammatically correct but **unnatural** English. Learn the **pattern** a native dev would use.
+
+| VN thought | ❌ Word-by-word | ✅ Native dev pattern |
+| --- | --- | --- |
+| *"Hôm qua tôi sửa xong cái bug login rồi nhưng CI chưa pass nên chưa merge được."* | *"Yesterday I fixed the login bug already but CI not pass yet so cannot merge."* | *"I finished the login bug fix yesterday, but CI is still failing, so the PR is on hold."* |
+| *"Tôi đang đợi API từ team backend, không biết khi nào xong."* | *"I am waiting API from backend team, don't know when finish."* | *"I'm waiting on the API from backend — no ETA yet."* |
+| *"Cái lỗi này tôi chưa chắc nguyên nhân, có thể do cache."* | *"This bug I not sure reason, maybe because cache."* | *"I'm not 100% sure what's causing it — possibly the cache layer."* |
+
+**Pattern takeaways:**
+
+- VN *"rồi"* → English uses past simple (*"I finished"*), not *"already"*.
+- VN drops subjects; English keeps them (*"I'm waiting"*, not *"Waiting"*).
+- VN *"đợi ai/cái gì"* → English *"waiting **on** someone/something"* (preposition matters).
+- VN *"không biết khi nào xong"* → English senior phrase: *"no ETA yet"* (short, professional).
+- VN *"có thể do X"* → English: *"possibly X"* / *"it might be X"* / *"I suspect X"*.
+
+---
+
+## 6. Output Task (written — paste to AI for review)
+
+Write **5–8 sentences** — your own real standup for tomorrow. Rules:
+
+- Use **at least 2 key phrases** from Section 1.1.
+- Use **at least 1 linker** from Section 1.2.
+- Use **Template A (YTB) or B (PPP)** structure.
+- **Optional (strongly recommended):** record yourself reading it aloud — target 90 seconds max.
+
+When you paste, AI will review for: **naturalness**, **structure**, and the **2 most useful fixes** (not every mistake — senior coach, not a grammar bot).
+
+---
+
+## 7. Time Plan (30–45 min total)
+
+| Block | Time | What to do |
+| --- | --- | --- |
+| Learning | 10 min | Read Sections 1 + 2 |
+| Speaking | 15 min | Section 3 — Shadowing + Build + Simulation |
+| Practice | 10 min | Sections 4 + 5 — fast response + thinking in English |
+| Reflection | 5 min | Section 8 + Output task (Section 6) + update `progress-tracker.md` |
+
+> If you only have 30 minutes: skip Section 2 and cut Section 4 to one question.
+
+---
+
+## 8. Reflection — fill before closing the day
+
+Answer these three honestly (to yourself or to AI):
+
+1. Which phrase felt **most natural** today?
+2. Which one felt **foreign or hard to say**?
+3. Your confidence **speaking a 90-second standup** today (1–10): ___
+
+**Paste this row into `progress-tracker.md`:**
+
+```markdown
+| YYYY-MM-DD | 01 | Standup | ?/10 | <your 1-line note> |
+```
+
+---
+
+## 9. Definition of Done (DoD)
+
+- [ ] Memorized key phrases **1, 2, 3, 8** (can say each in ≤ 3 seconds).
+- [ ] Completed Section 3.C simulation (90-sec standup, recorded or written).
+- [ ] Completed Section 4 (3 fast-response drills).
+- [ ] Wrote the 5–8 sentence output (Section 6).
+- [ ] Updated `progress-tracker.md` with confidence + 1-line note.
+
+> **Strict mode:** do not call Day 1 "done" if the simulation (3.C) was skipped. Shadowing alone is not practice — simulation is.
+
+---
+
+## 10. Next: Day 02 — Explaining a bug
+
+When ready, say **"Start english day 2"** or **"Bắt đầu english ngày 2"**. Pair Day 2 with a **real bug from your current work** so the pattern sticks immediately.

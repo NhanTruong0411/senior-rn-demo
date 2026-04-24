@@ -668,7 +668,7 @@ Format 30 phút cố định mỗi ngày:
 
 Tuần 1 — Fundamentals (nền tảng không lệch)
 	•	Day 1: Event loop, microtask vs macrotask, Promise chạy khi nào [x]
-	•	Day 2: Closure, scope chain, ứng dụng thực tế trong React hook [ ]
+	•	Day 2: Closure, scope chain, ứng dụng thực tế trong React hook [x]
 	•	Day 3: Async/await, error propagation, tránh swallow error [ ]
 	•	Day 4: React re-render trigger, reconciliation, render flow [ ]
 	•	Day 5: useMemo vs useCallback vs React.memo (khi nào KHÔNG dùng) [ ]

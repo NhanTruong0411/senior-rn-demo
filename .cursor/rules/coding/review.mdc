@@ -116,3 +116,34 @@ Sao chép block này khi thêm ngày mới:
 ### 6) Carry-forward sang Day 05
 - Giữ: contract-first + centralized error handling.
 - Nâng cấp: nối interceptor 401 với auth state machine.
+
+---
+
+## Day 05 — Auth flow + SecureStore + protected navigation (start)
+
+### 1) Tóm tắt nhanh
+- Mục tiêu ngày: auth flow cơ bản — SecureStore token storage, auth state machine, protected navigation, fake login, 401 → logout.
+- Kết quả hiện tại: started, đang ở giai đoạn đọc docs + install dependencies.
+- Trạng thái: in-progress.
+
+### 2) Trường hợp dự kiến gặp
+- Token storage cần async → ảnh hưởng tới `client.ts` (hiện tại `getMockAccessToken` là sync).
+- Navigation setup lần đầu với Expo — cần đúng dependencies.
+- 401 handler cần kết nối với auth state mà không tạo circular dependency.
+
+### 3) Cách giải theo tiêu chí senior
+- Quyết định: dùng 1 state duy nhất (4 giá trị) thay vì nhiều boolean cho auth.
+- Trade-off: thêm AuthProvider + Context, nhưng đổi lại impossible states bị loại bỏ.
+- Guardrail: state drives navigation — không `navigate("Login")` thủ công, không để UI gọi trực tiếp auth logic.
+
+### 4) Vì sao chọn cách này
+- Lý do kỹ thuật: state machine đảm bảo UI luôn consistent. Không có trạng thái vô nghĩa.
+- Lý do bảo mật: SecureStore cho token, không AsyncStorage. OWASP M9.
+
+### 5) Bài học kỳ vọng
+- Điều cần giữ: boundary rõ giữa auth layer, navigation, và UI.
+- Điều cần nâng cấp: nối 401 handler với auth state machine (carry-forward từ Day 4).
+
+### 6) Carry-forward sang Day 06
+- Giữ: auth state machine + SecureStore + state-driven navigation.
+- Nâng cấp: refactor types với discriminated unions, utility types, branded types.

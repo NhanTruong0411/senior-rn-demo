@@ -1,7 +1,6 @@
 import { AppText, Button, spacing } from "@/shared";
 import { Alert, StyleSheet, View } from "react-native";
-import { useHomeLogic } from "./hooks/useHomeLogic";
-import { useHomeUI } from "./hooks/useHomeUI";
+import { useHomeLogic, useHomeUI } from "./hooks";
 
 /**
  * Placeholder for the first vertical slice (list/detail/auth will follow the roadmap).
@@ -17,7 +16,7 @@ export function HomeScreen() {
    * Business logic (goi API + xu ly ket qua) duoc lay tu useHomeLogic.
    * Muc dich: tach logic nghiep vu khoi UI layer de de scale.
    */
-  const { apiMessage, runApiDemo } = useHomeLogic();
+  const { apiMessage, runApiDemo, runSimulate401, onLogout } = useHomeLogic();
 
   return (
     <View style={[styles.container, { backgroundColor: activeTheme.colors.background }]}>
@@ -46,6 +45,20 @@ export function HomeScreen() {
         label="Run Step 4 API call"
         themeOverride={activeTheme}
         onPress={runApiDemo}
+        style={styles.button}
+      />
+      <Button
+        label="Simulate 401 (auto logout)"
+        variant="secondary"
+        themeOverride={activeTheme}
+        onPress={runSimulate401}
+        style={styles.button}
+      />
+      <Button
+        label="Logout"
+        variant="secondary"
+        themeOverride={activeTheme}
+        onPress={onLogout}
         style={styles.button}
       />
       <AppText variant="caption" themeOverride={activeTheme} style={styles.apiMessage}>

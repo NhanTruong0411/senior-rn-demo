@@ -1,36 +1,27 @@
 import { useState } from "react";
 import { Alert } from "react-native";
-import { getSampleTodoService } from "../services";
+
+import { useAuth } from "@/shared";
+
+import { getSampleTodoService, simulate401Service } from "../services";
 
 /**
  * useHomeLogic():
- * Hook này chịu trách nhiệm "logic nghiệp vụ" của màn Home.
+ * Logic của HomeScreen — tách ra để screen chỉ còn render + bind event.
  *
- * Hook này làm gì?
- * - Gọi service để lấy data API.
- * - Chuyển kết quả API thành message để UI hiển thị.
- * - Quy định xử lý success/error tại một nơi.
- *
- * Tại sao tách riêng?
- * - HomeScreen gọn hơn, dễ đọc hơn.
- * - Dùng cho scale: logic tăng lên vẫn không làm screen rối.
+ * Exposes:
+ *   - apiMessage: string for display
+ *   - runApiDemo(): normal API call (expect success)
+ *   - runSimulate401(): call an endpoint that always returns 401 — tests auto-logout
+ *   - onLogout(): manual logout action
  */
 export const useHomeLogic = () => {
+  const { logout } = useAuth();
   const [apiMessage, setApiMessage] = useState("Chưa chạy API mẫu cho Step 4.");
 
-  /**
-   * runApiDemo():
-   * Trigger 1 API call và xử lý theo `result.status`.
-   *
-   * Trong function này:
-   * 1) Đặt message loading.
-   * 2) Gọi service.
-   * 3) Nếu success => hiển thị todo title.
-   * 4) Nếu error => hiển thị message lỗi chuẩn hoá.
-   */
+  /** Normal API call — expect success, display todo title. */
   const runApiDemo = async () => {
     setApiMessage("Đang gọi API...");
-
     const result = await getSampleTodoService();
 
     if (result.status === "success") {
@@ -43,8 +34,28 @@ export const useHomeLogic = () => {
     Alert.alert("API call failed", errorMessage);
   };
 
+  /**
+   * Test flow: call an endpoint that returns 401.
+   * Expected: client.ts handles 401 → triggerLogout → AuthProvider clears tokens → nav swaps to LoginScreen.
+   */
+  const runSimulate401 = async () => {
+    setApiMessage("Đang test 401...");
+    const result = await simulate401Service();
+
+    if (result.status === "error") {
+      setApiMessage(`401 test done: ${result.error.code}. Nên tự logout về LoginScreen.`);
+    }
+  };
+
+  /** Manual logout button — clears tokens, nav swaps to AuthStack. */
+  const onLogout = async () => {
+    await logout();
+  };
+
   return {
     apiMessage,
     runApiDemo,
+    runSimulate401,
+    onLogout,
   };
 };

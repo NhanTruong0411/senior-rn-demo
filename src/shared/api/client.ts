@@ -9,12 +9,15 @@
  *   3. Trả về Result: { status: "success", data } hoặc { status: "error", error }.
  *   4. UI chỉ cần check result.status — không cần try/catch.
  *
- * Scope hiện tại (Step 2 — Day 4):
+ * Scope hiện tại (Day 5 — Step 6):
  *   - request(), get(), post().
- *   - Mock token attach vào header Authorization.
- *   - Có điểm xử lý tập trung khi server trả 401.
+ *   - Real token từ SecureStore attach vào header Authorization.
+ *   - 401 handler → trigger logout qua authBridge (clear tokens + set state unauthenticated).
  *   - Chưa có: refresh token, retry, cache.
  */
+
+import { triggerLogout } from "../auth/authBridge";
+import { getAccessToken } from "../auth/tokenStorage";
 
 import type { ApiError, ApiResponse, Result } from "./types";
 
@@ -38,13 +41,6 @@ type RequestConfig = {
 
 const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
-/**
- * Mock token dùng cho Step 3.
- * Mục đích: giả lập user đã đăng nhập để test flow Authorization.
- * Day 5 sẽ đổi sang token thật (đọc từ secure storage).
- */
-const MOCK_ACCESS_TOKEN = "mock-access-token-step-3";
-
 // ----------------------------------------------------------------
 // Helper duy nhất — ghép base URL và path thành full URL.
 // Ví dụ: ("https://api.example.com", "/users") => "https://api.example.com/users"
@@ -59,21 +55,14 @@ const buildUrl = (baseUrl: string, path: string): string => {
 };
 
 /**
- * Lấy token để gắn vào request headers.
- * Hiện tại trả về mock token.
- * Sau này có thể thay bằng: đọc token từ secure storage.
+ * Xử lý tập trung khi server trả 401.
+ * - Log cảnh báo để dễ debug.
+ * - Trigger logout qua authBridge → AuthProvider clear tokens + set state unauthenticated.
+ * - Navigation tự swap về AuthStack (không cần navigate thủ công).
  */
-const getMockAccessToken = (): string | null => MOCK_ACCESS_TOKEN;
-
-/**
- * Điểm xử lý tập trung khi server trả về 401.
- * Mục đích:
- *   - Không để mỗi màn hình tự xử lý 401 riêng lẻ.
- *   - Có sẵn cho Day 5 (logout, clear token, navigate login).
- * Hiện tại chỉ log cảnh báo để dễ nhận biết trong lúc dev.
- */
-const handleUnauthorized = (): void => {
+const handleUnauthorized = async (): Promise<void> => {
   console.warn("[API] 401 Unauthorized. Token có thể đã hết hạn hoặc không hợp lệ.");
+  await triggerLogout();
 };
 
 // ----------------------------------------------------------------
@@ -113,10 +102,9 @@ export const request = async <T>({
       requestHeaders["Content-Type"] = "application/json";
     }
 
-    // --- Bước 2 (Step 3): Gắn mock token vào Authorization header ---
-    // Nếu có token, mọi request sẽ gửi kèm token.
-    // Nếu không có token (null), bỏ qua header này.
-    const accessToken = getMockAccessToken();
+    // --- Bước 2: Gắn access token (từ SecureStore) vào Authorization header ---
+    // Nếu không có token (user chưa login hoặc đã logout), bỏ qua header này.
+    const accessToken = await getAccessToken();
     if (accessToken) {
       requestHeaders.Authorization = `Bearer ${accessToken}`;
     }
@@ -139,9 +127,8 @@ export const request = async <T>({
 
     // --- Bước 5: Nếu server trả lỗi (4xx, 5xx) => trả về error ---
     if (!response.ok) {
-      // (Step 3) Nếu là 401, gọi điểm xử lý tập trung.
       if (response.status === 401) {
-        handleUnauthorized();
+        await handleUnauthorized();
       }
 
       return {

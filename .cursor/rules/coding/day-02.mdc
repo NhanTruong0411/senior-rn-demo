@@ -1,3 +1,8 @@
+---
+description: Day 2 — ESLint + Prettier + path alias `@/` + commit style
+alwaysApply: false
+---
+
 # Day 2 — ESLint + Prettier + path alias `@/` + commit style
 
 **Status:** **Closed / done.** What landed in the repo is summarized in **`README.md`** → section **“Ngày 2 — tra cứu nhanh”** (quick audit vs this playbook).

@@ -1,23 +1,27 @@
-import { HomeScreen } from "@/features/home";
-import { theme } from "@/shared";
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, View } from "react-native";
-
 /**
- * Application shell: providers and root layout will live here in later days.
+ * AppRoot — application shell.
+ *
+ * Provider order (outermost → innermost):
+ *   AuthProvider → NavigationContainer → RootNavigator
+ *
+ * AuthProvider must wrap NavigationContainer because
+ * RootNavigator calls useAuth() to decide which stack to render.
  */
+
+import { NavigationContainer } from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
+
+import { AuthProvider } from "@/shared";
+
+import { RootNavigator } from "./navigation";
+
 export function AppRoot() {
   return (
-    <View style={styles.root}>
-      <HomeScreen />
-      <StatusBar style="dark" />
-    </View>
+    <AuthProvider>
+      <NavigationContainer>
+        <RootNavigator />
+        <StatusBar style="dark" />
+      </NavigationContainer>
+    </AuthProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-});

@@ -1,0 +1,197 @@
+---
+description: English coaching — 30-day dev communication roadmap, trigger "Start english day N" / "Bắt đầu english ngày N"
+alwaysApply: true
+---
+
+# English Coach — 30-day dev communication roadmap
+
+Complements `english-context.mdc`. 30 days, one topic per day, 30–45 minutes each. Built for a React Native dev who wants to move from **B1 hesitant** → **B2 fluent** in real work English.
+
+---
+
+## 0. "Start english day N" — what the AI reads & does
+
+When I say **"Start english day 1"** … **"Start english day 30"** (or variants — see below), AI has context and can execute without repeating the whole roadmap.
+
+### Trigger phrases
+
+| You say | Meaning |
+| --- | --- |
+| `Start english day 1` … `Start english day 30` | Start exactly **one** english-practice day |
+| `Bắt đầu english ngày N` / `Luyện tiếng Anh ngày N` | Same — Vietnamese variant |
+| `English day N` / `Do english day N` / `Today is english day N` | Same |
+
+> Keyword **`english`** is required to disambiguate from the `coding/` track's `Start day N`.
+
+### Context order the AI reads (priority)
+
+1. **`english-context.mdc`** — profile, goal, strict mode, coaching rules.
+2. **`english-playbooks.mdc`** (this file) — Section **1** (30-day table) for Day N + **Section 2** day template + **Section 4** linker progression.
+3. **`day-NN.mdc`** — if it exists in this folder, open and follow.
+4. **`english-linkers.mdc`** — pull on-demand whenever the day's linker-group is introduced or drilled (see Section 4).
+
+### Expected AI behavior
+
+- On **"Start english day N"**: if `day-NN.mdc` **is missing** → **create** it using the day template in Section 2, filled with the topic from Section 1. If it **exists** → open and run it.
+- **Default language of day files:** **English** (immersion). Vietnamese only for short meta-notes when a concept is genuinely confusing (< 10% of the file).
+- **Do not pre-generate** future day files. One day is created only when I ask for that day.
+- After each day, append a row to `progress-tracker.md`: date, day, topic, confidence 1–10, 1-line note.
+- Each day must feel like **a real work situation**, not a textbook drill.
+- At the end of each day, give me **2 most useful fixes** — not every mistake. Senior coach, not a grammar bot.
+
+### Day file naming & state
+
+| Day | File | State |
+| --- | --- | --- |
+| 1 | `day-01.mdc` | ✅ Generated (Daily standup) |
+| 2–30 | `day-NN.mdc` | Generated **only when** I say "Start english day N" |
+
+---
+
+## 1. 30-day roadmap — one topic per day
+
+### Phase 1 — Dev communication foundations (Days 1–7)
+
+| Day | Topic | Why it matters |
+| --- | --- | --- |
+| **1** | Daily standup | Most frequent 2-min English moment in a dev's week |
+| **2** | Explaining a bug | Core collaboration skill — root cause + fix + impact |
+| **3** | Code review comments | Give and receive feedback without sounding rude |
+| **4** | Thinking phrases (buy time) | Stop awkward silences; replace Vietnamese "ờ… à…" |
+| **5** | Linking words | Sound structured, not choppy — connect ideas like a senior |
+| **6** | Softening language | Disagree / push back without offending |
+| **7** | STAR storytelling — intro | Base pattern for every interview answer |
+
+### Phase 2 — Technical fluency (Days 8–14)
+
+| Day | Topic |
+| --- | --- |
+| **8** | Explaining trade-offs (X vs Y — Redux vs Query, REST vs GraphQL) |
+| **9** | Describing architecture out loud (feature folders, boundaries) |
+| **10** | Performance discussion (profiler, measurements, before/after) |
+| **11** | API / integration issues (401s, timeouts, retries, contracts) |
+| **12** | State management explanation (server vs client, cache, invalidation) |
+| **13** | Async flows, race conditions, offline (describing failure modes) |
+| **14** | Week 2 review + tech story drill (record yourself) |
+
+### Phase 3 — Interview core (Days 15–21)
+
+| Day | Topic |
+| --- | --- |
+| **15** | STAR — proudest project story (with a metric) |
+| **16** | STAR — conflict with a teammate |
+| **17** | STAR — failure and lesson learned |
+| **18** | System design intro (mobile scope): auth, lists, errors |
+| **19** | System design — caching, offline, push notifications |
+| **20** | Coding interview narration (think-aloud while solving) |
+| **21** | "Tell me about yourself" + 60-second career pitch |
+
+### Phase 4 — Senior-level communication (Days 22–30)
+
+| Day | Topic |
+| --- | --- |
+| **22** | Handling pushback (PM wants impossible deadline; engineer disagrees) |
+| **23** | Leading a meeting / discussion (open, guide, close) |
+| **24** | Writing vs speaking: Slack updates, PR descriptions, Jira comments |
+| **25** | Explaining incidents & on-call (timeline + root cause + mitigation) |
+| **26** | Mentoring / giving feedback to a junior |
+| **27** | Negotiating scope / deadlines (not "no", but "yes if…") |
+| **28** | Cross-functional (talking to design, backend, QA — different vocab) |
+| **29** | Full mock interview (behavioral + technical + coding narration) |
+| **30** | Career story wrap-up + final self-assessment + next 30-day plan |
+
+---
+
+## 2. Day file template (used when AI creates `day-NN.mdc`)
+
+Every `day-NN.mdc` must follow this exact 8-section structure so practice is predictable and my brain knows what to expect.
+
+### Frontmatter
+
+```text
+---
+description: English Day NN — <topic>
+alwaysApply: false
+---
+```
+
+### Sections (all mandatory)
+
+1. **Daily Focus** — one topic, one sentence describing the real dev situation.
+2. **Core Knowledge**
+   - 5–10 key phrases (dev context, with "when to use" column)
+   - 5 linking words (with an example sentence)
+   - 3 thinking phrases (buy 2–3 seconds)
+   - 3 softening sentences (disagree / hedge)
+   - 2 structured answer templates
+3. **Real Dev Examples** — 3 scenarios (bug fix, API issue, performance, etc.).
+4. **Speaking Practice (MANDATORY)**
+   - A. **Shadowing** — 5 sentences, say aloud 3× each
+   - B. **Build your own answer** — 2 questions, ~30 seconds each
+   - C. **Real scenario simulation** — 1 prompt ("Explain a bug you fixed…")
+5. **Fast Response Training** — 3 short questions, answer in ≤ 5 seconds.
+6. **Thinking in English** — 3 Vietnamese thoughts → English patterns (not translations).
+7. **Output Task** — write 5–8 sentences using learned patterns (+ optional recording).
+8. **Time Plan** — 10 min learning · 15 min speaking · 10 min practice · 5 min reflection.
+
+**Closing block (mandatory):** a **Reflection** mini-section with 3 prompts + confidence 1–10, formatted so I can paste it into `progress-tracker.md`.
+
+---
+
+## 3. Global rules (apply to all day files)
+
+- **Dev context only.** No coffee-shop, travel, or weather scenarios.
+- **Speak > explain.** Every phrase must be **say-able in 3 seconds** at standup pace.
+- **B1–B2 vocabulary.** C1 words only when listed with a short gloss.
+- **30–45 minutes total.** Cut content if it exceeds; don't over-stuff.
+- **Dev-English patterns over textbook English.** "No blockers" over "I do not have any impediments."
+- **End every day with a Reflection block** — feeds `progress-tracker.md`.
+
+---
+
+## 4. Linker progression map (cross-day spaced repetition)
+
+Linking words + fillers are **not** crammed into a single day. They are distributed across 7 days + drilled again in a second day for spaced repetition. Full reference lives in **`english-linkers.mdc`** (on-demand).
+
+| Group (see `english-linkers.mdc`) | Introduce on | Drill again on | Why this pairing |
+| --- | --- | --- | --- |
+| **1. Conditional / IF-type** (otherwise, in case, as long as, even if) | Day 11 (API / integration) | Day 25 (incidents) | Error handling language naturally uses conditionals |
+| **2. Contrast** (however, though, still, on the other hand) | Day 5 (linkers core) | Day 14 (week review) | Structured disagreement / trade-offs |
+| **3. Addition** (also, as well, besides, in addition, plus) | Day 5 (linkers core) | Day 14 | Stack multiple points in one update |
+| **4. Cause / Result** (because, since, so, that's why, therefore) | Day 5 (linkers core) | Day 14 | Root cause explanation backbone |
+| **5. Examples / Explanation** (for example, such as, like, in other words) | Day 2 (explaining bugs) | Day 18 (system design) | Concrete examples = senior habit |
+| **6. Time / Sequence** (first, then, while, meanwhile, eventually) | Day 1 (standup) | Day 25 (incident timeline) | Both are time-ordered narratives |
+| **7. Emphasis** (actually, basically, honestly) | Day 4 (thinking phrases) | Day 21 (career pitch) | Sincerity markers during storytelling |
+| **8. Fillers** (well, you know, I mean, kind of, right?) | Day 4 (thinking phrases) | Day 29 (mock interview) | Fillers = pressure tested best in interview sim |
+| **9. Conclusion / Closing** (so, anyway, in the end, at the end of the day, to wrap up) | Day 23 (leading meeting) | Day 30 (wrap-up) | Meeting closers + career story closers |
+
+**AI behavior:** when generating any of these days, AI must:
+
+1. Open `english-linkers.mdc` and pull **only the relevant group** into that day's Section 1.2.
+2. Add a short note like *"Today's linker focus: Group 6 — Time / Sequence. Full reference: `english-linkers.mdc`."*
+3. On drill-again days, pull the group(s) from the drill-again column and design a **pressure scenario** that forces their use.
+
+---
+
+## 5. Templates & cheatsheets (deferred — extract after Week 1)
+
+Standalone `english-templates.mdc` and `english-cheatsheets.mdc` files will be extracted **after Day 7** — once enough patterns have accumulated across the first week. Extracting them now would duplicate content already inside `day-01.mdc` → `day-07.mdc`. When I finish Week 1, say **"Extract templates and cheatsheets"** and AI will consolidate the reusable patterns into their own files with `alwaysApply: false`.
+
+Planned contents:
+
+- `english-templates.mdc` — standup, bug explanation, interview STAR, code review, incident writeup.
+- `english-cheatsheets.mdc` — thinking phrases, softening phrases, "sound like a senior dev" phrases. (Linkers already live in `english-linkers.mdc`.)
+
+---
+
+## 6. Daily principles (senior habits applied to language)
+
+- **Tie every phrase to a real work moment.** If I can't imagine using it this week, cut it.
+- **Shadow before composing.** Repetition → fluency → own voice.
+- **Record once per week** (Day 7, 14, 21, 30) — compare, hear the progress.
+- **Own 1–3 phrases per day** I could use at tomorrow's standup without thinking.
+- **Correct once, move on.** Don't obsess over perfection; senior comm is **clear enough, fast enough**.
+
+---
+
+_This document is the frame. **Section 1** maps **30 days** to real dev communication moments. AI follows this frame every time I say "Start english day N"._

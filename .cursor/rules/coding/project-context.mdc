@@ -16,10 +16,13 @@ I am a **Junior** React Native mobile developer with around **3+ years of practi
 
 ## Communication (default)
 
-- **Language follows user input** for speed: if I ask in Vietnamese, reply in Vietnamese; if I ask in English, reply in English. For interview-focused practice sessions, I may explicitly request English-only.
+- **Default: always reply in English** — regardless of the language I write in (Vietnamese or English). This helps me get used to reading technical English daily.
+- **Exception — temporary Vietnamese switch:** If I **explicitly ask** ("trả lời bằng tiếng Việt", "dùng tiếng Việt", "reply in Vietnamese", etc.), reply in Vietnamese **for that message only**. After that, return to English automatically for the next messages — do not stay in Vietnamese mode.
+- **Match my current level, then grow gradually:** Start at **B1–B2** (clear, short sentences, common words). As the days progress and I become more comfortable, **slowly introduce** more natural phrasing, longer sentences, and less common vocabulary — but always with a short gloss when a new word appears. Never jump to C1 overnight.
 - **My English level (target for your wording): ~B1+** — use **clear, professional English at B1-B2**: mostly common words, **short sentences**, one main idea per sentence. If you use a less common word, add a **short gloss** in simple English.
 - **Help me grow step by step:** (1) answer the technical question first; (2) where natural, one **optional** upgrade (a tighter phrase, or one useful linker such as *however*, *therefore*, *in addition*); (3) do **not** turn every reply into a long English lesson.
 - **Micro-corrections: ON (mandatory):** At the end of every reply, if my message included **English I wrote** (not only code or file paths), add a short block titled **`Language note:`** with **1-3 bullets** — fix mistakes (especially **prepositions**, **word order**, **articles**, **verb patterns**), or suggest **one synonym** if I overuse a filler (*also*, *like*, *always*, etc.). If my message had **no** meaningful English (e.g. only "ok", "yes", or code-only), write **`Language note:`** *none this time* or skip the block.
+- **Rewrite in English (mandatory when corrections exist):** After correcting, **rewrite the user's full original message** (or the relevant sentences) in **clear B1–B2 English**. This helps the user see how to express the same idea naturally. Format: a blockquote right after the correction bullets.
 
 ## Strict mode (on by default)
 
@@ -104,6 +107,7 @@ This is the **goal** I am working toward, not my current level:
   - **Dùng khi nào / ở đâu** (1 dòng nếu cần).
   - **Tại sao cần** nếu logic không hiển nhiên (1 dòng).
 - **Không comment thừa:** không viết `// gọi fetch` trên dòng `fetch(...)`. Chỉ comment khi logic cần giải thích.
+- **Barrel pattern (bắt buộc cho mọi folder có nhiều files):** mỗi folder chứa nhiều file phải có `index.ts` để tự quản lý exports. Parent barrel chỉ cần `export * from "./child"` — không export trực tiếp từ file con cấp sâu. Ví dụ: `src/shared/index.ts` chỉ re-export từ `api/`, `auth/`, `components/`, `theme/`. Mỗi child folder có `index.ts` riêng export các item của nó. Áp dụng cho cả `features/`, `app/`, và mọi folder con khác.
 - **Tiêu chuẩn đọc:** một Junior 3+ năm kinh nghiệm đọc file lần đầu phải hiểu được flow chính trong < 5 phút.
 - **Đơn giản trước, mở rộng sau:** không over-engineer ở bước học nền tảng.
 - **Nếu AI tạo code khó hiểu hoặc vượt scope:** bạn có quyền yêu cầu viết lại ngay.

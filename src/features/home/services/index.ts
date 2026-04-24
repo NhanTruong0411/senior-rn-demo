@@ -1,4 +1,4 @@
-import { get, type ApiError, type Result } from "@/shared";
+import { get, triggerLogout, type ApiError, type Result } from "@/shared";
 
 /**
  * Kiểu dữ liệu mẫu dùng cho API demo ở feature `home`.
@@ -39,3 +39,28 @@ export const getSampleTodoService = (): Promise<Result<SampleTodo, ApiError>> =>
   get<SampleTodo>("/todos/1", {
     baseUrl: DEMO_API_BASE_URL,
   });
+
+/**
+ * simulate401Service():
+ * Simulate a 401 response LOCALLY — no real network call.
+ * Triggers the same logout flow as a real 401 from the server.
+ *
+ * Why local (not httpbin.org)?
+ *   - Reliable: no dependency on external service availability or speed.
+ *   - Fast: no network round-trip.
+ *   - Same effect: triggerLogout() runs the exact 401 path used by client.ts.
+ *
+ * Dev/test only. Remove before production.
+ */
+export const simulate401Service = async (): Promise<Result<unknown, ApiError>> => {
+  await triggerLogout();
+
+  return {
+    status: "error",
+    error: {
+      code: "UNAUTHORIZED",
+      message: "Simulated 401 (local mock)",
+      status: 401,
+    },
+  };
+};

@@ -1,3 +1,8 @@
+---
+description: Day 1 — Expo + TypeScript + feature-based structure
+alwaysApply: false
+---
+
 # Day 1 — Expo + TypeScript + feature-based structure
 
 **Trigger:** you say **“Start day 1”** — cross-check `checklist.md` **Section 7** (Day 1 row) + `prompt.md` (Strict mode + **Hands-off**: **you** run commands locally; AI does not scaffold for you unless you explicitly ask).
