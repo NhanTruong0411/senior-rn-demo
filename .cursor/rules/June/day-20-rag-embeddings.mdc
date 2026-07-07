@@ -1,0 +1,96 @@
+---
+description: Day 20 (03/07) — RAG & Embeddings. Cho LLM "đọc" dữ liệu riêng, embeddings là gì, vector search, vì sao RAG hơn fine-tune cho đa số case.
+alwaysApply: false
+---
+
+# Day 20 · T6 03/07 — RAG & Embeddings
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học cách làm cho LLM **trả lời dựa trên dữ liệu riêng của bạn** (tài liệu công ty, FAQ sản phẩm, data app) — thứ mà model **chưa từng học**. Kỹ thuật đó là **RAG** (Retrieval-Augmented Generation), dựa trên **embeddings** + **vector search**.
+
+Interviewer hỏi vì **hầu hết AI feature thực tế là RAG**: chatbot tài liệu, hỏi đáp sản phẩm, trợ lý nội bộ. Hiểu RAG = hiểu cách một AI app thật vận hành, không chỉ "gọi ChatGPT".
+
+---
+
+## 2. Ví dụ đời thường
+
+LLM như một **học sinh cực giỏi nhưng học tới năm ngoái là dừng**, và **không biết gì về tài liệu nội bộ công ty bạn**.
+
+- Hỏi thẳng về quy định công ty → nó **đoán bừa** (bịa).
+- **RAG = thi mở sách (open-book).** Trước khi hỏi, bạn **lật sẵn đúng vài trang liên quan đặt trước mặt nó**, rồi nói "đọc mấy trang này rồi trả lời". Giờ nó trả lời đúng vì có tài liệu thật để dựa vào.
+
+Vấn đề còn lại: trong **1000 trang**, làm sao tìm nhanh **đúng vài trang liên quan**? Đó là việc của embeddings + vector search.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**A. Vì sao cần RAG (2 lý do):**
+1. LLM **không biết** dữ liệu riêng / dữ liệu mới của bạn.
+2. **Context window có hạn** (Day 18) — không thể nhét cả 1000 trang vào mỗi câu hỏi (tốn token + vượt giới hạn).
+→ Giải pháp: chỉ **lấy đúng vài đoạn liên quan** đưa vào prompt.
+
+**B. Embeddings — biến chữ thành "tọa độ ý nghĩa":**
+- Embedding là việc biến một đoạn text thành một **dãy số (vector)** đại diện cho **ý nghĩa** của nó.
+- Hai đoạn **ý nghĩa giống nhau → vector nằm gần nhau**; khác nghĩa → nằm xa.
+- Vd "chó" và "cún" gần nhau; "chó" và "ô tô" xa nhau. Máy so sánh khoảng cách số học, không so từng chữ.
+→ Lưu ý: embedding **không phải mã hóa** (Day 8). Mã hóa để giấu rồi giải ra; embedding để **đo độ giống nghĩa**, không giải ngược về chữ gốc.
+
+**C. Vector DB + semantic search:**
+- Cắt tài liệu thành đoạn nhỏ (**chunk**), embed mỗi đoạn → lưu vào **vector database**.
+- Khi user hỏi: embed câu hỏi → tìm các đoạn có vector **gần nhất** (tìm hàng xóm gần nhất — liên hệ nhẹ DSA Day 14–15) → lấy **top-k** đoạn liên quan nhất.
+- Đây gọi là **semantic search**: tìm theo **ý nghĩa**, không phải khớp từ khóa.
+
+**D. Luồng RAG đầy đủ (nhớ 2 pha):**
+- **Pha chuẩn bị (offline):** chunk tài liệu → embed → lưu vector DB.
+- **Pha hỏi (runtime):** câu hỏi → embed → retrieve top-k đoạn → **nhét vào prompt** (augment) → LLM **generate** câu trả lời dựa trên các đoạn đó (nối Day 19: ra luật "chỉ trả lời theo tài liệu").
+
+**E. RAG vs Fine-tune (câu hay bị hỏi):**
+- **Fine-tune** = dạy lại model (đổi "bộ não") — tốn kém, chậm cập nhật, khó sửa.
+- **RAG** = đưa tài liệu lúc hỏi (không đổi não) — **rẻ, cập nhật tức thì** (thêm file là xong), **ít bịa hơn**, dễ trích nguồn.
+→ Đa số case thực tế chọn **RAG trước**, fine-tune chỉ khi cần đổi "phong cách/định dạng" cố định.
+
+**F. Liên hệ mobile:** App mobile thường **không tự chạy RAG**; nó gọi tới backend, backend lo embed + vector DB + LLM, trả về câu trả lời (kèm nguồn). App chỉ hiển thị.
+
+---
+
+## 4. Luồng tối thiểu (pseudo)
+
+```text
+# Pha chuẩn bị (làm 1 lần, ở backend)
+tài liệu → cắt thành chunk → embed từng chunk → lưu vào Vector DB
+
+# Pha hỏi (mỗi lần user hỏi)
+câu hỏi
+  → embed câu hỏi thành vector
+  → vector DB trả về top-k chunk gần nghĩa nhất
+  → ghép vào prompt:
+      system: "Chỉ trả lời dựa trên CONTEXT. Không có thì nói không biết."
+      context: <top-k chunk>
+      user: <câu hỏi>
+  → LLM sinh câu trả lời (kèm trích nguồn)
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "RAG là cách cho LLM trả lời dựa trên dữ liệu riêng mà nó chưa học. Tôi ví như thi mở sách: trước khi hỏi, tôi lật sẵn đúng vài trang liên quan đặt trước mặt model. Cách tìm đúng trang là dùng embeddings — biến mỗi đoạn text thành một vector thể hiện ý nghĩa, đoạn nào nghĩa giống nhau thì vector gần nhau. Tôi cắt tài liệu thành chunk, embed rồi lưu vào vector DB. Khi user hỏi, tôi embed câu hỏi, tìm các chunk gần nghĩa nhất, nhét vào prompt rồi để LLM trả lời dựa trên đó. So với fine-tune, RAG rẻ hơn, cập nhật tức thì chỉ bằng cách thêm tài liệu, và ít bịa hơn vì có nguồn thật để dựa vào."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Lẫn RAG với fine-tune. RAG **không dạy lại model**, chỉ đưa tài liệu lúc hỏi.
+- ❌ Nói "embedding là mã hóa" — sai. Embedding đo **độ giống nghĩa**, không phải để giấu rồi giải ra.
+- ❌ Quên `chunk` — chia đoạn quá to/quá nhỏ đều làm tìm kiếm kém. Nhắc được là điểm cộng.
+- ❌ Nghĩ RAG hết bịa hoàn toàn — vẫn cần ra luật "không có trong context thì nói không biết".
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 21)
+
+1. RAG giải quyết vấn đề gì của LLM? Ví von "thi mở sách" nghĩa là gì?
+2. Embedding là gì, vì sao "nghĩa giống nhau thì vector gần nhau"? Nó khác mã hóa ở đâu?
+3. So với fine-tune, RAG hơn ở 2 điểm nào?

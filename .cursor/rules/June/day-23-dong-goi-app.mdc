@@ -1,0 +1,100 @@
+---
+description: Day 23 (08/07) — Đóng gói app RN. JS bundle + native build, debug vs release, env/config, versioning, code signing, app size.
+alwaysApply: false
+---
+
+# Day 23 · T4 08/07 — Đóng gói app (Packaging / Build)
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **chuyện gì xảy ra sau khi "code xong"**: code RN biến thành file cài được (**APK/AAB** cho Android, **IPA** cho iOS) ra sao. Gồm: **bundle JS + native build**, khác nhau **debug vs release**, **env/config** theo môi trường, **versioning**, và **code signing**.
+
+Interviewer hỏi để xem bạn có hiểu **vòng đời sau code** không, hay chỉ biết bấm "Run". Hiểu build = biết vì sao "máy tôi chạy được mà bản release lỗi", và biết giữ an toàn key/keystore.
+
+---
+
+## 2. Ví dụ đời thường
+
+Giống **xuất bản một cuốn sách**:
+
+- Bạn viết xong **bản thảo** (code) — nhưng chưa ai mua được.
+- Đem đi **in, đóng bìa** (build) → thành cuốn sách vật lý.
+- **Dán tem + chữ ký nhà xuất bản** (code signing) → hiệu sách mới chịu nhận bán.
+- Mỗi lần tái bản phải ghi **số lần in** (version) để phân biệt.
+
+"Chạy được trên máy bạn" mới là bản thảo; phát hành được là chuyện khác.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**A. Build RN gồm 2 phần ghép lại:**
+1. **JS bundle**: Metro gom toàn bộ code JS thành 1 file; **Hermes** biên dịch sẵn thành bytecode cho chạy nhanh, mở app lẹ.
+2. **Native build**: Xcode (iOS) / Gradle (Android) đóng gói phần native + nhúng JS bundle vào → ra **IPA / AAB**.
+
+**B. Debug vs Release (nối Day 16–17):**
+- **Debug**: JS chạy từ **Metro server** (máy bạn), có dev menu, warning, chậm hơn. Dùng để code.
+- **Release**: **nhúng sẵn bundle** vào app, tối ưu, không warning, không cần Metro. Đây mới là bản người dùng nhận.
+→ Vì vậy **luôn đo hiệu năng trên bản release** (Day 17), và nhiều bug "chỉ xảy ra ở release" là do quên test bản này.
+
+**C. Env / config theo môi trường (đừng hard-code):**
+- App thật có nhiều môi trường: **dev / staging / prod** (khác API URL, khác key).
+- **Không hard-code** URL/key trong code. Dùng `.env` (react-native-config), hoặc **flavor** (Android) / **scheme** (iOS) để build ra bản trỏ đúng môi trường.
+- Nối Day 18: key nhạy cảm vẫn ở backend, app chỉ chứa config không nhạy cảm.
+
+**D. Versioning (rất hay bị hỏi):**
+- **versionName** (iOS: `CFBundleShortVersionString`) = số người dùng **nhìn thấy**, vd `1.4.0`.
+- **versionCode** (Android) / **build number** (iOS) = số **store dùng để phân biệt bản**, phải **tăng mỗi lần submit**, nếu không store từ chối.
+→ Quên tăng build number là lỗi nộp store kinh điển.
+
+**E. Code signing (chỗ dễ "mất nhà"):**
+- **iOS**: cần **certificate + provisioning profile** (Apple cấp) mới cài/lên store được.
+- **Android**: app phải ký bằng **keystore**. **Mất keystore = KHÔNG thể update app cũ nữa** (phải đăng app mới) → phải **giữ keystore + mật khẩu cực kỹ**, không commit vào Git.
+
+**F. Giảm app size (điểm cộng):**
+- Android nộp **AAB** thay APK → store tự cắt bản gọn theo từng máy.
+- Bật **Hermes**, **ProGuard/R8** (rút gọn code thừa), nén/tách ảnh-asset.
+
+---
+
+## 4. Lệnh / cấu hình tối thiểu
+
+```bash
+# Android — ra file nộp store (AAB), bản release
+cd android && ./gradlew bundleRelease     # tạo .aab đã ký bằng keystore
+
+# iOS — build archive bản release để lên App Store (qua Xcode hoặc CLI)
+# Xcode → Product → Archive → Distribute App
+
+# Tăng version trước khi submit:
+# Android: android/app/build.gradle → versionCode +1, versionName "1.4.0"
+# iOS: target → General → Build (tăng), Version (1.4.0)
+```
+
+```bash
+# .env tách môi trường — KHÔNG commit file có giá trị thật
+API_URL=https://staging-api.myapp.com
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Build RN gồm hai phần: Metro gom JS thành một bundle và Hermes biên dịch sẵn, rồi Xcode hoặc Gradle đóng gói native và nhúng bundle vào để ra IPA hoặc AAB. Tôi luôn phân biệt debug và release: debug chạy JS từ Metro còn release nhúng sẵn bundle và tối ưu, nên tôi đo hiệu năng và test kỹ trên bản release. Cấu hình theo môi trường tôi tách dev, staging, prod bằng env hoặc flavor, không hard-code URL hay key. Về version, versionName là số người dùng thấy còn build number phải tăng mỗi lần nộp store. Quan trọng nhất là code signing: iOS cần certificate và provisioning profile, Android ký bằng keystore — mất keystore là không update được app nữa nên tôi giữ rất kỹ và không commit vào Git."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Hard-code API URL/key vào code → lộ + khó đổi môi trường.
+- ❌ Quên tăng **build number** → store từ chối bản nộp.
+- ❌ Commit **keystore / certificate** vào Git, hoặc làm mất keystore → mất khả năng update app.
+- ❌ Đo perf / kết luận "app nhanh" trên bản **debug** (Day 17) → số sai.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 24)
+
+1. Build RN gồm 2 phần nào? Hermes làm gì trong đó?
+2. versionName khác build number/versionCode ra sao? Cái nào bắt buộc tăng mỗi lần nộp?
+3. Vì sao mất keystore (Android) là vấn đề nghiêm trọng?

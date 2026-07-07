@@ -1,0 +1,104 @@
+---
+description: Day 27 (12/07) — Performance Optimization trong React Native. Tối ưu re-render, list, image, startup và những nguyên tắc quan trọng.
+alwaysApply: false
+---
+
+# Day 27 · CN 12/07 — Performance Optimization
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học cách tối ưu hiệu năng React Native ở mức thực chiến: khi nào re-render là vấn đề, `React.memo` / `useMemo` / `useCallback` dùng đúng lúc thế nào, vì sao `FlatList` thắng `ScrollView` với danh sách dài, tối ưu ảnh, và cách rút ngắn thời gian khởi động app.
+
+Interviewer rất thích chủ đề này vì Middle Developer không chỉ làm app **chạy đúng**, mà phải làm app **chạy mượt** — đây cũng là chỗ tốt để kể story có số cụ thể (nối Day 17 Profiler, Day 25 Bundle size).
+
+---
+
+## 2. Ví dụ đời thường
+
+Hãy tưởng tượng bạn dọn nhà. Mỗi lần có khách tới, bạn lại dọn **toàn bộ căn nhà** dù khách chỉ ngồi ở phòng khách — rất lãng phí công sức. React cũng vậy: nếu chỉ một `Button` đổi trạng thái mà cả màn hình render lại theo, đó là dấu hiệu component đang làm việc thừa. Mục tiêu không phải "render ít nhất có thể bằng mọi giá", mà là **chỉ cập nhật đúng phần thực sự thay đổi**.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) Re-render là gì, và khi nào mới cần quan tâm**
+
+Component render lại mỗi khi state đổi, props đổi, hoặc context nó đang subscribe đổi. Bản thân việc render lại **không xấu** — React được thiết kế để render lại thường xuyên và diff hiệu quả qua Virtual DOM. Chỉ nên bắt tay tối ưu khi đã **đo được** re-render đang gây giật hoặc chậm thấy rõ (dùng React DevTools Profiler, nối Day 17), chứ không tối ưu theo cảm tính — tối ưu sai chỗ vừa tốn thời gian vừa làm code khó đọc hơn.
+
+**b) `React.memo` — bỏ qua render nếu props không đổi**
+
+`React.memo` bọc một component để React so sánh props cũ và mới bằng shallow comparison; nếu giống hệt, component đó **bỏ qua** lần render mới dù component cha đã render lại. Hiệu quả rõ nhất với các component lặp lại nhiều lần và ít thay đổi — điển hình là item trong danh sách dài. Nhưng `React.memo` không miễn phí: nó vẫn tốn chi phí so sánh props mỗi lần cha render, nên bọc một component gần như luôn nhận props mới (ví dụ do inline function/object) sẽ không có tác dụng, thậm chí phản tác dụng.
+
+**c) `useMemo` và `useCallback` — khác nhau và khi nào thực sự cần**
+
+`useMemo` lưu lại **kết quả** của một phép tính tốn kém, chỉ tính lại khi dependency đổi — hữu ích khi có xử lý dữ liệu nặng (lọc, sắp xếp mảng lớn) chạy lại mỗi lần render. `useCallback` lưu lại **tham chiếu của hàm**, tránh việc mỗi lần render tạo ra một function mới — quan trọng khi hàm đó được truyền làm prop cho một component đã bọc `React.memo`, vì nếu không dùng `useCallback`, function mới mỗi lần render sẽ khiến `React.memo` của con luôn thấy props "đổi" và render lại vô ích. Điểm cần nhớ: **không nên bọc mọi hàm/mọi giá trị bằng hai hook này** — bản thân hook cũng tốn bộ nhớ để lưu cache và tốn phép so sánh dependency; dùng tràn lan khi không cần chỉ làm code rối mà không cải thiện hiệu năng đáng kể.
+
+**d) `FlatList` thay vì `ScrollView` với danh sách dài — vì sao**
+
+`ScrollView` render **toàn bộ** children ngay khi mount, kể cả phần chưa cuộn tới — với danh sách 1000 item, nghĩa là 1000 component được tạo ra cùng lúc, tốn bộ nhớ và làm màn hình đơ lúc mở. `FlatList` dùng kỹ thuật **windowing/virtualization**: chỉ render các item đang hiển thị trên màn hình cộng thêm một vùng đệm nhỏ, các item cuộn ra khỏi màn hình sẽ được unmount để giải phóng bộ nhớ. Để `FlatList` phát huy hết hiệu quả, cần `keyExtractor` ổn định (tránh dùng index nếu list có thể sắp xếp lại) và có thể khai báo thêm `getItemLayout` nếu chiều cao item cố định để tránh FlatList phải tự đo đạc.
+
+**e) Tối ưu ảnh — thường là thủ phạm số 1 gây giật (nối Day 25)**
+
+Ảnh lớn hơn nhiều so với kích thước hiển thị thực tế là nguyên nhân phổ biến nhất khiến màn hình giật khi cuộn. Nguyên tắc: nén ảnh trước khi đưa vào app, dùng đúng kích thước hiển thị (không nhét ảnh 4K cho ô 200px), ưu tiên định dạng WebP khi nền tảng hỗ trợ, và bật cache ảnh (thư viện như `react-native-fast-image` cache ảnh trên đĩa, tránh tải lại mỗi lần component remount).
+
+**f) Rút ngắn thời gian khởi động (Startup Time)**
+
+Vài đòn bẩy chính: bật **Hermes** — engine JS biên dịch bytecode sẵn nên không phải parse JS thô lúc mở app (nối Day 25, chỉ tối ưu runtime, không giảm size file cài); **lazy load** các màn hình ít dùng ngay từ đầu qua `React.lazy`/dynamic import hoặc `lazy: true` trên Tab Navigator; giảm **bundle size** vì bundle nhỏ hơn thì Hermes cũng ít việc phải load hơn; và tránh gọi quá nhiều API cùng lúc lúc mở app — ưu tiên tải dữ liệu cần thiết trước, phần còn lại tải nền sau khi màn hình đầu tiên đã hiển thị.
+
+---
+
+## 4. Code tối thiểu
+
+```tsx
+// ❌ ScrollView với danh sách dài — render hết 1000 item cùng lúc
+<ScrollView>
+  {products.map((p) => (
+    <ProductItem key={p.id} data={p} />
+  ))}
+</ScrollView>
+
+// ✅ FlatList — chỉ render item đang hiển thị + vùng đệm
+<FlatList
+  data={products}
+  keyExtractor={(item) => item.id}
+  renderItem={({ item }) => <ProductItem data={item} />}
+/>
+```
+
+```tsx
+// ✅ React.memo cho item lặp lại nhiều lần trong danh sách
+const ProductItem = React.memo(function ProductItem({ data, onPress }) {
+  return <Pressable onPress={onPress}>{/* ... */}</Pressable>;
+});
+
+// ✅ useCallback để onPress không đổi tham chiếu mỗi lần cha render,
+// giữ nguyên tác dụng của React.memo ở ProductItem phía trên
+const handlePress = useCallback((id: string) => {
+  navigation.navigate('ProductDetail', { id });
+}, [navigation]);
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Trước khi tối ưu, tôi luôn đo bằng React DevTools Profiler để biết re-render nào thực sự gây giật, thay vì tối ưu theo cảm tính. Với danh sách dài tôi luôn dùng FlatList thay ScrollView vì FlatList chỉ render item đang hiển thị nhờ virtualization, không render hết toàn bộ dữ liệu cùng lúc. Tôi dùng React.memo cho các item lặp lại nhiều lần và ít đổi, kèm useCallback để hàm truyền xuống không tạo tham chiếu mới mỗi lần render — nếu không, React.memo ở component con sẽ mất tác dụng. useMemo tôi chỉ dùng cho phép tính thật sự tốn chi phí, không bọc tràn lan vì bản thân các hook này cũng có overhead. Ngoài ra tôi tối ưu ảnh bằng cách nén và cache, và giảm thời gian khởi động bằng Hermes, lazy loading màn hình ít dùng, và giảm bundle size."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "React.memo, useMemo, useCallback nên dùng ở mọi component" — sai, bản thân các hook này có overhead, dùng tràn lan không giúp gì mà còn làm code rối.
+- ❌ "ScrollView cũng render lazy như FlatList" — sai, ScrollView render toàn bộ children ngay khi mount.
+- ❌ "Hermes giúp giảm dung lượng app" — sai, Hermes tối ưu runtime (startup, memory), không giảm size file cài (đó là việc của nén ảnh, gỡ dependency thừa — Day 25).
+- ❌ Tối ưu trước khi đo — dễ tối ưu sai chỗ, tốn thời gian mà không cải thiện được vấn đề thật.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 28)
+
+1. Re-render xảy ra khi nào? Vì sao re-render tự nó không phải là vấn đề?
+2. `React.memo` hoạt động dựa trên cơ chế nào? Vì sao nó có thể "mất tác dụng" nếu component cha không dùng `useCallback` cho hàm truyền xuống?
+3. `useMemo` và `useCallback` khác nhau ở điểm nào — một cái lưu gì, một cái lưu gì?
+4. Vì sao `FlatList` xử lý tốt danh sách 1000 item còn `ScrollView` thì không? Tên kỹ thuật đó là gì?
+5. Kể 3 cách cụ thể giúp giảm thời gian khởi động (Startup Time) của app React Native.

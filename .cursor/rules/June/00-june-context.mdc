@@ -1,0 +1,138 @@
+---
+description: Lộ trình ôn tháng 6/2026 — lấp lỗ hổng kiến thức web/API/security/DSA sau phỏng vấn Sacombank. Mỗi ngày 1 khái niệm, đi sâu, chậm mà chắc.
+alwaysApply: true
+---
+
+# Tháng 6/2026 — Lấp lỗ hổng kiến thức (post-Sacombank)
+
+> **Bối cảnh:** Vòng phỏng vấn Sacombank hỏi nhiều khái niệm web/API/bảo mật/DSA mà tôi
+> chưa trả lời được. Tôi đã note tay lại. File này là **single source of truth** cho việc ôn
+> trong tháng 6: mỗi ngày học **đúng 1 khái niệm**, hiểu sâu, không nhồi nhét.
+
+> **Triết lý học (bắt buộc giữ):**
+> - 1 khái niệm / ngày. Hiểu **bản chất** trước, thuật ngữ sau.
+> - Mỗi khái niệm phải giải thích được cho 1 intern hiểu → thì mới coi là "thuộc".
+> - Đo bằng câu trả lời phỏng vấn ≤60s, không phải bằng số trang đọc.
+
+---
+
+## 1. Những gì tôi note được ở Sacombank (lỗ hổng thật)
+
+**Nhóm API & networking**
+- fetch vs Axios khác gì
+- Các cách call API
+- Cơ chế xử lý API (lifecycle, retry, error)
+- AbortController (hủy request)
+- Axios cancel token
+
+**Nhóm bảo mật**
+- JWT là gì
+- HASH (băm) là gì
+- Mã hóa đối xứng ≠ bất đối xứng
+- Cơ chế xử lý API bảo mật
+
+**Nhóm state**
+- Phân biệt cache với Redux (Redux vs React Query)
+
+**Nhóm DSA cơ bản**
+- Hash Map / Hash Table
+- Stack / Queue
+- Tree
+- Graph
+- BFS / DFS
+
+**Nhóm mobile/threading (bonus — bị hỏi nhưng ưu tiên thấp hơn)**
+- UI thread / multi threading / log UI thread
+- Xcode Instruments / Android Profiler
+
+---
+
+## 2. Lịch học — 17 ngày làm việc (T2–T6), 08/06 → 30/06
+
+| Day | Ngày | Khái niệm | File |
+| --- | --- | --- | --- |
+| 01 | T2 08/06 | fetch vs Axios | `day-01-fetch-vs-axios.mdc` |
+| 02 | T3 09/06 | Các cách call API + cơ chế xử lý request | `day-02-cach-goi-api.mdc` |
+| 03 | T4 10/06 | AbortController — hủy request | `day-03-abort-controller.mdc` |
+| 04 | T5 11/06 | Axios cancel token (cũ) vs AbortController | `day-04-axios-cancel-token.mdc` |
+| 05 | T6 12/06 | Redux vs cache (React Query) — dùng khi nào | `day-05-redux-vs-cache.mdc` |
+| 06 | T2 15/06 | JWT là gì | `day-06-jwt.mdc` |
+| 07 | T3 16/06 | Hash (băm) là gì | `day-07-hash.mdc` |
+| 08 | T4 17/06 | Mã hóa đối xứng vs bất đối xứng | `day-08-ma-hoa-doi-xung-bat-doi-xung.mdc` |
+| 09 | T5 18/06 | Bảo mật API tổng hợp (HTTPS, token, refresh, 401) | `day-09-bao-mat-api.mdc` |
+| 10 | T6 19/06 | Review tuần API + Security (mini mock) | `day-10-review-api-security.mdc` |
+| 11 | T2 22/06 | Hash Map / Hash Table | `day-11-hash-map.mdc` |
+| 12 | T3 23/06 | Stack & Queue | `day-12-stack-queue.mdc` |
+| 13 | T4 24/06 | Tree (cây) | `day-13-tree.mdc` |
+| 14 | T5 25/06 | Graph (đồ thị) | `day-14-graph.mdc` |
+| 15 | T6 26/06 | BFS / DFS | `day-15-bfs-dfs.mdc` |
+| 16 | T2 29/06 | UI thread / multi threading (RN) | `day-16-ui-thread-multithreading.mdc` |
+| 17 | T3 30/06 | Xcode Instruments + Android Profiler + final review | `day-17-profiler-final-review.mdc` |
+
+### 2b. Mở rộng — AI Integration & DevOps (đầu tháng 7)
+
+> Bổ sung 2 mảng còn thiếu kinh nghiệm thực tế: **AI Integration** (gọi LLM, prompting, agent/workflow) và **kỹ năng bổ trợ** (Git, đóng gói, CI/CD). Cùng triết lý: 1 khái niệm/ngày, sâu + dễ hiểu.
+
+| Day | Ngày | Khái niệm | File | Nhóm |
+| --- | --- | --- | --- | --- |
+| 18 | T4 01/07 | Gọi API của LLM (token, streaming, bảo mật key) | `day-18-goi-api-llm.mdc` | AI |
+| 19 | T5 02/07 | Prompting + structured output (JSON) | `day-19-prompting.mdc` | AI |
+| 20 | T6 03/07 | RAG & Embeddings (cho LLM đọc data riêng) | `day-20-rag-embeddings.mdc` | AI |
+| 21 | T2 06/07 | AI Agents & Workflow (Dify, n8n, LangChain) | `day-21-ai-agents-workflow.mdc` | AI |
+| 22 | T3 07/07 | Git thành thạo (merge/rebase, conflict, undo) | `day-22-git-thanh-thao.mdc` | DevOps |
+| 23 | T4 08/07 | Đóng gói app (build, signing, versioning) | `day-23-dong-goi-app.mdc` | DevOps |
+| 24 | T5 09/07 | CI/CD (pipeline, GitHub Actions, EAS, fastlane) | `day-24-ci-cd.mdc` | DevOps |
+
+### 2c. Mở rộng — Thực chiến React Native (giữa tháng 7)
+
+> Nhóm kiến thức Middle/Senior thường hỏi trong các dự án thực tế. Phần này là **Nice-to-have** nếu bạn nhắm Junior-Middle, nhưng là **Must-have** nếu bạn nhắm Middle-Strong.
+
+| Day | Ngày | Khái niệm | File | Priority |
+| --- | --- | --- | --- | --- |
+| 25 | T6 10/07 | Giảm Bundle Size (Hermes, Asset, ProGuard) | `day-25-bundle-size.mdc` | Must-have |
+| 26 | T7 11/07 | Frontend Security (Auth/AuthZ, Storage, XSS) | `day-26-frontend-security.mdc` | Must-have |
+| 27 | CN 12/07 | Performance Optimization (Render, List, Image) | `day-27-performance-optimization.mdc` | Must-have |
+| 28 | T2 13/07 | Design System (Token, Theme, Component Lib) | `day-28-design-system.mdc` | Must-have |
+| 29 | T3 14/07 | Phân biệt Tailwind, NativeWind, shadcn/ui | `day-29-tailwind-shadcn-headless-ui.mdc` | Nice-to-have |
+| 30 | T4 15/07 | Core Web Vitals & Áp dụng tư duy vào RN | `day-30-core-web-vitals-browser-rendering.mdc` | Nice-to-have |
+| 31 | T5 16/07 | Micro Frontend (Khái niệm & RN) | `day-31-micro-frontend.mdc` | Nice-to-have |
+| 32 | T6 17/07 | RN New Architecture (JSI, TurboModule, Fabric) | `day-32-rn-new-architecture.mdc` | Must-have |
+| 33 | T7 18/07 | Advanced Networking (GraphQL, WS, SSE, Retry) | `day-33-networking-advanced.mdc` | Must-have |
+| 34 | CN 19/07 | Offline First (Local DB, Sync, Conflict) | `day-34-rn-offline-first.mdc` | Must-have |
+| 35 | T2 20/07 | App Architecture (Feature-based vs Clean) | `day-35-mobile-app-architecture.mdc` | Must-have |
+| 36 | T3 21/07 | Advanced Navigation (Deep Link, Nested, Back) | `day-36-advanced-navigation.mdc` | Must-have |
+| 37 | T4 22/07 | Testing thực chiến (Jest, RNTL, Mock) | `day-37-testing-thuc-chien.mdc` | Nice-to-have |
+| 38 | T5 23/07 | Crash Reporting (Sentry, Source Map, JS/Native) | `day-38-crash-reporting.mdc` | Must-have |
+| 39 | T6 24/07 | Animation & Gesture (Reanimated, Worklet) | `day-39-animation-gesture.mdc` | Nice-to-have |
+
+---
+
+## 3. Cách dùng mỗi file ngày (45–60 phút)
+
+Mỗi file có cùng 7 phần, học theo thứ tự:
+
+1. **Hôm nay học gì + vì sao bị hỏi** — đặt đúng kỳ vọng.
+2. **Ví dụ đời thường** — neo khái niệm vào hình ảnh dễ nhớ.
+3. **Đi sâu kỹ thuật** — bản chất, gắn với React Native / web thực tế.
+4. **Code tối thiểu** — đoạn code ngắn nhất để thấy nó chạy.
+5. **Trả lời phỏng vấn ≤60s** — học thuộc, nói trôi.
+6. **Bẫy / đừng nói** — tránh lộ là học vẹt.
+7. **Tự kiểm tra** — 3 câu, trả lời được mới qua ngày sau.
+
+**Stop-gate:** câu nào ở phần 7 không tự trả lời được → đọc lại phần 3, đừng nhảy ngày.
+
+---
+
+## 4. Definition of Done — 30/06
+
+- [ ] 17 file đã đọc, mỗi khái niệm nói trôi ≤60s
+- [ ] Nhóm API (Day 1–4): phân biệt được fetch/axios, hủy request, lifecycle
+- [ ] Nhóm Security (Day 6–9): JWT + hash + đối xứng/bất đối xứng nói tách bạch, không lẫn
+- [ ] Nhóm DSA (Day 11–15): code được hash map lookup, BFS/DFS trên giấy
+- [ ] 2 buổi review (Day 10 + Day 17) làm mini self-mock
+
+## 4b. Definition of Done — mở rộng (09/07)
+
+- [ ] Nhóm AI (Day 18–21): giải thích được gọi LLM, vì sao key đặt ở backend, prompt + ép JSON, RAG vs fine-tune, phân biệt LangChain/Dify/n8n
+- [ ] Nhóm DevOps (Day 22–24): merge vs rebase + reset vs revert nói không lẫn, hiểu build/signing/versioning, phân biệt CI vs CD
+- [ ] State được **honest gap** AI & CI/CD đúng mức đã chạm, không over-claim

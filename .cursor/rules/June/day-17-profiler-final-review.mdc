@@ -1,0 +1,124 @@
+---
+description: Day 17 (30/06) — Xcode Instruments + Android Profiler + final review tháng 6. Đo perf ở đâu, đọc số gì, mini-mock tổng kết.
+alwaysApply: false
+---
+
+# Day 17 · T3 30/06 — Profiler (Instruments + Android Profiler) + Final Review
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Hai phần:
+- **A. Công cụ đo hiệu năng:** **Xcode Instruments** (iOS) và **Android Profiler** (Android) — dùng để **nhìn xem app tốn CPU / RAM / thời gian ở đâu**, thay vì đoán mò.
+- **B. Final review** cả tháng 6 (Day 1 → 16): nối các mảnh lại thành một bức tranh.
+
+Interviewer hỏi về profiler để phân biệt người **"tối ưu bằng cảm giác"** với người **"tối ưu dựa trên số đo"**. Câu ăn điểm là: *"Tôi không đoán app chậm ở đâu — tôi đo trước, sửa đúng chỗ, đo lại."*
+
+---
+
+## 2. Ví dụ đời thường
+
+App chậm giống **người bị đau bụng mà không biết đau chỗ nào**.
+
+- **Người nghiệp dư:** uống đại đủ loại thuốc, hên thì hết (sửa lung tung, "thử memo xem", "thử bỏ console.log"). Tốn công, có khi nặng thêm.
+- **Bác sĩ giỏi:** **chụp chiếu** (chạy profiler) → thấy đúng chỗ viêm → chữa đúng chỗ → chụp lại xác nhận hết.
+
+Profiler chính là **máy chụp chiếu** cho app: nó chỉ ra **hàm nào ăn CPU, màn nào tốn RAM, frame nào bị rớt** — bạn sửa đúng chỗ đó.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**A. Quy trình đo đúng (nhớ 3 bước — đây là phần hay được hỏi):**
+1. **Đo trước (baseline):** ghi lại số hiện tại — ví dụ "scroll list này rớt frame ở đoạn nào", "màn này tốn 180MB RAM".
+2. **Sửa một thứ:** chỉ đổi **một** thứ mỗi lần, để biết chính xác cái gì có tác dụng.
+3. **Đo lại + so sánh:** trước/sau bằng con số. Không có số = không biết có thật sự nhanh hơn không.
+
+> Luôn đo trên **bản release / build production**, không đo bản dev. Bản dev có debug overhead nên số bị sai lệch.
+
+**B. Xcode Instruments (iOS) — biết tên vài "kính lúp" là đủ:**
+- **Time Profiler:** hàm nào **ăn CPU** nhiều nhất, app đứng tốn thời gian ở đâu.
+- **Allocations / Leaks:** **rò rỉ bộ nhớ** (memory leak) — RAM tăng dần không nhả.
+- **Core Animation (FPS):** xem **rớt frame** lúc scroll/animation.
+
+**C. Android Profiler (Android Studio) — 3 thước chính:**
+- **CPU:** cùng vai trò Time Profiler — xem hàm/luồng nào ngốn CPU.
+- **Memory:** RAM dùng bao nhiêu, có leak không, garbage collection chạy dồn dập không.
+- **Energy / Network:** tốn pin và lưu lượng mạng (liên hệ Day 1–4: gọi API thừa làm hao pin + data).
+
+**D. Công cụ phía JS (thực tế Middle dùng nhiều hơn cả hai cái trên):**
+- **Flipper / React DevTools Profiler:** xem **component nào re-render thừa**, render tốn bao nhiêu ms. Đây là nơi bắt được lỗi `useCallback`/`memo` sai (nối với kiến thức hooks).
+- **Hermes engine** có sampling profiler để xem JS thread (nối Day 16: JS thread nghẽn ở hàm nào).
+
+**E. Khi nào dùng cái nào (câu hay bị hỏi):**
+- App **scroll giật, animation rớt frame** → nghi **UI thread** (Day 16) → đo bằng Core Animation (iOS) / CPU Profiler (Android).
+- App **đơ khi bấm nút, list không cập nhật** → nghi **JS thread bị chặn** → React DevTools Profiler / Hermes profiler.
+- App **dùng lâu thì chậm dần, crash do hết RAM** → nghi **memory leak** → Allocations/Leaks (iOS) / Memory (Android).
+
+→ Bản chất: **triệu chứng quyết định mở công cụ nào**, đúng tinh thần "đo trước, sửa đúng chỗ".
+
+---
+
+## 4. Code/thao tác tối thiểu
+
+```text
+# iOS — mở Instruments để đo bản release
+Xcode → Product → Profile (Cmd+I)
+→ chọn template: Time Profiler (CPU) / Allocations (RAM) / Core Animation (FPS)
+→ bấm Record → thao tác đúng cảnh bị chậm → Stop → đọc hàm "nặng" nhất
+
+# Android — mở Profiler
+Android Studio → View → Tool Windows → Profiler
+→ chọn tiến trình app → mở CPU / Memory / Energy
+→ Record → thao tác → Stop → xem call chart
+
+# JS — bật profiler trong React DevTools
+React DevTools → tab Profiler → Record → thao tác → Stop
+→ xem component nào render lâu / render thừa
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Khi app chậm tôi không đoán — tôi đo trước, sửa một thứ, rồi đo lại bằng con số, và luôn đo trên bản release chứ không phải bản dev. Trên iOS tôi dùng Xcode Instruments: Time Profiler xem hàm nào ăn CPU, Allocations để bắt memory leak, Core Animation để xem rớt frame. Trên Android có Android Profiler với CPU, Memory, Energy tương tự. Còn phía JavaScript tôi hay dùng React DevTools Profiler để bắt component re-render thừa và Hermes profiler để xem JS thread nghẽn ở đâu. Cách chọn công cụ dựa trên triệu chứng: scroll giật thì nghi UI thread, app đơ khi bấm nút thì nghi JS thread bị chặn, còn chậm dần theo thời gian thì nghi rò rỉ bộ nhớ."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Tôi tối ưu bằng cách bọc memo hết mọi component" — đó là tối ưu mù. Phải **đo rồi mới sửa**.
+- ❌ Đo trên bản **dev** rồi kết luận — sai lệch vì debug overhead. Nhớ nói "đo trên release".
+- ❌ Khoe sâu Instruments mà chưa dùng thật → dễ bị đào. Honest: "JS-side profiler tôi dùng nhiều; native Instruments tôi đọc được kết quả cơ bản."
+- ❌ Lẫn loại lỗi: **giật frame ≠ memory leak ≠ JS thread nghẽn**. Mỗi loại một công cụ.
+
+---
+
+## 7. Final review tháng 6 — bản đồ nối kiến thức
+
+**Nhóm API & Networking (Day 1–4):**
+fetch tự nhiên không coi 4xx/5xx là lỗi → axios + interceptor tiện hơn cho app có auth → mọi request có 3 trạng thái loading/success/error → rời màn thì hủy request bằng **AbortController** (cách mới, thay CancelToken cũ).
+
+**Nhóm State (Day 5):**
+Redux quản **client state** (của riêng app), React Query quản **server state** (cache data từ API). Không phải "cái này thay cái kia" mà **mỗi cái một việc**.
+
+**Nhóm Security (Day 6–9):**
+JWT = vé có chữ ký, server không cần hỏi DB mỗi lần → **hash** là hàm một chiều để lưu mật khẩu → **đối xứng** (1 khóa, nhanh) vs **bất đối xứng** (cặp khóa, để trao khóa an toàn), HTTPS dùng cả hai → bảo mật API = HTTPS + access/refresh token + xử lý 401 + refresh queue.
+
+**Nhóm DSA (Day 11–15):**
+Hash map tra cứu O(1) → stack (LIFO) / queue (FIFO) → cây (phân cấp, không vòng) → graph (có vòng, cần `visited`) → **BFS dùng queue** (đường ngắn nhất) / **DFS dùng stack–đệ quy** (dò sâu).
+
+**Nhóm Mobile/Perf (Day 16–17):**
+JS thread (suy nghĩ) vs UI thread (vẽ + chạm), mỗi frame ~16ms → đừng chặn JS thread → đo bằng profiler trước khi sửa.
+
+---
+
+## 8. Mini-mock tổng kết (tự trả lời ≤60s mỗi câu)
+
+1. fetch và axios khác nhau ở điểm xử lý lỗi HTTP thế nào? Vì sao app có auth chọn axios?
+2. Redux và React Query khác nhau ở chỗ nào? Cho 1 ví dụ mỗi cái.
+3. JWT giúp gì cho server? Access token và refresh token chia vai ra sao?
+4. Hash khác mã hóa thế nào? Vì sao lưu mật khẩu phải dùng hash chứ không mã hóa?
+5. BFS và DFS dùng cấu trúc gì, chọn cái nào khi cần đường ngắn nhất?
+6. App scroll giật — bạn nghi thread nào và mở công cụ gì để đo?
+
+> Trả lời trôi cả 6 câu ≤60s = đạt **Definition of Done** tháng 6. Câu nào vấp → quay lại đúng Day đó đọc lại phần 3.

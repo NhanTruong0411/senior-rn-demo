@@ -1,0 +1,82 @@
+---
+description: Day 04 (11/06) — Axios CancelToken (cách cũ) vs AbortController (cách mới). Vì sao CancelToken bị deprecated.
+alwaysApply: false
+---
+
+# Day 04 · T5 11/06 — Axios CancelToken (cũ) vs AbortController
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Hôm qua học AbortController. Hôm nay học **CancelToken** — cách **cũ** mà riêng axios dùng để hủy request, và **vì sao nó đã bị khai tử (deprecated)**.
+
+Interviewer hỏi để xem bạn có **cập nhật** không. Nhiều dev vẫn copy code CancelToken cũ từ blog 2019 mà không biết nó đã lỗi thời. Trả lời được câu này = bạn theo kịp ecosystem.
+
+---
+
+## 2. Ví dụ đời thường
+
+Cùng việc "gọi báo hủy taxi", nhưng 2 đời điện thoại:
+
+- **CancelToken** = điện thoại đời cũ riêng của hãng taxi đó. Chỉ gọi được taxi của hãng axios, cách bấm rườm rà.
+- **AbortController** = điện thoại chuẩn quốc gia, gọi được mọi hãng (fetch, axios, và nhiều API khác).
+
+Hãng taxi (axios) đã thông báo: "Đừng xài điện thoại đời cũ của chúng tôi nữa, hãy dùng điện thoại chuẩn quốc gia." → đó chính là deprecated.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**Bối cảnh:** Ngày xưa `fetch` chưa có cách hủy chuẩn, nên axios tự chế ra `CancelToken` của riêng nó. Sau này JavaScript chuẩn hóa `AbortController` cho toàn bộ web platform → axios không cần "đồ tự chế" nữa.
+
+**Mốc quan trọng:** Từ **axios v0.22 (2021)**, `CancelToken` chính thức **deprecated**. Axios khuyến nghị dùng `signal` của AbortController. CancelToken vẫn chạy (để không vỡ code cũ) nhưng **không nên dùng cho code mới**.
+
+**Khác biệt thực dụng:**
+
+| | CancelToken (cũ) | AbortController (mới) |
+| --- | --- | --- |
+| Thuộc về | Riêng axios | Chuẩn JS, dùng mọi nơi |
+| Trạng thái | Deprecated từ v0.22 | Khuyến nghị |
+| Dùng được với fetch? | Không | Có |
+| Cú pháp | Rườm rà hơn | Gọn, thống nhất |
+
+**Điểm cốt lõi để nói:** cả hai **làm cùng một việc** (hủy request đang chạy), khác ở chỗ AbortController là **chuẩn chung** nên dùng được cho cả fetch lẫn axios, còn CancelToken chỉ sống trong thế giới axios và đã bị thay thế.
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// CŨ — CancelToken (deprecated, chỉ để nhận diện khi đọc code cũ)
+const source = axios.CancelToken.source();
+axios.get('/api/users', { cancelToken: source.token });
+source.cancel('User huỷ');     // hủy
+
+// MỚI — AbortController (nên dùng, giống hệt Day 03)
+const controller = new AbortController();
+axios.get('/api/users', { signal: controller.signal });
+controller.abort();            // hủy
+```
+
+Nhìn 2 đoạn: cùng mục đích, nhưng đoạn mới dùng đúng `signal` / `abort()` như fetch → 1 mental model cho cả hai.
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "CancelToken là cách cũ riêng của axios để hủy request, ra đời thời fetch chưa có cơ chế hủy chuẩn. Từ axios v0.22 năm 2021 nó đã bị deprecated, vì JavaScript đã chuẩn hóa AbortController dùng chung cho cả fetch lẫn axios. Cả hai làm cùng việc — dừng request đang chạy — nhưng AbortController là chuẩn của web platform nên thống nhất một mental model, không phải đồ tự chế của riêng thư viện. Code mới tôi luôn dùng AbortController với `signal`; còn khi đọc thấy CancelToken trong codebase cũ thì tôi biết đó là pattern cần thay dần."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Axios hủy request bằng CancelToken" (nói như hiện tại) — sẽ bị hỏi vặn "nó deprecated rồi mà?". Phải chủ động nói "cũ, đã deprecated".
+- ❌ Nhầm rằng CancelToken hủy được `fetch` — không, nó chỉ thuộc axios.
+- ❌ Đừng học thuộc cú pháp CancelToken kỹ quá. Chỉ cần **nhận diện** nó là code cũ.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 05)
+
+1. Vì sao CancelToken ra đời, rồi vì sao bị bỏ?
+2. Từ phiên bản axios nào CancelToken deprecated?
+3. Ưu điểm lớn nhất của AbortController so với CancelToken là gì? (1 câu)

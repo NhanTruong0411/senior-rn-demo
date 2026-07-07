@@ -1,0 +1,96 @@
+---
+description: Day 34 (19/07) — Offline First. Hiểu Local Storage, Cache, Sync Strategy và cách ứng dụng vẫn hoạt động khi mất mạng.
+alwaysApply: false
+---
+
+# Day 34 · CN 19/07 — Offline First
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học cách thiết kế ứng dụng vẫn dùng được khi mất mạng: phân biệt Local Storage với Local Database, vai trò của Cache, thiết kế Sync Strategy khi có mạng trở lại, và cách xử lý Conflict khi dữ liệu trên máy và trên server lệch nhau.
+
+Interviewer rất thích chủ đề này vì mất mạng là tình huống xảy ra hàng ngày trên mobile — di chuyển vào hầm để xe, vùng sóng yếu, máy bay. Một Middle Developer cần biết thiết kế sao cho app không "đứng hình" chỉ vì một khoảnh khắc mất kết nối.
+
+---
+
+## 2. Ví dụ đời thường
+
+Hình dung bạn đang soạn ghi chú trên điện thoại. Nếu mỗi ký tự gõ ra đều phải gửi ngay lên server mới được lưu, thì chỉ cần mất mạng một giây là bạn gõ mà chữ không hiện lên được — trải nghiệm rất tệ. Cách làm đúng là: gõ tới đâu, lưu ngay vào máy tới đó; khi nào có mạng trở lại, ứng dụng mới âm thầm đồng bộ phần đã lưu lên server. Người dùng luôn thao tác được ngay lập tức, không phải chờ mạng mới dùng được ứng dụng.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) Offline First là gì — đảo ngược thứ tự ưu tiên**
+
+Cách làm truyền thống là: người dùng thao tác → gọi server → có kết quả mới hiển thị lên UI — nghĩa là UI luôn phụ thuộc vào mạng. Offline First đảo ngược thứ tự này: người dùng thao tác → lưu vào **Local Database** trên máy trước → UI hiển thị ngay lập tức từ dữ liệu local → sau đó mới đồng bộ nền (background sync) lên server khi có mạng. Cách tiếp cận này giúp trải nghiệm mượt hơn hẳn ngay cả khi mạng yếu hoặc mất hẳn, vì UI không còn phải chờ phản hồi từ server mới cập nhật.
+
+**b) Local Storage vs Local Database — chọn đúng công cụ cho đúng loại dữ liệu**
+
+**Local Storage** phù hợp với dữ liệu đơn giản, ít quan hệ, dạng key-value — ví dụ token, setting, theme đang chọn. Trong RN thường dùng `MMKV` (nhanh, đồng bộ) hoặc `AsyncStorage` (bất đồng bộ, chậm hơn MMKV). **Local Database** phù hợp với dữ liệu có cấu trúc, có quan hệ, và cần truy vấn phức tạp — ví dụ danh sách tin nhắn, danh sách sản phẩm, ghi chú có phân loại. Các lựa chọn phổ biến là `SQLite` (quan hệ, truy vấn SQL quen thuộc), `Realm`, hoặc `WatermelonDB` (được thiết kế riêng cho ứng dụng offline-first trên React Native, tối ưu cho việc đọc/ghi lượng dữ liệu lớn mà không làm chậm UI thread). Chọn sai công cụ — ví dụ nhét cả nghìn tin nhắn vào AsyncStorage — sẽ khiến việc đọc/ghi ngày càng chậm vì AsyncStorage không được thiết kế để truy vấn dữ liệu lớn có cấu trúc.
+
+**c) Cache — hiển thị ngay dữ liệu cũ trong lúc âm thầm lấy dữ liệu mới**
+
+Cache là dữ liệu đã tải từ server và lưu lại trên thiết bị để dùng cho lần sau. Một pattern phổ biến: mở màn Home lần đầu → gọi API và lưu kết quả vào cache → lần mở sau, hiển thị ngay dữ liệu cache trong khi âm thầm gọi API cập nhật ở nền, có dữ liệu mới thì mới thay thế trên UI (đây gần với chiến lược "stale-while-revalidate" mà TanStack Query áp dụng, nối Day 05). Lợi ích là người dùng không phải nhìn màn hình trắng chờ tải lại từ đầu mỗi lần mở app.
+
+**d) Sync Strategy — đồng bộ gì, khi nào, và bao nhiêu**
+
+Khi có mạng trở lại, ứng dụng cần quyết định cách đồng bộ dữ liệu đã đổi trên máy lên server. Vài chiến lược phổ biến: upload toàn bộ dữ liệu thay đổi trong một lần (đơn giản nhưng tốn băng thông nếu dữ liệu lớn); chỉ upload phần thực sự đã thay đổi (hiệu quả hơn nhưng cần theo dõi được "cái gì đã đổi" ở phía client); hoặc đồng bộ dựa trên mốc thời gian cập nhật gần nhất (`lastUpdatedAt`) để chỉ lấy/gửi phần dữ liệu mới hơn mốc đó. Không có chiến lược nào đúng cho mọi bài toán — cần cân nhắc theo tần suất thay đổi dữ liệu và mức độ quan trọng của việc đồng bộ nhanh hay tiết kiệm băng thông.
+
+**e) Conflict — khi dữ liệu trên máy và server đã lệch nhau**
+
+Conflict xảy ra khi hai nguồn cùng sửa một dữ liệu ở hai thời điểm khác nhau trong lúc một bên đang offline — ví dụ User A sửa tên khi đang offline, trong lúc đó User B đã sửa cùng dữ liệu đó và lưu lên server thành công; khi User A có mạng trở lại, hệ thống phải quyết định giữ bản nào. Ba cách xử lý phổ biến: **Last Write Wins** (bản ghi sau cùng theo thời gian sẽ thắng — đơn giản nhưng có thể mất dữ liệu của bên thua); **Server ưu tiên** (server luôn đúng, bản local bị ghi đè — an toàn nhưng người dùng có thể mất thao tác của mình mà không biết); và **hỏi người dùng chọn** (hiển thị cả hai phiên bản để người dùng tự quyết định — trải nghiệm tốt nhất nhưng phức tạp để triển khai). Không có cách nào đúng tuyệt đối cho mọi bài toán, lựa chọn phụ thuộc vào mức độ quan trọng của dữ liệu bị conflict.
+
+---
+
+## 4. Code tối thiểu
+
+```ts
+// Pattern cache-first: hiển thị ngay dữ liệu cũ, âm thầm cập nhật ở nền
+async function getProducts() {
+  const cached = await localDb.getProducts();
+  if (cached) renderProducts(cached); // hiển thị ngay, không chờ mạng
+
+  try {
+    const fresh = await api.get('/products');
+    await localDb.saveProducts(fresh.data);
+    renderProducts(fresh.data); // có dữ liệu mới thì cập nhật lại UI
+  } catch {
+    // mất mạng — vẫn còn dữ liệu cache đang hiển thị, không sao
+  }
+}
+```
+
+```ts
+// Sync theo mốc thời gian — chỉ lấy dữ liệu mới hơn lần sync gần nhất
+async function syncSince(lastSyncedAt: string) {
+  const changes = await api.get(`/products/changes?since=${lastSyncedAt}`);
+  await localDb.applyChanges(changes.data);
+  await localDb.setLastSyncedAt(new Date().toISOString());
+}
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Offline First là thiết kế ứng dụng ưu tiên lưu dữ liệu vào máy trước, UI hiển thị ngay từ Local Database, rồi mới đồng bộ nền lên server khi có mạng — khác với cách truyền thống là UI phải chờ phản hồi từ server mới cập nhật. Tôi phân biệt Local Storage cho dữ liệu đơn giản như token hay setting, dùng MMKV hoặc AsyncStorage; và Local Database cho dữ liệu có cấu trúc như tin nhắn hoặc danh sách sản phẩm, dùng SQLite hoặc WatermelonDB. Tôi dùng Cache theo kiểu hiển thị ngay dữ liệu cũ rồi âm thầm cập nhật ở nền, và thiết kế Sync Strategy dựa trên mốc thời gian cập nhật gần nhất để chỉ đồng bộ phần thay đổi. Nếu xảy ra Conflict giữa dữ liệu local và server, tôi chọn chiến lược phù hợp theo mức độ quan trọng của dữ liệu — có thể là Last Write Wins, ưu tiên server, hoặc để người dùng tự chọn."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Offline First nghĩa là không cần server nữa" — sai, vẫn cần đồng bộ với server, chỉ là không phụ thuộc mạng để hiển thị ngay lập tức.
+- ❌ "AsyncStorage thay thế được SQLite cho dữ liệu lớn có cấu trúc" — sai, AsyncStorage không tối ưu để truy vấn dữ liệu quan hệ, sẽ chậm dần khi dữ liệu lớn.
+- ❌ "Cache luôn là dữ liệu mới nhất" — sai, cache có thể cũ (stale), cần chiến lược cập nhật ở nền.
+- ❌ "Có mạng là upload toàn bộ dữ liệu mỗi lần" — lãng phí băng thông nếu dữ liệu lớn; nên đồng bộ theo phần thay đổi.
+- ❌ "Conflict chỉ xảy ra với ứng dụng Chat" — sai, bất kỳ dữ liệu nào có thể sửa ở nhiều nơi trong lúc offline đều có thể gặp Conflict.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 35)
+
+1. Offline First khác cách làm truyền thống ở thứ tự ưu tiên nào — UI phụ thuộc vào đâu trước?
+2. Khi nào nên dùng Local Storage, khi nào nên dùng Local Database? Cho ví dụ cụ thể mỗi loại.
+3. Cache theo kiểu "hiển thị cũ, cập nhật nền" giúp cải thiện trải nghiệm người dùng như thế nào?
+4. Kể 3 cách xử lý Conflict và ưu/nhược điểm của mỗi cách.

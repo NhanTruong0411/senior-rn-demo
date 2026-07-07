@@ -1,0 +1,85 @@
+---
+description: Day 29 (14/07) — Tailwind, NativeWind, shadcn/ui và Headless UI. Hiểu sự khác nhau và khi nào nên dùng.
+alwaysApply: false
+---
+
+# Day 29 · T3 14/07 — Tailwind / NativeWind / shadcn/ui / Headless UI
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học cách phân biệt bốn cái tên hay xuất hiện trong JD React Native gần đây: **Tailwind CSS**, **NativeWind**, **shadcn/ui**, và **Headless UI**. Chúng nghe giống nhau vì đều liên quan đến "làm UI nhanh hơn", nhưng thực chất giải quyết bốn vấn đề khác nhau.
+
+Interviewer không mong bạn dùng thành thạo cả bốn, nhưng cần bạn hiểu **mỗi cái giải quyết vấn đề gì** và **khi nào chọn cái nào** — tránh trả lời kiểu liệt kê tên mà không phân biệt được vai trò.
+
+---
+
+## 2. Ví dụ đời thường
+
+Hình dung việc xây một ngôi nhà. **Tailwind** giống một hộp dụng cụ chứa sẵn gạch, xi măng, sơn — bạn tự ghép lại theo ý mình thay vì đi mua từng thứ rời rạc. **shadcn/ui** giống một bộ bản vẽ thiết kế có sẵn cho từng phòng (Button, Card, Dialog...) mà bạn copy về rồi chỉnh sửa theo ý riêng. **Headless UI** giống một bộ khung nhà đã dựng sẵn phần kết cấu chịu lực, còn sơn và trang trí là việc của bạn. **NativeWind** đơn giản là mang đúng cách làm của Tailwind — dùng class thay vì viết style tay — sang môi trường React Native. Bốn cái này **không cạnh tranh nhau**, mà thường được phối hợp dùng chung trong cùng một dự án.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) Tailwind CSS — Utility-first CSS**
+
+Tailwind là một thư viện CSS theo triết lý "utility-first": thay vì viết CSS riêng cho từng thành phần (`padding: 16px; background: blue;`), bạn ghép các class có sẵn ngay trong markup (`p-4 bg-blue-500`). Cách này giúp code UI nhanh hơn và tránh việc mỗi người đặt tên class theo kiểu riêng, nhưng chỉ chạy được trên nền tảng hỗ trợ CSS — tức là **web**, không chạy trực tiếp trên React Native vì RN không dùng CSS.
+
+**b) NativeWind — mang cú pháp Tailwind vào React Native**
+
+React Native không có CSS, style được viết qua object JavaScript và `StyleSheet`. NativeWind cho phép dùng cú pháp `className` giống Tailwind ngay trong component RN (`<View className="flex-1 items-center justify-center" />`), sau đó tự động chuyển các class này thành object style mà React Native hiểu được ở dưới nền. Lợi ích là giữ được tốc độ viết UI kiểu Tailwind quen thuộc, đồng thời giữ style nhất quán giữa web và mobile nếu team dùng chung quy ước class.
+
+**c) shadcn/ui — không phải thư viện cài qua package, mà là source code copy về**
+
+Điểm khác biệt cốt lõi của shadcn/ui so với các UI Library truyền thống (như Material UI, Ant Design): bạn không `npm install` để lấy component đã đóng gói sẵn, mà **copy trực tiếp source code** của component vào project rồi tự chỉnh sửa theo nhu cầu. Cách này giúp bạn **sở hữu hoàn toàn** đoạn code đó, không phụ thuộc vào version của thư viện bên ngoài và không bị giới hạn bởi API mà thư viện cung cấp — nhưng đổi lại phải tự chịu trách nhiệm bảo trì đoạn code đó theo thời gian. shadcn/ui chủ yếu dành cho **React Web**; phiên bản mang trải nghiệm tương tự sang React Native được gọi là React Native Reusables.
+
+**d) Headless UI — chỉ có logic và hành vi, không có giao diện**
+
+Headless UI cung cấp phần **logic và khả năng tiếp cận (accessibility)** của một component — ví dụ một Dropdown đã có sẵn logic mở/đóng, xử lý focus, xử lý phím tắt — nhưng **hoàn toàn không có style**, phần giao diện do developer tự thiết kế theo Design System riêng của dự án (nối Day 28). Cách tiếp cận này phù hợp khi team muốn kiểm soát hoàn toàn phần nhìn nhưng không muốn tự viết lại phần logic tương tác phức tạp và dễ sai (như xử lý accessibility đúng chuẩn).
+
+**e) Trong dự án React Native thực tế nên chọn gì**
+
+Tailwind CSS thuần chỉ dùng được cho web; NativeWind là lựa chọn phổ biến khi muốn mang trải nghiệm Tailwind sang mobile; shadcn/ui chủ yếu phục vụ React Web, còn với React Native cần tìm phiên bản tương đương như React Native Reusables nếu muốn cách làm "copy source code, tự sở hữu" tương tự.
+
+---
+
+## 4. Code tối thiểu
+
+```tsx
+// ❌ StyleSheet truyền thống — dài dòng khi cần style nhanh, lặp lại nhiều
+<View style={{ padding: 16, alignItems: 'center' }} />
+
+// ✅ NativeWind — cú pháp Tailwind áp dụng trong React Native
+<View className="p-4 items-center" />
+```
+
+```
+// shadcn/ui — không cài qua package manager, mà:
+1. Copy source code component (ví dụ Button) vào project
+2. Chỉnh sửa style/behavior theo Design System riêng
+3. Dùng lại component đó xuyên suốt project — bạn sở hữu hoàn toàn code này
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Tailwind là CSS theo hướng utility-first giúp viết UI nhanh hơn, nhưng chỉ chạy trên web vì dựa vào CSS. Trong React Native, tôi dùng NativeWind để mang đúng cú pháp Tailwind đó vào qua prop className, NativeWind sẽ tự chuyển thành style mà RN hiểu được. shadcn/ui khác các UI Library truyền thống ở chỗ nó không phải package cài vào, mà cho copy source code component về để tự sở hữu và chỉnh sửa — nhưng chủ yếu dành cho React Web, chưa phải giải pháp chính cho React Native. Headless UI thì chỉ cung cấp logic và accessibility, phần giao diện hoàn toàn do developer tự thiết kế theo Design System riêng. Bốn cái này không cạnh tranh nhau mà thường phối hợp trong cùng một dự án."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Tailwind chạy trực tiếp được trên React Native" — sai, RN không có CSS; phải qua NativeWind.
+- ❌ "shadcn/ui là một UI Library giống Material UI" — sai, nó cho copy source code để tự sở hữu, không phải package cài đặt và import.
+- ❌ "Headless UI có giao diện đẹp sẵn" — sai, Headless UI chỉ có logic, không có style.
+- ❌ "Mọi dự án React Native đều nên dùng NativeWind" — không đúng, tùy quy ước team và độ quen thuộc với Tailwind, không phải lựa chọn bắt buộc.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 30)
+
+1. Vì sao Tailwind CSS không chạy trực tiếp trên React Native, và NativeWind giải quyết việc đó như thế nào?
+2. shadcn/ui khác một Component Library truyền thống (như Material UI) ở điểm nào?
+3. Headless UI cung cấp gì và không cung cấp gì?
+4. Nếu bắt đầu một dự án React Native mới muốn viết UI nhanh theo utility-class, bạn sẽ cân nhắc công cụ nào?

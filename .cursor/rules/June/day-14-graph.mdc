@@ -1,0 +1,102 @@
+---
+description: Day 14 (25/06) — Graph (đồ thị). Đỉnh/cạnh, khác cây ở chỗ có vòng, cách biểu diễn, ví dụ thực tế.
+alwaysApply: false
+---
+
+# Day 14 · T5 25/06 — Graph (đồ thị)
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **Graph (đồ thị)** — tập các **đỉnh (node)** nối nhau bằng **cạnh (edge)**. Khác cây ở chỗ: graph có thể có **vòng** và một đỉnh nối tới nhiều đỉnh tùy ý.
+
+Interviewer hỏi để xem bạn phân biệt được **cây với đồ thị** (cây là một loại graph đặc biệt), và hiểu các bài "quan hệ giữa các thực thể" — bạn bè, đường đi, phụ thuộc giữa các module.
+
+---
+
+## 2. Ví dụ đời thường
+
+**Bản đồ bạn bè trên mạng xã hội.** Mỗi người là một **đỉnh**, mỗi tình bạn là một **cạnh** nối hai người. A là bạn B, B là bạn C, và C cũng có thể quay lại là bạn A → tạo thành **vòng**. Đây là điểm khác cây: cây không có chuyện "con quay lại làm bạn ông tổ".
+
+Hoặc **bản đồ đường đi giữa các thành phố**: thành phố là đỉnh, con đường là cạnh. Đường có thể **một chiều** (có hướng) hoặc **hai chiều** (vô hướng), và có thể có **khoảng cách** gắn trên mỗi đường (trọng số).
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**Từ vựng:**
+- **Vertex / Node (đỉnh):** một điểm.
+- **Edge (cạnh):** đường nối hai đỉnh.
+- **Directed (có hướng):** cạnh đi 1 chiều (A→B). Vô hướng: đi cả 2 chiều (A↔B).
+- **Weighted (có trọng số):** mỗi cạnh có giá trị (khoảng cách, chi phí).
+- **Cycle (vòng):** đi theo cạnh rồi quay lại đỉnh cũ.
+
+**Cây vs Graph — phải nói rõ (đây là câu hay bị hỏi):**
+
+| | Tree (cây) | Graph (đồ thị) |
+| --- | --- | --- |
+| Vòng (cycle) | **Không** | **Có thể có** |
+| Đường từ A→B | Đúng 1 đường | Có thể nhiều đường |
+| Gốc (root) | Có | Không bắt buộc |
+| Quan hệ | Phân cấp trên–dưới | Tự do, mạng lưới |
+
+> Một câu chốt: **cây là graph đặc biệt — không có vòng và có phân cấp.** Mọi cây đều là graph, nhưng không phải graph nào cũng là cây.
+
+**2 cách biểu diễn graph trong code (biết tên là điểm cộng):**
+- **Adjacency list (danh sách kề):** mỗi đỉnh lưu danh sách các đỉnh nó nối tới. Tiết kiệm bộ nhớ khi cạnh ít — **dùng phổ biến nhất**. Thường là một object/Map: `{ A: ['B','C'], B: ['A'] }`.
+- **Adjacency matrix (ma trận kề):** bảng 2 chiều, ô [i][j] = 1 nếu i nối j. Tốn bộ nhớ O(n²) nhưng tra "i có nối j không" là O(1). Hợp khi đồ thị dày đặc.
+
+**Graph xuất hiện ở đâu (thực tế):**
+- Mạng xã hội (bạn bè, follow), gợi ý "người bạn có thể biết".
+- Bản đồ / chỉ đường (Google Maps tìm đường ngắn nhất).
+- **Dependency graph**: module A import B, B import C → đồ thị phụ thuộc. Bundler (Metro của RN) dựng cây/đồ thị phụ thuộc để gói code. Vòng phụ thuộc (circular dependency) là bug hay gặp.
+
+**Duyệt graph:** cũng dùng **BFS và DFS** như cây, nhưng **phải đánh dấu đỉnh đã thăm (visited)** để **không lặp vô tận** do có vòng. Đây là khác biệt quan trọng so với duyệt cây (cây không cần visited vì không có vòng). Học kỹ Day 15.
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// Adjacency list — cách biểu diễn graph phổ biến nhất
+const graph = {
+  A: ['B', 'C'],
+  B: ['A', 'D'],
+  C: ['A'],
+  D: ['B'],
+};
+
+// Duyệt graph PHẢI có visited để tránh lặp vô tận (vì có vòng)
+function dfs(start) {
+  const visited = new Set();
+  function go(node) {
+    if (visited.has(node)) return;   // đã thăm → dừng, tránh vòng
+    visited.add(node);
+    console.log(node);
+    graph[node].forEach(go);
+  }
+  go(start);
+}
+dfs('A'); // A, B, D, C
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Graph là tập các đỉnh nối nhau bằng cạnh. Khác cây ở chỗ graph có thể có vòng và một đỉnh nối tới nhiều đỉnh tùy ý, còn cây thì phân cấp và không có vòng — nên cây thật ra là một graph đặc biệt. Cạnh có thể có hướng hoặc vô hướng, có thể có trọng số như khoảng cách. Trong code tôi hay biểu diễn bằng adjacency list, tức mỗi đỉnh lưu danh sách đỉnh nó nối tới, tiết kiệm bộ nhớ. Graph gặp ở mạng xã hội, chỉ đường, và dependency graph khi module import lẫn nhau — vòng phụ thuộc là bug hay gặp. Khi duyệt graph tôi luôn đánh dấu visited để không lặp vô tận do có vòng, đây là điểm khác với duyệt cây."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Nói "cây và graph là hai thứ khác hẳn" — chính xác hơn: cây là graph đặc biệt (không vòng, có phân cấp).
+- ❌ Duyệt graph mà quên `visited` → lặp vô tận khi có vòng. Đây là lỗi kinh điển.
+- ❌ Lẫn directed/undirected — nói rõ cạnh 1 chiều hay 2 chiều khi mô tả bài toán.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 15)
+
+1. Cây khác graph ở 2 điểm nào? Vì sao nói cây là graph đặc biệt?
+2. Adjacency list và adjacency matrix khác nhau thế nào, khi nào chọn cái nào?
+3. Vì sao duyệt graph bắt buộc cần `visited` còn duyệt cây thì không?

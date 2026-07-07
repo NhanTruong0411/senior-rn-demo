@@ -1,0 +1,73 @@
+---
+description: Day 31 (16/07) — Micro Frontend. Hiểu khái niệm, lợi ích, hạn chế và mối liên hệ với React Native.
+alwaysApply: false
+---
+
+# Day 31 · T5 16/07 — Micro Frontend
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học khái niệm **Micro Frontend**: là gì, giải quyết vấn đề gì, khi nào nên dùng, và vì sao React Native gần như không áp dụng kiến trúc này. Đây là kiến thức thiên về kiến trúc hệ thống ở quy mô lớn — với Middle Developer, chỉ cần hiểu khái niệm và biết đặt đúng ngữ cảnh khi nào phù hợp, không cần biết cách tự dựng từ đầu.
+
+---
+
+## 2. Ví dụ đời thường
+
+Hình dung việc xây một trung tâm thương mại lớn. Nếu chỉ có một đội thi công duy nhất, họ phải làm xong tầng 1 mới chuyển sang tầng 2 — mọi người phụ thuộc lẫn nhau, ai chậm thì cả công trình chậm theo. Nếu chia thành nhiều đội độc lập — một đội lo điện, một đội lo nước, một đội lo nội thất — thì công việc chạy song song và nhanh hơn nhiều, miễn là các đội thống nhất trước về giao diện kết nối (ví dụ đường ống nước phải khớp với vị trí đã thống nhất). Micro Frontend áp dụng đúng tư duy chia nhỏ và làm song song này vào lĩnh vực Frontend.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) Monolith Frontend vs Micro Frontend**
+
+Trong mô hình **Monolith Frontend** truyền thống, toàn bộ ứng dụng là một codebase duy nhất, một team phát triển, và deploy cùng nhau trong một lần release — đơn giản khi ứng dụng còn nhỏ, nhưng khi ứng dụng lớn dần với nhiều team cùng đụng vào một codebase, xung đột merge tăng lên và mỗi lần release đều phải chờ tất cả các phần cùng sẵn sàng. **Micro Frontend** chia ứng dụng lớn thành nhiều ứng dụng frontend nhỏ độc lập, mỗi phần do một team riêng phụ trách và có thể **deploy độc lập** mà không cần chờ các phần khác.
+
+**b) Khi nào Micro Frontend thực sự đáng cân nhắc**
+
+Micro Frontend chỉ đáng cân nhắc khi ứng dụng đủ lớn, có nhiều team làm việc song song trên các mảng khác biệt rõ ràng, và tổ chức muốn mỗi team tự chủ về công nghệ và lịch release riêng. Ví dụ điển hình là các sàn thương mại điện tử lớn kiểu Shopee, nơi Home, Search, Payment, Profile có thể được coi như những "mảnh" tương đối độc lập, mỗi team phát triển và phát hành phần của mình mà ít ảnh hưởng tới team khác. Ngược lại, với ứng dụng nhỏ hoặc team ít người, Micro Frontend chỉ làm tăng độ phức tạp hạ tầng mà không mang lại lợi ích tương xứng — vì chi phí đồng bộ giữa các "mảnh" độc lập, quản lý version, và đảm bảo UI nhất quán giữa chúng không hề rẻ.
+
+**c) Một số công nghệ triển khai phổ biến**
+
+Vài giải pháp kỹ thuật hay gặp: **Module Federation** (tính năng của Webpack cho phép các ứng dụng độc lập chia sẻ code với nhau lúc runtime mà không cần build chung), **Single-SPA** (framework điều phối nhiều ứng dụng frontend khác nhau chạy cùng trên một trang), **SystemJS** (module loader hỗ trợ load module động lúc runtime). Ở mức Middle, không cần biết cách cấu hình các công cụ này, chỉ cần hiểu chúng tồn tại để giải quyết bài toán "nhiều frontend độc lập cùng hoạt động trên một trang".
+
+**d) Vì sao React Native gần như không dùng Micro Frontend**
+
+Đa số dự án React Native vẫn là một app, một source code, build ra một bundle duy nhất — khác với web nơi nhiều "mảnh" frontend có thể cùng tồn tại trên một trang trình duyệt. Native mobile không có cơ chế load và ghép nhiều app độc lập vào cùng một tiến trình dễ dàng như trên web. Khi một dự án React Native lớn dần và cần chia nhỏ để nhiều team cùng làm, cách phổ biến hơn nhiều là tổ chức theo **Feature-based Folder** hoặc **Monorepo** (nối Day 35) — chia theo tính năng trong cùng một app, chứ không tách thành nhiều ứng dụng độc lập như Micro Frontend trên web.
+
+---
+
+## 4. Ví dụ liên hệ thực tế
+
+```
+Monolith                         Micro Frontend
+─────────────────────────        ─────────────────────────
+Một codebase                     Nhiều codebase nhỏ
+Một team                         Nhiều team độc lập
+Deploy cùng nhau, cùng lúc       Deploy độc lập từng phần
+Đơn giản khi app còn nhỏ         Đáng giá khi app đủ lớn + nhiều team
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Micro Frontend là kiến trúc chia một ứng dụng frontend lớn thành nhiều phần nhỏ độc lập, mỗi phần do một team riêng phát triển và deploy mà không cần chờ các phần khác — giải quyết bài toán nhiều team cùng đụng vào một codebase lớn. Nó chỉ đáng cân nhắc khi ứng dụng đủ lớn và có nhiều team độc lập, còn với app nhỏ thì chỉ làm tăng độ phức tạp hạ tầng không cần thiết. Một số công nghệ hay gặp là Module Federation, Single-SPA, SystemJS. Với React Native, Micro Frontend gần như không được dùng vì mobile không có cơ chế ghép nhiều app độc lập dễ như trên trình duyệt web — thay vào đó các dự án lớn thường chia theo Feature-based Folder hoặc Monorepo trong cùng một app."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Micro Frontend giúp website chạy nhanh hơn" — sai mục đích chính, nó giải quyết bài toán tổ chức team và deploy độc lập, không phải tối ưu tốc độ.
+- ❌ "Project nào cũng nên dùng Micro Frontend" — sai, với app nhỏ nó chỉ tăng độ phức tạp không cần thiết.
+- ❌ "React Native thường dùng Single-SPA" — sai, đây là công nghệ cho web, RN gần như không áp dụng Micro Frontend.
+- ❌ "Micro Frontend thay thế được Design System" — hai khái niệm khác nhau; dù chia nhỏ frontend, các phần vẫn cần Design System chung để UI không bị lệch nhau.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 32)
+
+1. Micro Frontend giải quyết vấn đề gì mà Monolith Frontend gặp khó khi ứng dụng lớn dần?
+2. Micro Frontend đáng cân nhắc trong điều kiện nào? Vì sao không nên áp dụng cho mọi dự án?
+3. Kể tên 2-3 công nghệ thường dùng để triển khai Micro Frontend trên web.
+4. Vì sao React Native gần như không áp dụng Micro Frontend? Thay vào đó dự án lớn RN thường tổ chức theo cách nào?

@@ -1,0 +1,114 @@
+---
+description: Day 02 (09/06) — Các cách gọi API + cơ chế xử lý 1 request từ đầu đến cuối (lifecycle, loading/error, retry).
+alwaysApply: true
+---
+
+# Day 02 · T3 09/06 — Các cách gọi API + cơ chế xử lý request
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **một request đi từ lúc bấm nút đến lúc hiện dữ liệu lên màn hình thì đi qua những bước nào** — và những "cách gọi API" khác nhau (gọi tay, custom hook, React Query).
+
+Interviewer hỏi để xem bạn có hiểu **vòng đời 1 request** không, hay chỉ biết "gọi xong là có data". Người làm thật phải kể được: loading, success, error, retry xử lý ở đâu.
+
+---
+
+## 2. Ví dụ đời thường
+
+Gọi API giống **gọi món ở quán**:
+
+1. Bạn gọi món (gửi **request**).
+2. Trong lúc chờ, bạn thấy bảng "đang nấu" (**loading state**).
+3. Bếp làm xong, bồi bàn bưng ra (**response / success**).
+4. Hết nguyên liệu → bồi bàn báo "món này hết" (**error**).
+5. Bạn đổi món gọi lại (**retry**).
+
+Một request "đàng hoàng" phải lo đủ 5 bước này, không phải chỉ bước 1.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**A. Vòng đời 1 request (3 trạng thái phải luôn nghĩ tới):**
+- `loading` → đang gọi, hiện spinner / skeleton.
+- `success` → có data, render lên UI.
+- `error` → thất bại, hiện thông báo + nút thử lại.
+
+Dev hay quên `error` và `loading` → app trắng màn hình hoặc kẹt spinner. Nhớ: **mọi request đều có 3 nhánh này.**
+
+**B. Các cách gọi API — từ thô tới gọn:**
+
+**Cách 1 — Gọi tay trong component (`useEffect` + `useState`).**
+Tự quản 3 state `data/loading/error`. Dễ hiểu, nhưng lặp code ở mọi màn hình, dễ quên cleanup.
+
+**Cách 2 — Tách ra custom hook (`useUser()`).**
+Đem logic gọi API ra 1 hook riêng, component chỉ gọi `const {data, loading} = useUser(id)`. Gọn hơn, tái dùng được. Đây là mức Middle nên đạt.
+
+**Cách 3 — Dùng React Query / TanStack Query.**
+Thư viện lo giùm: loading/error/cache/retry/refetch. Bạn chỉ khai báo "lấy data này bằng hàm này". Đây là chuẩn production hiện nay (bạn đã dùng ở Firegroup).
+
+**C. Cơ chế xử lý cần có trong app thật (kể tên được là điểm cộng):**
+- **Timeout**: chờ quá lâu thì dừng, báo lỗi (đừng để user chờ vô tận).
+- **Retry**: lỗi mạng chập chờn → tự thử lại 1–2 lần (thường chỉ retry GET, không retry POST tạo đơn để tránh tạo trùng).
+- **Error tập trung**: dùng interceptor bắt mọi lỗi 401 → đẩy về màn login một chỗ.
+- **Cancel**: rời màn hình thì hủy request đang chạy (học kỹ Day 03).
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// Cách 2 — custom hook gói đủ 3 trạng thái
+function useUser(id) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let alive = true;          // tránh set state khi component đã unmount
+    setLoading(true);
+    axios.get(`/api/users/${id}`)
+      .then(res => alive && setData(res.data))
+      .catch(err => alive && setError(err))
+      .finally(() => alive && setLoading(false));
+    return () => { alive = false; }; // cleanup
+  }, [id]);
+
+  return { data, loading, error };
+}
+```
+
+```js
+// Cách 3 — React Query: loading/error/cache/retry tự lo
+const { data, isLoading, isError } = useQuery({
+  queryKey: ['user', id],
+  queryFn: () => axios.get(`/api/users/${id}`).then(r => r.data),
+});
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Tôi luôn nghĩ một request có 3 trạng thái: loading, success, error — quên cái nào là UI sẽ kẹt. Cách gọi thì có 3 mức: gọi tay với useEffect + useState cho case đơn giản; tách ra custom hook để tái dùng và gom logic; còn production tôi dùng React Query vì nó lo giùm cache, retry, refetch và quản lý loading/error. Ngoài ra app thật cần thêm timeout để không chờ vô tận, retry cho lỗi mạng chập chờn nhưng chỉ retry GET, và xử lý 401 tập trung bằng interceptor. Khi rời màn hình thì hủy request để tránh set state trên component đã unmount."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Chỉ kể "success" mà quên loading + error → interviewer biết bạn ít làm UI thật.
+- ❌ "Lỗi gì cũng retry" — SAI. POST tạo đơn mà retry → tạo trùng đơn. Nói rõ chỉ retry thao tác đọc (GET).
+- ❌ Đừng nói React Query "thay Redux". Nó quản **server data**, không phải client state — để dành Day 05.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 03)
+
+1. Một request có mấy trạng thái phải xử lý? Kể tên.
+- Có 3 trạng thái: success, error, loading
+
+2. Vì sao không nên retry mọi loại request? Cho 1 ví dụ nguy hiểm.
+- Vì một số request liên quan đến tiền sẽ bị tính toán sai, ví dụ như payment retry sẽ tạo bị trùng 2 đơn (cần giải thích sâu hơn).
+
+3. `let alive = true` trong useEffect dùng để làm gì?
+- Dùng để tránh set state khi component đã unmount (cần giải thích sâu hơn).

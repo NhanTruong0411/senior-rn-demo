@@ -1,0 +1,90 @@
+---
+description: Day 03 (10/06) — AbortController. Cách hủy 1 request đang chạy, vì sao cần, dùng với fetch và axios.
+alwaysApply: false
+---
+
+# Day 03 · T4 10/06 — AbortController (hủy request)
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **AbortController** — công cụ chuẩn của JavaScript để **hủy một request đang chạy giữa chừng**.
+
+Interviewer hỏi vì đây là dấu hiệu của người làm app thật: biết rằng request không phải "gọi xong là quên" — có lúc phải **dừng nó lại** để tránh bug và phí tài nguyên.
+
+---
+
+## 2. Ví dụ đời thường
+
+Bạn gọi taxi (gửi request). Đang chờ thì bạn đổi ý, không đi nữa.
+
+- Nếu **không hủy**: taxi vẫn tới, bạn vẫn phải xử lý nó (tốn tiền, mất công).
+- Nếu **hủy** (gọi tổng đài báo dừng): taxi quay đầu, bạn rảnh tay.
+
+`AbortController` chính là **cái điện thoại để gọi báo hủy**. `signal` là sợi dây nối từ điện thoại tới chiếc taxi (request).
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**Vì sao phải hủy request? 3 lý do thật:**
+
+1. **Search-as-you-type:** user gõ "ipho" → "iphone", mỗi ký tự bắn 1 request. Nếu request "ipho" về *sau* request "iphone", kết quả cũ đè kết quả mới → UI sai (gọi là **race condition**). Hủy request cũ là cách xử lý sạch nhất.
+2. **Rời màn hình:** user thoát màn hình khi request chưa về → nếu vẫn `setState` → React cảnh báo "set state on unmounted component" + phí băng thông. Hủy là xong.
+3. **Tiết kiệm pin/data** trên mobile: bỏ request không còn cần.
+
+**Cách hoạt động (3 mảnh ghép):**
+- `const controller = new AbortController()` → tạo "bộ điều khiển".
+- `controller.signal` → "tín hiệu" đưa vào request.
+- `controller.abort()` → bấm nút hủy. Request đang chạy sẽ throw lỗi tên `AbortError`.
+
+**Quan trọng:** khi abort, code rơi vào `catch` với lỗi `AbortError`. Đây **không phải lỗi thật** — đừng hiện popup "Lỗi!" cho user. Phải **bỏ qua** nó.
+
+`AbortController` là **chuẩn chung**: dùng được cho cả `fetch` và `axios` đời mới. Đây là lý do nó thay thế dần `axios cancel token` cũ (học Day 04).
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// Hủy request cũ khi user gõ phím mới (search)
+useEffect(() => {
+  const controller = new AbortController();
+
+  fetch(`/api/search?q=${query}`, { signal: controller.signal })
+    .then(res => res.json())
+    .then(setResults)
+    .catch(err => {
+      if (err.name === 'AbortError') return; // bị hủy → bỏ qua, KHÔNG báo lỗi
+      setError(err);                          // lỗi thật mới xử lý
+    });
+
+  return () => controller.abort(); // gõ phím mới / unmount → hủy request cũ
+}, [query]);
+```
+
+```js
+// axios cũng nhận signal y hệt
+axios.get('/api/users', { signal: controller.signal });
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "AbortController là cách chuẩn của JS để hủy một request đang chạy. Tôi tạo một controller, đưa `controller.signal` vào fetch hoặc axios, và gọi `controller.abort()` khi muốn dừng. Case kinh điển là search-as-you-type: mỗi ký tự bắn một request, nếu request cũ về sau request mới thì kết quả cũ đè lên kết quả mới — race condition. Tôi hủy request cũ trong cleanup của useEffect mỗi khi query đổi. Lưu ý khi abort thì code rơi vào catch với lỗi AbortError, đây không phải lỗi thật nên tôi bỏ qua, không hiện thông báo cho user. AbortController dùng chung được cho cả fetch lẫn axios đời mới."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Hiện popup "Lỗi" khi gặp `AbortError` — đó là hành vi mong muốn, không phải bug.
+- ❌ Quên `return () => controller.abort()` trong useEffect → vẫn bị race condition.
+- ❌ Đừng nói "AbortController chỉ cho fetch". Axios đời mới (≥0.22) nhận `signal` luôn.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 04)
+
+1. "Race condition" trong search-as-you-type là gì? Vì sao hủy request giải quyết được?
+2. Khi gọi `controller.abort()`, code đi vào đâu, lỗi tên gì? Có nên báo cho user không?
+3. Ba mảnh ghép của AbortController là gì?

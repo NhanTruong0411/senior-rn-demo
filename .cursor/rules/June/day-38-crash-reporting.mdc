@@ -1,0 +1,104 @@
+---
+description: Day 38 (23/07) — Crash Reporting & Observability. Đọc Stack Trace, phân biệt JS vs Native crash, và Source Map.
+alwaysApply: false
+---
+
+# Day 38 · T5 23/07 — Crash Reporting & Observability
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học cách vận hành app trên Production: debug lỗi khi app đã lên store bằng **Sentry** hoặc **Firebase Crashlytics**, phân biệt **JS Crash** với **Native Crash**, hiểu vai trò của **Source Map** và **Error Boundary**.
+
+Interviewer hỏi vì làm app chạy được trên máy dev là mức Junior. App văng trên máy user, bạn nhận được một ticket báo lỗi, bạn biết mở dashboard lên dò xem dòng code nào gây crash — đó là năng lực vận hành của Middle/Senior.
+
+---
+
+## 2. Ví dụ đời thường
+
+App bị crash trên tay người dùng giống như máy bay bị rơi.
+- Bạn không thể hỏi phi công (người dùng không biết mô tả lỗi).
+- Bạn phải tìm **hộp đen** (Crash Reporting tool như Sentry/Crashlytics) để xem giây cuối cùng trước khi rơi chuyện gì đã xảy ra.
+- Trong hộp đen ghi dữ liệu mã hóa khó hiểu. Bạn cần một **bộ giải mã** (Source Map) để dịch đoạn mã đó thành ngôn ngữ loài người: "Động cơ số 2 cháy ở phút 42" tương đương với "Lỗi undefined is not an object ở dòng 15 file HomeScreen.tsx".
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) JS Crash vs Native Crash**
+
+React Native có hai thế giới, nên crash cũng chia hai loại:
+- **JS Crash**: Xảy ra trong code React/JS (ví dụ gọi `user.name` nhưng `user` bị `undefined`). Loại này thường bắt được qua các tool như Sentry, hiển thị stack trace liên quan đến file `.tsx`.
+- **Native Crash**: App bị văng đột ngột đóng sập (Force Close) do lỗi ở Android/iOS (ví dụ cấp thiếu quyền Camera, tràn bộ nhớ RAM, thư viện native lỗi). Dạng này hiển thị stack trace bằng Java/Kotlin hoặc Objective-C/Swift. Fix Native Crash thường khó hơn, đòi hỏi mở Xcode/Android Studio hoặc đọc kỹ issue GitHub của thư viện.
+
+**b) Error Boundary — Chống văng app do lỗi UI**
+
+Khi có JS Crash xảy ra lúc React đang render, mặc định app RN sẽ hiển thị màn hình đỏ (trên máy dev) hoặc sập app (trên production).
+React cung cấp **Error Boundary** (chỉ viết được bằng Class Component) để bao bọc các component con. Nếu con bị lỗi, Error Boundary sẽ "hứng" lỗi đó, hiển thị một UI fallback (ví dụ "Đã có lỗi xảy ra, vui lòng thử lại") và ngăn app bị force close. Đồng thời, lúc này bạn gọi code gửi log lên Sentry/Crashlytics.
+
+**c) Vấn đề mã hóa và Source Map**
+
+Khi build app ra production (Day 23, Day 25), code JS được gộp chung thành một file `index.android.bundle` duy nhất và bị làm rối (minified) để giảm dung lượng.
+Nếu có lỗi, Sentry sẽ báo lỗi ở: `index.android.bundle:1:15432` (Dòng 1, cột 15 ngàn). Đoạn log này vô dụng.
+**Source Map** là file bản đồ sinh ra lúc build, giúp map ngược vị trí cột 15432 đó về đúng `src/screens/Home.tsx dòng 24`. Bạn phải đảm bảo quy trình CI/CD upload file Source Map này lên Sentry/Crashlytics mỗi khi release bản mới.
+
+**d) Breadcrumbs (Dấu vết để lại)**
+
+Crash tool không chỉ lưu dòng code bị lỗi, nó lưu cả **Breadcrumbs** (vết bánh mì) — nhật ký các hành động của user trước khi crash. Ví dụ: Bấm nút A → Gọi API B (status 400) → Mở màn hình C → Crash. Nhìn vào Breadcrumbs, bạn tái hiện (reproduce) được bug cực kỳ nhanh.
+
+---
+
+## 4. Code tối thiểu
+
+```tsx
+// ✅ Error Boundary để bắt lỗi JS không làm sập app (Phải dùng Class Component)
+import React from 'react';
+import * as Sentry from '@sentry/react-native';
+
+class GlobalErrorBoundary extends React.Component {
+  state = { hasError: false };
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true }; // Đổi state để hiện UI Fallback
+  }
+
+  componentDidCatch(error, errorInfo) {
+    // Gửi lỗi lên hộp đen Sentry/Crashlytics
+    Sentry.captureException(error, { extra: errorInfo });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <Text>Ôi hỏng! Có lỗi xảy ra nhưng app không bị văng.</Text>;
+    }
+    return this.props.children;
+  }
+}
+
+// Bọc ngoài cùng App
+<GlobalErrorBoundary>
+  <AppNavigator />
+</GlobalErrorBoundary>
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Để theo dõi lỗi trên production, tôi thường tích hợp Sentry hoặc Firebase Crashlytics. Tôi luôn bao bọc app bằng Error Boundary để hứng các JS Crash, hiển thị UI fallback thân thiện thay vì để app sập, đồng thời đẩy log lỗi lên server. Điều quan trọng nhất khi setup là phải cấu hình CI/CD upload Source Map sau mỗi lần build; nếu không, stack trace trả về sẽ toàn trỏ vào file bundle đã minify, không thể đọc được. Khi debug, ngoài việc xem dòng code gây lỗi, tôi hay dựa vào Breadcrumbs để xem các bước thao tác hoặc các API user vừa gọi ngay trước thời điểm crash, giúp tái hiện bug nhanh hơn. Với Native Crash thì tôi phải xem log Java/Swift để tìm thư viện gây lỗi."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "JS lỗi luôn làm app văng (Force close)" — sai, JS lỗi làm app văng nếu không có Error Boundary. Nếu có, nó chỉ hỏng mảng UI đó. Native lỗi mới chắc chắn làm sập app.
+- ❌ Bỏ qua Source Map — interviewer sẽ biết bạn chưa từng cấu hình tool crash reporting thật sự, vì không có source map thì tool crash report gần như vô nghĩa.
+- ❌ Cố dùng try/catch để bọc toàn bộ app — sai, try/catch không bắt được lỗi trong quá trình React render UI, phải dùng Error Boundary.
+
+---
+
+## 7. Tự kiểm tra
+
+1. Native Crash và JS Crash khác nhau cốt lõi ở điểm nào về nguyên nhân và cách hiển thị?
+2. Vì sao phải upload file Source Map lên Crashlytics/Sentry mỗi khi release bản mới?
+3. Error Boundary dùng để làm gì? Nó bắt được loại lỗi nào mà `try/catch` thông thường không bắt được?
+4. Breadcrumbs trong crash report cung cấp thông tin gì quan trọng cho lập trình viên?

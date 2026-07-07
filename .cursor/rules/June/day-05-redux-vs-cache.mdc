@@ -1,0 +1,94 @@
+---
+description: Day 05 (12/06) — Redux vs cache (React Query). Phân biệt client state và server state, dùng cái nào khi nào.
+alwaysApply: false
+---
+
+# Day 05 · T6 12/06 — Redux vs cache (React Query)
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học cách **phân biệt Redux và cache của React Query** — và quy tắc chọn: cái nào quản loại dữ liệu nào.
+
+Đây là câu **gần như interview nào cũng hỏi**. Note Sacombank của bạn ghi "phân biệt cache với Redux". Trả lời tốt = ăn điểm Middle ngay; trả lời lẫn lộn = bị nghi chưa nắm state management.
+
+---
+
+## 2. Ví dụ đời thường
+
+Hình dung 2 loại đồ trong nhà:
+
+- **Đồ của bạn, bạn tự quyết** (đèn bật/tắt, rèm kéo, chọn theme tối): đây là **client state** → **Redux** quản. Không ai ngoài bạn quyết được nó.
+- **Đồ mượn từ thư viện** (sách = dữ liệu từ server): đây là **server state** → **React Query** quản. Sách có "bản gốc" ở thư viện (server), bản trong nhà bạn chỉ là **bản sao tạm** — có thể cũ, cần đổi mới (refetch), cần biết "mượn từ bao giờ" (stale).
+
+Sai lầm phổ biến: nhét "sách mượn" (data server) vào tủ đồ cá nhân (Redux) rồi tự quản hạn trả, tự đồng bộ — cực kỳ mệt. Đó là lý do React Query ra đời.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**Phân biệt 2 loại state — đây là chìa khóa:**
+
+| | Client state | Server state |
+| --- | --- | --- |
+| Là gì | Dữ liệu app tự sinh, app làm chủ | Dữ liệu lấy từ API, server làm chủ |
+| Ví dụ | theme, ngôn ngữ, giỏ hàng tạm, modal open | danh sách user, chi tiết đơn hàng, profile |
+| Công cụ | **Redux** (hoặc Context/Zustand) | **React Query / TanStack Query** |
+| Nỗi lo | "Đồng bộ giữa các component" | "Bản sao có cũ không? Khi nào refetch?" |
+
+**Vì sao đừng dùng Redux để cache data server (lý do thật):**
+Nếu cho data server vào Redux, **bạn phải tự code lại mọi thứ React Query cho sẵn**:
+- tự lưu loading/error
+- tự biết khi nào data cũ (stale) → refetch
+- tự dedupe (2 màn hình gọi cùng API → đừng gọi 2 lần)
+- tự invalidate sau khi POST (sửa data xong làm sao list tự cập nhật)
+
+→ Viết tay đống này tốn cả tuần và đầy bug. React Query làm sẵn bằng `queryKey` + `staleTime` + `invalidateQueries`.
+
+**"Cache" ở đây nghĩa là gì:** React Query giữ kết quả API trong bộ nhớ, gắn theo `queryKey` (vd `['user', 5]`). Lần sau cần lại → trả ngay từ cache (UI mượt), đồng thời âm thầm refetch nếu data đã "stale". Đó là cache — thứ Redux **không tự làm**.
+
+**Quy tắc 1 câu để nhớ đời:**
+> Redux quản **cái app tự quyết**. React Query quản **cái server quyết, app chỉ mượn về**.
+
+Hồi xưa người ta nhét tất cả vào Redux (kèm redux-thunk/saga gọi API) vì chưa có công cụ tốt cho server state. Giờ tách ra: Redux gọn lại chỉ còn client state, React Query lo server state.
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// CLIENT state → Redux: theme do app tự quyết
+const themeSlice = createSlice({
+  name: 'theme',
+  initialState: { mode: 'light' },
+  reducers: { toggle: (s) => { s.mode = s.mode === 'light' ? 'dark' : 'light'; } },
+});
+
+// SERVER state → React Query: data mượn từ API, có cache + refetch + invalidate
+const { data: users } = useQuery({
+  queryKey: ['users'],
+  queryFn: () => axios.get('/api/users').then(r => r.data),
+  staleTime: 60_000, // 1 phút coi là còn "tươi", chưa cần refetch
+});
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Tôi phân biệt theo loại dữ liệu. Client state là cái app tự quyết — theme, ngôn ngữ, modal đang mở — cái này tôi để Redux. Server state là dữ liệu lấy từ API, server mới là chủ — danh sách user, chi tiết đơn — cái này tôi để React Query. Lý do là data server cần cache, cần biết khi nào cũ để refetch, cần dedupe và invalidate sau khi sửa; nếu nhét vào Redux thì tôi phải tự code lại toàn bộ những thứ đó, rất nhiều bug. React Query lo sẵn qua queryKey, staleTime, invalidateQueries. Ở Firegroup tôi dùng đúng cách chia này: Redux cho client state, TanStack Query cho server data."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "React Query thay thế Redux" — SAI. Chúng quản 2 loại state khác nhau, dùng song song.
+- ❌ "Redux để cache API" — đó chính là cái anti-pattern cần tránh.
+- ❌ Đừng chỉ nói định nghĩa. Phải nói **trade-off**: nhét server state vào Redux thì *phải tự làm gì* (stale, dedupe, invalidate).
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 06)
+
+1. Theme dark/light là client hay server state? Giỏ hàng đã lưu trên server thì sao?
+2. Kể 3 thứ React Query tự làm mà nếu dùng Redux bạn phải tự code.
+3. Một câu chốt: Redux quản gì, React Query quản gì?

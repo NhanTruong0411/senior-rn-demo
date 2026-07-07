@@ -1,0 +1,118 @@
+---
+description: Day 37 (22/07) — Testing Thực chiến. Phân biệt các loại test, dùng Jest + RNTL, và mock API/Native Module.
+alwaysApply: false
+---
+
+# Day 37 · T4 22/07 — Testing Thực chiến
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học cách **viết test thật** cho ứng dụng React Native thay vì chỉ biết khái niệm lý thuyết: Unit Test vs Component Test, công cụ (Jest, React Native Testing Library), cách mock API, và mock Native Modules.
+
+Interviewer hỏi vì Middle Developer bắt đầu phải chịu trách nhiệm về chất lượng code. Ở nhiều công ty product, code không có test sẽ không được merge. Họ muốn biết bạn test **hành vi** của user hay test **chi tiết cài đặt** bên trong.
+
+---
+
+## 2. Ví dụ đời thường
+
+Kiểm tra một chiếc xe trước khi xuất xưởng:
+- **Unit Test**: Test riêng lẻ bugi có đánh lửa không, phanh có ăn không (Test từng hàm utility, hook).
+- **Component / Integration Test**: Lắp động cơ vào xe, bật chìa khóa xem máy có nổ không (Test render giao diện, bấm nút gọi API).
+- **E2E (End-to-End) Test**: Cho một tài xế thật lái xe ra đường chạy thử 10km (Dùng Detox hoặc Maestro điều khiển app trên máy ảo).
+
+Mục tiêu của test không phải là đạt coverage 100%, mà là **tạo sự tự tin khi refactor code**: bạn sửa code xong, chạy test pass nghĩa là không làm hỏng tính năng cũ.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) Chọn đúng công cụ: Jest + React Native Testing Library (RNTL)**
+
+- **Jest**: Là framework chạy test (test runner). Nó lo việc chạy các file `.test.ts`, hỗ trợ expect (so sánh kết quả), và cung cấp cơ chế Mock cực mạnh.
+- **RNTL**: Là thư viện giúp render các component React Native trong môi trường test (Node.js) để tương tác. Triết lý của RNTL: *"Bạn test cách phần mềm được sử dụng, chứ không test cách nó được viết"*. Nghĩa là bạn không kiểm tra xem state `isLoading` có bằng `true` không, mà bạn kiểm tra xem màn hình có render ra thẻ `<ActivityIndicator />` không.
+
+**b) Viết test như thế nào cho đúng (Tư duy RNTL)**
+
+Cách tệ nhất là test chi tiết cài đặt (implementation details) — ví dụ kiểm tra tên biến state. Cách tốt nhất là test hành vi (behavior).
+Trình tự một test case Component:
+1. **Render**: Render component bằng hàm `render()`.
+2. **Find**: Tìm các phần tử UI bằng `getByText` (tìm chữ), `getByTestId` (tìm qua `testID`).
+3. **Interact**: Tương tác với UI bằng `fireEvent.press()` (bấm nút), `fireEvent.changeText()`.
+4. **Assert**: Kiểm tra kết quả (`expect(...).toBeTruthy()`).
+
+**c) Mocking — Kỹ năng quan trọng nhất**
+
+Trong môi trường test, không có mạng thật và không có Native code (Java/Swift). Vì vậy bạn phải làm giả (Mock) chúng:
+- **Mock API**: Dùng `jest.spyOn(axios, 'get').mockResolvedValue(...)` để giả lập server trả về dữ liệu thành công hoặc lỗi.
+- **Mock Native Module**: Một số thư viện ngoài (như `react-native-keychain` hay `react-native-device-info`) chứa code Native sẽ gây lỗi khi chạy Jest. Bạn phải tạo thư mục `__mocks__` hoặc dùng `jest.mock('tên-thu-vien', () => (...))` để thay thế chúng bằng các hàm JavaScript trống.
+
+**d) E2E Test thực tế — Detox vs Maestro**
+
+Unit test và Component test đều chạy trong môi trường giả lập (Node.js), không có app thật. **E2E (End-to-End) test** thì ngược lại: nó cài app thật lên máy ảo rồi "thuê" một con robot bấm y hệt người dùng — mở app → gõ email → bấm đăng nhập → cuộn danh sách → kiểm tra kết quả hiện đúng. Đây là loại test cho sự tự tin cao nhất trước khi release, và cũng là loại JD của các công ty product hay yêu cầu. Hai công cụ phổ biến nhất trong React Native là **Detox** và **Maestro**, khác nhau ở triết lý:
+
+- **Detox** là kiểu "gray box" (hộp xám): nó *nhìn được vào bên trong* app, biết lúc nào app đang bận (còn gọi API, còn animation) để **tự chờ đúng lúc** rồi mới thao tác tiếp. Nhờ vậy test ít bị "flaky" (lúc pass lúc fail vô lý). Đổi lại, setup khá cực: phải cấu hình build riêng, viết test bằng JavaScript, và tốn công bảo trì khi RN nâng version.
+
+- **Maestro** là kiểu "black box" (hộp đen): nó coi app như người dùng thật, chỉ nhìn những gì hiện trên màn hình chứ không quan tâm bên trong. Test được viết bằng file **YAML** cực ngắn gọn (kiểu "tap vào nút Login, gõ chữ này, kiểm tra thấy chữ kia"), gần như ai đọc cũng hiểu. Setup nhanh, dễ học — đây là lý do Maestro đang rất hot. Điểm yếu là kém "thông minh" hơn Detox trong việc tự đồng bộ thời điểm, nhưng nó bù lại bằng cơ chế tự thử lại (auto-retry) khá ổn.
+
+Cách chọn cho Middle: nếu team muốn E2E **nhanh gọn, ai cũng viết được** → Maestro; nếu team cần **kiểm soát sâu, chấp nhận đầu tư hạ tầng** → Detox. Bản thân E2E chạy chậm hơn Unit/Component nhiều, nên nguyên tắc là chỉ viết E2E cho vài luồng *sống còn* (login, thanh toán, checkout), không viết E2E cho mọi màn hình.
+
+**e) Honest Gap thường gặp**
+
+Nhiều công ty outsource không bắt buộc viết test do giới hạn thời gian. Nếu bạn rơi vào case này, hãy trung thực: *"Ở công ty cũ em ít viết test do đặc thù dự án chạy nhanh, nhưng em hiểu tư duy test qua RNTL, biết cách dùng getByTestId, fireEvent và mock Axios để test các component quan trọng."*
+
+---
+
+## 4. Code tối thiểu
+
+```tsx
+// ✅ Một Component Test đúng chuẩn với RNTL
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import axios from 'axios';
+import { LoginScreen } from './LoginScreen';
+
+// Mock axios để không gọi mạng thật
+jest.mock('axios');
+const mockedAxios = axios as jest.Mocked<typeof axios>;
+
+test('Hiển thị lỗi khi login thất bại', async () => {
+  // 1. Giả lập API trả về lỗi
+  mockedAxios.post.mockRejectedValue(new Error('Sai mật khẩu'));
+
+  // 2. Render component
+  const { getByPlaceholderText, getByText } = render(<LoginScreen />);
+
+  // 3. Tương tác: Nhập liệu và bấm nút
+  fireEvent.changeText(getByPlaceholderText('Email'), 'test@test.com');
+  fireEvent.changeText(getByPlaceholderText('Mật khẩu'), 'wrong-pass');
+  fireEvent.press(getByText('Đăng nhập'));
+
+  // 4. Kiểm tra: Chờ và xác nhận UI hiện dòng chữ báo lỗi
+  await waitFor(() => {
+    expect(getByText('Sai mật khẩu')).toBeTruthy();
+  });
+});
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Khi viết test trong React Native, tôi tập trung vào Unit test cho các logic tính toán và Component test cho giao diện quan trọng. Tôi dùng Jest làm test runner và React Native Testing Library để render component. Triết lý của tôi là test hành vi người dùng thay vì chi tiết cài đặt: ví dụ test form Login, tôi sẽ dùng fireEvent để nhập text, bấm nút, sau đó mock Axios để giả lập phản hồi, và expect màn hình hiện đúng dòng chữ báo lỗi qua getByText. Khó khăn lớn nhất thường là mock các Native module hoặc thư viện Navigation, tôi xử lý bằng cách dùng jest.mock hoặc tạo thư mục \_\_mocks\_\_ chứa implementation giả bằng JS. Còn với E2E, tôi chỉ viết cho vài luồng sống còn như login hay thanh toán; tôi biết Detox chạy kiểu gray-box nên chờ thông minh và ít flaky nhưng setup cực, còn Maestro viết bằng YAML rất dễ bắt đầu — nếu cần dựng E2E nhanh tôi sẽ chọn Maestro."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Test là để đạt 100% coverage" — chạy theo coverage mù quáng làm tốn thời gian, 70-80% cho các luồng core là mức thực tế tốt.
+- ❌ "Tôi test xem biến state username có cập nhật không" — sai tư duy RNTL, bạn phải test xem Input có hiển thị chữ đó không, không test state nội bộ.
+- ❌ Bỏ qua E2E Test hoàn toàn — mặc dù Middle ít tự setup E2E, nhưng nên biết tên công cụ như Detox hay Maestro.
+
+---
+
+## 7. Tự kiểm tra
+
+1. React Native Testing Library (RNTL) theo đuổi triết lý test nào khác biệt so với Enzyme ngày xưa?
+2. Vì sao trong môi trường Jest, các hàm gọi API phải được mock?
+3. Nếu component dùng một thư viện chứa code Native (như Camera), Jest sẽ báo lỗi gì và cách khắc phục?
+4. Kể 4 bước cơ bản của một test case Component UI.
+5. Detox và Maestro khác nhau ở triết lý nào (gray-box vs black-box)? Vì sao chỉ nên viết E2E cho vài luồng sống còn thay vì mọi màn hình?

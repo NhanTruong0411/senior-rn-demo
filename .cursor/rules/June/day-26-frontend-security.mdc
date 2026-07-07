@@ -1,0 +1,89 @@
+---
+description: Day 26 (11/07) — Frontend Security trong React Native. Authentication, Authorization, JWT, XSS và những nguyên tắc bảo mật cơ bản.
+alwaysApply: false
+---
+
+# Day 26 · T7 11/07 — Frontend Security
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học các khái niệm bảo mật nền tảng mà một Mobile Developer bắt buộc phải nắm: **Authentication vs Authorization**, vòng đời **access token / refresh token**, nơi lưu token an toàn trong app, và **XSS** — ít gặp trên mobile nhưng vẫn hay bị hỏi để test hiểu biết gốc rễ.
+
+Interviewer không kỳ vọng bạn là Security Engineer. Cái họ muốn kiểm tra là: bạn có **vô tình tạo lỗ hổng** trong công việc hàng ngày không — như lưu token sai chỗ, hardcode API key, hay nhầm "đăng nhập được" với "được phép làm việc này".
+
+---
+
+## 2. Ví dụ đời thường
+
+Hình dung bạn vào làm ở một tòa nhà văn phòng. Ở cổng, bạn quẹt thẻ nhân viên để bảo vệ xác nhận **bạn là ai** — đó là **Authentication**. Nhưng có thẻ vào được tòa nhà không có nghĩa bạn vào được phòng server: phòng đó chỉ mở cho nhóm IT, dù bạn đã "đăng nhập" thành công qua cổng chính. Việc kiểm tra "bạn được phép vào phòng nào" chính là **Authorization**.
+
+Rất nhiều dev nhầm hai khái niệm này làm một, dẫn tới lỗi kiểu: server chỉ kiểm tra "đã đăng nhập chưa" mà quên kiểm tra "role có đủ quyền không" — kết quả là user thường vẫn gọi được API dành riêng cho admin.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) Authentication vs Authorization — khác nhau ở chỗ nào**
+
+Authentication trả lời câu "bạn là ai" — login bằng email/password, đăng nhập Google/Apple, OTP, hay server xác minh chữ ký của JWT. Authorization trả lời câu "bạn được phép làm gì" — user thường chỉ xem đơn hàng của chính mình, admin xem được toàn hệ thống. Một hệ thống đúng phải tách bạch hai bước: xác thực xong không đồng nghĩa được phép làm mọi thứ.
+
+**b) Access token & refresh token — vì sao phải có hai loại (nối Day 06, Day 09)**
+
+Như đã học ở Day 06: access token sống ngắn (khoảng 15 phút–1 giờ) để nếu bị lộ thì thiệt hại giới hạn theo thời gian. Refresh token sống lâu hơn (vài ngày–vài tuần), chỉ dùng để xin access token mới khi hết hạn, không gắn trực tiếp vào mọi request gọi API. Tách hai loại giúp cân bằng giữa bảo mật (access token ngắn hạn, ít rủi ro nếu lộ) và trải nghiệm người dùng (không bắt đăng nhập lại liên tục).
+
+**c) Lưu token ở đâu trong React Native**
+
+Không nên lưu access/refresh token nhạy cảm trong `AsyncStorage` — đây là nơi lưu **plain text, không mã hóa**; nếu thiết bị bị jailbreak/root hoặc có app độc hại đọc được filesystem, token bị lộ ngay. Cách đúng là dùng **Keychain (iOS)** hoặc **Keystore (Android)** — cơ chế lưu trữ được hệ điều hành mã hóa và cô lập riêng theo từng app. Trong RN, thường dùng thư viện `react-native-keychain` hoặc `expo-secure-store` để thao tác với hai cơ chế này mà không phải tự viết native code.
+
+**d) XSS trong React Native — có hay không?**
+
+XSS (Cross-Site Scripting) là kỹ thuật hacker chèn JavaScript độc hại vào trang để đánh cắp dữ liệu hoặc session — vốn là vấn đề của **trình duyệt**, vì trình duyệt render HTML và thực thi script nhúng trong đó. React Native **không render HTML** như web nên bề mặt tấn công XSS truyền thống gần như không tồn tại. Nhưng rủi ro quay lại nếu app có `WebView` hiển thị HTML từ nguồn không kiểm soát — ví dụ nội dung do người dùng khác nhập, hoặc trang bên thứ ba nhúng vào app — lúc đó XSS vẫn xảy ra được bên trong WebView đó. Nguyên tắc: **không hiển thị HTML không rõ nguồn gốc trong WebView mà chưa sanitize**.
+
+**e) Những nguyên tắc bảo mật nên thành phản xạ**
+
+Luôn gọi API qua HTTPS; không bao giờ commit API key hay secret lên Git (dùng biến môi trường, hoặc tốt hơn là để backend giữ secret); luôn validate dữ liệu trả về từ server thay vì tin tuyệt đối; không log token ra console kể cả lúc debug (log dễ bị leak qua crash report); và với dữ liệu nhạy cảm hiển thị trên UI thì cân nhắc che một phần — ví dụ số thẻ chỉ hiện 4 số cuối.
+
+---
+
+## 4. Code tối thiểu
+
+```ts
+// ❌ Lưu token nhạy cảm trong AsyncStorage — plain text, không mã hóa
+await AsyncStorage.setItem('accessToken', token);
+
+// ✅ Lưu trong Keychain/Keystore qua react-native-keychain
+await Keychain.setGenericPassword('accessToken', token);
+```
+
+```ts
+// ❌ Hardcode secret trong source code — lộ ngay khi decompile app
+const API_KEY = 'sk_live_abcd1234';
+
+// ✅ Đọc từ biến môi trường lúc build; tốt hơn nữa là để backend giữ
+// secret thật, app chỉ gọi qua endpoint trung gian
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Authentication là xác minh bạn là ai, Authorization là xác định bạn được phép làm gì — hai bước tách biệt, không phải một. Tôi dùng access token ngắn hạn kèm refresh token dài hạn để cân bằng bảo mật và trải nghiệm, và luôn lưu token trong Keychain hoặc Keystore qua react-native-keychain thay vì AsyncStorage vì AsyncStorage là plain text. Về XSS, React Native không render HTML nên ít bị XSS kiểu web truyền thống, nhưng nếu app có WebView hiển thị nội dung không kiểm soát thì rủi ro vẫn quay lại, nên tôi tránh render HTML không rõ nguồn gốc. Ngoài ra tôi giữ vài nguyên tắc mặc định: luôn HTTPS, không commit secret lên Git, không log token ra console."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Authentication và Authorization là một" — sai, một cái xác minh danh tính, một cái xác định quyền.
+- ❌ "AsyncStorage lưu token cũng được, tiện" — đúng là tiện nhưng không an toàn cho dữ liệu nhạy cảm.
+- ❌ "React Native miễn nhiễm hoàn toàn với XSS" — sai nếu app có WebView xử lý HTML không kiểm soát.
+- ❌ Log access token ra console "để debug cho nhanh" — dễ leak qua crash report.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 27)
+
+1. Authentication và Authorization khác nhau ở điểm nào? Cho một ví dụ lỗi thực tế khi hệ thống có Authentication nhưng thiếu Authorization đúng cách.
+2. Vì sao access token nên sống ngắn còn refresh token sống dài hơn?
+3. Vì sao không nên lưu token nhạy cảm trong AsyncStorage? Thay bằng gì trong React Native?
+4. React Native có bị XSS không? Trường hợp nào vẫn có rủi ro?

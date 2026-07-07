@@ -1,0 +1,523 @@
+---
+description: Interview prep — VILIHA PTE. LTD. · Mobile Application Engineer (RN + Expo). Q&A bank VN + EN, diễn giải dễ hiểu.
+alwaysApply: false
+---
+
+# VILIHA — Mobile Application Engineer (RN + Expo)
+
+> **JD nhấn:** React Native + Expo (EAS), TanStack Query, NativeWind, Clean Architecture, DRY, performance, offline storage, push notifications.
+> **Stack ưu tiên (preferred):** MMKV, SQLite, push notifications.
+> **Hard requirement:** English daily communication, onsite District 7, contract 6 tháng, start ASAP.
+>
+> **Cách dùng file này:**
+> 1. Mỗi câu nói thành tiếng **≥3 lần**, ≤60 giây.
+> 2. Đọc cả VN + EN — interview lai 2 ngôn ngữ.
+> 3. Câu có ⚠️ = gap thật trên CV → trả lời **honest**, không over-claim.
+> 4. Diễn giải trong câu trả lời cố ý đơn giản — intern đọc cũng hiểu, nhưng vẫn giữ thuật ngữ để interviewer thấy bạn biết tên gọi đúng.
+
+---
+
+## A. Core stack (JD bắt buộc)
+
+### Q1 — Redux Toolkit vs TanStack Query: dùng cái nào cho việc gì?
+
+**VN:** *"Anh dùng cả Redux Toolkit lẫn TanStack Query — phân chia trách nhiệm thế nào?"*
+**EN:** *"You use both Redux Toolkit and TanStack Query. How do you split responsibilities between them?"*
+
+**🗣️ Trả lời VN (~60s):**
+> Em chia theo bản chất của data. **Data từ server** — danh sách đơn hàng, profile user, catalog sản phẩm — em luôn để **TanStack Query** quản lý. Lý do: server có thể đổi data sau lưng app, ví dụ user khác sửa đơn hàng. Query lo sẵn cho mình: cache theo key, tự refetch khi mở lại màn hình, retry khi rớt mạng, gộp request trùng. **Data của app** — token đang login, theme dark/light, modal đang mở — thì em để **Redux Toolkit** vì app sở hữu hoàn toàn, không ai bên ngoài đổi được. Ở Firegroup em dùng song song: Query cho loyalty list và user points, Redux cho session và UI flow. Cái em luôn tránh: fetch list bằng `createAsyncThunk` rồi tự code cache + retry — đó là viết lại Query bằng tay, tốn nhiều tuần mà không bằng Query có sẵn.
+
+**🗣️ Answer EN (~60s):**
+> I split by the nature of the data. **Server data** — orders list, user profile, product catalog — always lives in **TanStack Query**, because the server can change behind the app's back. Query gives me cache keys, refetch on focus, retry, and request deduplication out of the box. **Client-owned data** — auth session, theme, modal open/closed — goes into **Redux Toolkit**, because the app fully owns it. At Firegroup I used Query for the loyalty catalog and user points, Redux for session and UI flow. The anti-pattern I avoid: fetching server lists with `createAsyncThunk` and manually writing cache and retry logic — that's reinventing Query, weeks of work for something already solved.
+
+**Giải thích cho intern hiểu:**
+- **Server data:** thứ backend trả về — list, detail, search.
+- **Client data:** thứ chỉ app biết — modal đang mở, theme, token.
+- **Cache key:** một cái “tên” để Query nhớ "data này là của ai" (vd `['orders', orderId]`).
+- **Refetch on focus:** user rời màn hình rồi quay lại → Query tự fetch lại để data tươi.
+
+**Follow-up dễ gặp:**
+- *"Optimistic update?"* → Trước khi server trả lời, em update UI luôn (`onMutate`), nếu fail thì rollback (`onError`). Không dùng cho thanh toán.
+- *"Khi nào KHÔNG dùng Query?"* → Khi data thuần client (theme, auth flag) hoặc khi cần global event bus phức tạp.
+
+**Don't say:**
+- ❌ "Query thay được Redux hoàn toàn" — sai, session và UI vẫn cần store.
+- ❌ "Em luôn dùng Redux cho tất cả" — outdated, interviewer sẽ dò ngay.
+
+---
+
+### Q2 — Query key, stale time, refetch — thiết kế thế nào?
+
+**VN:** *"Em thiết kế query key ra sao? Khi nào data được coi là cũ và refetch?"*
+**EN:** *"How do you design query keys, and when does Query consider data stale and refetch?"*
+
+**🗣️ Trả lời VN (~60s):**
+> Query key em thiết kế **phân cấp như đường dẫn**: `['orders']` cho list, `['orders', orderId]` cho detail, `['orders', { status, page }]` cho list có filter. Rule đơn giản: param nào đổi mà ảnh hưởng kết quả thì cho vào key. **`staleTime`** em set theo data sống lâu hay nhanh đổi: profile `/me` để 5 phút, config tĩnh để 30 phút, feed realtime để 0 — tức luôn fetch lại. **`gcTime`** giữ cache trong RAM khi component unmount, mở lại screen không thấy spinner. Sau mutation em **invalidate đúng phạm vi**: sửa 1 order thì invalidate `['orders', id]` và list parent, không invalidate cả app. Em từng gặp ở Loyalty: invalidate quá rộng → cả list flash reload — fix bằng targeted invalidation.
+
+**🗣️ Answer EN (~60s):**
+> Query keys are **hierarchical, like a path**: `['orders']` for the list, `['orders', orderId]` for detail, `['orders', { status, page }]` for filtered lists. Rule of thumb: any param that affects the response goes into the key. **`staleTime`** depends on how fast the data changes — `/me` profile at 5 minutes, static config at 30 minutes, realtime feed at 0 so it always refetches. **`gcTime`** keeps the cache around when a screen unmounts, so reopening it shows data immediately without a spinner. After a mutation I **invalidate narrowly**: update one order, invalidate `['orders', id]` and the parent list — not the whole app. I once over-invalidated in Loyalty and the entire list flashed; I fixed it with targeted invalidation.
+
+**Giải thích cho intern hiểu:**
+- **Query key:** ID của 1 cache. Khác key → Query coi là data khác, fetch riêng.
+- **staleTime:** trong khoảng này, Query coi data còn “tươi” → không fetch lại.
+- **gcTime (garbage collect time):** sau khi không ai dùng, Query giữ cache thêm bao lâu rồi mới xoá khỏi RAM.
+- **Invalidate:** đánh dấu cache là “cũ rồi” → lần render kế tiếp Query sẽ fetch mới.
+
+**Follow-up:**
+- *"Prefetch?"* → Trước khi user tap vào Detail, em `prefetchQuery` để mở screen không thấy loading.
+- *"Pagination?"* → Dùng `useInfiniteQuery`, key có `page` hoặc cursor.
+
+---
+
+### Q3 — Expo + EAS Build: flow build và release thế nào?
+
+**VN:** *"Em mô tả flow build và release với Expo EAS?"*
+**EN:** *"Walk me through your Expo EAS build and release workflow."*
+
+**🗣️ Trả lời VN (~60s):** ⚠️ *Production Firegroup là bare React Native + CodePush. EAS em dùng trên demo project, đã đọc kỹ docs.*
+
+> Với 1 dự án Expo, em chia làm 3 profile trong file **`eas.json`**: `development` cho dev daily build, `preview` cho QA test, `production` cho release. Mọi **secret** như API key, Sentry token em để trong **EAS Secrets**, không hardcode vào repo. Build chạy trên cloud của Expo: `eas build --platform all --profile production` — em không cần máy Mac cho iOS build. Submit lên store: `eas submit` đẩy thẳng lên App Store Connect và Play Console. Khi cần fix nhanh chỉ phần JS, em dùng **EAS Update** — tương tự CodePush ở Firegroup — push patch trong vài phút mà không qua review store. Nếu fix đụng native code thì phải build lại. Em so sánh được với CodePush ở Firegroup nên ramp EAS chỉ cần vài ngày.
+
+**🗣️ Answer EN (~60s):** ⚠️ *Honest: Firegroup production is bare RN + CodePush. I've used EAS on a demo project and studied the docs.*
+
+> For an Expo project I set up three profiles in **`eas.json`**: `development` for daily dev builds, `preview` for QA, and `production` for releases. **Secrets** like API keys and Sentry tokens go into **EAS Secrets**, never committed. Builds run on Expo's cloud — `eas build --platform all --profile production` — so I don't need a Mac for iOS. Store submission is `eas submit` straight to App Store Connect and Play Console. For JS-only hotfixes I use **EAS Update**, which works like CodePush at Firegroup, shipping patches in minutes without going through store review. Anything touching native code still needs a full build. Because I already shipped OTA via CodePush, ramping up on EAS only takes a few days.
+
+**Giải thích cho intern hiểu:**
+- **Expo:** framework giúp dev RN không cần đụng Xcode/Gradle quá nhiều.
+- **EAS (Expo Application Services):** dịch vụ cloud của Expo, build và submit app cho mình.
+- **OTA (Over-the-Air) update:** đẩy code mới xuống app đang chạy mà không cần user vào store update.
+- **Profile:** mỗi “môi trường” (dev, staging, prod) có config khác nhau.
+
+**Follow-up:**
+- *"Expo vs bare RN?"* → Expo nhanh setup, EAS lo CI. Bare khi cần custom native sâu mà Expo không hỗ trợ. Greenfield như VILIHA thì Expo là lựa chọn hợp lý.
+- *"Custom native module trong Expo?"* → Dùng **config plugin** hoặc **prebuild** để generate native folder rồi modify.
+
+**Don't say:**
+- ❌ "Em build EAS production 3 năm" nếu chưa.
+
+---
+
+### Q4 — NativeWind / Tailwind cho React Native?
+
+**VN:** *"Em styling RN thế nào? Có dùng NativeWind chưa?"*
+**EN:** *"How do you approach styling in React Native? Any experience with NativeWind?"*
+
+**🗣️ Trả lời VN (~60s):** ⚠️ *Production em chưa ship NativeWind. Đã đọc và set up trên demo.*
+
+> Ở Firegroup em dùng **`StyleSheet` + theme tokens**: tất cả màu sắc, spacing, font được define 1 chỗ duy nhất, component chỉ tham chiếu token — đỡ hardcode hex code rải rác. Theme system support 5+ theme và dark mode, mỗi merchant config riêng. **NativeWind** em hiểu cách hoạt động: viết `className="bg-blue-500 p-4"` như Tailwind web, compile-time convert sang StyleSheet RN. Lợi ích: code ngắn, design system đồng bộ với web nếu team đang dùng Tailwind. Trade-off: debug style phức tạp khó hơn StyleSheet thuần vì class string không hiện trực tiếp trong inspector. Với greenfield VILIHA, em sẵn sàng adopt NativeWind theo design token Figma — định nghĩa `colors`, `spacing` 1 lần trong `tailwind.config.js`, sau đó toàn project dùng class. Em ramp được vì pattern theme tokens đã quen.
+
+**🗣️ Answer EN (~60s):** ⚠️ *Honest: not yet in production. Studied and tried it on a demo.*
+
+> At Firegroup I used **`StyleSheet` plus a theme token system** — all colors, spacing, and fonts defined once, components reference tokens, no hex codes scattered around. The theme system supports 5+ themes and dark mode, configurable per merchant. **NativeWind** lets you write `className="bg-blue-500 p-4"` like Tailwind web, and at build time it converts to RN styles. Pros: concise code and a design system consistent with web if the team already uses Tailwind. Cons: harder to inspect complex styles because the class string doesn't show directly in the debugger. For a greenfield VILIHA project I'd happily adopt NativeWind, define the Figma tokens once in `tailwind.config.js`, and use classes everywhere. The mental model is the same as my token system, so ramp-up is quick.
+
+**Giải thích cho intern hiểu:**
+- **StyleSheet.create:** cách styling chuẩn RN — `{ container: { padding: 16 } }`.
+- **Tailwind:** thay vì viết CSS, gắn class có sẵn (`p-4` = padding 16px).
+- **NativeWind:** mang Tailwind sang RN, không cần web.
+- **Design token:** “từ điển” màu/spacing/font dùng chung toàn app.
+
+**Follow-up:**
+- *"Dark mode?"* → Dùng semantic token (`bg-surface`) thay vì màu cụ thể (`bg-white`). `useColorScheme()` để biết theme hiện tại.
+- *"Responsive multi screen size?"* → `useWindowDimensions` + flex %, tránh fixed width copy từ Figma desktop.
+
+---
+
+### Q5 — Clean Architecture trên RN — layer hoá thực tế thế nào?
+
+**VN:** *"Clean Architecture em apply trong RN project ra sao?"*
+**EN:** *"How do you apply Clean Architecture in a React Native codebase?"*
+
+**🗣️ Trả lời VN (~60s):**
+> Em không bê textbook 4-layer cứng nhắc mà apply **practical clean** — đủ tách concern, không over-engineer. 4 lớp em thường dùng: **Presentation** (screens, UI hooks), **Application** (use case hooks orchestrate flow), **Domain** (types và business rule pure TypeScript, không phụ thuộc React/API), **Data** (API client, repository, mapper convert response server sang domain type). Quy tắc quan trọng nhất: **dependency chỉ đi vào trong** — UI không gọi axios trực tiếp mà qua repository. **DRY** em apply ở boundary: 1 API client, 1 error mapper, shared type. Ở Firegroup Loyalty V3 em đã làm tương tự: provider BON, Smile.io, LoyaltyLion swap qua chung 1 interface — core logic không biết đang dùng provider nào. Với greenfield VILIHA em đề xuất structure theo feature: `features/orders/{ui, hooks, api, types}` — scale dễ mà không bị spaghetti.
+
+**🗣️ Answer EN (~60s):**
+> I don't copy the textbook four layers rigidly — I apply **practical clean** that's enough to separate concerns without over-engineering. Four layers I usually use: **Presentation** (screens, UI hooks), **Application** (use case hooks orchestrating flows), **Domain** (pure TypeScript types and business rules, no React or API dependencies), and **Data** (API client, repositories, mappers from server DTOs to domain types). The key rule is **dependencies point inward** — UI never calls axios directly, it goes through a repository. **DRY** lives at boundaries: one API client, one error mapper, shared types. At Firegroup Loyalty V3 I applied this exact pattern: BON, Smile.io, and LoyaltyLion providers all sit behind one interface, so core logic doesn't know which provider is active. For VILIHA I'd structure by feature: `features/orders/{ui, hooks, api, types}` — scales cleanly without spaghetti.
+
+**Giải thích cho intern hiểu:**
+- **Layer:** chia code thành tầng, mỗi tầng 1 trách nhiệm.
+- **Dependency inward:** UI biết đến domain, domain không biết đến UI. Tầng trong không “nhìn ra” tầng ngoài.
+- **Repository:** 1 file đứng giữa app và API — UI chỉ gọi `ordersRepo.getById()`, không biết bên dưới là REST hay GraphQL.
+- **DTO → Domain mapper:** server trả `{ user_name }` (snake_case), app dùng `{ userName }` (camelCase) — mapper convert.
+
+**Follow-up:**
+- *"Khi nào over-architect?"* → Screen đơn giản (chỉ 1 list + 1 detail) thì hook + api file đủ. Refactor lên Clean khi feature có >3 consumer hoặc business rule phức tạp.
+- *"Test ở layer nào?"* → Domain pure function dễ unit test nhất. UI integration test bằng RNTL.
+
+---
+
+## B. Push notification (JD preferred — chuẩn bị kỹ)
+
+### Q6 — Push notification hoạt động end-to-end thế nào?
+
+**VN:** *"Em giải thích flow push notification từ server tới device, end-to-end?"*
+**EN:** *"Explain how push notifications work end-to-end, from server to device."*
+
+**🗣️ Trả lời VN (~60s):**
+> Flow 4 bước, em hình dung như **gửi thư có người trung gian**. **Bước 1 — App đăng ký nhận thư:** lúc user đăng nhập, app xin permission OS (iOS bắt buộc hỏi, Android 13+ cũng cần hỏi từ Tiramisu). Khi user đồng ý, app lấy **push token** — iOS lấy từ **APNs** (Apple Push Notification service), Android lấy từ **FCM** (Firebase Cloud Messaging). Với Expo có thể lấy **Expo push token** wrap sẵn cả 2. **Bước 2 — Backend lưu token:** app gửi token lên server, server map `userId → deviceToken`, và xử lý refresh khi token đổi (reinstall, change device). **Bước 3 — Server gửi:** khi có event (đơn hàng update), backend gọi APNs/FCM (hoặc Expo Push API) với payload `{ title, body, data: { orderId } }`. APNs/FCM đảm nhận chuyển tới đúng device. **Bước 4 — Device nhận:** OS hiện notification; user tap → app mở, JS handler đọc `data` rồi navigate tới đúng screen.
+
+**🗣️ Answer EN (~60s):**
+> Four steps — I think of it like sending a letter through a postal service. **Step 1 — App subscribes:** at login the app requests OS permission (iOS always prompts; Android 13+ requires it too). On approval the app fetches a **push token** — from **APNs** (Apple Push Notification service) on iOS, **FCM** (Firebase Cloud Messaging) on Android. With Expo you can also use the **Expo push token**, which wraps both. **Step 2 — Backend stores it:** the app sends the token to the server, which maps `userId → deviceToken` and handles refresh when tokens rotate (reinstall, new device). **Step 3 — Server sends:** when an event fires (order updated), the backend calls APNs/FCM (or Expo Push API) with `{ title, body, data: { orderId } }`. APNs/FCM deliver to the correct device. **Step 4 — Device receives:** the OS displays the notification; on tap the app opens, the JS handler reads `data` and navigates to the right screen.
+
+**Giải thích cho intern hiểu:**
+- **APNs:** dịch vụ Apple, chỉ Apple được phép gửi push lên iPhone.
+- **FCM:** dịch vụ Firebase/Google, dùng cho Android (và iOS nếu set up qua Firebase).
+- **Push token:** "địa chỉ" của device, cấp bởi OS. Mỗi lần reinstall app sẽ đổi.
+- **Payload:** nội dung notification — `title` (tiêu đề), `body` (chi tiết), `data` (dữ liệu kèm để app xử lý).
+
+**Sơ đồ nói miệng được:**
+```
+Backend → APNs (iOS) / FCM (Android) → OS → App
+                ↑
+         Token đăng ký lúc user login
+```
+
+**Follow-up:**
+- *"Token refresh xử lý sao?"* → Listen `addPushTokenListener`, mỗi lần token đổi PATCH lên backend.
+- *"Expo Push vs FCM/APNs trực tiếp?"* → Expo Push là proxy của Expo gọi giúp APNs/FCM. Dev nhanh, không cần config 2 service. Prod scale lớn thường tự gọi APNs/FCM để control rate limit + analytics.
+
+**Don't say:**
+- ❌ "Em build push server từ đầu 3 năm production" nếu chưa.
+
+---
+
+### Q7 — Push khi app foreground / background / killed — khác nhau thế nào?
+
+**VN:** *"App đang mở thì notification tới có hiện không? App bị kill thì sao?"*
+**EN:** *"How do you handle notifications when the app is in foreground, background, or killed?"*
+
+**🗣️ Trả lời VN (~60s):**
+> 3 state, 3 cách xử lý khác nhau. **Foreground (app đang mở):** OS mặc định **không** hiện banner — vì user đang dùng app, popup sẽ làm phiền. App phải tự listen `addNotificationReceivedListener` và quyết: hiện in-app banner riêng, update badge, hoặc set `setNotificationHandler` cho phép OS show alert luôn. **Background (app ở dưới, chưa kill):** OS tự hiện notification trên thanh status. User tap → `addNotificationResponseReceivedListener` fire → app foreground và navigate. **Killed (app bị swipe close):** OS vẫn hiện notification, nhưng JS không chạy nên app không xử lý gì cả. Chỉ khi user tap mới có handler chạy — lấy data qua `getLastNotificationResponseAsync()` ở cold start. Trap em hay warn: assume JS chạy khi notification deliver lúc app killed — sai. Nếu cần sync data background phải dùng **silent push** (iOS `content-available: 1`, Android data message), có entitlement riêng và bị OS giới hạn tần suất.
+
+**🗣️ Answer EN (~60s):**
+> Three states, three handlers. **Foreground (app open):** the OS doesn't show a banner by default — the user is already in the app. You listen via `addNotificationReceivedListener` and decide: show an in-app banner, update a badge, or set `setNotificationHandler` to let the OS show its banner anyway. **Background (app minimized, not killed):** the OS shows the system notification. When the user taps it, `addNotificationResponseReceivedListener` fires and the app foregrounds. **Killed (swiped away):** the OS still shows the notification, but JS doesn't run, so the app does nothing until the user taps. On cold start I read the deep link with `getLastNotificationResponseAsync()`. A common trap: assuming JS runs when a notification arrives while killed — it doesn't. For background data sync you need **silent push** (iOS `content-available: 1`, Android data messages), which require specific entitlements and are throttled by the OS.
+
+**Giải thích cho intern hiểu:**
+- **Foreground / background / killed:** 3 state app trên mobile. Foreground = đang mở, background = ấn home nhưng chưa swipe, killed = swipe khỏi recent.
+- **Listener:** function lắng nghe event từ OS.
+- **Silent push:** push không hiện UI, chỉ trigger app làm gì đó (sync data) ở background. iOS gọi là background notification.
+- **Cold start:** app khởi động từ đầu (vs warm start = mở lại từ background).
+
+**Follow-up:**
+- *"iOS notification permission từ chối thì sao?"* → Không re-prompt được, hướng user vào Settings qua `Linking.openSettings()` hoặc `Linking.openURL('app-settings:')`.
+
+---
+
+### Q8 — Tap push → mở đúng màn hình (deep link + push)?
+
+**VN:** *"User tap notification 'Order #123' — flow navigate thế nào?"*
+**EN:** *"A user taps a push about Order #123 — how do you navigate?"*
+
+**🗣️ Trả lời VN (~60s):**
+> Payload em design có `data: { type: 'ORDER', orderId: '123' }`. App có **1 central link handler** — không để mỗi screen tự parse, dễ trùng và bug. Flow: notification response → map `type` sang screen config → gọi `navigationRef.navigate('OrderDetail', { orderId })`. 3 case quan trọng: **(1) App đang chạy + user đã login:** navigate luôn. **(2) User chưa login:** queue link vào memory hoặc MMKV, sau khi login xong replay link. **(3) Cold start (app đang killed):** đọc `getLastNotificationResponseAsync()` lúc app khởi động — và phải đợi `NavigationContainer` ready (`navigationRef.isReady()`) mới navigate, không thì lỗi. React Navigation có **linking config** map path `order/:id` ↔ screen, tận dụng được luôn. Bonus em hay làm: vào screen từ push thì invalidate query `['orders', orderId]` để data fresh, không show data cũ.
+
+**🗣️ Answer EN (~60s):**
+> The payload carries `data: { type: 'ORDER', orderId: '123' }`. The app has **one central link handler** — never let each screen parse independently or you'll get duplicate handling and bugs. Flow: notification response → map `type` to a screen config → `navigationRef.navigate('OrderDetail', { orderId })`. Three cases matter: **(1) App running, user logged in:** navigate immediately. **(2) User not logged in:** queue the link in memory or MMKV, replay it after login. **(3) Cold start (app was killed):** read `getLastNotificationResponseAsync()` at startup, and wait for `NavigationContainer` to be ready via `navigationRef.isReady()` before navigating — otherwise it crashes. React Navigation's **linking config** maps paths like `order/:id` to screens, which I reuse. Bonus: when entering a screen from a push, I invalidate the query `['orders', orderId]` so the user doesn't see stale data.
+
+**Giải thích cho intern hiểu:**
+- **Deep link:** 1 URL/đường dẫn mở thẳng app tới screen cụ thể (không phải home).
+- **navigationRef:** reference toàn cục để navigate từ ngoài component (vd từ notification listener).
+- **Linking config:** mapping từ URL pattern sang screen + param trong React Navigation.
+
+**Follow-up:**
+- *"Khi user tap, app navigate 2 lần?"* → Debounce + check `navigationRef.getCurrentRoute()` để không navigate trùng.
+
+---
+
+### Q9 — Khi nào xin permission push notification?
+
+**VN:** *"Em xin quyền notification lúc nào? First open hay sau đó?"*
+**EN:** *"When do you prompt for notification permission?"*
+
+**🗣️ Trả lời VN (~60s):**
+> Em **không bao giờ** xin lúc first open — conversion rất thấp, user reflex tap Deny. Pattern em dùng: hiện **pre-prompt screen** của riêng app, giải thích value rõ ràng — vd "Bật thông báo để nhận cập nhật đơn hàng và voucher". Khi user tap "Enable" → em mới gọi `requestPermissionsAsync()` của OS. Lý do: iOS chỉ cho hỏi system dialog **1 lần** — fail thì lần sau phải hướng vào Settings, conversion gần 0. Sau khi granted: track event Firebase Analytics, register token lên backend. Em cũng segment: marketing push (có thể opt out) vs transactional push (order status — gần như mọi user nên bật). Compliance: cho user opt out trong Settings của app, không spam silent push.
+
+**🗣️ Answer EN (~60s):**
+> I **never** prompt at first open — the conversion is terrible because users reflexively tap Deny. The pattern I use: show a **pre-prompt screen** owned by the app, explaining the value clearly — e.g. "Enable notifications to get order updates and offers." Only when the user taps "Enable" do I call OS `requestPermissionsAsync()`. The reason: iOS only allows the system dialog **once** — if denied, you have to deep-link to Settings, and re-conversion is close to zero. After granted I fire a Firebase Analytics event and register the token with the backend. I also segment notifications: marketing push (opt-out friendly) versus transactional push (order status — almost everyone wants this). For compliance the user can opt out from in-app Settings, and I avoid spammy silent pushes.
+
+**Giải thích cho intern hiểu:**
+- **Pre-prompt:** 1 màn hình do **mình** thiết kế, hỏi user trước khi gọi dialog OS — để tăng tỉ lệ đồng ý.
+- **System dialog:** popup mặc định của iOS/Android, không tuỳ biến được, chỉ hiện 1 lần.
+
+---
+
+## C. Offline storage (JD preferred: MMKV, SQLite)
+
+### Q10 — MMKV vs AsyncStorage vs SecureStore — chọn cái nào khi nào?
+
+**VN:** *"3 storage này khác nhau ở đâu? Token em lưu chỗ nào?"*
+**EN:** *"How do MMKV, AsyncStorage, and SecureStore differ? Where do you store tokens?"*
+
+**🗣️ Trả lời VN (~60s):**
+> Em chia **3 layer theo độ nhạy cảm**. **SecureStore** (wrap iOS Keychain + Android Keystore) — dành cho refresh token, credential. Lý do: OS encrypt với key trong hardware, app khác không đọc được, có thể gate bằng Face ID. **AsyncStorage** — file plaintext, async API. Dùng cho prefs không nhạy cảm: theme, language, onboarding flag. Lộ cũng không hại. **MMKV** (lib của Tencent, build trên `mmap`) — sync API, nhanh hơn AsyncStorage 30–100 lần. Em dùng khi cần đọc nhanh lúc startup hoặc nhiều key cùng lúc (vd `MMKV.getString('theme')` không cần `await`). MMKV có option encrypt nhưng key phải hardcode trong JS — decompile bundle là bypass được, **không phải security thật**. Quy tắc cốt lõi: **nhạy cảm thì để OS encrypt, đừng tự encrypt bằng key trong app**. Refresh token em luôn để SecureStore, không bao giờ MMKV.
+
+**🗣️ Answer EN (~60s):**
+> I split storage into **three layers by sensitivity**. **SecureStore** wraps iOS Keychain and Android Keystore — for refresh tokens and credentials. The OS encrypts with a hardware-backed key, other apps can't read it, and I can gate with Face ID. **AsyncStorage** is a plaintext file with an async API — fine for non-sensitive prefs like theme, language, onboarding flag. Leaking it would be harmless. **MMKV** (a Tencent library built on `mmap`) has a sync API and is 30–100× faster than AsyncStorage. I use it for startup-critical config or when I have many keys, since `MMKV.getString('theme')` returns instantly without `await`. MMKV has an encryption option, but the key has to live in the JS bundle — decompile and you bypass it. That's not real security. Core rule: **let the OS encrypt sensitive data, don't roll your own with an in-app key**. Refresh tokens always go to SecureStore, never MMKV.
+
+**Giải thích cho intern hiểu:**
+- **Keychain / Keystore:** vault của OS, app phải xin OS mới đọc được. Reset chỉ khi factory reset.
+- **mmap (memory-mapped file):** kỹ thuật map file vào RAM → đọc nhanh như đọc biến.
+- **Sync API:** gọi xong có kết quả ngay, không cần `await`. Async ngược lại — phải đợi callback/promise.
+- **OS encrypt vs app encrypt:** OS giữ key trong hardware. App encrypt = key trong code → bị xem code là lộ.
+
+**Bảng quyết định nhanh:**
+
+| Data | Tool | Lý do |
+|---|---|---|
+| Refresh token | SecureStore | OS encrypt, có biometric gate |
+| Access token | RAM/Redux | Short-lived, không cần persist |
+| Theme, language | MMKV / AsyncStorage | Không nhạy cảm |
+| Onboarding flag | MMKV | Đọc 1 lần lúc startup, MMKV sync nhanh |
+| Pending deep link | MMKV | Cần đọc nhanh trước navigate |
+| List sản phẩm từ API | Query cache | Server đổi, để Query lo |
+
+---
+
+### Q11 — Khi nào dùng SQLite thay vì MMKV?
+
+**VN:** *"SQLite dùng case nào trên mobile?"*
+**EN:** *"When would you choose SQLite over MMKV?"*
+
+**🗣️ Trả lời VN (~60s):** ⚠️ *Honest: em chưa ship SQLite production phức tạp, biết decision pattern.*
+
+> **MMKV** là key-value đơn giản — get/set theo key, không có query, không có relation. **SQLite** là database thực sự, có schema, table, JOIN, index. Em chọn SQLite khi: **(1) Cần relational query** — vd offline cart nhiều dòng, JOIN với product table. **(2) Search local** — search bar filter trong vài nghìn item, MMKV phải load hết vào RAM, SQLite có index. **(3) Offline-first write** — user tạo order khi mất mạng, lưu local SQLite, background sync khi online, có version field để resolve conflict. **(4) Data quá lớn** — vài MB chat history, MMKV không thiết kế cho data size lớn. Trên Expo có `expo-sqlite` hoặc `op-sqlite` (perf tốt hơn). Em không over-claim đã optimize SQLite prod. Nếu VILIHA cần offline catalog lớn, em sẽ pair với team scope sprint 1: dùng SQLite cho structured data + Query cho online cache + MMKV cho lightweight flags.
+
+**🗣️ Answer EN (~60s):** ⚠️ *Honest: I haven't shipped complex SQLite in production, but I know the decision pattern.*
+
+> **MMKV** is a simple key-value store — get/set by key, no queries, no relations. **SQLite** is a real database with schema, tables, JOINs, and indexes. I pick SQLite when: **(1) I need relational queries** — like an offline cart with many lines that JOIN to a product table. **(2) Local search** — filtering across thousands of items, where MMKV would force loading everything into RAM but SQLite uses indexes. **(3) Offline-first writes** — the user creates an order offline, I persist locally, sync in the background when online, and use a version field to resolve conflicts. **(4) Larger payloads** — multi-MB chat history is outside MMKV's intended use case. On Expo I'd use `expo-sqlite` or `op-sqlite` for better performance. I won't over-claim — I haven't optimized SQLite at scale. For VILIHA I'd scope it with the team in sprint 1: SQLite for structured data, Query for online cache, MMKV for lightweight flags.
+
+**Giải thích cho intern hiểu:**
+- **SQLite:** database file nằm trên device, query bằng SQL.
+- **Schema:** “bản thiết kế” table — cột nào, kiểu gì.
+- **JOIN:** ghép 2 table dựa trên cột chung (`orders.product_id = products.id`).
+- **Index:** “mục lục” giúp search nhanh, không phải duyệt từng dòng.
+
+**Follow-up:**
+- *"Conflict khi sync?"* → Đơn giản: last-write-wins. Phức tạp hơn: version field + server reconcile.
+
+---
+
+### Q12 — Offline strategy tổng thể: read + write?
+
+**VN:** *"App phải support offline — em thiết kế thế nào?"*
+**EN:** *"How do you design offline support for a mobile app?"*
+
+**🗣️ Trả lời VN (~60s):**
+> Em chia **3 tier theo độ phức tạp**. **Tier 1 — Read offline:** Query cache đủ — set `networkMode: 'offlineFirst'`, data đã fetch lần trước hiện được khi không có mạng. Selective persist cache vào MMKV nếu muốn data sống qua restart app (chỉ persist data không nhạy cảm). **Tier 2 — Write offline:** queue mutations vào SQLite hoặc MMKV (`pendingActions[]`), UI optimistic update để user thấy phản hồi ngay, có rollback nếu sau khi online server reject. Khi NetInfo báo online → replay queue theo thứ tự. **Tier 3 — UX:** banner "You're offline" khi mất mạng, disable action không queue được (vd payment), show timestamp data cũ "Last updated 2h ago". Không cache PII plaintext. Ở Firegroup connectivity yếu là reality, em đã làm Tier 1 và một phần Tier 2 cho voucher claim. Với VILIHA em propose scope rõ sprint 1: read trước, write queue sau khi pattern stable.
+
+**🗣️ Answer EN (~60s):**
+> I split offline into **three tiers by complexity**. **Tier 1 — Read offline:** Query cache covers most cases with `networkMode: 'offlineFirst'`, so previously fetched data shows up without a network. I selectively persist non-sensitive cache to MMKV if it needs to survive app restarts. **Tier 2 — Write offline:** queue mutations in SQLite or MMKV (`pendingActions[]`), do optimistic UI updates so the user gets immediate feedback, and roll back if the server rejects after reconnect. When NetInfo reports online, replay the queue in order. **Tier 3 — UX:** show an "offline" banner, disable actions that can't be queued (like payments), and surface stale timestamps like "Last updated 2h ago." Never cache PII in plaintext. At Firegroup connectivity was often poor, so I shipped Tier 1 and partial Tier 2 for voucher claims. For VILIHA I'd scope it clearly in sprint 1: reads first, queued writes once the pattern is stable.
+
+**Giải thích cho intern hiểu:**
+- **NetInfo:** lib của RN báo trạng thái mạng (online / offline / wifi / cellular).
+- **Optimistic UI:** giả định request sẽ thành công → update UI ngay, không đợi server.
+- **Queue mutations:** xếp hàng các action user làm offline → khi có mạng replay từng cái.
+- **Last-write-wins:** chiến lược resolve conflict đơn giản — ai save sau cùng thắng.
+
+---
+
+## D. Performance & UI (JD core)
+
+### Q13 — FlatList chậm — em fix theo checklist nào?
+
+**VN:** *"List của em chậm. Em optimize FlatList thế nào?"*
+**EN:** *"Walk me through FlatList optimization."*
+
+**🗣️ Trả lời VN (~60s):**
+> Em **đo trước** bằng React Profiler hoặc Flipper để biết bottleneck — không sửa mò. Checklist theo thứ tự ưu tiên: **(1) `keyExtractor` stable từ `id`**, tuyệt đối không dùng `index` cho dynamic list — vì insert/delete giữa list sẽ làm các item dưới nhảy key, React mount lại từ đầu. **(2) Wrap row component bằng `React.memo`** để skip re-render khi props không đổi. **(3) Extract `renderItem` ra ngoài** — inline function mỗi render là reference mới, phá memo. **(4) `windowSize` default 21 hơi to** — tune xuống 7–11 cho list dài. **(5) `initialNumToRender`** thấp cho first paint nhanh. **(6) `getItemLayout` nếu height cố định** — RN skip layout pass, scroll-to-index nhanh hơn. **(7) Image** dùng `expo-image` hoặc `fast-image` có cache. Ở Firegroup em đã apply để Loyalty list mượt và đã shrink bundle 45MB → 28MB qua tree-shake + lazy screen.
+
+**🗣️ Answer EN (~60s):**
+> I always **measure first** with React Profiler or Flipper — never guess. Checklist by priority: **(1) Stable `keyExtractor` from `id`**, never `index` for dynamic lists, because inserts and deletes shift indexes and React remounts every row from scratch. **(2) Wrap the row in `React.memo`** to skip re-renders when props are unchanged. **(3) Extract `renderItem` outside the component** — an inline function creates a new reference each render and breaks memoization. **(4) `windowSize` defaults to 21, too large for long lists** — tune down to 7–11. **(5) Lower `initialNumToRender`** for faster first paint. **(6) `getItemLayout` when row height is fixed** — RN skips the layout pass and scroll-to-index becomes instant. **(7) Use `expo-image` or `fast-image`** with caching. At Firegroup I applied this to make the Loyalty list smooth, and I also shrank the bundle from 45MB to 28MB via tree-shaking and lazy screen loading.
+
+**Giải thích cho intern hiểu:**
+- **Virtualization:** FlatList chỉ render item trong viewport, item ngoài tầm nhìn được unmount để tiết kiệm RAM.
+- **`windowSize`:** số viewport quanh viewport hiện tại được render — to thì mượt khi scroll xa, nhỏ thì nhẹ RAM.
+- **`keyExtractor`:** function trả về unique id cho mỗi item — giúp React reconcile đúng.
+- **Memo break:** child wrap memo nhưng parent truyền inline function/object → reference khác mỗi render → memo so sánh fail → re-render.
+
+**Follow-up:**
+- *"`React.memo` lúc nào phản tác dụng?"* → Khi parent truyền inline object/function → compare luôn fail, memo wasted. Hoặc khi child render rẻ (chỉ `<Text>`) — cost compare > cost render.
+
+---
+
+### Q14 — Implement design từ Figma — em làm sao để pixel-perfect?
+
+**VN:** *"Em translate Figma sang RN thế nào?"*
+**EN:** *"How do you translate Figma designs into pixel-perfect React Native?"*
+
+**🗣️ Trả lời VN (~60s):**
+> Workflow em: **(1) Export design tokens** từ Figma — color, spacing, typography — vào theme file (hoặc `tailwind.config.js` nếu NativeWind). Không copy hex code rải rác. **(2) Build atomic component trước**: Button, Text, Input — sau đó compose lên screen. Lý do: Button đúng 1 lần là toàn app đúng. **(3) Dùng Figma Inspect** cho spacing và font-size chính xác. **(4) Platform-specific** khi cần: shadow, font-weight render khác nhau iOS/Android — `Platform.select`. **(5) Safe area** quan trọng: `SafeAreaView` cho notch và home indicator. **(6) QA checklist trước PR**: tap target ≥44pt, text scale accessibility, dark mode, screenshot compare staging vs Figma. Ở OneMobile em làm block-based home — mỗi block là 1 component, merchant config JSON nên không hardcode.
+
+**🗣️ Answer EN (~60s):**
+> My workflow: **(1) Export design tokens** from Figma — colors, spacing, typography — into a theme file (or `tailwind.config.js` for NativeWind). Never scatter hex codes. **(2) Build atomic components first** — Button, Text, Input — then compose them into screens. Fix Button once, the whole app is fixed. **(3) Use Figma Inspect** to get exact spacing and font sizes. **(4) Platform-specific tweaks** when needed: shadows and font weights render differently on iOS and Android — `Platform.select`. **(5) Safe area** matters: `SafeAreaView` for the notch and home indicator. **(6) QA checklist before PR**: tap targets ≥44pt, accessibility text scaling, dark mode, screenshot diff staging vs Figma. At OneMobile I built a block-based home — each block is a component, configurable per merchant via JSON, so nothing is hardcoded.
+
+**Giải thích cho intern hiểu:**
+- **Design token:** “từ điển” style — `colors.primary`, `spacing.md` — component dùng tên, không dùng giá trị thô.
+- **Atomic component:** component nhỏ tái sử dụng (Button, Input) — atomic design.
+- **Safe area:** vùng an toàn không bị notch/tai thỏ/thanh điều hướng che.
+- **Tap target ≥44pt:** Apple guideline — nút bấm tối thiểu 44 point để tap dễ.
+
+---
+
+### Q15 — API integration + error handling trên mobile?
+
+**VN:** *"State + API em quản lý + handle error thế nào?"*
+**EN:** *"How do you integrate APIs and handle errors on mobile?"*
+
+**🗣️ Trả lời VN (~60s):**
+> Em có **1 API client** wrap axios hoặc fetch — centralize base URL, header (auth, language), timeout, retry cho idempotent GET. **401** em handle trong interceptor: gọi refresh token từ SecureStore → retry request gốc 1 lần → fail thì logout + show toast "Session expired" để user biết, không silent logout. Query wrap các fetch function của em — mutation invalidate đúng key sau success. **Error mapping**: network error (offline) → message khác 4xx (input sai) → khác 5xx (server đang lỗi). Không bao giờ expose stack trace cho user. **Sentry breadcrumb** log endpoint + status, **không log token value** (PII risk theo Nghị định 13). Ở Firegroup em làm Shopify customer auth: token Bearer attach mọi Storefront request, refresh khi expired, error message thân thiện.
+
+**🗣️ Answer EN (~60s):**
+> I have **one API client** wrapping axios or fetch — base URL, auth and language headers, timeouts, retry for idempotent GETs. **401 handling** lives in an interceptor: pull the refresh token from SecureStore → retry the original request once → if it still fails, log the user out and show a "Session expired" toast so they know what happened — never silent logout. Query wraps my fetch functions, and mutations invalidate the right keys on success. **Error mapping**: offline gets a different message from 4xx (bad input) and 5xx (server issue). I never show users a stack trace. **Sentry breadcrumbs** log endpoint and status but **never log the token value** — that's a PII risk under Vietnam's Decree 13. At Firegroup I shipped Shopify customer auth: Bearer token attached to every Storefront request, refresh on expiry, friendly error messages.
+
+**Giải thích cho intern hiểu:**
+- **Interceptor:** middleware của axios/fetch, chạy trước/sau mỗi request — chỗ tốt nhất để handle auth, log, error.
+- **Idempotent:** gọi nhiều lần kết quả như gọi 1 lần (GET là idempotent, POST thường không).
+- **Silent logout:** user bị logout mà không biết, mở app lại thấy Login → confusion.
+- **PII:** Personally Identifiable Information — email, phone, token.
+
+**Follow-up:**
+- *"Concurrent 401 — 10 request fail cùng lúc thì refresh 10 lần?"* → Không. Singleton promise — chỉ 1 refresh chạy, 10 request đều `await` chung promise đó.
+
+---
+
+## E. Behavioral + VILIHA-specific
+
+### Q16 — Tell me about yourself (60s pitch)
+
+**VN:** *"Em giới thiệu về bản thân?"*
+**EN:** *"Tell me about yourself."*
+
+**🗣️ Trả lời VN (~60s):**
+> Em là React Native developer với **hơn 3 năm** tại Firegroup. Em ship **OneMobile** trên iOS + Android — app commerce và loyalty với hàng chục nghìn MAU. Stack hàng ngày của em là **TypeScript, TanStack Query, Redux Toolkit, REST API**, kèm App Store và Play Store release. Highlight: em đã shrink bundle size từ **45MB xuống 28MB**, build modular loyalty architecture support nhiều provider (BON, Smile, LoyaltyLion) — provider swap được mà core logic không đụng. Em cũng contribute cho **OneLoyalty** web admin. Em đang tìm 1 **greenfield mobile team** để build app mới với stack modern như Expo, sau 3 năm maintain product lớn. Em ở HCMC, **start được ngay**, OK onsite Quận 7, English daily collaboration được.
+
+**🗣️ Answer EN (~60s):**
+> I'm a React Native developer with **3+ years at Firegroup**. I shipped **OneMobile** on iOS and Android — a commerce and loyalty app serving tens of thousands of monthly actives. My daily stack is **TypeScript, TanStack Query, Redux Toolkit, REST APIs**, plus App Store and Play Store releases. Highlights: I shrank the bundle from **45MB to 28MB** and built a modular loyalty architecture supporting multiple providers (BON, Smile, LoyaltyLion) — providers swap behind one interface without touching core logic. I also contributed to **OneLoyalty**, our Shopify admin web platform. After three years maintaining a large product, I'm now looking for a **greenfield mobile team** to build new apps with a modern Expo stack. I'm based in HCMC, **available immediately**, comfortable onsite in District 7, and good for daily English collaboration.
+
+**Giải thích cho intern hiểu:**
+- **Greenfield:** dự án xây mới từ đầu, ngược với brownfield (maintain code cũ).
+- **MAU (Monthly Active Users):** số user dùng app trong 1 tháng.
+- **Modular architecture:** chia code thành module độc lập, swap được mà không phá phần khác.
+
+---
+
+### Q17 — Why VILIHA? Why contract 6 tháng?
+
+**VN:** *"Vì sao em chọn VILIHA? Vì sao OK contract?"*
+**EN:** *"Why VILIHA? Why are you OK with a 6-month contract?"*
+
+**🗣️ Trả lời VN (~60s):**
+> 3 lý do em apply VILIHA. **(1) Greenfield + Expo:** sau 3 năm maintain bare RN ở Firegroup, em muốn deepen Expo + EAS — stack mà JD anh nói thẳng là core. **(2) Strike Team:** em thích pace ship feature end-to-end, không bị legacy kéo. Em đã từng làm role tương tự khi build Loyalty V3 module — own từ design tới release. **(3) Stack tech VILIHA match em**: TanStack Query, Clean Architecture, performance — em đã ship trong production. Contract 6 tháng em OK vì giai đoạn này em ưu tiên **impact và stack modern** hơn là job stability lâu dài. Em có thể prove value trong contract rồi extend nếu cả 2 bên fit. Em rời Firegroup tháng 3/2026, **start được ngay**.
+
+**🗣️ Answer EN (~60s):**
+> Three reasons. **(1) Greenfield + Expo:** after three years on bare RN at Firegroup, I want to go deeper on Expo and EAS, which your JD says is core. **(2) Strike Team pace:** I want to ship features end-to-end without legacy holding me back. I played a similar role building Loyalty V3 — owning from design to release. **(3) The stack matches my production experience:** TanStack Query, Clean Architecture, performance — all things I've shipped. The 6-month contract is fine — right now I prioritise **impact and a modern stack** over long-term job stability. I can prove value in the contract window, and we can extend if both sides fit. I left Firegroup in March 2026 and I'm **available to start immediately**.
+
+**Giải thích cho intern hiểu:**
+- **Strike Team:** team nhỏ, mục tiêu cụ thể, di chuyển nhanh — như SWAT.
+- **Legacy:** code cũ, công nghệ cũ, thường có nhiều tech debt.
+
+---
+
+### Q18 — Salary expectation?
+
+**VN:** *"Mức lương mong muốn?"*
+**EN:** *"What's your salary expectation?"*
+
+**🗣️ Trả lời VN (~60s):**
+> JD ghi up to **30M net**. Với **3+ năm production RN** ship feature end-to-end, kinh nghiệm TanStack Query, performance tuning (bundle 45→28MB), App Store/Play release, em expect **28–30M net** — tuỳ scope onsite full 4 tháng và responsibility Strike Team. Em flexible nếu package có **extension path** rõ ràng hoặc learning budget cho Expo/EAS course. Em không câu lương vào số cuối — quan trọng là **fit role và team velocity**.
+
+**🗣️ Answer EN (~60s):**
+> The JD mentions up to **30M net**. With **3+ years of production RN** shipping end-to-end features, TanStack Query, performance tuning (45→28MB bundle), and App Store/Play releases, I'd expect **28–30M net**, depending on the onsite scope (4 months) and Strike Team responsibilities. I'm flexible if the package includes a clear **extension path** or a learning budget for Expo/EAS. I'm not anchored to a single number — what matters more is **role fit and team velocity**.
+
+**Lưu ý cá nhân (không nói ra):**
+- Walkaway number của bạn **viết trên giấy trước call** (vd 25M là min). Đừng improvise.
+- Đừng nói số đơn lẻ ("28M") — luôn nói range.
+
+---
+
+### Q19 — English level — em tự đánh giá?
+
+**VN:** *"Tiếng Anh của em thế nào cho daily standup + client call?"*
+**EN:** *"How's your English for daily standup and client communication?"*
+
+**🗣️ Trả lời EN (~60s, honest):**
+> Reading and writing are around **B2** — I'm comfortable with technical docs, PR descriptions, Slack threads, and async written communication. Spoken English is **B1+** — improving with daily practice. I'm comfortable in standup, code review, and explaining technical decisions. When the requirement is complex, I'll ask the speaker to repeat or clarify rather than pretend to understand — I think that's safer for the team. I usually confirm action items in writing after a call to make sure I caught everything correctly.
+
+**Giải thích cho intern hiểu:**
+- **B1+ / B2:** thang CEFR. B1 = giao tiếp công việc cơ bản, B2 = giao tiếp công việc thoải mái, C1 = fluent.
+
+**Don't say:**
+- ❌ "I'm fluent / native" nếu không phải.
+- ❌ "My English is bad" — kể cả khi không tự tin, nói **honest + improving**.
+
+---
+
+### Q20 — Gap honest: thứ trên JD em chưa làm production?
+
+**VN:** *"Có gì trên JD em chưa làm trong production?"*
+**EN:** *"Anything on the JD you haven't done in production yet?"*
+
+**🗣️ Trả lời EN (~60s):**
+> Honest gaps I'd flag upfront. **EAS Build for production** and **NativeWind** — I've worked with both on a demo project, not yet in production. The core mental model is identical to what I've shipped (CodePush, theme tokens), so ramp-up should take days, not weeks. **Push notifications end-to-end** — I understand the APNs/FCM/Expo architecture, but I haven't owned the full backend campaign side at Firegroup. **SQLite offline-write at scale** — I know the pattern but haven't shipped a large offline-first feature. For these I'd pair with the team to scope sprint 1 properly. What I have shipped in production: TypeScript, TanStack Query, Redux Toolkit, performance optimization, FlatList tuning, auth with SecureStore, App Store and Play releases, modular architecture. I'm not pretending to be a native iOS/Android senior — I deliver RN features fast and learn the rest on the job.
+
+**🗣️ Trả lời VN (~60s):**
+> Honest gap em muốn flag trước. **EAS Build production** và **NativeWind** — em đã làm trên demo, chưa ship production. Mental model giống cái em đã ship (CodePush, theme tokens) nên ramp vài ngày, không vài tuần. **Push end-to-end** — em hiểu kiến trúc APNs/FCM/Expo, nhưng chưa own toàn bộ backend campaign ở Firegroup. **SQLite offline-write scale lớn** em chưa ship. Mấy thứ này em sẽ pair với team scope sprint 1. Cái em đã ship production: TypeScript, TanStack Query, Redux Toolkit, performance, FlatList, auth SecureStore, App Store/Play release, modular architecture. Em không pretend là native senior — em deliver RN feature nhanh và learn phần còn lại on the job.
+
+**Vì sao trả lời thế này là điểm cộng:**
+- Senior interviewer rất ghét candidate over-claim. Honest gap + plan ramp = credible.
+- Pattern **"có gap" + "đã có mental model tương tự" + "sẽ pair với team"** show maturity.
+
+---
+
+## F. Follow-up chain — chuẩn bị thêm 30s mỗi câu
+
+| Parent Q | Follow-up dễ gặp | Quick answer |
+|---|---|---|
+| Q1 (Query/Redux) | Optimistic update? | `onMutate` snapshot → rollback `onError` → `invalidateQueries` `onSettled`. Không cho payment. |
+| Q2 (Query key) | Pagination? | `useInfiniteQuery`, key có `page` hoặc cursor. |
+| Q3 (EAS) | Expo vs bare? | Expo speed, EAS CI; bare khi cần custom native deep. Greenfield → Expo. |
+| Q4 (NativeWind) | Dark mode? | Semantic token (`bg-surface`), `useColorScheme`. |
+| Q5 (Clean Arch) | Over-architect cho screen nhỏ? | Screen đơn giản: hook + api file đủ. Refactor lên Clean khi >3 consumer. |
+| Q6 (Push) | Token refresh? | `addPushTokenListener` → PATCH backend. |
+| Q7 (App state) | Silent push trên iOS giới hạn thế nào? | `content-available: 1`, OS throttle theo battery + frequency. |
+| Q8 (Deep link push) | Duplicate navigate? | Check `navigationRef.getCurrentRoute()` trước khi push. |
+| Q10 (Storage) | MMKV encrypt có thật secure? | Không. Key trong JS bundle, decompile là bypass. Token vẫn SecureStore. |
+| Q13 (Perf) | Hermes? | Bật default từ RN 0.70+. Bytecode pre-compile, startup nhanh. |
+| Q15 (API) | Concurrent 401? | Singleton refresh promise — 10 request `await` chung 1 refresh. |
+
+---
+
+## G. Câu KHÔNG nên kể (red flags với JD này)
+
+- ❌ "Em expert EAS production 3 năm" — chưa.
+- ❌ "Em build push infrastructure từ zero" — chưa own full.
+- ❌ "Em đã ship SQLite offline-first scale lớn" — chưa.
+- ❌ "English em fluent native" — không phải, sẽ lộ.
+- ❌ Bad-mouth Firegroup hoặc đồng nghiệp cũ.
+- ❌ Salary nói số đơn lẻ ("Em muốn 30M") — luôn nói range.
+
+---
+
+## H. Drill plan 45 phút trước interview
+
+| Thời gian | Việc |
+|---|---|
+| 0–10' | Đọc Q6–Q9 (push) + Q10–Q12 (offline) — JD preferred, dễ bị đào |
+| 10–25' | Nói thành tiếng Q1, Q2, Q13, Q15 — core middle RN |
+| 25–35' | Nói Q3, Q4, Q5 — Expo/NativeWind/Clean Arch (giữ honest boundary) |
+| 35–40' | Q16–Q20 behavioral, EN priority |
+| 40–45' | Mock 1 follow-up chain push + deep link |
+
+---
+
+## I. Walkaway checklist (viết trên giấy trước call)
+
+- [ ] Salary min em accept (vd 25M net)
+- [ ] Start date confirm (vd 26/05/2026)
+- [ ] OK onsite Q7 hết 4 tháng đầu? (Y/N)
+- [ ] Contract 6 tháng — có extension path? Hỏi rõ
+- [ ] Working hour 9–18 OK? Có OT culture?
+- [ ] English level đối tác — chỉ team VN hay có client nước ngoài?
+
+---
+
+_Single source of truth cho VILIHA interview prep. Drill bằng tiếng cả 2 ngôn ngữ trước khi nhận lịch._

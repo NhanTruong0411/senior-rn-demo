@@ -1,0 +1,106 @@
+---
+description: Day 18 (01/07) — Gọi API của LLM. LLM chỉ là REST API đặc biệt, token & chi phí, streaming, và bảo mật API key trong mobile.
+alwaysApply: false
+---
+
+# Day 18 · T4 01/07 — Gọi API của LLM (nền tảng AI Integration)
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **cách app gọi một mô hình AI (LLM)** như ChatGPT/Gemini/Claude qua API. Cốt lõi: **LLM về bản chất chỉ là một REST API đặc biệt** — bạn POST câu hỏi, nó trả lời. Nhưng có 3 thứ khác API thường: **token (tính tiền)**, **streaming (trả từng chữ)**, và **bảo mật API key** trên mobile.
+
+Interviewer hỏi vì AI Integration đang là yêu cầu mới. Họ muốn biết bạn **gọi LLM thật chưa**, có hiểu nó vẫn là HTTP request (nối Day 1–2) và **biết bẫy chi phí + lộ key** không — đây là chỗ Middle hay sai.
+
+---
+
+## 2. Ví dụ đời thường
+
+LLM như một **chuyên gia tư vấn gọi điện, tính phí theo từng chữ**.
+
+- Bạn gọi tới, **kể bối cảnh + đặt câu hỏi** (gửi request).
+- Chuyên gia trả lời (response).
+- Họ tính tiền theo **số chữ bạn nói vào + số chữ họ nói ra** (token vào + token ra).
+- Bạn nói càng dài dòng, hỏi càng nhiều lần → **hóa đơn càng cao**.
+
+Và quan trọng: **số điện thoại riêng (API key) của chuyên gia mà lộ ra ngoài** thì ai cũng gọi được và **bạn trả tiền** → phải giấu kỹ.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**A. Nó vẫn là REST API (nối Day 1–2):**
+Bạn gửi một `POST` với thân request đại loại:
+- `model`: chọn model nào (vd `gpt-4o-mini`).
+- `messages`: danh sách hội thoại, mỗi tin có `role` (`system`/`user`/`assistant`) + `content`.
+- `temperature`: độ "sáng tạo" (0 = ổn định, cao = ngẫu nhiên).
+- `max_tokens`: giới hạn độ dài câu trả lời.
+
+→ Vẫn là loading/success/error như mọi request. Khác ở 3 điểm dưới.
+
+**B. Token & chi phí (điểm Middle hay quên):**
+- **Token** = mẩu chữ (~¾ một từ tiếng Anh). Câu "Hello world" ~ 2–3 token.
+- Bạn **trả tiền theo token vào (prompt) + token ra (response)**. Hỏi dài, gửi cả lịch sử chat mỗi lần → token vào phình to → tốn tiền.
+- **Context window**: giới hạn tổng token một lần gọi (vd 128k). Vượt là lỗi → phải cắt bớt lịch sử.
+→ Tối ưu: chỉ gửi ngữ cảnh cần thiết, tóm tắt lịch sử cũ, đặt `max_tokens` hợp lý.
+
+**C. Streaming (vì sao chat AI "gõ từng chữ"):**
+- LLM trả lời **chậm** (vài giây). Nếu chờ xong mới hiện → user tưởng app treo.
+- **Streaming** = server đẩy về **từng mẩu chữ ngay khi sinh ra** (qua SSE). App hiện dần → cảm giác nhanh, sống động.
+- Trên mobile: cần đọc response dạng stream và `setState` dần. Nối Day 16: cập nhật quá dồn dập có thể làm nặng JS thread, nên gom chữ lại theo nhịp.
+
+**D. Bảo mật API key — quan trọng nhất với mobile (nối Day 6–9):**
+- **TUYỆT ĐỐI không nhúng API key của LLM thẳng trong app.** App có thể bị **giải mã ngược (decompile)** → lộ key → người khác gọi → **bạn trả hóa đơn**, có khi hàng nghìn đô.
+- Cách đúng: app gọi tới **backend của mình**, backend mới giữ key và gọi LLM. Backend còn kiểm soát được **rate limit, xác thực user, lọc nội dung**.
+→ Đây gần như chắc chắn là câu hỏi đào sâu. Trả lời "key đặt ở backend proxy" là ăn điểm ngay.
+
+**E. Xử lý lỗi đặc thù:**
+- **429 (rate limit)**: gọi quá nhanh → cần chờ + retry có khoảng nghỉ (backoff). Chỉ retry GET-like/idempotent, cẩn thận như Day 2.
+- **Timeout**: LLM chậm → đặt timeout cao hơn API thường, hoặc dùng streaming.
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// ✅ App KHÔNG giữ key — gọi qua backend của mình
+async function askAI(question) {
+  const res = await axios.post('/api/ai/chat', { question }); // backend giữ key, gọi LLM
+  return res.data.answer;
+}
+
+// (Phía backend mới gọi LLM — minh họa cấu trúc request)
+// POST https://api.openai.com/v1/chat/completions
+// headers: { Authorization: `Bearer ${OPENAI_KEY}` }   // key chỉ sống ở server
+// body: {
+//   model: 'gpt-4o-mini',
+//   messages: [
+//     { role: 'system', content: 'Bạn là trợ lý tóm tắt ngắn gọn.' },
+//     { role: 'user', content: question },
+//   ],
+//   temperature: 0.2,
+//   max_tokens: 300,
+// }
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Về bản chất gọi LLM vẫn là một REST API: tôi POST một danh sách messages có role system, user, assistant kèm temperature và max_tokens, rồi xử lý loading, success, error như mọi request. Có ba điểm khác cần nhớ. Một là token: tôi trả tiền theo số token vào cộng token ra, nên tôi không gửi thừa lịch sử và đặt max_tokens hợp lý. Hai là streaming: LLM trả lời chậm nên tôi cho hiện dần từng chữ để UX không bị tưởng treo. Ba, quan trọng nhất với mobile, là bảo mật: tôi không bao giờ nhúng API key trong app vì app bị decompile sẽ lộ key và cháy tiền — tôi để key ở backend proxy, app chỉ gọi backend, backend mới gọi LLM và kiểm soát rate limit."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Để key trong app cho gọn" — sai nghiêm trọng, lộ key = cháy tiền. Luôn qua backend.
+- ❌ Quên token/chi phí — interviewer hỏi "app này tốn tiền thế nào" mà ú ớ là rớt.
+- ❌ Nghĩ LLM nhanh như API thường → không làm streaming → UX tệ.
+- ❌ "Lỗi gì cũng retry" — 429 cần backoff, không spam lại ngay.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 19)
+
+1. Vì sao tuyệt đối không để API key của LLM trong app mobile? Cách đúng là gì?
+2. Token là gì, bạn bị tính tiền theo cái gì? Một cách giảm chi phí?
+3. Streaming giải quyết vấn đề gì của LLM, và nó liên quan JS thread (Day 16) ra sao?

@@ -1,0 +1,262 @@
+---
+alwaysApply: false
+---
+Dạ hello anh em là Trương Hữu Nhân, em làm ở vị trí là React Native được hơn 3 năm cụ thể là 3 năm rưỡi.
+Thì em xếp được 2 cái sản phẩm lên production đó là con One Mobile với lại con One Loyalty, cái lúc con làm ở công ty cũ là công ty Firegroup.
+Thì con One Mobile nó là một cái e-commerce app, con One Loyalty nó cũng là một cái app nhưng mà nó nằm về phần Loyalty để giữ chân khách hàng.
+Thì cái main stack, cái daily stack hằng ngày của em là React Native, Timescript, rồi Tanstack Query với lại Zustand.
+Em mô tả hệ thống phunanel đó đi.
+Về những gì em đó đi.
+Hệ thống domain đó là gì vậy anh hả?
+Là cái con One Mobile ở hả?
+Ừ.
+Nói chung là em mô tả hệ thống phunanel lớn nhất mà em thấy em từng làm, em thấy như lớn nhất đi.
+Dạ.
+Thì cái hệ thống One Mobile đó là cái hệ thống lớn nhất mà em phát triển trong vòng hơn 3 năm.
+Thì nó sử dụng API của Shopify để mà nó lấy dữ liệu từ phía khách hàng hay còn gọi là merchant.
+Ở đây là cái người họ có sản phẩm mà họ không biết bán ở đâu.
+Thì Shopify họ sẽ cung cấp cái dịch vụ để mà họ có thể bán được và em sẽ liên kết với họ để mà dùng API của họ lấy cái sản phẩm.
+Thì cái con One Mobile này nó chia làm hai phần là phần Mobile với lại phần Web Admin.
+Thì ở trên Web Admin người dùng họ có thể kéo thẻ, write-drop những cái component để mà họ có một cái, họ tùy chỉnh cái app của họ.
+Rồi integration với lại phần nào, smile.io hay là những cái phần loyalty khác.
+Hay là những cái phần product review.
+Thì cái lúc mà người dùng họ submit rồi á, thì những cái data đó sẽ được bắt hèn trả về cho phía React Native là phía bên em.
+Thì phía bên em sẽ dùng cái thông tin đó để tạo ra một cái app cho riêng khách hàng.
+Có nghĩa là trên nền tảng iOS hay là trên cả nền tảng Android, họ sẽ có một cái app với cái tên store họ muốn, với cái logo họ muốn.
+Và khi người dùng người ta click vào thì ở trong đó toàn bộ cái app đó sẽ là của riêng cái người dùng, cái người sở hữu cái product thôi.
+Ừ, ok. Với vai trò của em trong dự án đó?
+Với vai trò của em trong dự án đó là sẽ daily hằng ngày theo những cái screen planning mỗi 2 tuần 1 lần.
+Sau đó là sẽ discuss về feature, discuss về design, discuss về cái structure. Dạ. Xong rồi thì mọi người thống nhất với nhau rồi thì sẽ cùng bắt tay vào em.
+Dạ. Em có tham gia thiết kế structure đúng không? Dạ. Dạ. Em có mô tả quy trình được không?
+Dạ. Em có thể tụi em thống nhất á. Em không hiểu rõ cái... Tụi em ra được 1 cái ấy đó.
+Dạ. Cái quy trình để mà em ra được 1 cái structure hả? Dạ. Dạ. Thì cái lúc mà planning xong á, thì trước khi cái buổi planning này thì tụi em sẽ có 1 cái buổi gọi là refinement.
+Thì trong cái buổi đó tụi em sẽ discuss qua về những cái feature sẽ làm trong cái planning đó. Trong cái buổi planning đó và sẽ ngồi brainstorm với nhau về cái structure mà mọi người sẽ đưa ra.
+sử dụng cái library nào rồi cấu trúc thư mục ra sao. Đặt tên, đặt tên component ra sao. Dạ. Rồi dùng những cái component để mà sử dụng lại như thế nào.
+Đó thì cái đó là cái quy trình mà tụi em làm trong cái buổi refinement trước khi planning.
+Về scale của app đó như thế nào ta?
+Scale của app đó anh?
+Ừ.
+Ý anh là scale theo cái phương diện nào anh ha?
+Về quy mô của app đó, data nó có lớn cái này, user có nhiều hơn, dashboard nó như thế nào.
+À ok em hiểu anh. Thì khi mà nó bắt đầu có nhiều người sử dụng thì bên em sẽ làm ra 1 cái admin tool để mà quản lý cái app đó.
+Giả sử như khi mà có 1 cái tính năng mới nó được đưa lên thì nó sẽ có 1 cái cờ nó gắn vào trong đó.
+Kiểu như là 1 cái tính năng payment mới thì sẽ có 1 cái cờ được gắn vô và ban đầu nó sẽ là true.
+Và khi mà nếu mà nó có đo thấy nó gặp vấn đề trong vòng 1-2 ngày thì sẽ bật nó lại thành false để mà người dùng người ta dùng cái payment cũ để nó ổn định hơn.
+Nó sẽ có 1 cái admin tool để mà quản lý store, quản lý người dùng, quản lý những cái tính năng mới, màu sắc đồ này nọ đều trên cái admin tool đó.
+Quy trình tụi em build như thế này vậy? Quy trình để tụi em hoàn thành 1 cái feature á?
+Quy trình để tụi em hoàn thành 1 cái feature á? À là khi mà screen planning lúc trước là tụi em dùng bare react native thì tụi em có sử dụng 1 cái gọi là code push OTA.
+Nhưng mà sau này cái Microsoft nó bỏ cái đó rồi. Cho nên là bên em có DevOps với lại BE sẽ build 1 cái phần code push đó.
+Thì em sẽ không đi qua sau vào cái phần này. Thì về cái feature, về cái quy trình làm 1 cái feature thì tụi em cũng đi qua 3 round.
+Là round depth, testing, rồi staging với lại lên tới production. Thì khi mà lên tới production rồi á, nếu mà cái...
+cái, cái, cái, cái, cái, cái, cái, cái, cái, cái, cái, cái, cái, cái, cái, cái, cái, cái, cái code đó nó có thay đổi về library, về những cái Firefox và trong đó thì bắt buộc phải build lại app.
+Ờ... Nếu cái, nói về cái quá trình build á, thì trước đó là tụi em đều build tay hết. Gặp cái vấn đề gì là phải build lại hết.
+Thì sau này cũng có liên kết với lại phía BE với lại default để mà tạo ra 1 cái, 1 cái, cái, cái, cái button, giờ có thể nói như vậy.
+Ở trên phía admin tool là khi mà tụi em bấm vào cái nút đó á, là nó sẽ update hàng loạt những cái app của khách.
+Và khi mà cần build thì nó cũng có thể build lại hàng loạt.
+Ờ... Thì... Cái đó là cái, cái, cái khâu build app. Còn khi mà cái, cái, cái, cái code đó nó không có đụng tới là...
+không có đụng tới library hay là mấy cái file pop, mấy file manifest của native code á, thì tụi em sẽ dùng UTE.
+Là cái code boost hồi nãy em có nói là chỉ bị đậy code lên.
+Và người dùng người ta sẽ auto reflect lại cái, cái, cái code mới nhất mà lần tiếp theo họ mở app.
+Dạ. Ừ... Còn về những cái phòng mà nếu nó dính native thì sao? Dạ, dính native thì vẫn phải build lại app.
+Ừ... Dạ.
+Quy trình build thì tụi em build là em tự build hay là leader build?
+Để tụi em tự build.
+Ban đầu á thì build tay nhưng mà về sau thì nó có admin tool để tự động build.
+Đó là setup CI/CD đúng không? Dạ, đúng rồi.
+Thì không biết là bên em là leader setup hay là tụi em có nghe qua dùng CI/CD chưa?
+Dạ, chưa bên em là leader setup.
+Ừ... Dạ.
+Về optimal performance thì không biết là em đã optimal performance như thế nào?
+Em optimal performance, ngày trước là em dùng một cái phần mềm gọi là flipper.
+Thì đến thời điểm hiện tại thì nó cũng đã bị dedicated rồi.
+Thì em sẽ đi em đo trước em xem thử cái UI Threads với lại cái JS Threads ở cái màn hình nào, ở cái component nào nó có vấn đề.
+Thì đa phần em thấy là nó sẽ đến từ cái flag list nó quá to.
+Thì khi mà cái flag list nó quá to thì cái việc mà mình gắn cái key instructor là một cái gì đó nó rất là quan trọng.
+Thì nếu mà mình gắn...
+Lúc trước em hay bị một cái lỗi là em gắn cái key instructor nó bằng cái index.
+Thì khi mà cái list đó nó sort hay là nó filter hay là nó xóa sửa gì đó là nó sẽ...
+Nó sẽ gọi là nó re-render lại toàn bộ các cái component con từ trên xuống dưới.
+Nó sẽ gây ra cái việc rất là lag.
+Thì sau này em sẽ sử dụng một cái ID unique để mà em gắn vào cái flag list.
+Thì đó là về cái flag list.
+Còn về một cái nữa em thấy hai bị đó là cái image.
+Thì cái thần reactive nó không có catch image.
+Có nghĩa là khi mà một cái hình nó đã được render ra rồi.
+Mình roll xuống là auto nó sẽ re-render lại.
+Thì em sử dụng những cái library như là react-native catch image.
+Thì nó sẽ giúp cho cái image đó nó được catch lại và nó không có phải re-render lại.
+Đó là về cái phần image.
+Đa phần là em thấy là nó liên quan tới flag list với là image.
+Còn em mấy cái liên quan tới memo-vision thì em có dùng gì để tối ưu?
+Những cái liên quan tới memo-vision thì em sử dụng những cái component của react-native luôn.
+Ví dụ như là use memo, use callback với lại memo.
+Tuy nhiên á thì sử dụng hai thần này cũng cần phải cân nhắc một chút xíu.
+Do nó có cost, nó có phí ở trong đó.
+Nếu mà mình gắn bậy bạ thì nó cũng sẽ làm ảnh hưởng với cái app của mình.
+Ok.
+Về stat đây em dùng reduct và em dùng thằng react-were chưa?
+Dạ em có dùng reduct với lại react-were.
+Dạ.
+Thì em biết khi nào dùng nên dùng hai thằng này không?
+Khi nào dùng thằng này, khi nào dùng kia không?
+Ờ.
+Em dùng react-were để em quản lý những cái data từ phía backend trả về, từ phía server trả về.
+Ví dụ như là những cái thông tin của người dùng, rồi những cái thông tin về thanh toán này nọ.
+Voucher này nọ thì em sẽ quản lý react-were.
+Do nó có sẵn những cái như là catch, rồi reload, rồi back arrow thay cho mình, mình đã phải viết lại.
+Còn về phía reduct thì em dùng để lưu trữ những cái data của app riêng người dùng thôi.
+Ví dụ như là cái team họ dùng team nào, rồi cái dark mode hay là cái line mode.
+Dạ.
+Là những cái thông tin của riêng app thì em sẽ dùng reduct.
+Còn thông tin từ server thì em dùng về act-were.
+Ừm.
+Dạ.
+Về security thì em có nắm được gọi là quy trình báo mật của những gì em làm không?
+Về security thì chỉ có một cái đơn giản nhất mà em từng làm.
+Nói thật lòng thì là em dùng secure store để mà em lưu trữ những cái thông tin như là token hay là refresh token ở phía người dùng.
+Dạ.
+Dạ.
+Về những cái liên quan tới người dùng mà nó list ra ngoài thì có thể bị người khác người ta lấy và người ta sử dụng chat bằng cách call API qua postman hay gì đó.
+Về đó thì em sẽ bỏ vào những cái secure store chẳng hạn để mà nó không có bị giải mẽ ra.
+vậy là mấy các bạn sẽ cần như được phép cần đó thẻ nó biết là nó đang sử dụng những cái gì không
+Ừ vậy không mà thấy là biết là bắt em trả về cho em thôi em chưa tìm hiểu sao về cái đó
+mấy cái như dây đứa ti làm chưa bao giờ nghe đúng không dạ đúng rồi Ừ ok à à à à
+em không biết được Start và Tab không ở phần nào với vi sản ạ à dạ được em tắt là cái cái cái gọi là khi mà
+những cái trang nó trồng lên nhau thì nó sẽ có một cái cái tắt giờ thì phải khi người dùng người ta bấm cái
+nút bắt thì nó sẽ bắt về cái trang trước đó là tắt còn còn Start thì em nhớ không lầm thì nó là cái
+tắt nó là những cái những cái bút tên tối đa là 5 cái để người dùng nhảy qua nhảy lại những cái trang mà
+họ cảm thấy tiện nhất giờ anh em biết nó xin được những nói chuyện dữ liệu qua như thế nào từng lỗi em
+dạ xin lỗi em nghe không rõ câu này thì em biết nó bắt xin dữ liệu như thế nào Tab như Start á
+em ta phải sắc nó bắt xin dữ liệu em nhớ không lầm thì khi mà mình chuyển qua Start rồi thì nó sẽ
+nếu mà mình dùng UState á mình dùng cái dà UState á thì cái biến đó nó sẽ bị update lại
+nó sẽ re-render lại còn khi mà mình dùng như là Redux rồi này nọ thì nó sẽ cache lại và nếu mà chưa có một cái động thái nào như là dùng UFax để mà mình re-render lại cái đó thì nó sẽ vẫn tồn tại chứ nó không có bị re-render lại
+nó là mấy cái em còn truyền data từ màn hình con tới màn hình cha thì những cái này là Tab như Start nó đang khác nhau về cơ chế như thế nào để truyền nhé
+Ví dụ em muốn truyền data từ màn hình này qua màn hình khác ví dụ như Start để em nào với Get thì em truyền data hay sao
+em nhớ là nó có cái cơ chế để em truyền nhưng mà sau này thì đa phần là em được sử dụng Justin à sử dụng cái Redux để mà em store những cái dữ liệu ở bên trong đó
+tại vì... dạ dạ
+nhưng mà cũng có những cái dạy data đặc thù mà em còn truyền 3RAM chứ
+dạ dạ em nhớ là nó có cái cơ chế để truyền 3RAM
+dạ
+ok
+về native thì em có khi nào cũng viết native code chưa
+em có từng viết native code về cái tính năng Google Wallet với lại Apple Wallet
+thì thú thật thì em không có mạnh về native code
+thì khi mà em viết 2 cái tính năng này là em cũng đọc
+em đọc Doc và em đọc Stack Overflow
+thì tới đâu thì em viết tới đó xong rồi là chạy rồi kiểm thử
+thì cụ thể thì cái tính năng này nó là em sẽ lưu trữ về cái app OneLoyalty là một cái app để giữ chân khách hàng
+cho nên là em sẽ có những cái voucher đồ này nọ bên trong đó
+và khi mà người dùng người ta có thể lưu cái voucher đó vào trong Google Wallet hoặc là Apple Wallet
+để mà khi mà người ta mở lên nó sẽ có sẵn thông tin với lại cái QR code với lại cái thời gian ở trong đó
+nó sẽ đưa cho các người bạn thanh toán người ta dùng cái Macboss người ta scan qua là sử dụng được
+Ừ
+để biết quy trình để em viết một cái vernet code như thế nào
+là cái quy trình đó thì em viết
+em tìm hiểu thì em viết
+ở bên Xcode thì ở bên iOS thì em sẽ mở Xcode lên và em tìm tới đúng cái file mà em cần viết
+và em sử dụng đúng những cái hang mà họ cung cấp
+để mà có thể lưu được một cái voucher
+xin lỗi anh
+có thể lưu được một cái voucher vào trong cái Google Wallet
+còn về phía Android thì em dùng Android Studio
+để mà em
+dạ em viết vào cái native code đó
+rồi vừa viết vừa test chạy
+chạy
+đến khi chạy thì thôi
+thì thu thập thì em cũng không mạnh về native code
+thì có tính năng thì sẽ bắt tay vào làm
+Vậy là em có biết được là hồi đó là diết bằng gì
+dùng code link hay là gì không
+Dạ có
+Vậy là hồi đó
+ngày xưa iOS thì dùng Swift
+còn phía Android thì dùng Java
+Về
+một cái khi hùng chỉnh API
+khi em gọi một API hàm API đây
+em cơ chế mà em loading your error như thế nào
+cơ chế mà em lắm
+một cái flow chuẩn luôn á
+một cái flow chuẩn mà một hàng anh gọi một API nha
+Dạ thì
+em không
+em em em em mô tả thêm cái cách em hiểu nha
+là lúc trước em làm đó là em sẽ có một cái
+em sử dụng ACS
+Dạ
+thì
+nó sẽ có một cái interceptor
+thì ở trong cái interceptor đó em có sử dụng cái khái niệm nó gọi là đoạn
+em có một cái khái niệm nó gọi là
+đợi em nhớ cái tên nó một xíu
+nó là
+nó là
+Singleton
+Dạ Refresh Token
+thì
+thì ở trong cái
+cái khái niệm đó là
+ở trong cái interceptor đó em sẽ bắt dựng cái lỗi 401
+khi mà em call API
+và nó sẽ có một cái promise ở trong đó
+để mà nó chờ xem thử là cái token đó nó còn giá trị hay không
+thì
+giả sử như nếu mà có 10 cái API nó call cùng lúc
+mà cái token nó hết hạn thì nó sẽ bị
+nó sẽ bị trả về
+nó sẽ bị spam
+10 lần
+cái refresh token
+cho nên là cái việc đó nó không tốt
+và cái việc bỏ vào cái interceptor đó nó sẽ
+một cái
+10 cái bị 401
+nhưng mà nó sẽ chỉ chờ một cái
+nó call
+cái refresh token
+để nó lấy cái token mới nhất về
+rồi sau đó
+khi mà cái biến nó bằng true rồi á
+thì nó mới thả ra cho chính cái API còn lại
+nó call
+nó call tới cái API đó
+để không có bị spam cái refresh token
+đó là em dùng về API guest
+còn không dùng cho post
+post
+post cái này nọ thì em không có dùng
+tại vì nếu mà tạo đơn hàng mà nó post 2 lần
+hay là tạo
+check count nó post 2 lần thì nó rất là phức tạp
+thì em không rõ cái ấy anh có phải như vậy không
+còn về cái cách sử dụng API
+em muốn bổ sung thêm một xíu á
+thì em sẽ tạo ra một cái custom hook
+dạ
+thì em sử dụng cái tân tắc query á
+cái lúc đó em có sử dụng tân tắc query
+thì nó sẽ cắt lại cái data
+ở trong cái custom hook đó
+và em sẽ dùng cái data đó để em đi sử dụng
+ở nhiều cái màn hình khác nhau
+và khi mà em sẽ xếp cái time scale cho nó là tầm 5 phút
+thì nếu mà hết hạn rồi thì nó sẽ refresh lại
+để ta lấy data mới nhất về
+hoặc là em invalidate nó đi nếu mà khách hàng có một cái tác động nào đó
+làm cho cái data nó cũ đi rồi á
+dạ
+em có từng làm về web socket chưa ta
+dạ chưa em chưa làm về web socket
+dạ
+em có một cái case study về đây em build một cái chen xin list đi mà một cái history đây một cái bay history gì đó đi rồi cái environment của nó là nó yêu cầu là tầm data của nó là một triệu record
+thứ hai là nó có thể gọi là filter theo test hoặc là amount
+thứ ba là nó có thể xúc ra file PDF hoặc là Excel gì đó
+thì quy trình để em nói gì đó như thế nào, em cứ hình dung là tầng backend sẽ trả ra tay, tầng UI sẽ handle như thế nào, tầng sub file của em thì em sử lý như thế nào?
+Dạ có, thì về cái tầng backend sẽ trả về cho em có pagination, và ở trong cái 3 RAM nó sẽ có những cái như là sort, có filter, sort về những cái giá trị anh nói như là deck hay là amount,
+hồi nãy anh có nói, còn về cái phần load more thì là dùng, về cái phần phân trang thì em sẽ dùng để handle ở cái phía UI thì cứ mỗi lần mà người dùng người ta bấm load more hay là người ta chuyển trang, nếu mà người dùng chuyển trang thì nó dễ hơn thì nó sẽ chỉ load cái data cũ, cái data mới là xong, còn nếu mà khi mà người dùng người ta load more thì phải găng
+bấm đăng cái data mới vào bên dưới của cái data cũ, dạ, và cái phần này nó hơi phức tạc một xíu, nếu mà người dùng người ta filter lại mà với cái page, current page của họ thì gần như là mình phải handle cái phần đó luôn, tại vì nó sẽ bị trị trả về cái trang của cái page đó thôi, rồi mình phải cắt sợ cái số page rồi mình lấy hết cái data trước đó về,
+dạ, dạ, còn về phía sub file, sub file thì sub file về máy, sub file về máy thì em nghĩ cái này là phải dùng tới native code để mà nó lưu được cái file đó vào cái thu mục tệp của khách hàng, dạ, em chưa làm về cái tính năng nào về sub file ở trên phía iOS
+ở trên web thì có còn ai thì chưa. Dạ. Ok. Xuất file thì bên Bắc En sẽ xử lý là tốt nhất. Bên Phong En mình có thể hỗ trợ một vài thư viện thôi. Dạ. Để mình xuất mấy cái file mà nó nhắn thôi. Dạ. Không thể nào mình xuất một đóng một file một lần một ngàn thì cột ra được.
+Dạ. Em hiểu. Ok. Cảm ơn anh. Ok. Anh thì anh nghĩ là anh không còn câu hỏi nào. Không biết là em có câu hỏi nào cho anh làm tạp. Dạ. Em cũng không có. Hy vọng anh em mình hợp tác được với nhau thôi. Ok. Anh cảm ơn anh. Dạ. Ok. Vậy nếu không có câu hỏi thì anh sẽ phép anh hợp trước hả? Dạ rồi. Em chào anh quen. Dạ. Bye bye. Dạ. Bye bye.
+Hãy subscribe cho kênh La La School Để không bỏ lỡ những video hấp dẫn

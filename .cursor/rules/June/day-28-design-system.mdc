@@ -1,0 +1,84 @@
+---
+description: Day 28 (13/07) — Design System trong React Native. Design Token, Theme, Component Library và cách xây dựng UI nhất quán.
+alwaysApply: false
+---
+
+# Day 28 · T2 13/07 — Design System
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học cách xây dựng **UI nhất quán** khi app lớn dần: Design System là gì, Design Token là gì, Theme khác Token ở đâu, và vì sao cần một Component Library dùng chung thay vì mỗi màn hình tự vẽ lại.
+
+Interviewer hỏi vì khi app chỉ có vài màn hình, mỗi người tự style riêng cũng không sao — nhưng khi app có hàng chục màn hình và nhiều dev cùng làm, thiếu Design System sẽ khiến UI lệch nhau, sửa màu thương hiệu phải sửa ở cả chục nơi, và tốc độ phát triển chậm dần theo thời gian.
+
+---
+
+## 2. Ví dụ đời thường
+
+Một chuỗi cà phê có 20 chi nhánh. Nếu mỗi chi nhánh tự chọn logo, đồng phục, menu và màu sắc riêng, khách hàng bước vào sẽ có cảm giác đây là 20 thương hiệu khác nhau chứ không phải cùng một chuỗi. Design System giải quyết đúng vấn đề này cho app: dù người dùng mở màn hình nào, họ vẫn cảm nhận đây là **cùng một sản phẩm**, không phải một tập hợp các màn hình được ghép lại một cách rời rạc.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) Design System là gì**
+
+Design System là tập hợp các quy tắc và tài nguyên dùng chung để xây UI thống nhất — thường gồm màu sắc, typography, spacing, icon, bộ component, và guideline khi nào dùng cái gì. Nó đóng vai trò **nguồn sự thật duy nhất** (single source of truth) cho toàn bộ giao diện: designer và developer cùng tham chiếu một chỗ thay vì mỗi người tự diễn giải theo ý mình.
+
+**b) Design Token — giá trị dùng chung, không phải con số rời rạc**
+
+Design Token là các giá trị được đặt tên và tái sử dụng, ví dụ `colors.primary`, `spacing.md`, `radius.lg`, `fontSize.h1`, thay vì viết trực tiếp `"#1976D2"`, `16`, `24` rải rác khắp codebase. Lợi ích rõ nhất xuất hiện khi cần đổi màu thương hiệu: nếu dùng token, chỉ cần sửa một chỗ định nghĩa token, còn nếu hard-code màu ở từng file thì phải tìm và sửa lại ở hàng chục nơi — dễ sót, dễ lệch.
+
+**c) Theme — tập hợp Token theo một bộ hoàn chỉnh**
+
+Theme là một bộ Design Token được nhóm lại để áp dụng đồng thời — ví dụ Light Theme có `primary: blue, background: white`, còn Dark Theme dùng cùng `primary: blue` nhưng `background: black`. Đổi Theme (ví dụ user bật Dark Mode) sẽ đổi toàn bộ giao diện một lượt mà không cần sửa từng màn hình riêng lẻ, vì mọi màn hình đều đang tham chiếu token chứ không hard-code giá trị.
+
+**d) Component Library — tránh mỗi màn hình tự vẽ lại UI**
+
+Nếu mỗi màn hình tự viết `Button`, `Input`, `Card` riêng, việc bảo trì sẽ rất khó: sửa style button phải sửa ở nhiều nơi, và các button rất dễ lệch nhau theo thời gian. Cách đúng là xây một bộ component dùng chung (`<Button />`, `<Input />`, `<Card />`, `<Avatar />`) rồi mọi màn hình chỉ việc dùng lại, không tự thiết kế mới. Cấu trúc thư mục phổ biến trong RN là tách riêng `theme/` (chứa token, theme definition) và `components/` (chứa các component dùng chung), các feature khác chỉ import và sử dụng, không tự định nghĩa lại style cơ bản.
+
+---
+
+## 4. Code tối thiểu
+
+```tsx
+// ❌ Hard-code màu và bo góc trực tiếp trong từng màn hình
+<Button
+  style={{ backgroundColor: '#2196F3', borderRadius: 12 }}
+/>
+
+// ✅ Dùng component dùng chung với variant đã định nghĩa sẵn trong Design System
+<Button variant="primary" />
+```
+
+```ts
+// ❌ Giá trị spacing rời rạc, không nơi tham chiếu chung
+padding: 16;
+
+// ✅ Dùng Design Token — đổi một chỗ, áp dụng toàn bộ app
+padding: spacing.md;
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Design System là tập hợp quy tắc và component dùng chung giúp giao diện nhất quán trên toàn bộ app. Tôi tách Design Token — màu sắc, spacing, typography — thành các giá trị được đặt tên thay vì hard-code rải rác, rồi xây các component dùng chung như Button, Input, Card để mọi màn hình tái sử dụng thay vì tự vẽ lại. Theme là một bộ Token hoàn chỉnh, ví dụ Light/Dark Theme — khi cần đổi màu thương hiệu hoặc hỗ trợ Dark Mode, tôi chỉ sửa ở một chỗ định nghĩa token thay vì sửa từng màn hình, giúp bảo trì và mở rộng nhanh hơn nhiều."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Design System chỉ là một bộ màu" — thiếu, nó còn gồm spacing, typography, component, guideline.
+- ❌ "Theme và Design Token là một khái niệm" — Token là giá trị đơn lẻ, Theme là một bộ Token hoàn chỉnh.
+- ❌ Mỗi màn hình tự viết lại `Button` riêng — khó bảo trì, dễ lệch UI theo thời gian.
+- ❌ Hard-code màu sắc/spacing trực tiếp thay vì dùng token — sửa một giá trị phải tìm khắp codebase.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 29)
+
+1. Design System giúp giải quyết vấn đề gì khi app lớn dần và có nhiều dev cùng làm?
+2. Design Token khác Theme ở điểm nào — cái nào là đơn vị nhỏ, cái nào là tập hợp?
+3. Vì sao nên xây Component Library dùng chung thay vì để mỗi màn hình tự viết Button riêng?
+4. Nếu designer đổi màu thương hiệu, việc dùng Design Token giúp ích gì so với hard-code màu trực tiếp?

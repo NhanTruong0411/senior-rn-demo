@@ -1,709 +1,404 @@
 ---
+description: Morning research roadmap — Middle RN interview prep (30 min/day, 28 days)
 alwaysApply: false
 ---
 
+# Morning Research — Mid-level RN Interview Prep
 
-🧱 PHASE 1 — FUNDAMENTALS (KHÔNG BAO GIỜ LỖI THỜI)
+> 30 phút mỗi sáng. 28 ngày. Mục tiêu: pass interview React Native **Mid-level → Strong Middle** ở thị trường VN.
+>
+> File này là roadmap warm-up buổi sáng (paired với `coding/qa-bank.mdc` drill chính). Không phải Senior roadmap. Không cover system design lead-level.
 
-Đây là thứ giúp bạn không bị AI dắt mũi
+---
 
-	•	JavaScript Deep Understanding
-→ Hiểu bản chất: closure, event loop, async, promise
-→ Dùng để: debug bug “ảo ma” mà AI tạo ra
-→ (2026 vẫn là core skill bắt buộc  ￼)
+## 1. Mục tiêu
 
-⸻
+- **Pass interview** Middle RN: trả lời được câu hỏi technical phổ biến trong 60s, có ví dụ cụ thể.
+- **Không bị overload**: mỗi ngày 1 topic, 3 ý chính, 1 ví dụ. Đủ ngắn để nói thành tiếng.
+- **Practical only**: cái nào interviewer VN không hỏi → bỏ. Không Clean Architecture full, không mentoring deep, không AI orchestration phức tạp.
 
-	•	TypeScript Thinking (không phải syntax)
-→ Hiểu: type system, generics, inference
-→ Dùng để:
-	•	thiết kế API sạch
-	•	tránh bug từ đầu
-→ Senior = “design bằng type”
+## 2. Priority tier (cách phân bổ thời gian)
 
-⸻
+| Tier | Trọng số interview | Nội dung |
+| --- | --- | --- |
+| **Tier 1** | ~70% | JS + React fundamentals, Performance, Debugging, RN-specific |
+| **Tier 2** | ~20% | Architecture basic, State strategy, API + Auth |
+| **Tier 3** | ~10% | AI usage (light), Product thinking (light) |
 
-	•	Rendering Mental Model (Web + RN)
-→ Hiểu:
-	•	React render flow
-	•	reconciliation
-	•	re-render trigger
-→ Dùng để:
-	•	fix lag
-	•	tránh re-render thừa
+28 ngày = **20 ngày Tier 1** + **6 ngày Tier 2** + **2 ngày Tier 3**.
 
-⸻
+## 3. Format 30 phút mỗi sáng (cố định)
 
-	•	State & Data Flow Fundamentals
-→ Hiểu:
-	•	global vs local state
-	•	server state vs client state
-→ Dùng để:
-	•	tránh spaghetti state
-	•	design app lớn
+```
+0:00 — 0:10  Đọc câu hỏi, trả lời THÀNH TIẾNG (không nhìn key points)
+0:10 — 0:25  Research nhanh (docs, blog, GitHub) — verify 3 ý
+0:25 — 0:30  Chốt: definition / khi dùng / trade-off + 1 ví dụ
+```
 
-⸻
+**Stop-gate:** nếu sau 3 lần lặp vẫn không nói trôi ≤60s → carry sang hôm sau, không stack.
 
-🧠 PHASE 2 — ARCHITECTURE (LEVEL UP THỰC SỰ)
+## 4. Cách dùng mỗi day block
 
-Đây là thứ phân biệt Mid vs Senior
+Mỗi day có 4 phần:
 
-⸻
+- ❓ **Câu hỏi** — phrasing thật mà interviewer VN hay hỏi
+- 🎯 **Key points (3 ý)** — definition / khi dùng / trade-off
+- 🔎 **Ví dụ thực tế** — gắn với production hoặc Firegroup story
 
-	•	Component Architecture
-→ Tách component đúng:
-	•	dumb vs smart
-	•	reusable vs domain-specific
-→ Dùng để:
-	•	scale UI mà không nát code
+---
 
-⸻
+## 📅 Week 1 — JavaScript + React Fundamentals (Tier 1)
 
-	•	Separation of Concerns
-→ Tách:
-	•	UI / business logic / data layer
-→ Dùng để:
-	•	dễ maintain
-	•	dễ test
+### Day 1 — Event loop
+❓ **Câu hỏi:** "Giải thích event loop trong JavaScript. `Promise.then` chạy trước hay `setTimeout` chạy trước?"
+🎯 **Key points:**
+1. **Definition:** Event loop điều phối call stack + microtask queue + macrotask queue. Mỗi tick: chạy hết microtask trước khi sang macrotask kế.
+2. **Khi dùng:** Hiểu để debug bug "tại sao log này chạy trước log kia", race condition, UI freeze.
+3. **Trade-off:** Microtask (Promise) chạy trước macrotask (setTimeout) → spam Promise có thể block UI nếu không await đúng cách.
 
-⸻
+🔎 **Ví dụ:** `console.log('A'); Promise.resolve().then(() => console.log('B')); setTimeout(() => console.log('C'), 0); console.log('D');` → output: `A D B C`.
 
-	•	Feature-based Structure (Modularization)
-→ Tổ chức code theo feature, không phải theo file type
-→ Dùng để:
-	•	team lớn vẫn scale được
+---
 
-⸻
+### Day 2 — Closure
+❓ **Câu hỏi:** "Closure là gì? Trong React hook, closure gây bug ở đâu?"
+🎯 **Key points:**
+1. **Definition:** Closure = function nhớ scope nơi nó được tạo, kể cả khi gọi ở scope khác.
+2. **Khi dùng:** Callback, event handler, custom hook giữ state.
+3. **Trade-off:** **Stale closure trap** — `useEffect` không list dependency → callback giữ giá trị cũ của state, không phải giá trị mới nhất.
 
-	•	Clean Architecture (Frontend/Mobile)
-→ Layers:
-	•	UI
-	•	domain
-	•	data
-→ Dùng để:
-	•	đổi API không vỡ app
+🔎 **Ví dụ:** `useEffect(() => { setInterval(() => console.log(count), 1000) }, [])` → log mãi `count = 0` vì closure giữ giá trị cũ. Fix: thêm `count` vào deps hoặc dùng ref/functional setState.
 
-⸻
+---
 
-	•	API Contract Thinking
-→ Hiểu:
-	•	request/response shape
-	•	error handling
-	•	edge cases
-→ Dùng để:
-	•	không phụ thuộc backend
+### Day 3 — Async / await + error handling
+❓ **Câu hỏi:** "Async/await khác Promise.then thế nào? Bắt error chỗ nào?"
+🎯 **Key points:**
+1. **Definition:** `async/await` là syntactic sugar của Promise — code đọc tuần tự nhưng không block thread.
+2. **Khi dùng:** API call, sequential I/O, làm code dễ đọc hơn `.then().then().then()`.
+3. **Trade-off:** Quên `try/catch` → error bị **swallowed** (uncaught promise rejection), không crash nhưng app behave sai.
 
-⸻
+🔎 **Ví dụ:** `const fetchUser = async (id) => { try { const r = await api.get('/users/'+id); return r.data; } catch (e) { logger.error(e); throw e; } }` — bắt + log + rethrow để upstream handle.
 
-⚙️ PHASE 3 — PERFORMANCE & SYSTEM
+---
 
-AI code chạy được, nhưng thường chạy ngu
+### Day 4 — React re-render trigger
+❓ **Câu hỏi:** "Khi nào React re-render component?"
+🎯 **Key points:**
+1. **Definition:** Re-render khi: state thay đổi, props thay đổi (reference compare), parent re-render, hoặc context value đổi.
+2. **Khi dùng:** Hiểu để optimize lag, tránh render thừa.
+3. **Trade-off:** Reference equality — object/array literal mới mỗi render → child memo vô dụng. Cần `useMemo`/`useCallback` đúng chỗ.
 
-⸻
+🔎 **Ví dụ:** `<Child config={{ size: 10 }} />` — mỗi render parent tạo object mới → Child memo không còn tác dụng. Fix: `const config = useMemo(() => ({ size: 10 }), [])`.
 
-	•	Rendering Performance
-→ memo, useCallback, virtualization
-→ Dùng để:
-	•	giảm lag UI
+---
 
-⸻
+### Day 5 — useMemo / useCallback / React.memo
+❓ **Câu hỏi:** "Khi nào dùng useMemo, useCallback? Khi nào KHÔNG nên dùng?"
+🎯 **Key points:**
+1. **Definition:** `useMemo` cache giá trị tính toán, `useCallback` cache function reference, `React.memo` skip re-render nếu props shallow equal.
+2. **Khi dùng:** Computation thật sự nặng, hoặc props truyền xuống child đã memo (giữ reference stable).
+3. **Trade-off:** Memo cũng có cost (compare deps mỗi render). Bọc bừa → chậm hơn không bọc. Default: viết clean trước, đo profiler rồi mới memo.
 
-	•	Network Optimization
-→ caching, retry, debounce, batching
-→ Dùng để:
-	•	app nhanh & ổn định
+🔎 **Ví dụ:** Filter list 10 phần tử → đừng useMemo. Filter list 5000 phần tử có search → useMemo với deps `[query, list]`.
 
-⸻
+---
 
-	•	Bundle Optimization
-→ code splitting, lazy load
-→ Dùng để:
-	•	giảm load time
+### Day 6 — state vs ref vs derived state
+❓ **Câu hỏi:** "Khi nào dùng useState, useRef? Có nên store derived data trong state không?"
+🎯 **Key points:**
+1. **Definition:** `useState` trigger re-render. `useRef` không trigger re-render, dùng giữ value qua render hoặc DOM/native ref.
+2. **Khi dùng:** State cho cái UI cần thấy. Ref cho timer ID, previous value, focus control.
+3. **Trade-off:** **Derived state là anti-pattern** — `const [fullName, setFullName] = useState(first + last)` → state lệch nhau. Tính trực tiếp: `const fullName = first + ' ' + last`.
 
-⸻
+🔎 **Ví dụ:** Debounce search input — query lưu state (UI cần render), `setTimeout` ID lưu ref (UI không cần thấy timer ID).
 
-	•	Mobile Performance (RN-specific)
-→ bridge cost, JS thread vs UI thread
-→ Dùng để:
-	•	fix lag animation / scroll
+---
 
-⸻
+### Day 7 — Keys + reconciliation
+❓ **Câu hỏi:** "Tại sao cần `key` prop trong list? Dùng index làm key được không?"
+🎯 **Key points:**
+1. **Definition:** Key giúp React diff giữa render — biết item nào giữ, item nào tạo mới, item nào unmount.
+2. **Khi dùng:** Mọi `.map()` render list. Key phải **stable + unique** (id từ backend, không phải Math.random).
+3. **Trade-off:** Index key OK với list **không sort, không insert, không delete**. List động dùng index → state component bị "lệch" sang item khác sau khi xoá/sort.
 
-	•	Memory & Lifecycle Management
-→ cleanup, avoid leaks
-→ Dùng để:
-	•	tránh crash ngầm
+🔎 **Ví dụ:** Todo list cho phép xoá → dùng `todo.id` key, không dùng index. Tránh: input value của todo này nhảy sang todo khác sau khi xoá item ở giữa.
 
-⸻
+---
 
-🔍 PHASE 4 — DEBUGGING (SKILL QUAN TRỌNG NHẤT THỜI AI)
+## 📅 Week 2 — React Native specific + Performance (Tier 1)
 
-AI càng mạnh → bug càng khó hiểu
+### Day 8 — JS thread vs UI thread
+❓ **Câu hỏi:** "JS thread và UI thread khác gì? Animation chạy ở thread nào?"
+🎯 **Key points:**
+1. **Definition:** RN có 3 thread chính: **JS thread** (chạy logic React), **UI/main thread** (render native view), **Shadow thread** (layout). Bridge nối JS ↔ Native.
+2. **Khi dùng:** Hiểu để fix lag — JS thread bận → UI giật, không phải thiếu memo.
+3. **Trade-off:** `Animated` mặc định chạy JS thread → giật khi JS bận. Dùng `useNativeDriver: true` để chạy UI thread (chỉ với transform/opacity, không layout property).
 
-⸻
+🔎 **Ví dụ:** Loading spinner giật khi parse JSON to → bug ở JS thread bận, không phải animation. Fix: parse JSON trên background hoặc `useNativeDriver`.
 
-	•	Debugging Mindset
-→ Không đoán, luôn trace
-→ Dùng để:
-	•	xử lý bug production
+---
 
-⸻
+### Day 9 — FlatList optimization
+❓ **Câu hỏi:** "List 1000 item lag khi scroll. Tối ưu thế nào?"
+🎯 **Key points:**
+1. **Definition:** `FlatList` đã virtualize (chỉ render item visible). Còn lag là do render item nặng hoặc props không stable.
+2. **Khi dùng:** Mọi list dài. Props quan trọng: `keyExtractor`, `getItemLayout` (nếu fixed height), `removeClippedSubviews`, `windowSize`, `initialNumToRender`.
+3. **Trade-off:** `getItemLayout` skip layout calc → scroll mượt hơn nhưng yêu cầu height cố định. List item dynamic height → không dùng được.
 
-	•	Reading Unknown Code
-→ Đọc code người khác / AI viết
-→ Dùng để:
-	•	onboard nhanh
-	•	fix nhanh
+🔎 **Ví dụ Firegroup:** Feed OneMobile lag khi scroll → fix bằng `keyExtractor` stable + `React.memo` trên ItemRow + `getItemLayout` (item fixed 80px). FPS từ ~30 lên ~58.
 
-⸻
+---
 
-	•	State Debugging
-→ Track data flow
-→ Dùng để:
-	•	fix bug logic khó
+### Day 10 — Image performance
+❓ **Câu hỏi:** "App load nhiều ảnh thì xử lý sao? Có nên dùng `Image` của RN không?"
+🎯 **Key points:**
+1. **Definition:** RN `Image` không cache disk mặc định trên Android. List ảnh dài → reload mỗi scroll.
+2. **Khi dùng:** Production app nhiều ảnh → dùng `react-native-fast-image` hoặc `expo-image` (cache disk + memory + priority).
+3. **Trade-off:** Library third-party = dependency thêm + native link. Project nhỏ ít ảnh thì không cần.
 
-⸻
+🔎 **Ví dụ:** Avatar list 200 user → dùng FastImage với `priority: low` cho ảnh ngoài viewport, `priority: normal` cho visible. Giảm memory spike từ 180MB xuống 95MB.
 
-	•	Async Debugging
-→ race condition, timing issue
-→ Dùng để:
-	•	tránh bug “random”
+---
 
-⸻
+### Day 11 — Bridge cost (basic)
+❓ **Câu hỏi:** "Bridge trong React Native là gì? Tại sao gọi native nhiều thì lag?"
+🎯 **Key points:**
+1. **Definition:** Bridge là kênh JSON serialize/deserialize giữa JS thread và Native thread. Mỗi message phải parse → cost.
+2. **Khi dùng:** Hiểu để tránh gọi native API trong loop / scroll handler.
+3. **Trade-off:** New Architecture (JSI/Fabric/TurboModules) bỏ bridge → faster nhưng chưa stable trên mọi lib. Mid-level chỉ cần biết concept, không cần migrate.
 
-🤖 PHASE 5 — AI ERA SKILLS (CỰC KỲ QUAN TRỌNG)
+🔎 **Ví dụ:** Onscroll gọi `AsyncStorage.setItem` mỗi pixel → bridge spam → giật. Fix: debounce 300ms hoặc save khi scroll dừng.
 
-Đây là thứ giúp bạn không bị thay thế
+---
 
-⸻
+### Day 12 — Khi nào KHÔNG memo
+❓ **Câu hỏi:** "Bạn từng over-optimize React.memo / useCallback chưa?"
+🎯 **Key points:**
+1. **Definition:** Memo có cost (shallow compare props mỗi render + giữ ref trong memory).
+2. **Khi dùng:** Component render thường xuyên VÀ logic render nặng VÀ props stable.
+3. **Trade-off:** Component đơn giản (1 div, 1 text) → memo cost > render cost. Bọc bừa → bundle to + chậm hơn.
 
-	•	Prompt Engineering for Dev
-→ Viết prompt rõ:
-	•	context
-	•	constraint
-	•	expectation
-→ Dùng để:
-	•	AI code đúng ngay từ đầu
+🔎 **Ví dụ:** `<Button title="OK" onPress={...} />` — đừng memo. `<ExpensiveChart data={...} />` — memo có lý do.
 
-⸻
+---
 
-	•	AI Code Review Skill
-→ Biết:
-	•	code AI đúng/sai chỗ nào
-→ Dùng để:
-	•	không bị “ảo tưởng code đúng”
+### Day 13 — Network optimization
+❓ **Câu hỏi:** "App gọi API nhiều, làm sao tối ưu? Caching ở đâu?"
+🎯 **Key points:**
+1. **Definition:** Tối ưu network = caching + debounce + retry + batching.
+2. **Khi dùng:** TanStack Query / RTK Query handle cache + dedupe + retry. Debounce search input. Retry với exponential backoff cho 5xx (không retry 4xx).
+3. **Trade-off:** Cache stale → user thấy data cũ. Cần `staleTime` + `refetchOnFocus` cân bằng giữa freshness và số request.
 
-⸻
+🔎 **Ví dụ:** Search user — debounce 300ms (giảm 80% request), TanStack Query cache 5 phút (back lại screen không refetch).
 
-	•	AI Orchestration
-→ Chia task:
-	•	UI → AI
-	•	logic → manual
-→ Dùng để:
-	•	tăng tốc x3–5 lần
+---
 
-⸻
+### Day 14 — Memory leak patterns
+❓ **Câu hỏi:** "Memory leak trong React Native xảy ra ở đâu? Cleanup thế nào?"
+🎯 **Key points:**
+1. **Definition:** Leak = giữ reference không cần thiết → memory tăng dần → app crash sau dùng lâu.
+2. **Khi dùng:** `useEffect` return cleanup function — clear `setInterval`, unsubscribe event, abort fetch, remove listener.
+3. **Trade-off:** Quên cleanup → callback chạy trên unmounted component → warning + leak. Cleanup thừa → behavior không đoán được.
 
-	•	Knowing When NOT to Use AI
-→ Ví dụ:
-	•	auth
-	•	payment
-	•	critical logic
-→ Dùng để:
-	•	tránh bug nguy hiểm
+🔎 **Ví dụ:** `useEffect(() => { const sub = eventBus.on('foo', cb); return () => sub.remove(); }, [])` — listener phải remove khi unmount.
 
-⸻
+---
 
-	•	Context Engineering
-→ Feed đúng context cho AI
-→ Dùng để:
-	•	tránh AI dùng pattern lỗi thời  ￼
+## 📅 Week 3 — Debugging + State strategy (Tier 1 + Tier 2)
 
-⸻
+### Day 15 — Production bug flow
+❓ **Câu hỏi:** "Có 1 bug chỉ xảy ra trên production, không reproduce được. Bạn debug thế nào?"
+🎯 **Key points:**
+1. **Definition:** Flow: **Reproduce → Isolate → Verify fix**. Không đoán, luôn có evidence.
+2. **Khi dùng:** Mọi bug production. Bước 1: dùng Sentry/Crashlytics breadcrumb + stack trace. Bước 2: thu hẹp scope (device, OS, version, user role). Bước 3: fix + verify trên staging.
+3. **Trade-off:** Hotfix vội không có root-cause analysis → bug quay lại. Nhưng analysis quá lâu → user impact kéo dài. Cân: stop-gap fix + ticket follow-up cho RCA.
 
-🎯 PHASE 6 — PRODUCT & UX THINKING
+🔎 **Ví dụ Firegroup:** Crash Android 9 OneLoyalty → reproduce bằng emulator API 28 + locale `vi-VN`. Isolate ở date parser. Fix + thêm test case.
 
-Senior không chỉ code — mà build “product”
+---
 
-⸻
+### Day 16 — Reading unknown code
+❓ **Câu hỏi:** "Bạn join team mới, code base lớn. Tiếp cận thế nào?"
+🎯 **Key points:**
+1. **Definition:** Đọc code = top-down (entry point → screen → component) + bottom-up (data layer → API contract).
+2. **Khi dùng:** Onboard, code review, fix bug feature mình chưa từng động.
+3. **Trade-off:** Đọc hết = chậm. Tránh: nhảy vào sửa ngay không hiểu context → break feature khác.
 
-	•	UX Thinking
-→ Hiểu user dùng như thế nào
-→ Dùng để:
-	•	không build feature vô nghĩa
+🔎 **Ví dụ:** Bug ở screen X → đọc theo order: route đến X → screen X component → hooks/services X dùng → API. Note ra giấy data flow trước khi sửa.
 
-⸻
+---
 
-	•	Business Thinking
-→ Feature impact gì?
-→ Dùng để:
-	•	ưu tiên đúng
+### Day 17 — Async / race condition debug
+❓ **Câu hỏi:** "Race condition là gì? Cho 1 ví dụ trong RN."
+🎯 **Key points:**
+1. **Definition:** 2 async operation chạy song song, kết quả phụ thuộc thứ tự về → bug random.
+2. **Khi dùng:** Search nhanh — request A (query="ab") chậm, request B (query="abc") nhanh về trước → A về sau, ghi đè kết quả B → user thấy sai.
+3. **Trade-off:** Fix bằng AbortController hoặc check "request này còn relevant không" trước khi setState.
 
-⸻
+🔎 **Ví dụ:** TanStack Query handle dedupe + cancel cũ tự động. Tự fetch thì cần `if (lastQuery !== currentQuery) return;` trước setState.
 
-	•	Edge Case Thinking
-→ User làm ngu thì sao?
-→ Dùng để:
-	•	tránh bug production
+---
 
-⸻
+### Day 18 — Crash reporting + observability
+❓ **Câu hỏi:** "App crash trên production. Bạn biết được không? Bằng cách nào?"
+🎯 **Key points:**
+1. **Definition:** Sentry / Firebase Crashlytics capture stack trace + breadcrumb + device info + user ID.
+2. **Khi dùng:** Setup từ ngày 1 release. Tag release version, environment, user (anonymized).
+3. **Trade-off:** Log nhiều → cost + noise. Lọc: chỉ log error/warn level cho user flow chính (login, payment, checkout).
 
-🔗 PHASE 7 — FULLSTACK AWARENESS
+🔎 **Ví dụ:** Firegroup OneMobile dùng Crashlytics + custom breadcrumb cho navigation (`screen_view`) + API error code → reproduce bug nhanh hơn vì có context.
 
-Xu hướng 2026: FE → Fullstack  ￼
+---
 
-⸻
+### Day 19 — Local vs global vs server state
+❓ **Câu hỏi:** "Khi nào dùng useState, khi nào Redux, khi nào TanStack Query?"
+🎯 **Key points:**
+1. **Definition:** **Local** (1 component) → useState/useReducer. **Global UI** (theme, modal, auth) → Redux/Zustand/Context. **Server data** (API response, cache) → TanStack Query/RTK Query.
+2. **Khi dùng:** Đẩy hết vào Redux là sai pattern phổ biến. Server state có cache, refetch, stale → Query handle tốt hơn Redux.
+3. **Trade-off:** 3 lib thay vì 1 → bundle to hơn nhưng code clean hơn. Project nhỏ có thể chỉ Context + Query.
 
-	•	API Design Basics
-→ REST / GraphQL
-→ Dùng để:
-	•	làm việc độc lập
+🔎 **Ví dụ:** OneMobile — auth/theme ở Redux Toolkit (5 slice), feed/user/order ở TanStack Query. Form input local state. Không over-engineer.
 
-⸻
+---
 
-	•	Authentication Flow
-→ token, refresh, security
-→ Dùng để:
-	•	build app thật
+### Day 20 — Redux Toolkit basics
+❓ **Câu hỏi:** "Redux Toolkit khác Redux thế nào? Khi nào KHÔNG dùng Redux?"
+🎯 **Key points:**
+1. **Definition:** RTK = Redux + Immer + createSlice + createAsyncThunk → giảm boilerplate ~70%.
+2. **Khi dùng:** State cần share **nhiều screen** + cần time-travel debug + team quen Redux.
+3. **Trade-off:** Server state với Redux → tự code cache/refetch → reinvent. Server state nên dùng TanStack Query. Redux để global UI thôi.
 
-⸻
+🔎 **Ví dụ:** `authSlice` (token, user) + `themeSlice` (dark/light) + `notifSlice` (badge count). Không có `usersSlice` (data API) → cái đó là job của Query.
 
-	•	Database Thinking (basic)
-→ relational vs NoSQL
-→ Dùng để:
-	•	hiểu data flow
+---
 
-⸻
+### Day 21 — TanStack Query basics
+❓ **Câu hỏi:** "TanStack Query làm gì? `staleTime` vs `cacheTime` khác nhau thế nào?"
+🎯 **Key points:**
+1. **Definition:** Query handle: fetch + cache + dedupe + retry + refetch on focus + invalidation. Bỏ Redux thunk cho server data.
+2. **Khi dùng:** Mọi GET API. Mutation cho POST/PUT/DELETE + invalidate query liên quan.
+3. **Trade-off:** `staleTime` = bao lâu data còn "fresh" (không refetch). `cacheTime` (gcTime v5) = giữ data trong memory bao lâu sau khi không dùng. `staleTime: 0` (default) = refetch liên tục → có thể spam API.
 
-	•	Realtime Systems
-→ websocket / streaming
-→ Dùng để:
-	•	build app modern
+🔎 **Ví dụ:** Profile screen — `staleTime: 5 * 60_000` (5 phút), `gcTime: 30 * 60_000`. User edit profile → `mutate` rồi `invalidateQueries(['profile', userId])` → data tự refresh.
 
-⸻
+---
 
-🧪 PHASE 8 — TESTING & QUALITY
+## 📅 Week 4 — Architecture + API + AI/Product (Tier 2 + 3)
 
-⸻
+### Day 22 — Feature-based structure
+❓ **Câu hỏi:** "Tổ chức code RN thế nào với app vừa và lớn?"
+🎯 **Key points:**
+1. **Definition:** Folder theo **feature** (`features/auth`, `features/feed`), không theo **type** (`components/`, `screens/`, `utils/`).
+2. **Khi dùng:** Project >5 màn hình + team >2 người. Mỗi feature có: screen, component, hook, service, type.
+3. **Trade-off:** Component dùng chung → để `shared/`. Đừng vội shared mọi thứ — copy 2 chỗ rồi mới refactor (rule of 3).
 
-	•	Unit Testing
-→ test logic
-→ Dùng để:
-	•	tránh regression
+🔎 **Ví dụ:**
+```
+src/
+  features/
+    auth/ (LoginScreen, useLogin, authService)
+    feed/ (FeedScreen, FeedItem, useFeed)
+  shared/ (Button, ApiClient, theme)
+  app/ (Navigator, store, AppRoot)
+```
 
-⸻
+---
 
-	•	Integration Testing
-→ test flow
-→ Dùng để:
-	•	đảm bảo feature chạy thật
+### Day 23 — Component architecture (smart vs dumb)
+❓ **Câu hỏi:** "Smart component vs dumb component là gì? Khi nào tách?"
+🎯 **Key points:**
+1. **Definition:** **Dumb** = nhận props, render UI, không biết data đến từ đâu. **Smart** = gọi hook/service, pass data xuống dumb.
+2. **Khi dùng:** Tách khi cần reuse UI ở nhiều screen với data nguồn khác nhau, hoặc cần snapshot test UI riêng.
+3. **Trade-off:** Tách quá sớm → over-abstraction, nhiều prop drilling. Tách quá muộn → component nặng, khó test. Rule: tách khi component vượt ~150 line hoặc có 2 use case khác nhau.
 
-⸻
+🔎 **Ví dụ:** `<UserCard user={...} onPress={...} />` (dumb) dùng ở Feed, Search, Profile. Mỗi screen tự fetch user khác nhau, pass xuống.
 
-	•	E2E Testing
-→ test user flow
-→ Dùng để:
-	•	confidence deploy
+---
 
-⸻
+### Day 24 — API contract + error handling
+❓ **Câu hỏi:** "Backend trả 500 lúc gọi API. App của bạn xử lý sao?"
+🎯 **Key points:**
+1. **Definition:** API contract = request/response shape + error code + edge case (empty, partial). Define type ở client (TypeScript) khớp BE.
+2. **Khi dùng:** Mọi service layer. Wrap fetch với interceptor: log error, normalize shape, map status code → app error.
+3. **Trade-off:** **4xx ≠ 5xx**. 4xx (client error) → show message cho user, không retry. 5xx (server error) → retry với backoff, fallback cached data, không show technical detail.
 
-	•	Code Quality Mindset
-→ readable > clever
-→ Dùng để:
-	•	team scale
+🔎 **Ví dụ:** OneLoyalty — axios interceptor: 401 → trigger refresh token; 403 → logout; 5xx → retry 2 lần rồi show "Có lỗi, thử lại sau"; network error → show offline banner.
 
-⸻
+---
 
-🧑‍💼 PHASE 9 — SENIOR BEHAVIOR (NHIỀU NGƯỜI BỎ QUA)
+### Day 25 — Auth flow (token + refresh + 401)
+❓ **Câu hỏi:** "Access token expire thì xử lý sao? User đang dùng app không nên bị logout đột ngột."
+🎯 **Key points:**
+1. **Definition:** Access token (~15 phút) + refresh token (~7–30 ngày). Lưu refresh token ở **secure storage** (Keychain iOS / EncryptedSharedPreferences Android), KHÔNG AsyncStorage.
+2. **Khi dùng:** Interceptor 401 → call `/refresh` với refresh token → lấy access mới → retry request gốc. Queue request đang chờ trong lúc refresh để không call refresh nhiều lần song song.
+3. **Trade-off:** Refresh token bị revoke / expire → buộc logout, clear storage, redirect login. Không cố retry vô tận.
 
-⸻
+🔎 **Ví dụ:** Firegroup — axios interceptor: 401 → check `isRefreshing` flag → nếu chưa, gọi refresh + queue các request khác; nếu đang, đợi promise xong rồi retry. Refresh fail → emit `auth:logout` event.
 
-	•	Decision Making
-→ chọn solution, không phải code
-→ Dùng để:
-	•	lead technical direction
+---
 
-⸻
+### Day 26 — Edge cases (loading / error / empty / offline)
+❓ **Câu hỏi:** "Một screen list user — bạn handle những state nào ngoài happy path?"
+🎯 **Key points:**
+1. **Definition:** 4 state cơ bản: **loading** (skeleton/spinner), **error** (retry button), **empty** (illustration + CTA), **offline** (banner + cache fallback).
+2. **Khi dùng:** Mọi screen có data từ API. Junior thường chỉ làm happy path → senior interviewer hỏi để test.
+3. **Trade-off:** Skeleton nhìn pro nhưng tốn dev time + tăng bundle. Project nhỏ dùng spinner đơn giản OK, không over-engineer.
 
-	•	Trade-off Thinking
-→ nhanh vs sạch vs scale
-→ Dùng để:
-	•	phù hợp business
+🔎 **Ví dụ:** Feed empty → "Chưa có bài viết, tạo bài đầu tiên" + button. Feed offline → banner đỏ "Không có mạng" + show cache cũ với badge "đã cũ".
 
-⸻
+---
 
-	•	Communication
-→ explain cho:
-	•	PM
-	•	designer
-	•	junior
-→ Dùng để:
-	•	trở thành lead
+## 📅 Tier 3 — AI + Product (cuối tuần 4)
 
-⸻
+### Day 27 — AI usage in dev workflow
+❓ **Câu hỏi:** "Bạn dùng AI (Cursor, Copilot, ChatGPT) trong dev workflow thế nào? Khi nào KHÔNG dùng?"
+🎯 **Key points:**
+1. **Definition:** AI làm tốt: boilerplate, test stub, refactor đơn giản, regex, doc lookup. AI làm tệ: business logic phức tạp, security-critical (auth, payment), code requires deep context không feed được.
+2. **Khi dùng:** Feed context rõ (file, type, expectation) → review từng diff → không accept blindly.
+3. **Trade-off:** Lệ thuộc AI → mất skill debug + code reading. Cân: AI cho speed, manual cho critical path.
 
-	•	Mentoring
-→ giúp người khác grow
-→ Dùng để:
-	•	lên Senior/Lead thật sự
+🔎 **Ví dụ:** Dùng Cursor cho UI component, form validation. Tự code: token refresh logic, payment flow, custom hook có race condition.
 
-⸻
+---
 
-🧭 Cách bạn nên dùng roadmap này
+### Day 28 — Product thinking (light)
+❓ **Câu hỏi:** "PM yêu cầu thêm 1 feature. Bạn implement luôn hay hỏi gì trước?"
+🎯 **Key points:**
+1. **Definition:** Product thinking ở Mid-level = biết hỏi **WHY** trước khi code. Feature giải vấn đề gì? User nào? Metric đo?
+2. **Khi dùng:** Mọi ticket lớn (>2 ngày). Hỏi: success metric? rollout plan? edge case? cần A/B không?
+3. **Trade-off:** Hỏi nhiều → chậm sprint. Không hỏi → build sai. Mid-level: hỏi đủ để **không build sai**, không cần thiết kế product chiến lược.
 
-Mỗi sáng:
-	1.	Pick 1 keyword
-	2.	Tự hỏi:
-	•	“Cái này dùng để giải quyết vấn đề gì?”
-	3.	Search:
-	•	blog
-	•	GitHub
-	•	production case
-	4.	Không cần code ngay — chỉ cần hiểu sâu
+🔎 **Ví dụ:** PM nói "thêm wishlist" → hỏi: dùng cho user logged in hay anonymous? sync giữa device? max bao nhiêu item? hiển thị ở đâu? Trước khi sờ code.
 
-  Dưới đây là phiên bản Interview Checklist (cực thực chiến) — mình convert từ roadmap trước thành dạng:
+---
 
-❓ Câu hỏi interview thật
-🎯 Nhà tuyển dụng đang test cái gì
-⚠️ Red flag nếu trả lời sai
+## 5. Cuối tuần — Self-checkpoint (5 phút)
 
-Bạn chỉ cần mỗi sáng pick 1–2 câu → tự trả lời → research → là lên trình rất nhanh.
+Mỗi cuối tuần (Chủ Nhật):
 
-⸻
+- [ ] Random pick 1 câu trong tuần → tự ghi âm 60s trả lời
+- [ ] Listen lại: rõ ràng chưa? có ví dụ chưa? có trade-off chưa?
+- [ ] Câu nào chưa nói trôi → carry sang tuần sau (max 2 câu, không quá tải)
 
-🧱 1. FUNDAMENTALS (FAIL LÀ OUT SỚM)
+## 6. Definition of Done
 
-⸻
+Sau 28 ngày:
 
-❓ Explain event loop trong JavaScript
-	•	🎯 Test:
-	•	Hiểu async thật sự hay chỉ dùng async/await
-	•	⚠️ Red flag:
-	•	Không phân biệt microtask vs macrotask
-	•	Không giải thích được Promise chạy khi nào
+- [ ] **28 câu hỏi** đã trả lời thành tiếng ≥1 lần, ≤60s
+- [ ] **15+ câu nói trôi không cần nhìn note**
+- [ ] **Mỗi topic có 1 ví dụ thực tế** (Firegroup hoặc generic)
+- [ ] **Tier 1 (Day 1–21)** cover đủ — đây là 70% interview content
+- [ ] **Tier 2 (Day 22–26)** cover đủ — architecture + API + auth
+- [ ] **Tier 3 (Day 27–28)** đã đụng đến — không cần sâu
 
-⸻
+## 7. Stop-rules (tránh overload)
 
-❓ Khi nào dùng useMemo vs useCallback?
-	•	🎯 Test:
-	•	Hiểu render optimization
-	•	⚠️ Red flag:
-	•	“Dùng để optimize” nhưng không biết optimize cái gì
+- Không học >30 phút/ngày. Quá tải → drill chính (`qa-bank.mdc`) bị ảnh hưởng.
+- Không học >1 topic/ngày. Topic lớn (vd architecture) → chia nhỏ hoặc carry.
+- Không cố nhớ chi tiết syntax. Interview test **decision pattern**, không test memory.
+- Không drill English ở file này. English drill ở `english/qa-bank.mdc`.
 
-⸻
+---
 
-❓ React re-render khi nào?
-	•	🎯 Test:
-	•	Hiểu core React (rất quan trọng)
-	•	⚠️ Red flag:
-	•	Trả lời mơ hồ kiểu “khi state thay đổi”
-
-⸻
-
-❓ Difference giữa state vs ref?
-	•	🎯 Test:
-	•	Render behavior
-	•	⚠️ Red flag:
-	•	Không hiểu ref không trigger re-render
-
-⸻
-
-🧠 2. ARCHITECTURE (CÂU NÀY QUYẾT ĐỊNH SENIOR HAY KHÔNG)
-
-⸻
-
-❓ Design architecture cho 1 app React Native lớn
-	•	🎯 Test:
-	•	Modular thinking
-	•	Boundaries
-	•	⚠️ Red flag:
-	•	Chỉ nói folder structure
-
-👉 Interview thực tế:
-
-Senior phải nói về module boundaries + contracts, không chỉ folder  ￼
-
-⸻
-
-❓ Bạn organize code theo cách nào?
-	•	🎯 Test:
-	•	Feature-based vs layer-based
-	•	⚠️ Red flag:
-	•	“Tôi chia components, screens, utils…”
-
-⸻
-
-❓ Làm sao tránh coupling giữa các module?
-	•	🎯 Test:
-	•	Clean architecture
-	•	⚠️ Red flag:
-	•	Import lung tung giữa các feature
-
-⸻
-
-❓ Làm sao handle shared state giữa nhiều feature?
-	•	🎯 Test:
-	•	State strategy
-	•	⚠️ Red flag:
-	•	Đẩy hết vào Redux
-
-⸻
-
-⚙️ 3. PERFORMANCE (AI CODE FAIL Ở ĐÂY)
-
-⸻
-
-❓ App bị lag → bạn debug thế nào?
-	•	🎯 Test:
-	•	Systematic thinking
-	•	⚠️ Red flag:
-	•	“Tôi dùng memo”
-
-👉 Đúng phải là:
-	1.	Profile
-	2.	Identify bottleneck (JS/UI/bridge)
-	3.	Fix đúng chỗ  ￼
-
-⸻
-
-❓ FlatList optimize như thế nào?
-	•	🎯 Test:
-	•	RN real experience
-	•	⚠️ Red flag:
-	•	Không biết windowing / keyExtractor
-
-⸻
-
-❓ JS thread vs UI thread khác gì?
-	•	🎯 Test:
-	•	Deep RN knowledge
-	•	⚠️ Red flag:
-	•	Không biết animation chạy ở đâu
-
-⸻
-
-❓ Khi nào dùng native module?
-	•	🎯 Test:
-	•	Trade-off thinking
-	•	⚠️ Red flag:
-	•	“Khi cần performance” (quá chung chung)
-
-⸻
-
-🔍 4. DEBUGGING (QUAN TRỌNG NHẤT THỜI AI)
-
-⸻
-
-❓ Bạn debug bug production như thế nào?
-	•	🎯 Test:
-	•	Process
-	•	⚠️ Red flag:
-	•	Không có flow rõ ràng
-
-⸻
-
-❓ Làm sao debug race condition?
-	•	🎯 Test:
-	•	Async understanding
-	•	⚠️ Red flag:
-	•	Không biết reproduce bug
-
-⸻
-
-❓ Bạn đọc code người khác như thế nào?
-	•	🎯 Test:
-	•	Senior mindset
-	•	⚠️ Red flag:
-	•	Nhảy vào sửa ngay
-
-⸻
-
-🤖 5. AI ERA (CÂU MỚI 2026)
-
-⸻
-
-❓ Bạn dùng AI trong dev workflow như thế nào?
-	•	🎯 Test:
-	•	Practical AI usage
-	•	⚠️ Red flag:
-	•	“Tôi dùng ChatGPT để code”
-
-⸻
-
-❓ Làm sao kiểm tra code AI viết đúng?
-	•	🎯 Test:
-	•	Critical thinking
-	•	⚠️ Red flag:
-	•	Trust AI blindly
-
-⸻
-
-❓ Khi nào KHÔNG nên dùng AI?
-	•	🎯 Test:
-	•	Judgment
-	•	⚠️ Red flag:
-	•	“AI dùng mọi thứ”
-
-⸻
-
-🎯 6. PRODUCT THINKING
-
-⸻
-
-❓ Feature này có nên build không?
-	•	🎯 Test:
-	•	Business thinking
-	•	⚠️ Red flag:
-	•	Chỉ nói technical
-
-⸻
-
-❓ Bạn handle edge case như thế nào?
-	•	🎯 Test:
-	•	Real-world thinking
-	•	⚠️ Red flag:
-	•	Không nghĩ tới user “ngu”
-
-⸻
-
-🔗 7. FULLSTACK AWARENESS
-
-⸻
-
-❓ Design API cho feature này
-	•	🎯 Test:
-	•	Backend thinking
-	•	⚠️ Red flag:
-	•	Chỉ nói frontend
-
-⸻
-
-❓ Authentication flow hoạt động như thế nào?
-	•	🎯 Test:
-	•	Security awareness
-	•	⚠️ Red flag:
-	•	Không biết refresh token
-
-⸻
-
-🧪 8. TESTING
-
-⸻
-
-❓ Bạn test app như thế nào?
-	•	🎯 Test:
-	•	Quality mindset
-	•	⚠️ Red flag:
-	•	“QA test”
-
-⸻
-
-❓ Test gì là đủ?
-	•	🎯 Test:
-	•	Prioritization
-	•	⚠️ Red flag:
-	•	Test mọi thứ / không test gì
-
-⸻
-
-🧑‍💼 9. SENIOR BEHAVIOR (ROUND CUỐI RẤT HAY HỎI)
-
-⸻
-
-❓ Bạn handle tech debt như thế nào?
-	•	🎯 Test:
-	•	Decision making
-	•	⚠️ Red flag:
-	•	“Refactor hết”
-
-⸻
-
-❓ Bạn disagree với PM thì làm gì?
-	•	🎯 Test:
-	•	Communication
-	•	⚠️ Red flag:
-	•	Emotional / passive
-
-⸻
-
-❓ Bạn mentor junior như thế nào?
-	•	🎯 Test:
-	•	Leadership
-	•	⚠️ Red flag:
-	•	“Tôi giúp khi họ hỏi”
-
-⸻
-
-🔥 CÁI QUAN TRỌNG NHẤT (NHIỀU NGƯỜI FAIL)
-
-👉 Theo thực tế interview:
-	•	Senior interview KHÔNG hỏi:
-	•	syntax
-	•	trivia
-	•	Mà hỏi:
-	•	trade-off
-	•	why
-	•	real experience  ￼
-
-⸻
-
-🧭 Cách dùng checklist này (cực hiệu quả)
-
-Mỗi ngày:
-	1.	Pick 1 câu hỏi
-	2.	Trả lời thành tiếng (quan trọng)
-	3.	Tự hỏi thêm:
-	•	“Why?”
-	•	“Trade-off là gì?”
-	4.	Search case thực tế
-
-⸻
-
-📅 MORNING PLAN — 30 NGÀY (MỖI NGÀY 30 PHÚT)
-
-Format 30 phút cố định mỗi ngày:
-	•	10' trả lời thành tiếng (không nhìn tài liệu)
-	•	15' research docs/blog/GitHub
-	•	5' chốt 3 ý: definition, trade-off, khi áp dụng
-
-Tuần 1 — Fundamentals (nền tảng không lệch)
-	•	Day 1: Event loop, microtask vs macrotask, Promise chạy khi nào [x]
-	•	Day 2: Closure, scope chain, ứng dụng thực tế trong React hook [x]
-	•	Day 3: Async/await, error propagation, tránh swallow error [ ]
-	•	Day 4: React re-render trigger, reconciliation, render flow [ ]
-	•	Day 5: useMemo vs useCallback vs React.memo (khi nào KHÔNG dùng) [ ]
-	•	Day 6: state vs ref vs derived state, anti-pattern thường gặp [ ]
-	•	Day 7: TypeScript inference, generics, type narrowing cho API/UI [ ]
-
-Tuần 2 — Architecture (tách biệt Mid và Senior)
-	•	Day 8: Component architecture: dumb/smart, reusable/domain-specific [ ]
-	•	Day 9: Separation of concerns: UI, business logic, data layer [ ]
-	•	Day 10: Feature-based structure vs layer-based structure [ ]
-	•	Day 11: Module boundaries + contracts (interface, input/output) [ ]
-	•	Day 12: Shared state strategy: local, global, server state [ ]
-	•	Day 13: API contract thinking: request/response/error/edge case [ ]
-	•	Day 14: Coupling và dependency direction giữa các feature [ ]
-
-Tuần 3 — Performance + Debugging (kỹ năng sống còn)
-	•	Day 15: Profiling mindset: đo trước, tối ưu sau [ ]
-	•	Day 16: FlatList optimization: keyExtractor, windowing, item memo [ ]
-	•	Day 17: JS thread vs UI thread, bridge cost trong React Native [ ]
-	•	Day 18: Network optimization: caching, retry, debounce, batching [ ]
-	•	Day 19: Memory & lifecycle: cleanup, leak pattern thường gặp [ ]
-	•	Day 20: Debug production bug flow: reproduce -> isolate -> verify fix [ ]
-	•	Day 21: Debug race condition và timing issue (async tracing) [ ]
-
-Tuần 4 — Senior behaviors + Interview readiness
-	•	Day 22: AI code review checklist: correctness, edge case, security [ ]
-	•	Day 23: Khi nào không dùng AI (auth, payment, critical logic) [ ]
-	•	Day 24: Product thinking: feature impact, KPI, ưu tiên theo business [ ]
-	•	Day 25: Edge-case thinking: loading/error/empty/offline state [ ]
-	•	Day 26: Authentication flow: access token, refresh token, logout safety [ ]
-	•	Day 27: Testing strategy: unit/integration/e2e, test gì là đủ [ ]
-	•	Day 28: Tech debt handling: impact, cost, rollout plan [ ]
-	•	Day 29: Disagree with PM: data-first communication, trade-off rõ ràng [ ]
-	•	Day 30: Mentoring + decision making: hướng dẫn junior, chốt solution [ ]
-
-Checkpoint cuối mỗi tuần (thêm 5 phút nếu có thể):
-	•	Tự ghi âm 2 phút trả lời 1 câu interview bất kỳ của tuần đó
-	•	Tự chấm: rõ ràng chưa, có trade-off chưa, có ví dụ production chưa
+_Roadmap warm-up cho Mid-level RN VN. Pair với `coding/qa-bank.mdc` (drill chính). Sau 15/05 archive cùng các file sprint khác._

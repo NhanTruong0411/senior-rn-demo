@@ -1,0 +1,111 @@
+---
+description: Day 16 (29/06) — UI thread / multi threading trong RN. JS thread vs UI thread, vì sao app giật, cách giữ 60fps.
+alwaysApply: false
+---
+
+# Day 16 · T2 29/06 — UI thread / Multi threading (React Native)
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **React Native chạy code trên mấy "luồng" (thread) khác nhau** và **vì sao app bị giật (lag)**. Quan trọng nhất: phân biệt **JS thread** (nơi code React của bạn chạy) và **UI thread** (nơi vẽ màn hình + nhận chạm tay).
+
+Interviewer hỏi vì đây là **lý do gốc của 80% bug "app khựng, scroll giật"**. Middle thường chỉ biết "tối ưu FlatList"; người hiểu thread sẽ nói được **giật ở luồng nào và vì sao**, đó là điểm Strong Middle.
+
+---
+
+## 2. Ví dụ đời thường
+
+Tưởng tượng một **quán ăn** có 2 người:
+
+- **Anh bếp (JS thread):** nhận order, tính toán, quyết định món gì ra trước. Mọi "suy nghĩ" của app nằm ở đây.
+- **Anh bồi bàn (UI thread):** bưng đồ ra, lau bàn, nghe khách gọi. Mọi thứ **khách nhìn thấy và chạm vào** nằm ở đây.
+
+Hai người nói chuyện qua một **ô cửa nhỏ** (cái "bridge"): bếp ghi giấy nhét qua, bồi bàn đọc rồi làm.
+
+Vấn đề:
+- Nếu **anh bếp đứng tính một bài toán siêu dài** (xử lý nặng trên JS thread) → anh không ghi giấy mới được → bồi bàn đứng chờ → **app như đơ**, bấm nút không phản hồi.
+- Nếu **nhét giấy qua cửa quá nhiều, quá dồn dập** (gọi qua bridge liên tục) → cửa nghẽn → đồ ra chậm → **scroll giật**.
+
+Giữ app mượt = đừng bắt anh bếp làm việc quá nặng, và đừng nhét giấy qua cửa quá nhiều.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**A. RN có những thread chính nào (nhớ 3 cái):**
+
+| Thread | Làm gì | Hư thì sao |
+| --- | --- | --- |
+| **JS thread** | Chạy toàn bộ JavaScript: React render, setState, xử lý API, business logic | Bị nghẽn → nút bấm không ăn, list không cập nhật, app "đơ" |
+| **UI thread** (Main/Native) | Vẽ pixel lên màn hình, nhận chạm/scroll, chạy animation native | Bị nghẽn → màn hình khựng, scroll giật |
+| **Shadow / Layout thread** | Tính toán bố cục (Yoga tính width/height/vị trí) | Layout chậm khi cây view quá phức tạp |
+
+**B. Vì sao "60fps" là thước đo:**
+Màn hình vẽ lại ~**60 lần/giây**, tức mỗi khung hình (frame) chỉ có **~16ms**. Nếu một thread làm việc lâu hơn 16ms thì nó **lỡ nhịp vẽ** → mắt thấy giật (gọi là **dropped frame**). Mục tiêu: không thread nào "ôm việc" quá 16ms một lúc.
+
+**C. Cái bẫy lớn nhất — chặn JS thread:**
+JS thread là **một luồng duy nhất** (single-threaded). Nó chỉ làm **một việc tại một thời điểm**. Nếu bạn làm việc nặng **đồng bộ** (vòng lặp xử lý 10.000 phần tử, parse JSON khổng lồ, sort mảng lớn) thì trong lúc đó **không gì khác chạy được** trên JS thread → nút bấm, re-render đều phải chờ.
+
+> Lưu ý quan trọng để không nói sai: khi JS thread nghẽn, **scroll native vẫn có thể trượt** (vì scroll do UI thread lo), nhưng **nội dung mới từ JS sẽ không kịp hiện** → thấy ô trống trắng khi cuộn FlatList nhanh.
+
+**D. Vì sao animation đôi khi vẫn mượt dù JS bận:**
+- `Animated` với **`useNativeDriver: true`** → animation chạy thẳng trên **UI thread**, không cần hỏi JS từng frame → JS bận vẫn mượt.
+- **Reanimated** dùng **worklet**: một mẩu JS được đẩy chạy trên **UI thread** → animation/gesture mượt độc lập với JS thread.
+→ Đây chính là "đưa việc sang luồng khác" để không phụ thuộc anh bếp đang bận.
+
+**E. "Multi threading" nghĩa là gì ở đây:**
+Ý tưởng chung: **việc nặng thì đẩy ra khỏi luồng chính** để luồng chính rảnh tay phục vụ người dùng. Trong RN bạn không tự mở thread như native, nhưng bạn **tránh chặn JS thread** bằng cách:
+- Chia nhỏ việc nặng (xử lý theo lô — `InteractionManager.runAfterInteractions` để chờ animation xong mới làm việc nặng).
+- Đẩy animation/gesture sang UI thread (native driver / Reanimated).
+- Đẩy tính toán cực nặng sang native module hoặc thư viện chạy nền nếu cần.
+
+**F. New Architecture (biết tên là đủ cho Middle):**
+Kiến trúc cũ dùng **bridge** (cửa nhỏ, gửi tin nhắn dạng chữ, bất đồng bộ → dễ nghẽn). Kiến trúc mới dùng **JSI** cho phép JS gọi thẳng native **không qua bridge** → nhanh hơn, ít nghẽn hơn. Nói được "bridge là điểm nghẽn, JSI thay thế nó" là đủ ghi điểm.
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// ❌ Chặn JS thread — vòng lặp nặng chạy đồng bộ → app đơ vài giây
+function onPress() {
+  let sum = 0;
+  for (let i = 0; i < 1e8; i++) sum += i; // JS thread kẹt ở đây, không gì khác chạy
+  setResult(sum);
+}
+
+// ✅ Animation mượt kể cả khi JS bận — đẩy sang UI thread
+Animated.timing(opacity, {
+  toValue: 1,
+  duration: 300,
+  useNativeDriver: true, // chạy trên UI thread, không hỏi JS từng frame
+}).start();
+
+// ✅ Hoãn việc nặng tới khi animation/chuyển màn xong → không giật lúc đang chuyển
+InteractionManager.runAfterInteractions(() => {
+  doHeavyWork(); // chạy sau khi tương tác mượt đã xong
+});
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "React Native chạy trên nhiều thread, quan trọng nhất là hai cái: JS thread chạy toàn bộ code React và business logic của tôi, còn UI thread lo vẽ màn hình và nhận chạm tay. Hai bên nói chuyện qua bridge ở kiến trúc cũ. Màn hình vẽ 60 lần mỗi giây nên mỗi frame chỉ có khoảng 16ms; thread nào ôm việc lâu hơn là rớt frame, mắt thấy giật. Bẫy hay gặp nhất là chặn JS thread bằng việc nặng đồng bộ như parse JSON lớn hay vòng lặp dài — lúc đó nút bấm và re-render đều phải chờ. Để giữ mượt tôi đẩy animation sang UI thread bằng useNativeDriver hoặc Reanimated, và hoãn việc nặng bằng InteractionManager. Kiến trúc mới dùng JSI thay bridge để giảm nghẽn."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Chặn JS thread thì màn hình đứng hình hoàn toàn" — không chính xác. Scroll native vẫn trượt được, chỉ là **nội dung từ JS không kịp hiện**. Nói đúng chỗ này mới là người hiểu thread.
+- ❌ Lẫn JS thread với UI thread. Nhớ: **JS = suy nghĩ, UI = vẽ + chạm.**
+- ❌ "RN đa luồng nên tự chạy song song mọi thứ" — SAI. JS thread là **một luồng duy nhất**, làm một việc một lúc.
+- ❌ Nói sâu về JSI/Fabric mà không nắm chắc → dễ bị đào. Middle chỉ cần "bridge là điểm nghẽn, JSI thay nó".
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 17)
+
+1. JS thread và UI thread mỗi cái lo việc gì? Nói bằng ví dụ bếp/bồi bàn.
+2. Mỗi frame có bao nhiêu ms? Vì sao việc nặng đồng bộ trên JS thread làm app giật?
+3. Vì sao animation với `useNativeDriver: true` vẫn mượt khi JS thread đang bận?

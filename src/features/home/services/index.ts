@@ -1,12 +1,24 @@
-import { get, triggerLogout, type ApiError, type Result } from "@/shared";
-
 /**
- * Kiểu dữ liệu mẫu dùng cho API demo ở feature `home`.
+ * home/services/index.ts — network layer cho Home feature.
  *
- * Mục đích:
- * - Định nghĩa rõ data shape từ API.
- * - Giúp UI và hooks có type an toàn khi sử dụng kết quả API.
+ * Hai service ở đây có tính chất khác nhau:
+ *
+ * getSampleTodoService: gọi API public bên ngoài (jsonplaceholder).
+ *   → Dùng axios instance riêng (không cần auth interceptors).
+ *   → Throw lỗi trực tiếp — TanStack Query bắt và set isError.
+ *
+ * simulate401Service: mock local, không gọi network thật.
+ *   → Chỉ trigger logout để test flow 401 của app.
  */
+
+import axios from "axios";
+
+import { triggerLogout } from "@/shared/auth/authBridge";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
+
 export type SampleTodo = {
   userId: number;
   id: number;
@@ -14,53 +26,37 @@ export type SampleTodo = {
   completed: boolean;
 };
 
-/**
- * Base URL riêng cho API demo.
- *
- * Mục đích:
- * - Gom cấu hình endpoint vào service layer.
- * - Sau này đổi endpoint thì chỉ sửa 1 nơi.
- */
-const DEMO_API_BASE_URL = "https://jsonplaceholder.typicode.com";
+export type SampleTodoView = Readonly<Pick<SampleTodo, "id" | "title" | "completed">>;
+
+export type SampleTodoPatch = Partial<Omit<SampleTodo, "id">>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Axios instance riêng cho demo API (jsonplaceholder).
+//
+// Tại sao không dùng apiClient chung?
+// jsonplaceholder là API public, không cần Authorization header.
+// Dùng apiClient chung sẽ thừa interceptors (gắn token, xử lý 401)
+// cho 1 API không cần auth. Tách instance = rõ ràng, không side effect.
+// ─────────────────────────────────────────────────────────────────────────────
+const demoApi = axios.create({
+  baseURL: "https://jsonplaceholder.typicode.com",
+  timeout: 10_000,
+  headers: { Accept: "application/json" },
+});
 
 /**
- * getSampleTodoService():
- * Hàm service thuộc network layer, chỉ có nhiệm vụ gọi API.
- *
- * Hàm này làm gì?
- * - Gọi GET `/todos/1`.
- * - Trả về `Result<SampleTodo, ApiError>`.
- *
- * Lưu ý:
- * - Service KHÔNG xử lý state UI.
- * - Service KHÔNG show Alert.
+ * getSampleTodoService — lấy 1 todo mẫu từ API public.
+ * Throw lỗi khi thất bại → TanStack Query bắt → isError = true.
  */
-export const getSampleTodoService = (): Promise<Result<SampleTodo, ApiError>> =>
-  get<SampleTodo>("/todos/1", {
-    baseUrl: DEMO_API_BASE_URL,
-  });
+export async function getSampleTodoService(): Promise<SampleTodo> {
+  const response = await demoApi.get<SampleTodo>("/todos/1");
+  return response.data;
+}
 
 /**
- * simulate401Service():
- * Simulate a 401 response LOCALLY — no real network call.
- * Triggers the same logout flow as a real 401 from the server.
- *
- * Why local (not httpbin.org)?
- *   - Reliable: no dependency on external service availability or speed.
- *   - Fast: no network round-trip.
- *   - Same effect: triggerLogout() runs the exact 401 path used by client.ts.
- *
- * Dev/test only. Remove before production.
+ * simulate401Service — giả lập 401 locally để test flow auto-logout.
+ * Không gọi network thật. Chỉ dùng ở môi trường dev/test.
  */
-export const simulate401Service = async (): Promise<Result<unknown, ApiError>> => {
+export async function simulate401Service(): Promise<void> {
   await triggerLogout();
-
-  return {
-    status: "error",
-    error: {
-      code: "UNAUTHORIZED",
-      message: "Simulated 401 (local mock)",
-      status: 401,
-    },
-  };
-};
+}

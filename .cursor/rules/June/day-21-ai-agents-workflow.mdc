@@ -1,0 +1,96 @@
+---
+description: Day 21 (06/07) — AI Agents & Workflow. Workflow vs Agent, function calling, so sánh LangChain vs Dify vs n8n, khi nào dùng cái nào.
+alwaysApply: false
+---
+
+# Day 21 · T2 06/07 — AI Agents & Workflow (Dify, n8n, LangChain)
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học cách **ghép nhiều bước AI thành một quy trình tự động**, phân biệt **Workflow** (các bước cố định bạn vẽ sẵn) với **Agent** (LLM tự quyết bước tiếp theo), và **so sánh 3 công cụ phổ biến: LangChain, Dify, n8n** — biết **khi nào dùng cái nào**.
+
+Interviewer hỏi vì JD ghi rõ "kết nối AI Agents/Workflow qua Dify, n8n, LangChain". Họ muốn xem bạn **phân biệt được 3 công cụ này** (chúng khác nhau hẳn) chứ không gộp chung làm một.
+
+---
+
+## 2. Ví dụ đời thường
+
+Tưởng tượng làm một **chiếc bánh qua nhiều công đoạn**:
+
+- **Tự làm tay từng bước (code thuần / LangChain):** bạn kiểm soát mọi thứ, linh hoạt nhất, nhưng tốn công và phải biết "nấu".
+- **Dây chuyền kéo-thả (n8n):** lắp các khối có sẵn thành dây chuyền — trộn → nướng → trang trí. Nhanh, trực quan, không cần code nhiều.
+- **Đầu bếp robot tự quyết (Agent):** bạn chỉ nói "làm cho tôi cái bánh sinh nhật", nó **tự nghĩ cần bước gì, tự lấy dụng cụ nào** rồi làm tới khi xong.
+
+Khác nhau ở chỗ **ai quyết các bước**: bạn vẽ sẵn, hay để AI tự quyết.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**A. Workflow vs Agent (phân biệt cốt lõi):**
+- **Workflow**: chuỗi bước **cố định** do bạn thiết kế (B1 gọi API → B2 cho LLM tóm tắt → B3 nếu xấu thì gửi cảnh báo). Dễ đoán, dễ debug, kiểm soát tốt.
+- **Agent**: bạn đưa **mục tiêu + bộ công cụ (tools)**, **LLM tự quyết** dùng tool nào, theo thứ tự nào, lặp lại tới khi đạt mục tiêu. Linh hoạt nhưng **khó đoán + tốn token** (gọi LLM nhiều vòng).
+→ Quy tắc thực tế: việc rõ ràng → **workflow**; việc mở, cần suy luận nhiều bước không đoán trước → **agent**.
+
+**B. Function calling / tools — cách AI "với tay ra thế giới thật":**
+- LLM tự nó chỉ sinh chữ. Muốn nó **làm việc thật** (gọi API, tra DB, gửi mail) → cho nó danh sách "tool" kèm mô tả.
+- Model sẽ **chọn tool + tự điền tham số**, hệ thống thực thi rồi đưa kết quả lại cho model. Đây là nền tảng của agent.
+
+**C. So sánh 3 công cụ (đây là phần ăn điểm):**
+
+| Công cụ | Là gì | Hợp khi | Đối tượng |
+| --- | --- | --- | --- |
+| **LangChain** | **Thư viện code** (Python/JS) để tự dựng chain/agent/RAG | Cần kiểm soát sâu, tích hợp thẳng vào codebase | Developer |
+| **Dify** | **Nền tảng low-code/UI** chuyên build app LLM (chatbot, RAG, workflow) | Dựng nhanh chatbot/RAG có sẵn UI, quản lý prompt, ít code | Dev + non-dev |
+| **n8n** | Công cụ **automation tổng quát** kéo-thả, nối hàng trăm service | Tự động hóa quy trình đa service (Gmail, Sheet, DB...) có chèn bước AI | Dev + ops |
+
+Nhớ nhanh: **LangChain = code, Dify = nền tảng AI app, n8n = automation đa dịch vụ.**
+
+**D. Khi nào chọn cái nào:**
+- Cần **kiểm soát tối đa + logic phức tạp trong code** → **LangChain**.
+- Cần **ra mắt nhanh một chatbot/RAG** có giao diện, ít muốn code → **Dify**.
+- Cần **nối AI vào quy trình công việc** đang dùng nhiều app khác → **n8n**.
+
+**E. Liên hệ mobile (rất quan trọng để trả lời thật):**
+App RN **không nhúng** LangChain/agent vào trong app. Toàn bộ orchestration đặt ở **backend / nền tảng**; app chỉ **gọi một endpoint** (vd `/api/agent/run`) và hiển thị kết quả — đúng tinh thần bảo mật key + tách trách nhiệm (nối Day 18).
+
+---
+
+## 4. Sơ đồ tối thiểu
+
+```text
+# Workflow (cố định — bạn vẽ)
+input → [gọi API lấy data] → [LLM tóm tắt] → [if xấu → gửi alert] → output
+
+# Agent (LLM tự quyết)
+mục tiêu + tools[ tra_DB, gọi_API, gửi_mail ]
+  → LLM nghĩ: "cần tra DB trước" → gọi tool tra_DB
+  → có kết quả → LLM nghĩ tiếp: "giờ gửi mail" → gọi tool gửi_mail
+  → đạt mục tiêu → trả lời
+
+# App mobile chỉ làm:
+RN app → POST /api/agent/run  → backend (LangChain/Dify/n8n lo phần còn lại)
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Tôi phân biệt workflow với agent trước: workflow là chuỗi bước cố định do tôi vẽ sẵn, dễ đoán và dễ debug; còn agent là tôi đưa mục tiêu cùng bộ tool, để LLM tự quyết dùng tool nào và lặp tới khi xong — linh hoạt nhưng khó đoán và tốn token. Cách AI làm việc thật là function calling: nó chọn tool và tự điền tham số, hệ thống thực thi rồi đưa kết quả lại. Về công cụ: LangChain là thư viện code để kiểm soát sâu, Dify là nền tảng low-code dựng nhanh chatbot và RAG có UI, còn n8n là automation kéo-thả nối nhiều service rồi chèn bước AI. Trên mobile tôi không nhúng orchestration vào app — app chỉ gọi một endpoint ở backend, nơi đặt LangChain hay Dify."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Gộp "agent với workflow là một" — khác nhau ở **ai quyết các bước**.
+- ❌ Nói "LangChain là no-code" — sai, nó là **thư viện code**. Dify/n8n mới là kéo-thả.
+- ❌ Định nhúng agent/LangChain thẳng vào app RN → sai kiến trúc + lộ key. Đặt ở backend.
+- ❌ Khen agent "thông minh tự làm hết" mà quên nó **tốn token + khó kiểm soát** — nêu trade-off mới credible.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 22)
+
+1. Workflow và Agent khác nhau ở điểm cốt lõi nào?
+2. Function calling giúp LLM làm được gì mà tự nó không làm được?
+3. LangChain, Dify, n8n — mỗi cái hợp nhất với tình huống nào? (1 câu/cái)

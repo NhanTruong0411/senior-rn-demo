@@ -1,0 +1,113 @@
+---
+description: Day 35 (20/07) — Mobile App Architecture. Hiểu Feature-based Architecture, Clean Architecture và cách tổ chức project React Native có thể mở rộng.
+alwaysApply: false
+---
+
+# Day 35 · T2 20/07 — Mobile App Architecture
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học cách tổ chức một project React Native để dễ mở rộng, dễ bảo trì, và nhiều developer cùng làm việc được mà không giẫm chân nhau: **Feature-based Architecture** và **Clean Architecture**, khi nào cần cái nào.
+
+Interviewer rất thích hỏi chủ đề này vì khi ứng dụng lớn lên, vấn đề không còn là "viết được code chạy đúng" mà là **người khác có hiểu và tiếp tục phát triển được project không**. Đây cũng là chủ đề khép lại cả chuỗi ôn tập: một kiến trúc tốt là nơi mọi kỹ thuật đã học — từ networking, state management, đến performance — được đặt đúng chỗ của nó.
+
+---
+
+## 2. Ví dụ đời thường
+
+Hình dung một siêu thị. Nếu sắp xếp hàng theo loại vật liệu — kệ chứa tất cả chai, kệ chứa tất cả hộp, kệ chứa tất cả túi — khách hàng sẽ rất khó tìm vì nước ngọt và dầu ăn đều đựng trong chai nhưng chẳng liên quan gì nhau. Nếu sắp xếp theo khu vực chức năng — khu đồ uống, khu bánh kẹo, khu mỹ phẩm — mọi thứ liên quan đến một nhu cầu sẽ nằm cùng một chỗ, dễ tìm hơn nhiều. Tổ chức code trong React Native cũng vậy: nên nhóm theo **Feature** (chức năng), không phải theo loại file (tất cả component ở một chỗ, tất cả hook ở một chỗ khác).
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) Architecture giải quyết vấn đề gì**
+
+Architecture là cách tổ chức source code để dễ đọc, dễ sửa, dễ mở rộng, và dễ test. Bản thân kiến trúc **không làm app chạy nhanh hơn** — hiệu năng là câu chuyện riêng đã học ở Day 27 — nhưng một kiến trúc tốt giúp team phát triển nhanh hơn và ít phát sinh lỗi hơn theo thời gian, đặc biệt khi có nhiều người cùng sửa một codebase.
+
+**b) Feature-based Architecture — cách tổ chức phổ biến nhất hiện nay**
+
+Thay vì chia thư mục theo loại file (`components/`, `hooks/`, `screens/` chứa lẫn lộn code của mọi tính năng), Feature-based Architecture nhóm toàn bộ code liên quan đến một tính năng vào cùng một thư mục: ví dụ `features/auth/`, `features/home/`, `features/profile/`, mỗi thư mục bên trong lại có `components/`, `hooks/`, `services/`, `types/`, `screens/` riêng của chính tính năng đó. Phần dùng chung giữa các tính năng (component tái sử dụng, service gọi API chung, cấu hình navigation) được tách vào `shared/`. Cách tổ chức này giúp khi cần sửa tính năng Profile, developer chỉ cần mở đúng một thư mục, không phải lục tìm rải rác khắp project — đây là cách nhiều boilerplate React Native hiện đại áp dụng.
+
+**c) Clean Architecture — tách rõ trách nhiệm theo tầng**
+
+Clean Architecture chia ứng dụng thành các tầng với trách nhiệm rõ ràng: **Presentation** (UI, Screen — nơi hiển thị dữ liệu và nhận tương tác người dùng), **Domain** (business logic — nơi chứa quy tắc nghiệp vụ thuần túy, không phụ thuộc vào UI hay cách lấy dữ liệu), và **Data** (nơi thực sự gọi API hoặc đọc/ghi database). Quy tắc quan trọng nhất: **UI không nên gọi API trực tiếp**. Luồng đúng thường đi qua Screen → Use Case (đại diện cho một hành động nghiệp vụ cụ thể) → Repository (lớp trừu tượng che giấu chi tiết API/database) → API thực tế. Lợi ích là mỗi tầng chỉ có một trách nhiệm, dễ test riêng từng phần (test Domain mà không cần mock UI hay network thật), và dễ thay đổi nguồn dữ liệu (đổi từ REST sang GraphQL) mà không phải sửa lại phần UI.
+
+**d) MVVM và MVI — luồng dữ liệu giữa UI và logic đi theo hướng nào**
+
+Nếu Clean Architecture trả lời câu hỏi "chia code thành mấy tầng", thì MVVM và MVI trả lời câu hỏi hẹp hơn: "dữ liệu chảy giữa màn hình và logic **theo hướng nào**". Đây là hai *pattern* (khuôn mẫu tổ chức), không phải thư viện phải cài — và điều quan trọng nhất cần nhớ: **bạn gần như đã làm cả hai ở Firegroup rồi, chỉ là chưa gọi đúng tên.**
+
+- **MVVM (Model – View – ViewModel):** hình dung nhân viên phục vụ trong nhà hàng. Khách (**View** = màn hình) không tự xông vào bếp (**Model** = dữ liệu, API), mà nói với nhân viên phục vụ (**ViewModel**). Nhân viên xử lý yêu cầu, lấy món từ bếp, rồi bày ra bàn; khách chỉ *nhìn* món được bày ra và *báo* thêm yêu cầu. Trong React Native, **custom hook chính là ViewModel**: `useProfile()` giữ state + logic gọi API, còn component chỉ render những gì hook trả về. Khi bạn tách logic ra hook (như ví dụ `useProfile` ở trên), bạn đang làm MVVM rồi.
+
+- **MVI (Model – View – Intent):** đi xa hơn một bước, ép luồng dữ liệu chỉ chạy **một chiều duy nhất**. Mọi hành động của người dùng (bấm nút, nhập liệu) được gói thành một "Intent" (ý định) → đưa vào nơi xử lý → sinh ra **một state mới duy nhất** → màn hình render lại theo state đó. Không có chuyện UI tự ý sửa dữ liệu lung tung ở nhiều nơi. Điểm mạnh là dễ debug: chỉ cần nhìn state là biết màn hình đang ở đâu, vì chỉ có một nguồn sự thật. **Redux chính là hiện thân của tư duy MVI**: `action` (intent) → `reducer` → `new state` → UI render. Bạn dùng Redux Toolkit ở Firegroup nghĩa là bạn đã quen luồng một chiều này.
+
+Với Middle, không cần thuộc lòng định nghĩa hàn lâm. Chỉ cần nói được: "MVVM là tách logic khỏi UI qua một lớp trung gian — trong RN tôi làm bằng custom hook; MVI là luồng dữ liệu một chiều action → state → UI — trong RN tôi làm bằng Redux." Nói được câu đó là interviewer biết bạn hiểu bản chất chứ không học vẹt.
+
+**e) Có phải lúc nào cũng cần Clean Architecture đầy đủ?**
+
+Không. Với project nhỏ hoặc team ít người, Feature-based Architecture đơn giản thường đã đủ dùng — thêm nhiều tầng trừu tượng cho một app nhỏ chỉ làm chậm tốc độ phát triển mà không mang lại lợi ích tương xứng. Với project lớn, nhiều developer, tuổi thọ dự án dài, cách phổ biến là kết hợp cả hai: tổ chức thư mục theo Feature ở tầng ngoài, và bên trong mỗi Feature áp dụng các nguyên tắc của Clean Architecture để tách UI, Business Logic, và Data — không cần applies Clean Architecture cứng nhắc theo đúng sách vở, mà lấy đúng phần nguyên tắc phù hợp với quy mô thực tế của dự án.
+
+**f) Middle nên có sẵn trong đầu khi review code hoặc bắt đầu dự án mới**
+
+Một project tổ chức tốt thường có: cấu trúc thư mục theo Feature; các component/service dùng chung được tách rõ trong `shared/`; API tách khỏi UI (không gọi `fetch`/`axios` trực tiếp trong component); business logic không nằm lẫn trong Screen mà được tách ra hook hoặc service riêng để dễ test và tái sử dụng. Mục tiêu cuối cùng không phải "càng nhiều thư mục càng chuyên nghiệp", mà là **mỗi phần code có đúng và chỉ một trách nhiệm của nó**.
+
+---
+
+## 4. Code tối thiểu
+
+```
+src/
+  features/
+    auth/
+      screens/      # màn hình Login, Register
+      hooks/         # useLogin, useAuthState
+      services/      # gọi API auth
+      types/
+    home/
+      screens/
+      hooks/
+      services/
+  shared/
+    components/      # Button, Input, Card dùng chung (nối Day 28)
+    api/              # axios instance, interceptors dùng chung
+    navigation/
+```
+
+```ts
+// ❌ Screen gọi API trực tiếp — khó test, khó thay đổi nguồn dữ liệu sau này
+function ProfileScreen() {
+  useEffect(() => {
+    axios.get('/profile').then((res) => setProfile(res.data));
+  }, []);
+}
+
+// ✅ Tách qua hook/service riêng — Screen chỉ quan tâm hiển thị
+function ProfileScreen() {
+  const { profile } = useProfile(); // logic gọi API nằm trong hook riêng
+}
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Tôi tổ chức project React Native theo Feature thay vì chia theo loại file như components hay hooks toàn cục — mỗi tính năng có đầy đủ screen, hook, service riêng trong một thư mục, dễ mở rộng và dễ tìm code khi cần sửa. Với dự án lớn hơn, tôi kết hợp thêm nguyên tắc của Clean Architecture bên trong mỗi Feature: tách UI khỏi business logic, và business logic khỏi phần gọi API trực tiếp, thường qua một lớp hook hoặc service trung gian. Nhờ vậy UI không gọi API trực tiếp, dễ test từng phần riêng, và nếu sau này đổi nguồn dữ liệu thì không phải sửa lại UI. Về pattern luồng dữ liệu, tôi áp dụng MVVM bằng cách đưa state và logic vào custom hook đóng vai ViewModel, còn component chỉ render; và tư duy MVI một chiều action → state → UI thì tôi đã quen qua Redux Toolkit. Với project nhỏ tôi không áp Clean Architecture đầy đủ vì sẽ làm chậm tốc độ phát triển không cần thiết."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Clean Architecture là bắt buộc cho mọi project" — sai, với project nhỏ nó chỉ làm chậm tốc độ phát triển.
+- ❌ "Feature-based và Clean Architecture là hai kiến trúc đối lập, chọn một trong hai" — sai, thực tế thường kết hợp cả hai.
+- ❌ "Screen gọi API trực tiếp là bình thường, không sao" — vi phạm nguyên tắc tách trách nhiệm, khó test và khó bảo trì về sau.
+- ❌ "Architecture càng nhiều tầng càng chuyên nghiệp" — sai, mục tiêu là đúng trách nhiệm từng phần, không phải nhiều tầng cho có.
+
+---
+
+## 7. Tự kiểm tra (đây là ngày cuối chuỗi ôn tập tháng 6/7 — tổng hợp lại toàn bộ)
+
+1. Architecture giải quyết vấn đề gì mà bản thân nó không giải quyết được (gợi ý: không phải hiệu năng)?
+2. Vì sao Feature-based Architecture phổ biến trong React Native hơn so với chia theo loại file?
+3. Clean Architecture thường chia thành những tầng nào? Vì sao UI không nên gọi API trực tiếp?
+4. MVVM khác MVI ở điểm cốt lõi nào? Trong React Native, bạn hiện thực MVVM bằng gì và MVI bằng gì?
+5. Nếu bắt đầu một dự án React Native mới với khoảng 5 developer, bạn sẽ chọn tổ chức theo Feature-based thuần, hay kết hợp thêm Clean Architecture? Vì sao?

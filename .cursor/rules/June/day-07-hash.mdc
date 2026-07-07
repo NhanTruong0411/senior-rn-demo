@@ -1,0 +1,84 @@
+---
+description: Day 07 (16/06) — Hash (băm) là gì. Hàm 1 chiều, vì sao dùng lưu mật khẩu, khác mã hóa thế nào.
+alwaysApply: false
+---
+
+# Day 07 · T3 16/06 — Hash (băm) là gì
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **hash (băm)** — biến một dữ liệu bất kỳ thành một chuỗi cố định, và **không thể đảo ngược** lại dữ liệu gốc.
+
+Interviewer hỏi vì đây là nền của bảo mật mật khẩu. Note Sacombank của bạn ghi "HASH" tách riêng với "mã hóa". Trả lời tốt = bạn phân biệt được 2 khái niệm dân ngoài nghề hay nhầm. Hôm nay học hash, mai (Day 08) học mã hóa.
+
+---
+
+## 2. Ví dụ đời thường
+
+Hash giống **xay sinh tố**.
+
+- Bỏ trái cây vào máy xay (dữ liệu gốc) → bấm nút → ra ly sinh tố (chuỗi hash).
+- Cùng công thức trái cây thì **luôn ra đúng ly sinh tố giống hệt** (cùng input → cùng output).
+- Nhưng **không ai lấy lại được trái cây nguyên vẹn từ ly sinh tố**. Đó là "một chiều".
+
+Đổi 1 lát chuối thành 1 lát táo (đổi 1 ký tự nhỏ) → ly sinh tố ra **khác hẳn** về màu vị. Đó là tính chất quan trọng: thay đổi cực nhỏ ở input làm output đổi hoàn toàn.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**Hash có 3 tính chất phải nhớ:**
+
+1. **Một chiều (không đảo ngược):** từ chuỗi hash không tính ngược ra dữ liệu gốc được. Đây là khác biệt lớn nhất với mã hóa (mã hóa thì giải ngược lại được nếu có khóa).
+2. **Cố định độ dài:** input dài hay ngắn, output luôn cùng độ dài (vd SHA-256 luôn ra 64 ký tự hex).
+3. **Cùng input → cùng output, đổi tí xíu → đổi hoàn toàn.** Nhờ vậy hash dùng để **kiểm tra dữ liệu có bị thay đổi không**.
+
+**Dùng hash để làm gì (kể được là điểm cộng):**
+
+- **Lưu mật khẩu:** Server **không bao giờ lưu mật khẩu thật**. Nó lưu **hash của mật khẩu**. Khi bạn đăng nhập, server hash cái bạn vừa gõ rồi so với hash đã lưu — khớp thì cho vào. Nhờ vậy nếu DB bị lộ, hacker thấy hash chứ không thấy mật khẩu gốc.
+- **Kiểm tra toàn vẹn (integrity):** tải file về, so hash để biết file có bị hỏng/sửa không.
+- **Chữ ký JWT (nối Day 06):** chữ ký JWT cũng dựa trên hash.
+
+**Vì sao hash thường thôi chưa đủ — 2 thứ phải biết:**
+
+- **Salt (muối):** nếu chỉ hash trơn, 2 người cùng mật khẩu "123456" sẽ ra cùng 1 hash → hacker tra bảng có sẵn (rainbow table) là biết. **Salt** là một chuỗi ngẫu nhiên thêm vào mỗi mật khẩu trước khi hash, làm mỗi hash độc nhất.
+- **Hàm hash chậm có chủ đích:** mật khẩu nên dùng **bcrypt / argon2**, không dùng SHA-256 trơn. Lý do: bcrypt **cố tình chạy chậm**, nên hacker dò thử hàng tỷ mật khẩu sẽ rất lâu. (SHA-256 nhanh → tốt cho integrity, nhưng quá nhanh để bảo vệ mật khẩu.)
+
+**Một câu chốt để phân biệt với mã hóa:**
+> Hash = một chiều, không lấy lại gốc, dùng để **so khớp**. Mã hóa = hai chiều, có khóa giải ra lại, dùng để **giấu rồi đọc lại**.
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// Lưu mật khẩu: hash + salt, KHÔNG lưu mật khẩu gốc
+const hashed = await bcrypt.hash(plainPassword, 10); // 10 = độ "chậm", càng cao càng khó dò
+// → lưu `hashed` vào DB
+
+// Khi đăng nhập: so cái user gõ với hash đã lưu
+const ok = await bcrypt.compare(inputPassword, hashed); // true/false
+// Lưu ý: không hề "giải mã" hash — chỉ hash lại input rồi so khớp
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Hash là biến dữ liệu bất kỳ thành một chuỗi cố định và không đảo ngược được. Ba tính chất: một chiều, độ dài cố định, và cùng input ra cùng output còn đổi một ký tự thì output khác hẳn. Ứng dụng chính là lưu mật khẩu: server không lưu mật khẩu thật mà lưu hash, lúc đăng nhập thì hash cái user gõ rồi so khớp, nên DB lộ cũng không lộ mật khẩu gốc. Nhưng hash trơn chưa đủ: tôi thêm salt để 2 người cùng mật khẩu không ra cùng hash, và dùng bcrypt hoặc argon2 vì chúng cố tình chạy chậm để chống dò. Khác mã hóa ở chỗ hash một chiều dùng để so khớp, còn mã hóa hai chiều có khóa giải ra lại."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Hash là một kiểu mã hóa" — SAI. Mã hóa giải ngược được, hash thì không. Đây đúng là cái interviewer muốn nghe bạn phân biệt.
+- ❌ "Dùng SHA-256 để lưu mật khẩu" — không sai hoàn toàn nhưng yếu. Nói bcrypt/argon2 + salt mới đúng chuẩn.
+- ❌ Quên salt → để lộ là chưa hiểu vì sao hash trơn bị phá.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 08)
+
+1. Khác biệt cốt lõi giữa hash và mã hóa là gì?
+2. Vì sao server lưu hash thay vì mật khẩu gốc? Lộ DB thì sao?
+3. Salt để làm gì? Vì sao mật khẩu nên dùng bcrypt thay vì SHA-256 trơn?

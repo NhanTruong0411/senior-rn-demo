@@ -1,0 +1,76 @@
+---
+description: Day 32 (17/07) — React Native New Architecture. Hiểu Bridge, JSI, TurboModules và Fabric.
+alwaysApply: false
+---
+
+# Day 32 · T6 17/07 — React Native New Architecture
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học kiến trúc mới của React Native: vì sao Bridge cũ trở thành điểm nghẽn, JSI giải quyết vấn đề đó như thế nào, và TurboModules/Fabric đóng vai trò gì trong bức tranh chung. Đây là một trong những chủ đề được hỏi nhiều nhất ở level Middle/Senior hiện nay, vì từ React Native 0.76 trở đi, **New Architecture đã được bật mặc định** — không còn là "công nghệ tương lai" mà là hiện trạng của mọi project RN mới.
+
+---
+
+## 2. Ví dụ đời thường
+
+Hình dung bạn cần nhờ người bạn ở phòng bên cạnh lấy giúp một ly nước, nhưng hai người chỉ giao tiếp được bằng cách viết giấy và đưa qua khe cửa: bạn viết yêu cầu, đưa qua, người kia đọc, đi lấy nước, viết giấy trả lời, đưa lại. Mỗi lượt giao tiếp đều tốn công viết và đọc — đây chính là cách **Bridge** cũ hoạt động giữa JavaScript và Native. Nếu hai người có thể nói chuyện trực tiếp qua cửa mở, việc trao đổi sẽ nhanh hơn rất nhiều mà không cần bước trung gian viết giấy — đó là ý tưởng cốt lõi của **New Architecture**.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) Bridge cũ hoạt động như thế nào, và vì sao nó chậm**
+
+Trong kiến trúc cũ, JavaScript và Native (Swift/Kotlin) là hai thế giới tách biệt hoàn toàn, chỉ giao tiếp được qua **Bridge** — một cơ chế nhắn tin bất đồng bộ (asynchronous). Mỗi khi JS cần gọi một hàm Native (ví dụ mở Camera), dữ liệu phải được **serialize thành JSON**, gửi qua Bridge sang phía Native, Native xử lý xong lại serialize kết quả trả về qua Bridge. Vấn đề nằm ở ba điểm: việc serialize/deserialize JSON tốn thời gian và tốn bộ nhớ mỗi lần gọi qua lại; giao tiếp luôn bất đồng bộ nên không thể gọi Native và nhận kết quả ngay trong cùng một lượt thực thi; và khi ứng dụng cần các tính năng đòi hỏi giao tiếp JS-Native liên tục với tần suất cao — animation mượt, xử lý camera realtime, bản đồ cuộn mượt — Bridge trở thành **nút thắt cổ chai** thực sự, gây giật hoặc trễ.
+
+**b) JSI (JavaScript Interface) — bỏ Bridge, giao tiếp trực tiếp**
+
+JSI là nền tảng cốt lõi của New Architecture, cho phép JavaScript **giữ tham chiếu trực tiếp** đến các đối tượng Native (gọi là Host Objects) và gọi hàm Native ngay lập tức mà không cần serialize dữ liệu qua Bridge. Vì bỏ được bước serialize/deserialize và bước nhắn tin bất đồng bộ, JSI cho phép gọi Native **đồng bộ** trong nhiều trường hợp, giảm đáng kể độ trễ khi hai bên cần trao đổi dữ liệu liên tục. Đây là nền tảng để TurboModules và Fabric xây dựng lên trên.
+
+**c) TurboModules — chỉ tải Native Module khi thực sự cần**
+
+Trong kiến trúc cũ, toàn bộ Native Module được **khởi tạo hết ngay khi app mở**, kể cả những module chưa dùng đến — ví dụ module Camera vẫn được load dù người dùng chưa từng mở camera trong phiên đó, gây lãng phí thời gian khởi động và bộ nhớ. TurboModules dựa trên JSI để **lazy load**: chỉ khởi tạo một Native Module đúng lúc JS thực sự gọi đến nó lần đầu tiên. Kết quả là giảm được Startup Time và bộ nhớ tiêu tốn không cần thiết (nối Day 25, Day 27).
+
+**d) Fabric — hệ thống render mới, tối ưu phần UI**
+
+Nếu TurboModules tối ưu phần **logic** (gọi Native Module), Fabric là hệ thống chịu trách nhiệm tối ưu phần **render UI**. Fabric cho phép cây UI (Shadow Tree) được tính toán và đồng bộ giữa JS và Native hiệu quả hơn nhờ dùng chung nền tảng JSI, đồng thời hỗ trợ tốt hơn các cơ chế render đồng thời (concurrent rendering) của React hiện đại — giúp UI phản hồi mượt hơn ngay cả khi có nhiều cập nhật xảy ra cùng lúc.
+
+**e) Middle cần nhớ gì, không cần nhớ gì**
+
+Không cần biết cách tự viết một TurboModule từ đầu bằng native code — đây là kỹ năng chuyên sâu hơn mức Middle thường làm hàng ngày, và là honest gap chấp nhận được khi phỏng vấn. Điều cần nắm chắc là bức tranh tổng thể: Bridge (cũ, bất đồng bộ, tốn serialize) → JSI (nền tảng giao tiếp trực tiếp) → TurboModules (tối ưu logic, lazy load) + Fabric (tối ưu UI, render đồng thời). Hiểu được **vì sao** cần chuyển đổi kiến trúc quan trọng hơn nhiều so với việc nhớ chi tiết cách triển khai.
+
+---
+
+## 4. Ví dụ liên hệ thực tế
+
+```
+Kiến trúc cũ                        New Architecture
+────────────────────────────        ────────────────────────────
+JS ←── Bridge (JSON, async) ──→ Native     JS ←── JSI (trực tiếp) ──→ Native
+Native Module load hết lúc mở app          TurboModules: lazy load khi cần
+Render qua Shadow Tree cũ, tách biệt       Fabric: render đồng bộ, hỗ trợ concurrent
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Trước đây React Native dùng Bridge để giao tiếp giữa JavaScript và Native — mỗi lượt gọi qua lại đều phải serialize dữ liệu thành JSON và gửi bất đồng bộ, nên khi app cần giao tiếp JS-Native tần suất cao như animation hay camera, Bridge trở thành điểm nghẽn. New Architecture thay Bridge bằng JSI, cho phép JavaScript gọi Native trực tiếp mà không cần serialize, kể cả đồng bộ trong nhiều trường hợp. Trên nền JSI đó, TurboModules giúp chỉ tải Native Module khi thực sự cần dùng thay vì tải hết lúc mở app, còn Fabric tối ưu việc render UI và hỗ trợ tốt hơn cơ chế concurrent rendering của React. Tôi chưa tự viết TurboModule từ đầu, nhưng hiểu rõ lý do và mục tiêu của việc chuyển đổi kiến trúc này."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Bridge là một thư viện" — sai, Bridge là cơ chế giao tiếp giữa hai runtime JS và Native, không phải một package.
+- ❌ "JSI thay thế JavaScript Engine" — sai, JSI là lớp giao tiếp giữa JS và Native, không phải engine chạy JS (Hermes mới là engine).
+- ❌ "TurboModule và Fabric là một" — sai, TurboModule tối ưu phần logic/Native Module, Fabric tối ưu phần render UI.
+- ❌ "New Architecture bắt buộc phải tự viết Native Code" — sai, phần lớn dev vẫn code JS/TS bình thường, New Architecture chủ yếu thay đổi cách runtime hoạt động bên dưới.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 33)
+
+1. Bridge cũ hoạt động theo cơ chế nào, và vì sao nó trở thành điểm nghẽn khi app cần giao tiếp JS-Native tần suất cao?
+2. JSI khác Bridge ở điểm cốt lõi nào — vì sao JSI giúp giảm độ trễ?
+3. TurboModules giải quyết vấn đề gì so với cách load Native Module cũ?
+4. Fabric có vai trò gì trong New Architecture — nó tối ưu phần nào, TurboModules tối ưu phần nào?

@@ -1,0 +1,93 @@
+---
+description: Day 24 (09/07) — CI/CD cho RN. CI vs CD, pipeline, GitHub Actions / EAS Build / fastlane, OTA update, quản lý secrets.
+alwaysApply: false
+---
+
+# Day 24 · T5 09/07 — CI/CD (Continuous Integration / Delivery)
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **tự động hóa kiểm thử + đóng gói + phát hành** app: **CI vs CD** khác gì, **pipeline** là gì, và các công cụ RN hay dùng (**GitHub Actions, EAS Build, fastlane, OTA update**).
+
+Interviewer hỏi vì team chuyên nghiệp nào cũng có CI/CD. Theo `coding-context`, đây cũng là **honest gap** của bạn — nên hôm nay mục tiêu là **nói đúng khái niệm + thành thật mức độ đã chạm**, không over-claim.
+
+---
+
+## 2. Ví dụ đời thường
+
+CI/CD giống một **dây chuyền nhà máy tự động**:
+
+- Bạn đẩy nguyên liệu vào (push code).
+- Máy **tự kiểm tra chất lượng** (chạy lint + test) — hàng lỗi thì dừng, báo ngay.
+- Đạt chuẩn thì **tự đóng gói** (build).
+- Rồi **tự giao hàng** tới người thử (deploy lên TestFlight / Play Internal).
+
+Không ai phải đứng làm tay từng bước, và lỗi bị bắt **sớm** thay vì lúc đã tới tay khách.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**A. CI vs CD (phân biệt rõ):**
+- **CI (Continuous Integration)**: mỗi lần **push / mở PR**, hệ thống **tự chạy lint + test + build thử** để bắt lỗi **sớm**, trước khi merge. Mục tiêu: code vào nhánh chính luôn "lành".
+- **CD (Continuous Delivery/Deployment)**: sau khi qua CI, **tự đóng gói bản release và đưa đi** — lên store nội bộ (TestFlight, Play Internal) hoặc OTA. Delivery = sẵn sàng để bấm phát hành; Deployment = tự phát hành luôn.
+
+**B. Pipeline là gì:**
+- Là **chuỗi bước (job/step)** chạy tự động trên một **máy ảo** khi có **trigger** (push, PR, gắn tag).
+- Vd pipeline RN: `cài deps → lint → test → build → upload bản cho tester`.
+- Nối Day 22: pipeline thường chạy trên **PR** để chặn merge nếu test fail.
+
+**C. Công cụ cho RN (biết tên + vai trò là đủ cho Middle):**
+- **GitHub Actions**: viết file **YAML** mô tả pipeline, chạy lint/test/build mỗi khi push. Phổ biến nhất vì gắn liền GitHub.
+- **EAS Build (Expo)**: **build trên cloud** cho cả iOS và Android — đỡ cần máy Mac để build iOS. Kèm **EAS Submit** để nộp store.
+- **fastlane**: tự động hóa phần **signing + upload store** (đoạn thủ công đau đầu nhất).
+- **CodePush / EAS Update (OTA)**: đẩy **bản cập nhật JS bundle thẳng cho user** không cần qua review store — chỉ cho phần JS, không đổi được native (nối Day 23: bundle tách khỏi native).
+
+**D. Secrets — đừng để lộ (nối Day 18 + 23):**
+- Key, **keystore**, mật khẩu store... **không commit vào Git**.
+- Lưu trong **CI secrets** (vd GitHub Secrets), pipeline đọc lúc chạy. Lộ secret trong log = sự cố bảo mật.
+
+**E. Vì sao đáng làm:** bắt lỗi sớm, bản release **đồng nhất** (không phụ thuộc "máy ai build"), phát hành nhanh và lặp lại được.
+
+---
+
+## 4. YAML tối thiểu (GitHub Actions)
+
+```yaml
+name: CI
+on: [pull_request]          # trigger: mỗi PR
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: yarn install --frozen-lockfile
+      - run: yarn lint        # bắt lỗi style sớm
+      - run: yarn test        # chạy unit test, fail thì chặn merge
+      # secrets dùng qua ${{ secrets.MY_KEY }} — KHÔNG hard-code
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s (kèm honest gap)
+
+> "CI là mỗi lần push hoặc mở PR thì tự chạy lint, test, build thử để bắt lỗi sớm trước khi merge; CD là sau đó tự đóng gói bản release và đưa lên tester như TestFlight hay Play Internal. Pipeline là chuỗi bước chạy tự động trên máy ảo khi có trigger. Với RN tôi biết GitHub Actions để viết pipeline bằng YAML, EAS Build để build cloud cho cả hai nền tảng đỡ cần máy Mac, fastlane lo signing và upload store, và OTA như CodePush hay EAS Update để đẩy bản JS không qua review store. Secrets như keystore tôi để trong CI secrets, không commit. Thành thật mà nói, tôi đã chạm EAS Build và chạy lint/test trong Actions; còn pipeline release end-to-end với fastlane thì tôi đọc hiểu nhưng chưa tự dựng hoàn chỉnh — đó là phần tôi đang học tiếp."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ **Over-claim** "tôi dựng full CI/CD pipeline" khi chưa làm → bị đào là rớt. `coding-context` cảnh báo rõ cái này — state honest gap.
+- ❌ Commit secret/keystore vào repo hoặc in ra log.
+- ❌ Lẫn CI với CD: **CI = kiểm tra + tích hợp sớm**, **CD = đóng gói + phát hành**.
+- ❌ Nghĩ OTA (CodePush) **đẩy được mọi thứ** — chỉ đổi **JS bundle**, không đổi native code.
+
+---
+
+## 7. Tự kiểm tra (hoàn tất nhóm mở rộng)
+
+1. CI và CD khác nhau ở chỗ nào? Trigger của một pipeline CI thường là gì?
+2. EAS Build và fastlane mỗi cái lo phần nào trong quy trình phát hành?
+3. OTA update (CodePush/EAS Update) đẩy được gì và KHÔNG đẩy được gì? Vì sao (nối Day 23)?

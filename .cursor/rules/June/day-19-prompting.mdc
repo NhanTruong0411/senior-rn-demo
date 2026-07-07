@@ -1,0 +1,103 @@
+---
+description: Day 19 (02/07) — Prompting. Role system/user/assistant, few-shot, ép output JSON cho app parse, temperature, chống bịa.
+alwaysApply: false
+---
+
+# Day 19 · T5 02/07 — Prompting + Structured Output
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **cách "ra lệnh" cho LLM đúng để nó trả lời như ý** — và đặc biệt là **ép nó trả về JSON đúng định dạng** để app parse an toàn. Gồm: 3 vai trò (role), cho ví dụ mẫu (few-shot), `temperature`, và cách **giảm việc model bịa (hallucination)**.
+
+Interviewer hỏi vì prompt giờ là một dạng "code". Với app thật, viết prompt lỏng lẻo → output lúc đúng lúc sai, app crash khi parse. Biết **ép output có cấu trúc + validate** là điểm phân biệt người làm thật.
+
+---
+
+## 2. Ví dụ đời thường
+
+Prompt giống **bản mô tả công việc giao cho nhân viên mới**.
+
+- Nói mơ hồ: *"Làm cho đẹp cái này"* → mỗi người hiểu một kiểu, kết quả lung tung.
+- Nói rõ ràng: *"Tóm tắt đoạn này thành đúng 3 gạch đầu dòng, mỗi dòng dưới 10 từ, trả về dạng danh sách"* + **kèm 1 ví dụ mẫu** → nhân viên làm đúng ngay.
+
+Model không đọc được suy nghĩ của bạn. **Bạn càng mô tả rõ + cho mẫu, kết quả càng ổn định.**
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**A. Ba vai trò (role) trong messages:**
+- **system**: đặt "tính cách + luật chơi" cho model (vd "Bạn là trợ lý pháp lý, chỉ trả lời dựa trên tài liệu, không bịa"). Đây là chỗ kiểm soát hành vi mạnh nhất.
+- **user**: câu hỏi của người dùng.
+- **assistant**: câu trả lời trước đó của model — gửi lại để **giữ ngữ cảnh hội thoại** (nhớ: gửi nhiều lịch sử = tốn token, nối Day 18).
+
+**B. Few-shot — dạy bằng ví dụ:**
+Đưa sẵn vài cặp **input → output mẫu** trong prompt để model bắt chước. Rất hiệu quả khi cần đúng định dạng hoặc đúng "giọng". (Không có ví dụ = zero-shot; có vài ví dụ = few-shot.)
+
+**C. Structured / JSON output (quan trọng nhất cho app):**
+- App cần dữ liệu **có cấu trúc** để xử lý, không phải đoạn văn tự do.
+- Yêu cầu model **trả về JSON đúng schema** (vd `{ "sentiment": "positive", "score": 0.9 }`). Nhiều API có "JSON mode" / "structured output" ép đúng khuôn.
+- **BẮT BUỘC vẫn phải validate** kết quả trước khi dùng — model có thể trả JSON hỏng. Parse trong try/catch, sai thì hỏi lại hoặc fallback. Đây là tư duy "không tin dữ liệu ngoài" giống xử lý API.
+
+**D. Temperature:**
+- **Thấp (0–0.3)**: ổn định, ít sáng tạo → hợp phân loại, trích xuất, trả lời chính xác.
+- **Cao (0.7–1)**: đa dạng, sáng tạo → hợp viết nội dung, brainstorm.
+→ App nghiêm túc (parse JSON, phân loại) luôn để **thấp**.
+
+**E. Hallucination (model bịa rất tự tin):**
+Cách giảm:
+1. Cho **ngữ cảnh thật** để nó dựa vào (đây chính là RAG — Day 20).
+2. Ra luật trong system: *"Nếu không có trong tài liệu, trả lời 'không biết'."*
+3. Hạ temperature.
+4. Yêu cầu **trích nguồn** để kiểm chứng.
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// Prompt có system + few-shot + ép JSON; app vẫn phải validate
+const messages = [
+  {
+    role: 'system',
+    content:
+      'Bạn phân loại cảm xúc bình luận. CHỈ trả JSON: ' +
+      '{"sentiment":"positive|negative|neutral"}. Không thêm chữ nào khác.',
+  },
+  { role: 'user', content: 'Sản phẩm tốt nhưng giao hàng chậm' }, // few-shot có thể thêm cặp mẫu ở trên
+];
+
+// Phía app sau khi nhận text:
+function parseAI(text) {
+  try {
+    const data = JSON.parse(text);          // ĐỪNG tin mù — luôn try/catch
+    if (!data.sentiment) throw new Error('thiếu field');
+    return data;
+  } catch (e) {
+    return { sentiment: 'neutral' };         // fallback an toàn
+  }
+}
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Tôi coi prompt như một bản mô tả công việc: càng rõ và càng có ví dụ mẫu thì model càng ổn định. Tôi dùng ba role: system để đặt vai trò và luật, user là câu hỏi, assistant để giữ lịch sử hội thoại. Với app, điều quan trọng nhất là ép model trả về JSON đúng schema để parse được, nhưng tôi luôn validate trong try/catch vì model có thể trả JSON hỏng, sai thì fallback. Tôi để temperature thấp cho việc cần chính xác như phân loại hay trích xuất, để cao khi cần sáng tạo. Để giảm bịa, tôi cho model ngữ cảnh thật để dựa vào, ra luật 'không biết thì nói không biết', và hạ temperature."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Tin output "chắc chắn là JSON" rồi `JSON.parse` không bọc try/catch → app crash.
+- ❌ Prompt mơ hồ rồi than "model ngu" — vấn đề ở prompt, không phải model.
+- ❌ Để temperature cao cho task cần chính xác → kết quả lúc đúng lúc sai.
+- ❌ Nghĩ "prompt tốt là hết bịa" — không. Bịa chỉ giảm khi có ngữ cảnh (RAG) + luật rõ.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 20)
+
+1. Ba role trong messages là gì, role nào để đặt luật/hành vi cho model?
+2. Vì sao ép JSON output mà vẫn phải validate ở app? Bạn fallback thế nào?
+3. Kể 2 cách giảm hallucination. Temperature nên cao hay thấp cho task phân loại?

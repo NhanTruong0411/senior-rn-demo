@@ -1,0 +1,111 @@
+---
+description: Day 36 (21/07) — Advanced Navigation. Xử lý Deep Linking, Nested Navigators, và Android Hardware Back Button.
+alwaysApply: false
+---
+
+# Day 36 · T3 21/07 — Advanced Navigation
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học các vấn đề phức tạp khi điều hướng (navigation) trong app thực tế: cấu hình **Deep Linking**, xử lý **Nested Navigators** (Stack nằm trong Tab nằm trong Drawer), và quản lý nút **Back cứng trên Android**.
+
+Interviewer hỏi vì Middle Developer không chỉ biết `navigation.navigate('Home')` — khi app phức tạp, việc người dùng bấm link từ email mở đúng màn hình chi tiết, hay bấm nút Back Android không làm thoát app đột ngột, là những yêu cầu bắt buộc của một sản phẩm hoàn thiện.
+
+---
+
+## 2. Ví dụ đời thường
+
+Navigation trong app giống như kiến trúc một tòa nhà.
+- `Tab Navigator` là các khu vực chính ở tầng trệt (Khu mua sắm, Khu ăn uống).
+- `Stack Navigator` là cầu thang đi lên từng tầng trong một khu.
+- **Nested Navigator** là bạn đang ở Tầng 3 (Stack) của Khu ăn uống (Tab).
+- **Deep Linking** là bạn đi thẳng từ ngoài đường (nhấn link email) lên thẳng Tầng 3 Khu ăn uống mà không cần đi bộ qua sảnh.
+- **Android Back Button** là nút "quay lại phòng trước": nếu thiết kế sai, thay vì ra hành lang, khách lại bị đẩy thẳng ra ngoài đường (thoát app).
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) Nested Navigators (Navigators lồng nhau)**
+
+App thực tế hiếm khi chỉ dùng một Stack duy nhất. Thường là: App có 1 Root Stack chứa màn Login và màn Main; màn Main là 1 Bottom Tab; mỗi Tab lại chứa 1 Stack riêng. Khi lồng nhau, mỗi Navigator giữ một lịch sử (state) độc lập. Lỗi phổ biến nhất: gọi `navigation.navigate('ScreenA')` từ một tab nhưng màn hình đó lại nằm ở một stack khác, dẫn đến lỗi không tìm thấy route. Để giải quyết, bạn cần định nghĩa TypeScript type đúng cho các tham số navigation lồng nhau, và hiểu cách truy cập navigator cha qua `navigation.getParent()`.
+
+**b) Deep Linking (Liên kết sâu)**
+
+Deep Linking cho phép người dùng bấm vào một link (vd: `myapp://product/123` hoặc `https://myapp.com/product/123`) và app tự động mở lên, nhảy thẳng vào màn hình ProductDetail với ID 123.
+Trong React Navigation, bạn cấu hình thông qua object `linking`: khai báo `prefixes` (các scheme URL app chấp nhận) và `config` (map URL path vào đúng tên Screen trong app). Phức tạp nhất là khi màn hình đích nằm sâu trong Nested Navigators: bạn phải cấu hình đúng cây phân cấp trong object `config`.
+
+**c) Android Hardware Back Button (Nút Back cứng)**
+
+iOS điều hướng back bằng cử chỉ vuốt, nhưng Android có nút Back vật lý (hoặc nút trên thanh điều hướng). Mặc định, React Navigation xử lý nút này tự động (pop màn hình hiện tại ra khỏi stack). Nhưng đôi khi bạn cần can thiệp: ví dụ đang mở một Modal hoặc Form nhập liệu dang dở, người dùng bấm Back cứng → bạn muốn hiện popup "Bạn có chắc muốn bỏ qua các thay đổi?" thay vì thoát ngang. Trong RN, bạn dùng `BackHandler.addEventListener` để bắt sự kiện này; trả về `true` nghĩa là "tôi đã xử lý, hệ thống đừng làm gì nữa"; trả về `false` là "hệ thống xử lý bình thường đi".
+
+**d) Gỡ rối: Màn hình không render lại khi quay lại (Back)**
+
+Khi bạn navigate từ Screen A → Screen B, Screen A không bị unmount, nó chỉ bị đẩy xuống dưới Stack. Khi từ B back về A, `useEffect` mount của A sẽ **không chạy lại**. Nếu bạn muốn A load lại dữ liệu mới mỗi khi hiển thị lại, bạn phải dùng hook `useFocusEffect` (do React Navigation cung cấp) thay vì `useEffect` thông thường.
+
+---
+
+## 4. Code tối thiểu
+
+```tsx
+// ✅ Cấu hình Deep Linking lồng nhau (Nested)
+const linking = {
+  prefixes: ['myapp://', 'https://myapp.com'],
+  config: {
+    screens: {
+      HomeTab: {
+        screens: {
+          ProductDetail: 'product/:id', // URL myapp://product/123 sẽ vào đây
+        },
+      },
+    },
+  },
+};
+
+<NavigationContainer linking={linking}>
+  {/* ... */}
+</NavigationContainer>
+```
+
+```tsx
+// ✅ Bắt sự kiện Android Back Button để hỏi trước khi thoát form
+import { BackHandler } from 'react-native';
+
+useFocusEffect(
+  useCallback(() => {
+    const onBackPress = () => {
+      if (hasUnsavedChanges) {
+        Alert.alert('Cảnh báo', 'Bạn có muốn bỏ các thay đổi?');
+        return true; // Chặn hành vi back mặc định
+      }
+      return false; // Cho phép back bình thường
+    };
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove(); // Cleanup khi màn hình mất focus
+  }, [hasUnsavedChanges])
+);
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Navigation thực tế phức tạp nhất ở ba điểm: lồng navigator, deep linking và xử lý nút Back Android. Khi lồng Stack vào Tab, tôi chú ý định nghĩa type rõ ràng và dùng navigation.getParent() khi cần tương tác với stack cha. Với Deep Linking, tôi cấu hình object linking map các path như '/product/:id' vào đúng sơ đồ lồng nhau để app tự chuyển hướng. Về Android Back Button, với các form quan trọng chưa lưu, tôi dùng BackHandler cùng useFocusEffect để chặn hành vi thoát ngang, trả về true và hiển thị cảnh báo cho user. Cuối cùng, để bắt sự kiện màn hình hiển thị lại khi pop từ stack, tôi luôn dùng useFocusEffect thay vì useEffect mặc định."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Dùng useEffect để load lại API khi back về màn hình cũ" — sai, màn hình cũ trong Stack không bị unmount nên useEffect `[]` không chạy lại, phải dùng `useFocusEffect`.
+- ❌ "Deep linking cấu hình trên store (Apple/Google) là đủ" — sai, phải map URL với Screen tương ứng trong code React Navigation.
+- ❌ Quên cleanup sự kiện `BackHandler` — sẽ gây ra lỗi chặn nút back trên mọi màn hình khác của app.
+
+---
+
+## 7. Tự kiểm tra
+
+1. Nested Navigator là gì? Kể một cấu trúc lồng nhau phổ biến trong app thực tế.
+2. Vì sao cần cấu hình object `config` phức tạp khi làm Deep Linking với màn hình nằm trong Tab?
+3. Khi người dùng bấm Back vật lý trên Android, làm sao để hiện Alert "Bạn có chắc muốn thoát?" thay vì back luôn?
+4. Khác biệt giữa `useEffect` và `useFocusEffect` trong React Navigation là gì?

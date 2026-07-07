@@ -1,0 +1,98 @@
+---
+description: Day 22 (07/07) — Git thành thạo. Mental model commit/branch/HEAD, merge vs rebase, conflict, reset vs revert, PR workflow.
+alwaysApply: false
+---
+
+# Day 22 · T3 07/07 — Git thành thạo (làm việc nhóm thật)
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học Git ở mức **làm việc nhóm thực chiến**, không chỉ `add/commit/push`: hiểu **commit/branch/HEAD là gì**, **merge vs rebase**, xử lý **conflict**, **undo đúng cách (reset vs revert)**, và **luồng Pull Request**.
+
+Interviewer hỏi vì Git là kỹ năng nền của mọi team. Họ đánh giá bạn qua cách bạn **xử lý conflict** và **giữ lịch sử sạch** — đây là chỗ phân biệt người làm nhóm thật với người chỉ làm một mình.
+
+---
+
+## 2. Ví dụ đời thường
+
+Git giống **lịch sử phiên bản của Google Docs, nhưng cho code**:
+
+- **Commit** = một lần bạn "lưu mốc" kèm ghi chú "đã làm gì".
+- **Branch** = một bản nháp song song để thử tính năng mà không đụng bản chính.
+- **Merge** = gộp bản nháp vào bản chính.
+- **Conflict** = hai người sửa **cùng một dòng**, Git không biết chọn ai → bắt bạn quyết.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**A. Mental model (hiểu cái này là hiểu Git):**
+- **Commit** = một **ảnh chụp (snapshot)** toàn bộ code tại thời điểm đó, có mã ID riêng.
+- **Branch** = chỉ là **con trỏ** trỏ tới một commit (rất nhẹ, không phải "copy code").
+- **HEAD** = "bạn đang đứng ở đâu" (đang ở branch/commit nào).
+→ Hiểu vậy thì các lệnh chỉ là **di chuyển con trỏ**, không còn đáng sợ.
+
+**B. merge vs rebase (câu hay bị hỏi nhất):**
+- **merge**: gộp 2 nhánh, tạo thêm một "commit gộp". **Giữ lịch sử thật** (thấy rõ nhánh tách ra rồi nhập lại). Lịch sử hơi rối nhưng trung thực.
+- **rebase**: "dời" các commit của bạn lên **đầu nhánh mới nhất**, làm lịch sử **thẳng tắp, sạch đẹp** — nhưng **viết lại lịch sử** (đổi ID commit).
+- **Quy tắc vàng:** **KHÔNG rebase nhánh đã push/chia sẻ** với người khác → vì viết lại lịch sử chung sẽ phá commit của đồng đội. Rebase chỉ dùng cho nhánh **riêng của bạn** trước khi mở PR.
+
+**C. Conflict — vì sao và xử lý:**
+- Xảy ra khi **hai bên sửa cùng một vùng** của file.
+- Git chèn dấu: `<<<<<<<` (phần của bạn) `=======` `>>>>>>>` (phần nhánh kia). Bạn **chọn giữ phần nào / gộp cả hai**, xóa dấu, rồi commit.
+- Conflict là **bình thường**, không phải lỗi của bạn. Bình tĩnh đọc cả 2 phía rồi quyết.
+
+**D. Undo đúng cách (reset vs revert — rất hay sai):**
+- **`reset`**: **dời con trỏ về quá khứ**, có thể xóa commit. **Đổi lịch sử** → chỉ dùng cho commit **chưa push**. `reset --hard` còn xóa luôn code chưa lưu → cẩn thận.
+- **`revert`**: tạo **một commit mới đảo ngược** commit cũ. **Không xóa lịch sử** → an toàn cho nhánh **đã chia sẻ** (vd đã lên `main`).
+→ Nhớ: lỡ trên nhánh chung thì dùng **revert**, đừng reset.
+
+**E. Luồng PR chuẩn (kể được là điểm):**
+tạo nhánh feature → commit → push → mở **Pull Request** → review/sửa → merge (squash để gộp thành 1 commit gọn, hoặc merge commit để giữ chi tiết).
+
+**F. Vài lệnh cứu nguy (biết là cộng điểm):**
+- `git stash`: cất tạm thay đổi đang làm dở để đổi việc gấp, lát lấy lại.
+- `git cherry-pick <id>`: lấy **đúng 1 commit** từ nhánh khác sang.
+- `git reflog`: "hộp đen" — tìm lại commit tưởng đã mất.
+
+---
+
+## 4. Lệnh tối thiểu
+
+```bash
+# Luồng feature thường ngày
+git switch -c feature/login     # tạo + sang nhánh mới
+git add . && git commit -m "feat: add login form"
+git push -u origin feature/login   # rồi mở PR trên GitHub
+
+# Cập nhật nhánh mình theo main (rebase — chỉ khi nhánh CHƯA chia sẻ)
+git fetch origin
+git rebase origin/main          # giải conflict nếu có → git add → git rebase --continue
+
+# Undo
+git revert <commit_id>          # an toàn cho nhánh chung (tạo commit đảo ngược)
+git reset --soft HEAD~1         # gỡ commit cuối nhưng GIỮ code (nhánh riêng)
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Tôi hình dung Git đơn giản: commit là một snapshot có ID, branch chỉ là con trỏ tới commit, HEAD là chỗ tôi đang đứng — nên mọi lệnh thực ra chỉ là di chuyển con trỏ. Về merge và rebase: merge gộp và giữ lịch sử thật, rebase làm lịch sử thẳng đẹp nhưng viết lại lịch sử, nên tôi chỉ rebase nhánh riêng của mình, tuyệt đối không rebase nhánh đã chia sẻ. Conflict xảy ra khi hai người sửa cùng một vùng; tôi đọc cả hai phía rồi chọn. Khi cần undo, nếu commit chưa push tôi dùng reset, còn nếu đã lên nhánh chung tôi dùng revert để không phá lịch sử của người khác. Quy trình tôi theo là feature branch rồi mở PR cho review."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Rebase nhánh đã push chung → phá commit đồng đội. Nhớ quy tắc vàng.
+- ❌ `git reset --hard` / force push bừa trên nhánh chung → mất việc người khác.
+- ❌ Commit message vô nghĩa kiểu "fix", "update" → khó review, khó truy vết.
+- ❌ Sợ conflict, "xóa hết làm lại" → sai. Conflict là bình thường, đọc kỹ rồi giải.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 23)
+
+1. Branch và HEAD thực chất là gì? Vì sao tạo branch lại "rẻ"?
+2. merge khác rebase ra sao? Quy tắc vàng của rebase là gì?
+3. Lỡ commit sai đã push lên `main` — bạn dùng reset hay revert? Vì sao?

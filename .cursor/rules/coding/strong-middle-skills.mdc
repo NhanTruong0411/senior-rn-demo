@@ -1,0 +1,209 @@
+---
+description: Lộ trình kỹ năng Strong Middle RN — theo phase, gọn, dễ đọc. Learn & practice.
+alwaysApply: false
+---
+
+# Strong Middle RN — Skills Roadmap
+
+**Nguồn:** `interview/viliha.mdc` · `coding/qa-bank.mdc`  
+**Thứ tự:** build app từ đầu → production · **Stack:** 2025–2026 (không deprecated)
+
+```
+Cách học mỗi tuần:  Đọc (search)  →  Làm (demo)  →  Nói (60s VN+EN)  →  Đo (STT 12+)
+```
+
+---
+
+## Bản đồ nhanh
+
+| Phase | STT | Mục tiêu level |
+|:-----:|:---:|----------------|
+| **A · Nền** | 01–05 | Middle vững — UI, hooks, list |
+| **B · App logic** | 06–11 | State, API, auth, offline |
+| **C · Strong Middle** | 12–17 | Perf, kiến trúc, push, deep link |
+| **D · Production** | 18–21 | Test, Sentry, EAS, CI |
+
+**Middle → Strong Middle 2:** A+B bắt buộc · C = khác biệt · D = được tin ship
+
+---
+
+## Phase A — Nền (01–05)
+
+### 01 · TypeScript & JS hiện đại
+- **Stack:** TypeScript · ES2023 (async/await, generics)
+- **Why:** Type-safe — nền cho mọi layer phía sau
+- **Search:** `TypeScript for React Native developers 2026`
+
+### 02 · RN core & layout
+- **Stack:** RN 0.7x · Expo SDK · Flexbox
+- **Why:** Component tree, props/state, dựng UI cơ bản
+- **Search:** `React Native Expo crash course 2026`
+
+### 03 · Hooks (render vs commit)
+- **Stack:** `useState` · `useEffect` · `useRef` · rules of hooks
+- **Why:** Tránh stale closure, effect loop, re-render thừa
+- **Search:** `React useEffect dependency array pitfalls`
+
+### 04 · Navigation
+- **Stack:** React Navigation v7 · Expo Router
+- **Why:** Stack / tab / drawer, nested nav, params
+- **Search:** `Expo Router vs React Navigation 2026`
+
+### 05 · List & keys
+- **Stack:** FlatList · FlashList
+- **Why:** List lớn mượt · `keyExtractor` = `id` (không index)
+- **Search:** `FlashList vs FlatList React Native`
+- **Drill:** `qa-bank` Q3.1 · `viliha` Q13
+
+---
+
+## Phase B — App logic (06–11)
+
+### 06 · Styling & design tokens
+- **Stack:** NativeWind v4 · StyleSheet · dark mode
+- **Why:** Đồng bộ Figma, scale theme, không hardcode hex
+- **Search:** `NativeWind v4 design tokens dark mode`
+
+### 07 · Client state
+- **Stack:** Zustand · Redux Toolkit · Context (đúng chỗ)
+- **Why:** Auth flag, theme, UI flow — app sở hữu data
+- **Search:** `Zustand vs Redux Toolkit when to use`
+- **Drill:** `viliha` Q1
+
+### 08 · Server state
+- **Stack:** TanStack Query v5 (key, staleTime, invalidate)
+- **Why:** Cache / refetch / retry — không tự viết tay
+- **Search:** `TanStack Query v5 React Native caching`
+- **Drill:** `viliha` Q1–Q2 · `qa-bank` Q2.1
+
+### 09 · API & errors
+- **Stack:** Axios/fetch · interceptor · Zod
+- **Why:** 1 client, 401 refresh, map 4xx/5xx/offline
+- **Search:** `axios interceptor refresh token React Native`
+- **Drill:** `viliha` Q15 · `qa-bank` Q5.x
+
+### 10 · Auth & secure storage
+- **Stack:** Expo SecureStore · Keychain/Keystore · biometric
+- **Why:** Refresh token an toàn, không lộ PII
+- **Search:** `React Native secure token storage Keychain`
+- **Drill:** `viliha` Q10
+
+### 11 · Offline storage
+- **Stack:** MMKV · `expo-sqlite` / `op-sqlite` · NetInfo
+- **Why:** Read offline, queue write, sync khi online
+- **Search:** `MMKV vs AsyncStorage SQLite React Native`
+- **Drill:** `viliha` Q10–Q12
+
+---
+
+## Phase C — Strong Middle (12–17)
+
+### 12 · Performance & profiling
+- **Stack:** React DevTools Profiler · RN DevTools · Hermes
+- **Why:** Đo trước — memo, windowSize, getItemLayout, bundle
+- **Search:** `React Native DevTools profiling performance`
+- **Drill:** `viliha` Q13 · `qa-bank` Q3.1–Q3.4
+
+### 13 · Animation & gesture
+- **Stack:** Reanimated 3 · Gesture Handler
+- **Why:** 60fps trên UI thread, gesture mượt
+- **Search:** `React Native Reanimated 3 tutorial`
+
+### 14 · New Architecture
+- **Stack:** Fabric · TurboModules · JSI · Hermes (RN 0.76+)
+- **Why:** Hiểu bỏ Bridge, startup & native interop nhanh hơn
+- **Search:** `React Native New Architecture Fabric TurboModule`
+- **Drill:** `qa-bank` Q1.5 · Q3.3
+
+### 15 · Push notifications
+- **Stack:** Expo Notifications · FCM · APNs
+- **Why:** Token → backend → tap → đúng screen
+- **Search:** `Expo push notification FCM APNs end to end`
+- **Drill:** `viliha` Q6–Q9
+
+### 16 · Deep linking
+- **Stack:** RN linking config · Universal/App Links
+- **Why:** URL/push → screen · cold start · queue khi chưa login
+- **Search:** `React Native deep linking universal links`
+- **Drill:** `viliha` Q8
+
+### 17 · Clean Architecture (practical)
+- **Stack:** Feature folder · repository · DTO → domain mapper
+- **Why:** Dependency inward, scale không spaghetti
+- **Search:** `Clean Architecture React Native feature folder`
+- **Drill:** `viliha` Q5
+
+---
+
+## Phase D — Production (18–21)
+
+### 18 · Testing
+- **Stack:** Jest · RNTL · MSW
+- **Why:** Unit domain · integration UI · mock API
+- **Search:** `React Native Testing Library MSW 2026`
+- **Drill:** `qa-bank` Topic 7
+
+### 19 · Observability
+- **Stack:** Sentry · Firebase Analytics · Error Boundary
+- **Why:** Crash production, breadcrumb, không log token
+- **Search:** `Sentry React Native source map setup`
+- **Drill:** `qa-bank` Q6.1–Q6.2
+
+### 20 · Build & OTA
+- **Stack:** EAS Build · Submit · Update · Secrets
+- **Why:** Build cloud, hotfix JS không qua store review
+- **Search:** `Expo EAS Build Update production workflow`
+- **Drill:** `viliha` Q3
+
+### 21 · CI/CD
+- **Stack:** EAS Workflows · GitHub Actions · Fastlane
+- **Why:** Build / test / release tự động, versioning
+- **Search:** `EAS Workflows CI CD React Native`
+
+---
+
+## Checklist tiến độ
+
+Copy block dưới, tick khi xong phase:
+
+```
+Phase A  [ ] 01  [ ] 02  [ ] 03  [ ] 04  [ ] 05
+Phase B  [ ] 06  [ ] 07  [ ] 08  [ ] 09  [ ] 10  [ ] 11
+Phase C  [ ] 12  [ ] 13  [ ] 14  [ ] 15  [ ] 16  [ ] 17
+Phase D  [ ] 18  [ ] 19  [ ] 20  [ ] 21
+```
+
+---
+
+## Sprint 8 tuần
+
+| Tuần | Focus |
+|:----:|-------|
+| 1 | 03, 05 |
+| 2 | 08, 09 |
+| 3 | 10, 11 |
+| 4 | 12, 13 |
+| 5 | 14, 17 |
+| 6 | 15, 16 |
+| 7 | 18, 19 |
+| 8 | 20, 21 |
+
+**Interview 30 phút:** 08 + 12 + 15 → `viliha` Q1, Q2, Q13, Q6–Q8  
+**Honest gaps:** EAS prod · NativeWind prod · SQLite scale → mental model + ramp (`viliha` Q20)
+
+---
+
+## Deprecated → dùng thay
+
+| ❌ Cũ | ✅ Mới |
+|--------|--------|
+| Flipper | React Native DevTools |
+| Saga/thunk fetch mọi thứ | TanStack Query |
+| `createAsyncThunk` + cache tay | Query key + invalidate |
+| AsyncStorage token | SecureStore |
+| `keyExtractor` = index | Stable `id` |
+| Class component | Function + hooks |
+
+---
+
+_Cập nhật khi Expo SDK / RN minor đổi._

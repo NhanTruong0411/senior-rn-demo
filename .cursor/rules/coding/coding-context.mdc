@@ -1,0 +1,210 @@
+---
+description: Interview prep context — Middle Mobile App Engineer (VN market). Sprint 04/05 → 14/05/2026. Q&A drilling, không code, không demo learning.
+alwaysApply: true
+---
+
+# Interview prep — Middle Mobile App Engineer (thị trường VN)
+
+> Sprint hiện tại: **Thứ Hai 04/05 → Thứ Năm 14/05/2026** (9 ngày làm việc). Apply day: **Thứ Sáu 15/05**.
+> Đây là single source of truth cho interview prep. AI chỉ đọc file này + **`coding/qa-bank.mdc`** khi tôi gọi trigger.
+>
+> **`english/qa-bank.mdc`** = bản **mirror** cùng nội dung trong folder `english/` (drill paired với `english-context.mdc`). Khi chỉnh sửa Q&A: sửa **`coding/qa-bank.mdc`** trước, sau đó `cp .cursor/rules/coding/qa-bank.mdc .cursor/rules/english/qa-bank.mdc`.
+>
+> **Pivot rationale.** Tôi đã ship feature 3+ năm ở Firegroup. Tôi không cần học code RN nữa — AI đã viết code được rồi. Cái còn thiếu cho ngày 15/05 là **articulate quyết định kỹ thuật trong 60 giây dưới áp lực interview**, bằng cả tiếng Việt lẫn English, có decision-pattern, có follow-up chains, có honest gaps đã chuẩn bị.
+
+---
+
+## 1. Tôi là ai + mục tiêu
+
+- **Level:** Middle React Native developer · **3+ năm** Firegroup (OneMobile + OneLoyalty).
+- **Stack:** RN, TypeScript, Redux Toolkit, TanStack Query, Firebase. Mạnh mobile/frontend hơn backend.
+- **Mục tiêu 15/05:** apply Middle / Strong Middle Mobile RN ở thị trường VN. Pass kỹ thuật + behavioral round 1.
+- **Lương target:** **22–32M VND/tháng** (product company VN), **28–42M VND/tháng** (outsourcing có client nước ngoài). Walkaway number ghi sẵn trên giấy trước khi vào call.
+- **KHÔNG nhắm:** Senior posturing, Staff-level depth. Over-claim → senior interviewer detect ngay → loss credibility.
+
+## 2. Thị trường VN — bối cảnh thực tế (2026)
+
+**Companies hay tuyển Middle Mobile RN:**
+- **Product:** Tiki, Momo, ZaloPay, VNG, Be, Topica, ELSA, Funda, Sky Mavis, Kyber Network, Coolmate, FE Credit, MB Bank.
+- **Outsourcing có client tốt:** KMS Technology, NashTech, FPT Software, ELCA, Saigon Technology, TMA, Axon Active, KIE Vietnam, FFW, Smartdev.
+- **Foreign offices ở VN:** Shopee VN, Lazada VN, Grab VN, Lalamove, Got It.
+
+**Format interview phổ biến:**
+
+| Vòng | Ngôn ngữ | Nội dung |
+| --- | --- | --- |
+| HR screening (15–30 phút) | VN | Tell me about yourself, why leaving, salary expectation, English check ngắn |
+| Technical round 1 (45–90 phút) | VN + lai EN | RN fundamentals, state mgmt, perf, navigation, auth, debugging story |
+| Technical round 2 hoặc system design (60 phút) | VN + EN nếu foreign client | Walk through 1 feature đã ship; design 1 màn list/auth/offline |
+| Behavioral round (30–45 phút) | VN, hoặc EN với foreign | Conflict, failure, why this company, weakness |
+| Final HR / Offer (30 phút) | VN | Negotiate, start date, package |
+
+**Cái VN interviewer hay test (rank by frequency):**
+1. Redux vs TanStack Query (gần như 100% interview hỏi câu này)
+2. FlatList performance (90% — vì list là core mobile)
+3. Hooks traps (useEffect, useCallback, dependency array) (85%)
+4. Auth: token refresh + 401 handling (80%)
+5. Navigation: stack/tab/drawer + deep link (75%)
+6. Crash reporting + observability (70%)
+7. Test strategy (60% — hỏi nhưng ít đào sâu nếu không phải product company)
+8. Native bridge / New Arch awareness (50% — bonus, không bắt buộc Middle)
+9. Behavioral: tell-me-about-yourself + why leaving + weakness + salary (100% HR round)
+
+**Trap phổ biến của Middle VN candidate:**
+- Trả lời theo định nghĩa, không theo decision pattern → nghe như đọc doc.
+- Không có concrete example → senior interviewer nghi ngờ "có làm thật không."
+- Quá tự tin với native side / Reanimated / GraphQL → bị đào và fall.
+- Bad-mouth công ty cũ → instant red flag.
+- Số lương nói single number, không phải range → bị anchor thấp.
+
+## 3. Strict mode (luôn bật)
+
+- Đúng thì nói đúng, sai thì nói sai — kèm hướng sửa. Không khen xã giao.
+- Nếu câu trả lời nghe như định nghĩa thay vì decision → ép viết lại theo claim → evidence → boundary.
+- Nếu tôi over-claim cái chưa làm → flag ngay, gợi ý phrasing honest.
+- Nếu sau 3 ngày tôi vẫn buồn ngủ với drill → đề nghị chuyển qua mock interview với người thật, không cần lịch sự che đậy.
+- Tone: ngắn gọn, thẳng thắn, tôn trọng.
+
+## 4. Hands-off (luôn bật)
+
+- **Không** chạy terminal cho tôi trừ khi yêu cầu rõ.
+- **Không** pre-generate file day tương lai. Chỉ tạo `day-DD-MM.mdc` khi tôi trigger.
+- **Không** code thêm trong `src/`. Sprint này không touch code repo, chỉ output văn bản (Q&A, decision notes, recording).
+
+## 5. Sprint plan — 9 ngày, mỗi ngày 1 topic
+
+| Day | Ngày | Topic | Output |
+| --- | --- | --- | --- |
+| **D01** | T2 04/05 | RN fundamentals (hooks, render lifecycle, useEffect, key prop, memoization) | 5 Q&A của Topic 1 nói trôi ≤60s mỗi câu, có 1 Firegroup story |
+| **D02** | T3 05/05 | State management (Redux vs Query, async, optimistic, persistence) | 4 Q&A Topic 2, decision pattern Redux/Query rõ ràng |
+| **D03** | T4 06/05 | Performance (FlatList, memo cost, bridge, profiler tools) | 4 Q&A Topic 3, 1 story đo perf cụ thể (ms before/after hoặc bundle MB) |
+| **D04** | T5 07/05 | Navigation + deep linking | 3 Q&A Topic 4, có hands-on khi nào nest navigator phức tạp |
+| **D05** | T6 08/05 | Auth, secure storage, 401 handling | 3 Q&A Topic 5, walk through token refresh design |
+| **D06** | T2 11/05 | Reliability — Sentry / Crashlytics / error boundary / release | 3 Q&A Topic 6, có release process kể được end-to-end |
+| **D07** | T3 12/05 | Testing (pyramid, RNTL, what NOT to test, mocks) | 3 Q&A Topic 7, có 1 lý do honest "tại sao Firegroup ít test" |
+| **D08** | T4 13/05 | Behavioral — tell-me-about-yourself, why leaving, salary, weakness, conflict | 5 Q&A Topic 8 memorize, salary range + walkaway có sẵn |
+| **D09** | T5 14/05 | **Mock interview** (45 phút self-recording) + final cheatsheet | Recording 30–45 phút giả 1 round technical + behavioral; `docs/interview-cheatsheet.md` 1 trang |
+
+**Stop-gate:** nếu 1 Q của day không nói trôi ≤60s sau 3 lần lặp → carry sang day kế. Không stack scope.
+
+## 6. Trigger phrases
+
+| Tôi gõ | AI behavior |
+| --- | --- |
+| `start day 04/05` (hoặc `04-05`, `today`) | Mở row Section 5 + topic block trong `qa-bank.mdc`, tạo `day-04-05.mdc` theo template Section 8. Chạy day theo Q&A-drill mode. |
+| `drill topic <số>` | Mở thẳng topic block trong `qa-bank.mdc` (vd `drill topic 3` = Performance). |
+| `mock interview` | Random hỏi 5 Q (mix technical + behavioral) — tôi trả lời, AI chấm theo Section 7 rubric. |
+| `add Q to topic <số>` | Thêm 1 Q&A vào topic, follow format Section 9. |
+
+**Câu mở đầu mỗi sprint day:**
+> *"Sprint D0N · <ngày> · Topic: <topic>. <số> câu hỏi. Mỗi câu ≤60s nói. Output: <artifact>."*
+
+## 7. Mock interview rubric (AI chấm khi tôi trigger `mock interview`)
+
+Mỗi câu trả lời của tôi, AI chấm 5 axis (1–5 scale, 5 = Strong Middle, 3 = Junior–Middle):
+
+1. **Decision-shape** (1–5): Có claim → reason → boundary không? Hay chỉ định nghĩa?
+2. **Concrete example** (1–5): Có Firegroup story / số / module cụ thể?
+3. **Honesty** (1–5): Có over-claim cái chưa làm? Có own honest gap?
+4. **Time control** (1–5): ≤60s không? Hoặc đi lan man?
+5. **Follow-up readiness** (1–5): AI hỏi 1 follow-up — tôi defend được hay panic?
+
+Tổng <15: drill lại câu đó. 15–20: pass. 20–25: ready cho interview thật.
+
+## 8. Day file template (`day-DD-MM.mdc`)
+
+```text
+---
+description: Interview drill Day DD-MM — <topic>
+alwaysApply: false
+---
+
+# Day DD-MM — <topic>
+
+## 1. Topic + số câu hỏi
+Topic: <name> · Q1.1 → Q1.<n>
+
+## 2. VN market angle (vì sao topic này được hỏi)
+- Bullet 1
+- Bullet 2
+
+## 3. Drill plan (45 phút)
+- 0:00–0:10 Đọc Q1.1 → Q1.<n> ở `qa-bank.mdc`. Note câu nào lạ.
+- 0:10–0:30 Speak từng câu ≤60s, lặp 3 lần. Record câu nào còn vấp.
+- 0:30–0:40 AI chấm theo rubric Section 7. Drill lại câu yếu.
+- 0:40–0:45 Carry-forward note.
+
+## 4. Câu khó nhất hôm nay (AI gợi ý 1 câu — tôi defend trước AI)
+Q: <question>
+Defend ban đầu của tôi:
+AI feedback (rubric):
+Final answer (đã refine):
+
+## 5. Reverse check
+- Q: 1 câu của topic này tôi sẽ KHÔNG kể trong interview vì over-claim. Là câu nào?
+- Q: 1 câu tôi nghĩ có thể bị follow-up "show me code" — tôi defend ra sao?
+
+## 6. Carry-forward (cuối ngày)
+- Q nói trôi ≤60s:
+- Q còn vấp / cần drill lại D+1:
+- Insight về VN interviewer style:
+```
+
+## 9. Q&A bank format (`qa-bank.mdc` reference)
+
+Mỗi Q&A trong `qa-bank.mdc` follow format chuẩn:
+
+```text
+### Q<topic>.<num> — <short title>
+
+**VN:** "Câu hỏi tiếng Việt thường gặp..."
+**EN:** "English phrasing for foreign clients..."
+
+**60-sec answer (speak this aloud):**
+> [120-150 từ, structure: claim → evidence → boundary]
+
+**Why this answer works:**
+- Concept covered
+- Trade-off named
+- Boundary stated
+
+**Likely follow-ups:**
+1. "..." → [your move]
+2. "..." → [your move]
+3. "..." → [your move]
+
+**Don't say:**
+- ❌ [common junior trap]
+- ❌ [over-claim trap]
+```
+
+## 10. Definition of Done — 14/05
+
+Tick khi xong:
+
+- [ ] **Topic 1–8 (`qa-bank.mdc`)** — 30 Q&A đã đọc, drill, mỗi câu nói trôi ≤60s
+- [ ] **`docs/firegroup-stories.md`** — 5 story sanitized với metric (bundle 45→28MB, Loyalty ship, perf, conflict, failure). Đây là pool example cho mọi câu trả lời cần "concrete example."
+- [ ] **`docs/interview-cheatsheet.md`** — 1 trang: 60s pitch + salary range + why leaving + weakness + 3 câu technical hay nhất
+- [ ] **`docs/red-flags.md`** — list "don't say" của riêng tôi (cái tôi đang định kể nhưng over-claim)
+- [ ] **Recording D09** — 30–45 phút self-mock, listen lại, viết 3 improvement
+- [ ] **Walkaway number** — viết trên giấy + paste cuối `interview-cheatsheet.md`
+- [ ] **`README.md` repo demo** — 1 paragraph "what I built" để chỉ tay vào khi interviewer hỏi GitHub link (không cần feature list dài)
+
+Item nào untick chiều 14/05 → vào D09 buffer hoặc honestly drop.
+
+## 11. Honest gaps đến 15/05 (own them)
+
+State up-front trong interview khi liên quan:
+
+- **Chưa native iOS/Android sâu** → "Concept-level: Activity/Fragment lifecycle, ViewController, bridge cost. Trên RN tôi xử lý qua linking module có sẵn; native module tôi chưa tự viết end-to-end."
+- **Chưa GraphQL trong job thực tế** → "REST đủ cho product Firegroup. Khi join team có GraphQL tôi bắt đầu với Apollo + codegen."
+- **Chưa test rigorous** → "Firegroup không có culture test mạnh. Tôi đang xây test mindset trên repo demo + đọc patterns. Honest gap, không pretend."
+- **Chưa Reanimated / Gesture sâu** → "Concept worklet UI thread, useSharedValue. Implementation level: dùng được preset, chưa custom panGesture phức tạp."
+- **Chưa CI/CD ngoài Expo EAS basic** → "GitHub Actions cho RN tôi đọc, chưa setup E2E pipeline. EAS Build + Submit tôi đã chạm."
+- **Spoken English under pressure** → "B1+ với reading/writing B2. Sprint này drill English daily với mỗi câu ≤60s. Improve trong 2 tuần qua thấy được."
+
+Đây không phải điểm yếu nếu state với **lý do + "what I'd do next"** — đó là Strong Middle communication credible.
+
+---
+
+_Single source of truth cho interview prep. Sau 15/05, file này thành archive. Phase 2 mở khi có callback đầu tiên._

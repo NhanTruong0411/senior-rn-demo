@@ -1,0 +1,100 @@
+---
+description: Day 15 (26/06) — BFS vs DFS. Theo tầng (queue) vs theo chiều sâu (stack/đệ quy), khi nào dùng cái nào.
+alwaysApply: false
+---
+
+# Day 15 · T6 26/06 — BFS / DFS
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **2 cách duyệt** cây và đồ thị: **BFS** (theo chiều rộng — từng tầng) và **DFS** (theo chiều sâu — đi sâu hết nhánh). Đây là **kết hợp 3 ngày trước**: BFS dùng **queue** (Day 12), DFS dùng **stack/đệ quy** (Day 12), chạy trên **cây** (Day 13) hoặc **graph** (Day 14).
+
+Interviewer hỏi vì đây là **kỹ thuật giải bài phổ biến nhất** với cấu trúc phân cấp/mạng lưới: tìm đường, tìm theo cấp độ, kiểm tra liên thông. Nói được "khi nào BFS, khi nào DFS" là điểm Strong Middle.
+
+---
+
+## 2. Ví dụ đời thường
+
+Bạn lạc trong một tòa nhà nhiều phòng, đi tìm lối ra.
+
+- **BFS = rủ thêm người, tản ra đều.** Trước hết kiểm **mọi phòng cách bạn 1 bước**, chưa thấy thì kiểm **mọi phòng cách 2 bước**... Lan ra theo **vòng tròn lớn dần**. Vì duyệt theo khoảng cách tăng dần nên **tìm ra đường ngắn nhất**.
+- **DFS = một mình lao thẳng.** Chọn một hướng, đi sâu hết cỡ tới khi cụt đường thì **quay lui** thử hướng khác. Đi hết nhánh này mới sang nhánh kia.
+
+BFS lan theo tầng; DFS đâm sâu rồi lùi.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+| | BFS (Breadth-First) | DFS (Depth-First) |
+| --- | --- | --- |
+| Hướng đi | Theo **tầng**, gần trước xa sau | Đi **sâu** một nhánh rồi lùi |
+| Cấu trúc dùng | **Queue** (FIFO) | **Stack** hoặc **đệ quy** |
+| Mạnh ở | Tìm **đường ngắn nhất** (graph không trọng số) | Đi hết, dò nhánh, bài đệ quy tự nhiên |
+| Tốn bộ nhớ | Nhiều khi cây rộng (giữ cả 1 tầng) | Ít hơn, nhưng sâu quá → stack overflow |
+
+**Cốt lõi phải nhớ — cấu trúc quyết định thứ tự:**
+- **BFS dùng queue:** lấy đỉnh ra theo FIFO → đỉnh gần được xử lý trước → lan theo tầng.
+- **DFS dùng stack (hoặc đệ quy = call stack):** lấy theo LIFO → đỉnh vừa thêm xử lý trước → lao sâu.
+
+→ Đây là lý do Day 12 quan trọng: **đổi queue thành stack là biến BFS thành DFS.** Hiểu điều này là hiểu bản chất, không học vẹt.
+
+**Khi nào chọn cái nào (câu hay bị hỏi):**
+- Cần **đường ngắn nhất / ít bước nhất** trên graph không trọng số → **BFS** (vì nó duyệt theo khoảng cách tăng dần, gặp đích là ngắn nhất).
+- Cần **dò hết khả năng**, bài có dạng đệ quy tự nhiên (duyệt cây JSON, liệt kê tổ hợp, phát hiện chu trình) → **DFS** (code gọn bằng đệ quy).
+
+**Bắt buộc với graph: `visited`** (nối Day 14) — graph có vòng nên cả BFS lẫn DFS đều phải đánh dấu đã thăm để không lặp vô tận. Cây thì không cần.
+
+**Liên hệ thực tế mobile:** duyệt cây JSON lồng (comment/menu) thường DFS bằng đệ quy. Tìm "khoảng cách kết nối ngắn nhất giữa 2 user" trong đồ thị bạn bè thì BFS.
+
+---
+
+## 4. Code tối thiểu
+
+```js
+const graph = { A:['B','C'], B:['D'], C:['D'], D:[] };
+
+// BFS — queue, lan theo tầng
+function bfs(start) {
+  const queue = [start];
+  const visited = new Set([start]);
+  while (queue.length) {
+    const node = queue.shift();       // lấy ĐẦU hàng (FIFO)
+    console.log(node);
+    for (const next of graph[node]) {
+      if (!visited.has(next)) { visited.add(next); queue.push(next); }
+    }
+  }
+} // A, B, C, D — theo tầng
+
+// DFS — đệ quy (call stack), đâm sâu
+function dfs(node, visited = new Set()) {
+  if (visited.has(node)) return;
+  visited.add(node);
+  console.log(node);
+  for (const next of graph[node]) dfs(next, visited);
+} // A, B, D, C — sâu trước
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "BFS duyệt theo tầng, gần trước xa sau, dùng queue; DFS đi sâu một nhánh rồi lùi, dùng stack hoặc đệ quy. Điểm cốt lõi là cấu trúc quyết định thứ tự: queue FIFO nên BFS lan theo tầng, stack LIFO nên DFS lao sâu — đổi queue thành stack là biến BFS thành DFS. Tôi chọn BFS khi cần đường ngắn nhất hoặc ít bước nhất trên đồ thị không trọng số, vì nó duyệt theo khoảng cách tăng dần nên gặp đích là ngắn nhất. Tôi chọn DFS khi cần dò hết hoặc bài có dạng đệ quy tự nhiên như duyệt cây JSON lồng nhau. Với graph thì cả hai đều phải đánh dấu visited để không lặp vô tận vì graph có vòng; cây thì không cần."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Lẫn cấu trúc: **BFS = queue, DFS = stack/đệ quy**. Nói ngược là mất điểm ngay.
+- ❌ "DFS tìm đường ngắn nhất" — SAI với graph không trọng số; đó là việc của BFS.
+- ❌ Quên `visited` trên graph → lặp vô tận.
+- ❌ DFS đệ quy trên cây quá sâu → stack overflow; nhắc được điều này là điểm cộng.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 16)
+
+1. BFS dùng cấu trúc gì, DFS dùng gì? Vì sao cấu trúc đó quyết định thứ tự duyệt?
+2. Cần tìm đường ít bước nhất trên đồ thị không trọng số — chọn BFS hay DFS? Vì sao?
+3. Vì sao duyệt graph cần `visited`? Đệ quy DFS có rủi ro gì khi cây quá sâu?

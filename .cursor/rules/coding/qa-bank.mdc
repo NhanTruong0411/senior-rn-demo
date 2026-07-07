@@ -1,0 +1,1522 @@
+---
+description: Q&A bank — Middle Mobile RN interview (VN market). 8 topics × 3–5 Q&As each. Trigger via day file hoặc `drill topic <số>`.
+alwaysApply: false
+---
+
+# Q&A bank — Middle Mobile RN (VN market)
+
+> 30 câu hỏi, 8 topic. Mỗi câu: VN + EN phrasing, 60s spoken answer, explanation, 3 follow-ups, don't-say.
+> **Không đọc thầm.** Mỗi câu phải nói thành tiếng ≥3 lần. Câu nào nói không trôi ≤60s sau 3 lần → drill lại D+1.
+
+---
+
+## Topicccccccccccccccc 1 — React Native Fundamentals (5 Q&As)
+
+### Q1.1 — Render vs commit, hook không gọi conditionally
+
+**VN:** *"Em giải thích render vs commit phase. Tại sao hook không gọi trong if/loop?"*
+**EN:** *"Walk me through render vs commit. Why can't hooks be called conditionally?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Render phase** — React chạy function component (vd `function Home() { ... return <View/> }`) để **tính ra cây UI mới**. Chỉ là tính toán JS, chưa đụng tới màn hình thật. Phải pure: không fetch, không setState, không log mutation.
+- **Commit phase** — React đem cây UI mới so với cây cũ, **vẽ diff lên native view** + chạy `useEffect`. Đây là lúc user nhìn thấy thay đổi.
+- **Hook** — function bắt đầu bằng `use*` (`useState`, `useEffect`...) chỉ chạy được trong render phase của component.
+- **Hook slot / call order** — React không nhớ hook qua tên biến. Nó giữ 1 array nội bộ cho mỗi component instance, hook thứ N gọi → lấy slot N. Lần render sau phải gọi đúng N hook đúng thứ tự, không thì lệch.
+- **Top-level rule** — Hook phải gọi ở top level của function component, không trong `if`, `for`, hoặc sau `return` early.
+
+**💡 Ý chính (intuition mobile dev):**
+Hình dung React như 1 cô thủ thư: lần đầu component render, hook gọi theo thứ tự `[useState('name'), useState('email'), useEffect(...)]` → cô lưu vào slot 0, 1, 2. Lần sau render lại, cô không đọc tên — cô đọc theo số slot. Nếu bạn bọc `useState('email')` trong `if (showEmail)`, render đầu showEmail=true có 3 hook, render sau showEmail=false chỉ còn 2 hook → cô vẫn lấy slot 0, 1, 2 nhưng giờ slot 1 là `useEffect` chứ không phải email → state nhảy lung tung. Đó là lý do rule "hook luôn ở top level" — không phải style preference, mà là constraint của cách React lưu state.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này lọc ai chỉ đọc doc vs ai hiểu cơ chế. Junior thường chỉ thuộc lòng "hook không gọi trong if" mà không giải thích được vì sao — interviewer probe "vì sao React không match hook bằng tên?" là tịt. Middle phải nói được call-order matching, distinguish render vs commit, và biết fix: kéo hook ra top, đặt `if` vào *trong* hook (vd `useEffect(() => { if (cond) ... }, [cond])`).
+
+🗣 **Trả lời phỏng vấn:**
+> React chia 2 phase. Render là lúc function chạy để compute UI — phải pure, không side effect. Commit là khi React update màn hình thật và chạy effect. Hook lưu state qua thứ tự call: hook thứ N map vào slot N trong array nội bộ của React. Gọi trong if hoặc loop thì thứ tự lệch giữa các render → state nhảy slot, bug rất khó tìm. Đó là lý do có rule "hook luôn ở top level". Em từng gặp khi vội bọc `useState` trong condition — render sau giá trị của field A bỗng nhiên là của field B. Cách fix là gọi hook unconditional, đặt logic if vào *trong* hook chứ không *quanh* hook.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```tsx
+function Form({ showEmail }) {
+  if (showEmail) {
+    const [email, setEmail] = useState(''); // ❌
+  }
+  const [name, setName] = useState('');
+}
+```
+
+Render 1 (`showEmail=true`): slot 0=email, slot 1=name. Render 2 (`showEmail=false`): slot 0=name. React tưởng `name` là `email` cũ → state lệch. Fix: kéo `useState('')` ra ngoài if, dùng condition trong logic xử lý.
+
+---
+
+### Q1.2 — useEffect dependency traps
+
+**VN:** *"Em hay gặp bug gì với useEffect dependencies?"*
+**EN:** *"What's the most common useEffect bug you've shipped?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Closure** — function "nhớ" biến trong scope nơi nó được tạo ra. Khi function chạy, nó dùng giá trị biến tại lúc tạo, không phải lúc gọi.
+- **Stale closure** — closure giữ giá trị **cũ** vì function được tạo ở render trước, không re-create ở render sau (do dep array sai).
+- **Dependency array** — mảng `[a, b]` ở cuối `useEffect`/`useCallback`/`useMemo`. React so sánh từng phần tử với render trước (dùng `Object.is`, tương đương `===`) để quyết định re-run effect hay không.
+- **Reference equality** — `{}` !== `{}`. Hai object có nội dung giống nhau nhưng khác địa chỉ memory thì so sánh `===` vẫn `false`. Đó là lý do object literal trong dep gây loop.
+- **Infinite loop** — effect chạy → setState → re-render → tạo object literal mới → dep "đổi" → effect chạy lại → vòng lặp vô hạn.
+- **Functional setState** — `setCount(c => c + 1)` thay vì `setCount(count + 1)`. Callback nhận giá trị mới nhất từ React, tránh stale closure.
+- **`react-hooks/exhaustive-deps`** — ESLint rule warn khi dep array thiếu biến mà callback dùng tới.
+
+**💡 Ý chính (intuition mobile dev):**
+Closure giống như chụp ảnh: function ghi lại biến tại thời điểm tạo. `useEffect(() => setInterval(() => log(count)), [])` với dep rỗng → callback trong interval chụp ảnh `count = 0` lúc mount. Sau đó dù `count` lên 5, 10, 100, function vẫn log 0 vì nó dùng "ảnh" cũ — đó là stale closure. Fix: thêm `count` vào dep để effect re-create khi count đổi, hoặc dùng functional setState `setCount(c => c + 1)` (callback đọc giá trị mới nhất qua tham số), hoặc `useRef` nếu không muốn re-subscribe interval. Trap thứ hai ngược lại: `useEffect(fn, [{ id }])` — mỗi render JS tạo object literal mới (khác địa chỉ memory) → dep "khác" → effect chạy mãi không dừng. Fix: destructure scalar (`[id]`) hoặc memoize bằng `useMemo`.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Đây là bug phổ biến nhất của Middle dev — interviewer biết câu này test "có thật sự debug bug closure trong prod chưa?". Junior hay disable lint `// eslint-disable-next-line` để code chạy → chính là dấu hiệu chưa hiểu. Middle phải nói rõ: bypass lint = logic chưa rõ, refactor chứ không tắt lint, và phân biệt được khi nào dùng functional setState vs ref vs thêm dep.
+
+🗣 **Trả lời phỏng vấn:**
+> Hai trap em gặp nhiều nhất. Một là stale closure — quên dep, callback inside capture biến cũ. Ví dụ effect set `setInterval` log `count`, dep để `[]` → callback luôn log giá trị `count` lúc mount, không bao giờ thấy giá trị mới. Fix: thêm `count` vào dep, hoặc dùng functional setState, hoặc ref nếu không muốn re-subscribe. Hai là infinite loop — `useEffect(..., [{ id }])` → mỗi render tạo object mới → effect re-run vô hạn. Fix: destructure scalar `[id]`, hoặc memoize. Em luôn bật lint `react-hooks/exhaustive-deps` và không bypass — bypass là dấu hiệu logic chưa rõ, phải refactor chứ không tắt lint.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```tsx
+const [count, setCount] = useState(0);
+
+useEffect(() => {
+  const id = setInterval(() => console.log(count), 1000);
+  return () => clearInterval(id);
+}, []); // ❌ luôn log 0, dù count tăng
+
+useEffect(() => fetchUser(userId), [{ id: userId }]); // ❌ object mới mỗi render → loop
+```
+
+Fix: `[count]` cho case 1, `[userId]` (scalar) cho case 2.
+
+---
+
+### Q1.3 — useCallback / useMemo: when NOT to use
+
+**VN:** *"useCallback và useMemo lúc nào KHÔNG nên dùng?"*
+**EN:** *"When is useCallback or useMemo actually unnecessary?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **`useCallback(fn, deps)`** — trả về **cùng 1 function reference** giữa các render miễn deps không đổi. Mục đích: pass function xuống child mà không break memo.
+- **`useMemo(() => value, deps)`** — trả về **cùng 1 value reference** giữa các render miễn deps không đổi. Dùng khi compute value đắt hoặc cần ref ổn định.
+- **`React.memo(Component)`** — wrap component để skip re-render nếu props (so shallow) không đổi.
+- **Reference equality** — function/object literal mỗi render là 1 reference khác. `() => {}` !== `() => {}` dù body giống nhau.
+- **Memoization cost** — lưu giá trị cũ + chạy compare deps mỗi render. Không miễn phí — có overhead RAM + CPU.
+- **Defensive optimization** — wrap mọi thứ "cho chắc" mà không đo. Anti-pattern, làm code rối + perf không cải thiện.
+- **React Compiler** — tool trên roadmap của Meta, auto-memoize component lúc build → wrap thủ công sẽ thành dư thừa.
+
+**💡 Ý chính (intuition mobile dev):**
+Mặc định, mỗi lần parent render, function/object literal tạo mới → reference khác. `useCallback`/`useMemo` "đóng băng" reference đó nếu deps không đổi. Nhưng đóng băng **chỉ có ích khi có ai đó bên dưới care về reference equality**. Nếu pass `onPress={handlePress}` xuống `Button` thường (không memo), Button không kiểm tra reference — nó re-render mọi lần parent render → useCallback wasted. Useful case 1: pass xuống `React.memo(Button)` — Button compare props shallow, function ref ổn định → skip re-render thật. Useful case 2: làm dep của `useEffect`/`useMemo` khác — function ref mới sẽ trigger effect lại oan. Ngoài 2 case đó, wrap là cost không có lợi.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này lọc Junior vs Middle về perf understanding. Junior thuộc "useCallback tốt cho perf" → wrap toàn bộ handler → review PR thấy code rối, perf không đổi. Middle phải nói được: memo có cost, chỉ work khi parent VÀ child cùng đúng pattern (parent useCallback + child React.memo), profile trước rồi optimize, và biết React Compiler trên roadmap sẽ auto-memoize → wrap thủ công lúc đó là noise.
+
+🗣 **Trả lời phỏng vấn:**
+> Junior hay wrap mọi handler bằng useCallback nghĩ là tối ưu — sai. useCallback và useMemo có cost: lưu prev value + compare deps mỗi render. Chỉ đáng dùng khi function/value đó pass xuống React.memo child, hoặc làm dep của useEffect/useMemo khác. Pass xuống component thường (không memo) thì wrap vô ích — child vẫn re-render mỗi lần parent render. Em từng review PR của bạn junior wrap hàng loạt useCallback cho handler chỉ pass xuống component thường — gỡ ra perf không đổi. Rule of thumb: profile trước, optimize sau. React Compiler trên roadmap sẽ auto-memoize, nên wrap thủ công sẽ thành noise.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```tsx
+// ❌ Vô ích — Button không memo, vẫn re-render mỗi lần parent render
+const handlePress = useCallback(() => doSomething(), []);
+return <Button onPress={handlePress} />;
+
+// ✅ Có ích — MemoButton chỉ re-render khi onPress thật sự đổi ref
+const MemoButton = React.memo(Button);
+const handlePress = useCallback(() => doSomething(), []);
+return <MemoButton onPress={handlePress} />;
+```
+
+---
+
+### Q1.4 — keyExtractor / list keys
+
+**VN:** *"Tại sao FlatList cần key đúng? Sai key gây bug gì?"*
+**EN:** *"Why is the right key prop critical for FlatList?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Key prop** — định danh item trong list để React match item cũ với item mới giữa các render. React không nhìn data, chỉ nhìn key.
+- **Reconciliation** — quá trình React so cây UI cũ với mới để quyết định: update node hiện tại (giữ DOM/native view), unmount + mount mới, hay re-order.
+- **Mount / unmount** — mount = tạo component instance từ đầu (chạy `useState` init, `useEffect` setup, animation từ frame 0). Unmount = destroy + chạy cleanup. Cả 2 đắt hơn update nhiều.
+- **Stable key** — key không đổi giữa các render dù vị trí item đổi. Thường là `id` từ server, hoặc `uuid` generate 1 lần khi insert vào state.
+- **Index as key** — `keyExtractor={(_, i) => String(i)}`. OK với list immutable, vỡ ngay khi reorder/insert/delete.
+- **`keyExtractor`** — prop của FlatList nhận function trả về key cho mỗi item.
+
+**💡 Ý chính (intuition mobile dev):**
+React identify item qua key, không qua data shape. Nếu dùng `key=index`, list `[A, B, C]` có key `0,1,2`. Xóa `A` → list `[B, C]` có key `0,1`. React nhìn: "key 0 trước là A, giờ là B → cùng key, update content" → giữ component instance cũ, **chỉ thay text bên trong**. Component cũ của A giờ render data của B → state nội bộ (TextInput value, scroll position, animation timer) còn nguyên của A → user thấy input có chữ của row đã xóa. Fix: dùng `key=item.id` từ server. List `[A, B, C]` key `id-A, id-B, id-C`. Xóa A → React thấy key `id-A` biến mất → unmount component A đúng cách, B và C giữ nguyên slot vì key match.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này test "có ship list thật trong prod chưa". Junior hay nói "key=index cũng được" hoặc "dùng `Math.random()` cho chắc unique" — cả hai đều sai (random thì mỗi render key mới → remount mọi item, mất sạch state, animation chạy lại từ đầu). Middle phải distinguish: list immutable order (vd menu cố định) thì index OK; list dynamic thì stable id từ server hoặc uuid local generate 1 lần khi push vào state.
+
+🗣 **Trả lời phỏng vấn:**
+> Key giúp React reconcile đúng item giữa các render. Sai key thì React mount lại component thay vì update — mất state nội bộ như input value, scroll position của child. Trap phổ biến nhất là `key={index}` — OK khi list immutable, vỡ ngay khi reorder/insert/delete: index của item B đổi từ 1 thành 2, React tưởng item mới, mount lại từ đầu. Em từng gặp list voucher dùng index, user xóa item giữa list → các voucher dưới bị nhảy UI và animation chạy lại từ đầu. Fix: dùng `voucher.id` từ server. Rule: có id từ server thì dùng id; không có thì generate stable id local 1 lần khi push vào state — không bao giờ index cho dynamic list.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```tsx
+// ❌ key=index → xóa item giữa list, các item dưới bị remount
+<FlatList data={items} keyExtractor={(_, i) => String(i)} />
+
+// ✅ key=id stable
+<FlatList data={items} keyExtractor={item => item.id} />
+```
+
+Test nhanh: list 3 row có `TextInput` với giá trị riêng, dùng `key=index`. Xóa row đầu → giá trị input của 2 row còn lại bị reset (vì slot 0/1 giờ map sang component khác).
+
+---
+
+### Q1.5 — JS thread vs UI thread vs New Architecture
+
+**VN:** *"RN chạy single thread hay multi thread? New Architecture giải quyết gì?"*
+**EN:** *"How does threading work in RN? What does New Architecture change?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **JS thread** — thread chạy JavaScript engine (Hermes hoặc JSC). Đây là nơi code React, Redux, business logic chạy. **Single-threaded** — chỉ làm 1 việc tại 1 thời điểm.
+- **UI thread** (native main thread) — thread của OS (iOS main / Android UIThread). Vẽ view, nhận touch event, run animation native.
+- **Shadow thread** — thread chuyên chạy Yoga (layout engine của Facebook), tính `flex`, `width`, `height` cho từng view.
+- **Bridge** (old architecture) — kênh giao tiếp giữa JS và Native. **Async + JSON serialize**: mọi data đi qua phải biến thành string JSON → parse lại bên kia. Batched mỗi vài ms để giảm trip count.
+- **JSI (JavaScript Interface)** — replacement cho Bridge ở New Arch. Cho phép JS giữ **C++ reference trực tiếp** tới native object, gọi sync, không cần JSON. Như JS gọi function C++ trong cùng process.
+- **TurboModules** — native module thế hệ mới, **lazy load** (chỉ load khi gọi tới), build trên JSI.
+- **Fabric** — UI manager mới, render concurrent (như React Concurrent), build trên JSI.
+- **Hermes** — JS engine của Meta tối ưu cho RN: bytecode pre-compile lúc build → startup nhanh hơn JSC. Enable độc lập với New Arch.
+- **Worklet** — function JS được compile thành bytecode chạy thẳng trên UI thread (Reanimated). Bypass Bridge → animation 60fps không phụ thuộc JS thread busy.
+
+**💡 Ý chính (intuition mobile dev):**
+RN không phải single thread — có 3 thread chính (JS, UI, Shadow). Vấn đề lớn của old arch là **Bridge async + JSON**: muốn animate 1 view theo finger drag, mỗi pixel JS phải gửi command qua Bridge (serialize JSON), UI thread parse rồi update — round trip 16ms/frame mà JS thread đang busy parse list 1000 item → drop frame, scroll giật. Reanimated giải bằng worklet: compile sẵn function chạy thẳng UI thread, đọc shared value sync, không round-trip → 60fps ổn định. New Arch giải triệt để hơn: JSI cho JS gọi native sync; TurboModules lazy load cho startup nhanh; Fabric rewrite UI manager. Lợi rõ nhất: gesture/animation mượt, startup nhanh, type-safe binding (codegen). Hermes có thể enable độc lập New Arch — chỉ cần 1 dòng config, lợi startup ngay.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Đây là câu phân biệt Middle có "đào sâu architecture" hay chỉ "ship feature". Junior hay confuse Bridge với JSI hoặc claim đã migrate Fabric trong khi chưa thử. Middle phải honest: enable Hermes thì OK (1 config flag), Fabric thì depend vào lib core stable, đa số team đang đợi 3rd-party support đủ rồi mới enable. Interviewer probe "đo perf trước-sau migrate Hermes" — phải có số cụ thể (startup giảm bao nhiêu ms).
+
+🗣 **Trả lời phỏng vấn:**
+> RN có 3 thread chính: JS thread (code React, single-threaded), UI thread (native main, render view), Shadow thread (layout Yoga). Old architecture: JS và Native nói chuyện qua Bridge — async, JSON serialize, batched. Heavy compute trong JS thread → block setState → UI giật. Đó là lý do Reanimated worklet chạy thẳng UI thread, bypass bridge → animation 60fps không phụ thuộc JS busy. New Architecture có 3 phần: JSI cho phép JS call native sync không qua JSON, TurboModules lazy load native module, Fabric rewrite UI manager. Lợi: gesture/animation mượt, startup nhanh hơn. Honest, em đọc concept và đã enable Hermes prod, nhưng chưa migrate Fabric ở Firegroup.
+
+🔎 **Ví dụ dễ hiểu:**
+
+Khi user kéo scroll mà JS thread đang busy parse 1 list to → bridge cũ phải "hỏi" JS mỗi frame → scroll giật. Reanimated giải vấn đề này bằng worklet — function compile sẵn chạy thẳng UI thread, đọc shared value sync, không cần round-trip qua JS. Đó là lý do `useAnimatedScrollHandler` không spam event qua bridge như `onScroll` thường.
+
+---
+
+## Topicccccccccccccccc 2 — State Management (4 Q&As)
+
+### Q2.1 — Redux Toolkit vs TanStack Query vs Zustand vs React Context API + Hooks
+
+**VN:** *"Khi nào dùng Redux, khi nào dùng TanStack Query? Có thể dùng cả 2 không?"*
+**EN:** *"Redux Toolkit vs TanStack Query — which for what?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Server state** — data từ server (list sản phẩm, profile, feed). Đặc điểm: có thể stale (cũ), client không own — server có thể đổi bất kỳ lúc nào, cần fetch + cache + invalidate.
+- **Client state** — data chỉ tồn tại trong app, không có endpoint backend (theme, language, modal flag, form wizard draft, filter UI).
+- **TanStack Query** (trước đây React Query) — lib chuyên server state. Tự lo cache, dedupe (gộp request trùng), retry, stale-while-revalidate, refetch on focus.
+- **Redux Toolkit (RTK)** — lib state management dạng store global, action/reducer pattern, có DevTools time-travel debug.
+- **Stale-while-revalidate (SWR)** — pattern hiển thị data cũ ngay (UX nhanh) + fetch lại background → update khi có data mới.
+- **Dedupe** — nếu 2 component cùng yêu cầu key `['user', 1]`, Query chỉ fire 1 request HTTP, share kết quả cho cả 2.
+- **Cache invalidation** — bảo Query "data này stale rồi, refetch khi cần". Sau mutation (create/update/delete) thường invalidate query liên quan.
+- **Source of truth** — chỗ duy nhất chứa data thật. Nhiều source = bug stale (UI hiện cũ trong khi state mới).
+
+**💡 Ý chính (intuition mobile dev):**
+Server state khác client state về bản chất: server state có thể đổi sau lưng app (user khác update DB), client state thì app own hoàn toàn. Query được thiết kế cho đặc thù đó: cache key, refetch on mount/focus/reconnect, retry exponential backoff. Nếu dùng `createAsyncThunk` Redux để fetch list → bạn phải tự code: cache theo key, dedupe, retry, invalidation, optimistic — đây chính là Query reimplement bằng tay, tốn nhiều tuần để bằng Query out-of-the-box. Redux chỉ giữ thứ thuần client: theme, language, modal flag, auth token (session), form wizard draft. Hai cái dùng song song là pattern phổ biến — Query cho data list/detail, Redux cho UI + auth.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Đây là câu hỏi 100% interview RN VN có. Junior trả lời "Redux quản lý mọi state" → interviewer biết chưa đụng Query trong prod. Middle phải distinguish được decision điểm: data có TTL/refetch on focus → Query; chỉ là cờ boolean UI → Redux đủ, không over-engineer. Trap khác: junior persist toàn bộ Redux + Query cache song song → 2 source of truth → bug stale hardest-to-debug.
+
+🗣 **Trả lời phỏng vấn:**
+> Quy tắc em apply: dữ liệu từ server thì dùng TanStack Query, dữ liệu client-only thì Redux. Query có sẵn cache, dedupe request, invalidation, retry — không nên reimplement bằng Redux thunk vì đó là rebuild Query thủ công. Redux em giữ những thứ thuần client: theme, language, modal flag, form draft nhiều bước, hoặc auth token vì token là session phía client. Hai cái dùng chung được, là pattern phổ biến — Query cho data list/detail, Redux cho UI state và auth. Decision điểm: data có TTL hoặc cần refetch on focus thì Query; chỉ là 1 cờ boolean UI thì Redux đủ, không cần Query.
+
+🔎 **Ví dụ dễ hiểu:**
+
+| Cần lưu | Tool | Lý do |
+| --- | --- | --- |
+| List sản phẩm fetch từ API | Query | Server data, cần cache + refetch |
+| User profile từ `/me` | Query | Server data, có thể stale |
+| Theme dark/light | Redux | Client-only, không có endpoint |
+| Modal open/close | Redux (hoặc local state) | UI transient |
+| Auth token | Redux/Context | Session client, dùng nhiều screen |
+| Form wizard draft 3 step | Redux | Client-only, persist được |
+
+🧩 **So sánh thêm: Redux vs Zustand vs React Context + Hooks**
+
+| Tiêu chí | Redux Toolkit | Zustand | React Context + Hooks |
+| --- | --- | --- | --- |
+| Mục tiêu chính | Global state phức tạp, flow rõ ràng | Global state nhẹ, setup nhanh | Share state đơn giản trong phạm vi app/module |
+| Boilerplate | Trung bình (slice, action, selector) | Rất thấp | Thấp lúc đầu, tăng nhanh khi scale |
+| DevTools / trace | Mạnh nhất, time-travel/debug rõ | Có devtools middleware, đủ dùng | Gần như không có trace chuẩn |
+| Performance mặc định | Tốt với selector + memo | Tốt, subscribe theo slice | Dễ re-render rộng nếu provider value đổi |
+| Team scale phù hợp | Team vừa/lớn, cần convention | Team nhỏ/vừa, cần tốc độ | Scope nhỏ, ít state, logic đơn giản |
+| Use case điển hình | Auth flow nhiều nhánh, wizard lớn, state cần audit | UI state global vừa phải, prototyping nhanh | Theme, locale, auth context đơn giản |
+
+**Rule of thumb (interview):**
+> Nếu cần state flow predictable, debug trace tốt, onboarding team dễ thì em chọn Redux Toolkit. Nếu app nhỏ hoặc cần triển khai nhanh với ít ceremony thì Zustand hợp lý. Nếu chỉ cần chia sẻ vài giá trị đơn giản như theme/locale/auth context thì Context + Hooks là đủ, nhưng em tránh dùng Context cho state thay đổi liên tục vì re-render sẽ lan rộng.
+
+---
+
+### Q2.2 — Async actions in Redux (thunk vs saga vs listener)
+
+**VN:** *"Trong Redux, em handle async action như thế nào? Thunk, saga, hay listener?"*
+**EN:** *"How do you handle async logic in Redux Toolkit?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Thunk** — pattern: action không phải object mà là **function** nhận `(dispatch, getState)`. Cho phép dispatch action async (gọi API trong thunk, dispatch action khác khi xong).
+- **`createAsyncThunk`** — helper của RTK auto generate 3 action: `pending`, `fulfilled`, `rejected`. Code chỉ cần viết 1 async function, không phải tự dispatch 3 action.
+- **Saga** — middleware dùng generator function (`function*`) để model luồng async như sequence các effect (`call`, `put`, `take`, `cancel`). Mạnh cho race/cancel/complex orchestration.
+- **Listener middleware** — middleware official của RTK, nhẹ hơn saga, không cần generator. Subscribe action type → chạy callback async, có `cancel`/`fork`/`condition`.
+- **Reducer purity** — reducer phải là **pure function**: cùng input → cùng output, không side effect (không gọi API, không log mutate, không đụng `Date.now()`). Đây là điều kiện để Redux DevTools time-travel hoạt động.
+- **Side effect** — mọi action có ảnh hưởng ngoài compute next state: gọi API, navigate, set storage, log. Phải đặt ở middleware (thunk/saga/listener), không trong reducer.
+- **Race condition** trong async — vd user gõ "abc" → fire 3 search request, response về không theo thứ tự → kết quả của "ab" về sau cùng → UI hiện kết quả "ab" trong khi user đã gõ "abc".
+- **Debounce** — đợi user dừng gõ X ms mới fire request, tránh spam.
+- **Cancel previous request** — khi user gõ tiếp, hủy request cũ chưa về, chỉ giữ request mới nhất.
+
+**💡 Ý chính (intuition mobile dev):**
+Reducer phải pure để Redux DevTools replay action chính xác (time-travel debug) — nếu reducer gọi API thì replay 1 action sẽ fire API thật, ngẫu nhiên hoá state. Vì vậy mọi side effect (network, navigate, storage) đặt ở middleware. Default cho 90% case là `createAsyncThunk` — viết 1 hàm async, RTK auto sinh 3 trạng thái pending/fulfilled/rejected, đủ cho list, detail, submit form. Khi gặp logic phức tạp (search debounce + cancel previous, login flow đa bước, race giữa foreground/background) → nâng lên listener middleware (RTK official, nhẹ) hoặc saga (mạnh nhưng generator-based, learning curve cao). Codebase mới nên prefer listener vì đỡ boilerplate generator + được Redux team maintain.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này test 2 thứ: (1) có biết reducer phải pure không, (2) có distinguish được tool theo độ phức tạp logic không. Junior hay đặt `api.call().then(setState)` trong reducer → interviewer probe "DevTools replay action có chạy đúng không?" là tịt. Middle phải nói được: thunk default → listener khi cần cancel/race → saga khi team đã dùng generator nhiều. Trap: dùng saga cho tất cả mọi async vì "mạnh hơn" → boilerplate gấp 3, debug khó.
+
+🗣 **Trả lời phỏng vấn:**
+> Default em dùng `createAsyncThunk` — 90% case đủ: dispatch action, fulfilled/rejected auto generate, tích hợp clean với Redux Toolkit. Khi cần logic chained phức tạp như debounce, cancel previous request, race condition giữa foreground/background, em sẽ nâng lên listener middleware hoặc saga. Listener middleware là cái RTK official, nhẹ và debug dễ. Saga mạnh hơn nhưng generator-based, learning curve cao. Anti-pattern em luôn tránh: gọi side-effect trong reducer — reducer phải pure, async đặt ở middleware. Với codebase mới em prefer listener middleware hơn saga vì đỡ boilerplate generator.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```ts
+// ✅ Thunk — default, đủ cho 90% case
+export const fetchTodos = createAsyncThunk('todos/fetch', async () => {
+  const res = await api.getTodos();
+  return res.data;
+});
+
+// ❌ Sai — side effect trong reducer
+const slice = createSlice({
+  reducers: {
+    loadTodos: (state) => {
+      api.getTodos().then(...); // KHÔNG được, reducer phải pure
+    },
+  },
+});
+```
+
+Logic kiểu "gõ search box, debounce 300ms, cancel request cũ nếu user gõ tiếp" → vượt quá thunk, lúc đó mới cần listener hoặc saga.
+
+---
+
+### Q2.3 — Optimistic update — when worth it
+
+**VN:** *"Optimistic update lúc nào nên dùng, lúc nào không?"*
+**EN:** *"When is optimistic update worth the complexity?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Optimistic update** — UI update ngay trước khi server response, giả định request sẽ thành công. Server fail thì rollback.
+- **Pessimistic update** — UI đợi server confirm rồi mới update. Show spinner trong lúc đợi.
+- **Perceived performance** — tốc độ user **cảm thấy**, không phải tốc độ thật. Tap like → heart đỏ ngay = perceived 0ms dù server chưa response.
+- **Rollback** — khi server fail, đảo ngược UI về trạng thái trước update. UX khó: nếu user đã xem feedback "đã like" rồi đảo lại "chưa like" → confusion.
+- **`onMutate` / `onError` / `onSettled`** — 3 hook của TanStack Query mutation. `onMutate` chạy trước request (set optimistic + lưu prev), `onError` chạy khi fail (rollback), `onSettled` chạy cả thành công/fail (invalidate query để sync server).
+- **`setQueryData` / `getQueryData`** — API của Query để đọc/ghi cache trực tiếp, không qua refetch.
+- **Idempotent** — operation gọi N lần kết quả giống gọi 1 lần (vd toggle bookmark). Optimistic an toàn hơn với operation idempotent.
+
+**💡 Ý chính (intuition mobile dev):**
+Optimistic là đặt cược: trade correctness lấy perceived speed. Đáng cược với high-frequency + low-risk action như like/follow/bookmark — user tap nhiều, server hầu như không fail, fail thì rollback chỉ là "heart undo" không gây thiệt hại. Không nên cược với money/irreversible/multi-step như payment, delete forever, transfer — rollback ở đó kill trust ("ủa app báo thanh toán xong rồi mà giờ bảo fail?"). Recipe với Query: `onMutate` cancel queries (tránh refetch ghi đè optimistic) → lưu `prev` data → set optimistic; `onError` `setQueryData(prev)` rollback; `onSettled` invalidate để sync lại từ server (nguồn truth cuối). Quy tắc: rollback strategy phải nghĩ trước khi viết mutation. Không hình dung được rollback hợp lý → đi pessimistic, show spinner.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này lọc Middle có hiểu UX trade-off vs Junior chỉ "làm theo tutorial". Junior hay optimistic mọi thứ vì "nhanh hơn" → payment fail → user nghĩ tiền bị trừ. Middle phải kể được decision matrix (high-freq low-risk vs money/irreversible) và biết rollback path concrete. Interviewer probe "optimistic xong network ngắt giữa chừng?" — phải trả lời được retry/queue/show toast.
+
+🗣 **Trả lời phỏng vấn:**
+> Optimistic update là đặt cược: đánh đổi correctness lấy perceived speed. Đáng dùng với high-frequency, low-risk action như like, follow, toggle bookmark — user tap nhiều, server hầu như không fail, fail thì rollback acceptable. Không nên dùng với money, irreversible, hoặc multi-step như payment confirm, delete forever, transfer balance — rollback ở đó kill trust. Implementation với TanStack Query: `onMutate` lưu previous data và set optimistic, `onError` rollback bằng `setQueryData(prev)`, `onSettled` invalidate để sync lại từ server. Quy tắc em áp dụng: rollback strategy phải nghĩ trước khi viết mutation. Nếu không hình dung được rollback hợp lý → đừng optimistic, đi pessimistic với loading indicator rõ ràng.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```ts
+// Like button — optimistic OK
+useMutation({
+  mutationFn: api.likePost,
+  onMutate: async (postId) => {
+    await queryClient.cancelQueries(['post', postId]);
+    const prev = queryClient.getQueryData(['post', postId]);
+    queryClient.setQueryData(['post', postId], (old) => ({
+      ...old, liked: true, likes: old.likes + 1,
+    }));
+    return { prev };
+  },
+  onError: (_, postId, ctx) =>
+    queryClient.setQueryData(['post', postId], ctx.prev),
+  onSettled: (_, __, postId) =>
+    queryClient.invalidateQueries(['post', postId]),
+});
+```
+
+Cùng pattern cho payment? Không. Payment phải pessimistic — show spinner, đợi server confirm, rồi navigate.
+
+---
+
+### Q2.4 — Persistence: what to persist on mobile
+
+**VN:** *"Trên mobile, cái gì nên persist? Dùng tool gì?"*
+**EN:** *"What state to persist locally, and with what tool?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Persist** — lưu data ra storage để giữ qua các lần mở app (kill app, reboot device).
+- **In-memory** — chỉ tồn tại trong RAM, mất khi kill app. Vd Redux state mặc định, Query cache mặc định.
+- **SecureStore** (Keychain iOS / Keystore Android) — storage **OS encrypt**: key được lưu trong hardware-backed keystore, app khác không đọc được dù device root/jailbreak. Có thể gate biometric (Face ID / fingerprint).
+- **AsyncStorage** — file-based key-value store, **plaintext** (Android root đọc được). Async API (`await getItem`). Có thể chậm khi đọc nhiều key đồng thời.
+- **MMKV** — native key-value store (Tencent), build trên mmap. **Sync API** (đọc tức thì như đọc biến), nhanh hơn AsyncStorage 30-100x. Có encrypt option với key.
+- **Source of truth** — chỗ duy nhất chứa data thật. Persist server data + Query cache = 2 source → bug stale.
+- **PII (Personally Identifiable Information)** — email, phone, ID, GPS chính xác. Theo Nghị định 13/2023 VN, persist plaintext có legal risk.
+- **App-level encrypt** vs **OS encrypt** — encrypt với key hardcoded trong JS bundle = decompile bundle là bypass được. OS encrypt mới là security thật.
+
+**💡 Ý chính (intuition mobile dev):**
+Phân 3 layer theo nhạy cảm + tần suất đọc. Nhạy cảm (refresh token, credential) phải SecureStore — OS encrypt, biometric gate được, app khác không đọc được. Không nhạy cảm + đọc thường xuyên (theme, language, onboarding flag) thì AsyncStorage hoặc MMKV — không cần encrypt, plaintext OK. Không persist server data: Query đã in-memory cache rồi, persist thêm tạo 2 source of truth → server đổi mà persist còn cũ → bug stale UI hardest-to-debug. UI transient (modal open, scroll, tab hiện tại) cũng không persist — UX kỳ lạ nếu kill app rồi mở lại thấy modal vẫn open. MMKV khi cần perf cao (nhiều key, đọc lúc startup): sync API → không cần `await`, đọc tức thì trong render.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này test security awareness + state architecture. Junior hay làm 1 trong 3 sai lầm: (1) lưu refresh token vào AsyncStorage plaintext → leak nếu device root; (2) tự encrypt với key hardcode trong JS → bypass được; (3) `redux-persist` toàn bộ store cùng Query cache → 2 source of truth, stale bug. Middle phải distinguish 3 layer (sensitive/preferences/transient) và biết SecureStore là OS encrypt (real security) khác app-level encrypt (theatre).
+
+🗣 **Trả lời phỏng vấn:**
+> Trên mobile em phân 3 layer. Phải persist là refresh token, lưu vào SecureStore vì wrap Keychain iOS và Keystore Android, encrypt by OS. User prefs như theme, language, onboarding flag thì AsyncStorage hoặc MMKV — không sensitive, plaintext OK. Không persist là server data vì Query đã cache, persist thêm sẽ tạo 2 source of truth, server đổi mà persist còn cũ là bug stale UI rất khó debug. UI transient như modal open, scroll position, tab hiện tại cũng không persist. Tool em chọn: SecureStore cho token, MMKV cho prefs khi cần perf cao vì sync và nhanh hơn AsyncStorage rõ rệt, AsyncStorage cho project nhỏ. Trap em đã thấy: persist toàn bộ Redux qua redux-persist cùng lúc với Query cache → conflict không tránh khỏi.
+
+🔎 **Ví dụ dễ hiểu:**
+
+| Data | Persist? | Tool |
+| --- | --- | --- |
+| Refresh token | ✅ | SecureStore |
+| Theme, language | ✅ | AsyncStorage / MMKV |
+| Onboarding done flag | ✅ | AsyncStorage / MMKV |
+| List sản phẩm từ API | ❌ | Query đã cache |
+| User profile từ `/me` | ❌ | Query đã cache |
+| Modal `isOpen` | ❌ | Local state |
+| Scroll position FlatList | ❌ | RN tự handle |
+
+---
+
+## Topicccccccccccccccc 3 — Performance (4 Q&As)
+
+### Q3.1 — FlatList optimization checklist
+
+**VN:** *"List của em chậm. Em đã optimize FlatList như thế nào?"*
+**EN:** *"Walk me through FlatList optimization."*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Virtualization** — FlatList chỉ render item trong viewport + buffer, item ngoài tầm nhìn được unmount (giải phóng memory). Đó là lý do FlatList không dùng `<ScrollView>{items.map(...)}</ScrollView>`.
+- **`windowSize`** — số lần viewport (mặc định 21 = render 21 viewport-height items quanh viewport hiện tại). Tăng = mượt scroll xa nhưng nhiều RAM. Giảm = nhẹ RAM nhưng có thể blank khi scroll nhanh.
+- **`initialNumToRender`** — số item render ngay lúc mount. Set thấp (5-10) để first paint nhanh, item còn lại render sau.
+- **`maxToRenderPerBatch`** — sau lần đầu, mỗi batch render bao nhiêu item. Thấp = JS thread đỡ block, scroll mượt nhưng item xuất hiện chậm hơn.
+- **`removeClippedSubviews`** — Android optimization: detach view ngoài viewport khỏi window. Có thể gây bug với absolute positioning.
+- **`getItemLayout`** — function trả `{ length, offset, index }` cho mỗi item. RN skip phải đo layout từng item → scroll-to-index nhanh, không jump khi đo. Chỉ set khi item **fix height**.
+- **Inline function** — `renderItem={({item}) => <Row item={item}/>}` mỗi render parent tạo function mới → reference khác → memo của Row break.
+- **`React.memo`** — wrap component skip re-render nếu props shallow equal.
+- **Stable key** — `keyExtractor={item => item.id}` (không index, không random).
+
+**💡 Ý chính (intuition mobile dev):**
+List chậm có 2 nguyên nhân khả dĩ: **(1) render quá nhiều item** trong 1 frame (virtualization sai hoặc `windowSize` to), **(2) mỗi row re-render dù props không đổi** (memo bị break do inline function/object). Checklist fix theo độ ưu tiên: stable `keyExtractor` từ id (không index, không random) → wrap row bằng `React.memo` để skip re-render → extract `renderItem` ra ngoài để function ref ổn định → tune `windowSize` xuống 7-11 cho list dài → `initialNumToRender` thấp cho first paint nhanh → `getItemLayout` nếu height fix → image dùng lib có cache (`expo-image`/`fast-image`). Quan trọng nhất: đo trước bằng React Profiler hoặc Flipper để biết bottleneck là render count hay JS heavy hay native (image decode), rồi fix đúng chỗ. Memo defensive khắp nơi mà parent vẫn truyền inline object là perf không đổi mà code rối.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+List là core của mobile app, 90% interview RN VN hỏi câu này. Junior trả lời "thêm `React.memo` là xong" → interviewer probe "memo work khi nào?" là tịt. Middle phải nói được cả checklist + lý do từng bước + biết đo trước (Profiler/Flipper) chứ không sửa mò. Trap: copy `windowSize=5` từ blog mà không hiểu → list scroll nhanh hiện blank gap → user complain.
+
+🗣 **Trả lời phỏng vấn:**
+> Checklist em apply theo thứ tự. Một, `keyExtractor` stable từ id, không index. Hai, row component bọc `React.memo` để skip re-render khi props không đổi. Ba, tránh inline function trong `renderItem` — mỗi render tạo function mới sẽ phá memo, em extract ra ngoài. Bốn, `windowSize` default 21 hơi to với list dài, tune xuống 7–11 tùy device. Năm, `initialNumToRender` và `maxToRenderPerBatch` để first paint nhanh. Sáu, nếu height cố định thì set `getItemLayout` — RN skip layout pass, scroll-to-index nhanh hơn. Cuối cùng image phải dùng lib có cache như `expo-image` hoặc `fast-image`. Quan trọng: đo trước bằng React Profiler hoặc Flipper rồi fix, không memo defensive.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```tsx
+const Row = React.memo(({ item }) => <Text>{item.title}</Text>);
+
+<FlatList
+  data={items}
+  keyExtractor={item => item.id}
+  renderItem={({ item }) => <Row item={item} />} // function nhỏ OK
+  windowSize={11}
+  initialNumToRender={10}
+  maxToRenderPerBatch={10}
+  removeClippedSubviews
+/>
+```
+
+Case phổ biến: list 200 row mà scroll giật → mở Profiler thấy mỗi row render 5–8 lần khi scroll → bọc memo + ổn định prop là đủ.
+
+---
+
+### Q3.2 — React.memo cost & misuse
+
+**VN:** *"React.memo cũng có cost. Khi nào memo phản tác dụng?"*
+**EN:** *"When does React.memo hurt instead of help?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **`React.memo(Component)`** — HOC wrap component, skip re-render nếu props shallow equal so với render trước.
+- **Shallow compare** — so từng prop bằng `Object.is` (tương đương `===`). `{a:1}` !== `{a:1}` (khác reference dù nội dung giống).
+- **Reference equality** — chỉ giống khi cùng địa chỉ memory, không phải cùng nội dung.
+- **Prev render storage** — memo lưu lại snapshot props lần trước để so sánh. Cost RAM nhỏ nhưng có.
+- **Inline literal** — `<Card style={{padding:8}} />` — object `{padding:8}` tạo mới mỗi render → reference khác → memo so sánh fail → child re-render dù style thực tế giống.
+- **`useCallback` + `useMemo`** — đóng băng function/value reference giữa các render. Bắt buộc dùng kèm React.memo nếu pass function/object xuống.
+
+**💡 Ý chính (intuition mobile dev):**
+Memo có cost cụ thể: shallow compare props mỗi lần parent render + lưu snapshot render trước trong RAM. Bù lại nó skip toàn bộ render function của child nếu props không đổi. Công thức để memo có lợi: **parent ổn định ref props + child wrap memo + child render đắt**. Thiếu 1 trong 3 thì memo phản tác dụng. Case 1: component re-render hiếm (1-2 lần cả phiên) → compare cost còn lớn hơn render thật. Case 2: parent truyền inline object/array/function (`<Row data={{...}}/>`, `<Btn onPress={() => {}}/>`) → mỗi render parent ref mới → shallow compare luôn fail → child vẫn re-render, memo lãng phí. Case 3: child render rẻ (chỉ `<Text>`) → cost compare ngang cost render. Recipe đúng: memo + parent `useCallback` cho function prop + parent `useMemo` cho object/array prop. Thiếu cặp đôi này, memo là code smell.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này phân biệt rõ Junior/Middle. Junior wrap mọi component bằng React.memo "cho chắc" → review PR thấy code rối, perf không đổi → interviewer hỏi "tại sao perf không đổi?" tịt. Middle phải nói được công thức 3 điều kiện + biết profile trước. Trap: confuse memo với memoization (`useMemo`) — `React.memo` cho component, `useMemo` cho value, hai cái khác nhau dù cùng "memo".
+
+🗣 **Trả lời phỏng vấn:**
+> Memo cost là shallow compare props + lưu prev render. Phản tác dụng trong 3 case. Một, component vốn re-render hiếm — compare cost còn lớn hơn render thật. Hai, props là object hoặc array literal inline ở parent, ví dụ `<Row item={{...}}/>` — mỗi render new ref → memo compare shallow fail → child vẫn re-render, memo lãng phí. Ba, function prop không `useCallback` ở parent — cùng lý do. Recipe đúng là memo + parent phải `useCallback`/`useMemo` cho ref-stable props, thiếu một trong hai là không hiệu quả. Em từng review PR junior memo cả chục component nhưng parent vẫn truyền inline object — gỡ memo, perf không đổi. Quy tắc: profile trước, không memo defensive.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```tsx
+// ❌ Memo wasted — parent tạo object mới mỗi render → compare fail
+const MemoCard = React.memo(Card);
+<MemoCard style={{ padding: 8 }} onPress={() => {}} />
+
+// ✅ Memo work — props stable
+const MemoCard = React.memo(Card);
+const handlePress = useCallback(() => {}, []);
+const cardStyle = useMemo(() => ({ padding: 8 }), []);
+<MemoCard style={cardStyle} onPress={handlePress} />
+```
+
+---
+
+### Q3.3 — Bridge cost & New Arch awareness
+
+**VN:** *"Bridge giữa JS và native tốn ở đâu? New Arch khắc phục ra sao?"*
+**EN:** *"What's expensive about the JS-native bridge, and how does the New Architecture address it?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Bridge** (old arch) — kênh JS ↔ Native. Async, batched mỗi ~5ms. Mọi data đi qua phải **JSON serialize** thành string → parse lại bên kia.
+- **JSON serialize / deserialize** — convert object JS thành string `'{"a":1}'` → gửi qua bridge → parse ngược thành object native. Cost = O(N) theo data size.
+- **Async call** — JS gọi native, không return ngay, đợi callback batch tiếp theo. Không thể đọc giá trị native sync trong cùng frame.
+- **JSI (JavaScript Interface)** — replacement: JS giữ **C++ reference trực tiếp** tới native object qua HostObject. Gọi như function thường, sync, không cần JSON.
+- **TurboModules** — native module thế hệ mới build trên JSI, **lazy load** (chỉ load khi `require`/import lần đầu) → app startup nhanh.
+- **Fabric** — UI manager mới build trên JSI, render concurrent (priority-based), thay UIManager cũ.
+- **Codegen** — tool sinh ra binding C++ ↔ JS từ TypeScript spec → type-safe + compile-time check, không phải runtime cast.
+- **Worklet** (Reanimated) — JS function compile thành bytecode chạy thẳng UI thread. Không qua bridge → animation 60fps dù JS thread busy.
+
+**💡 Ý chính (intuition mobile dev):**
+Cost lớn nhất của old bridge là **JSON serialize data to**: truyền 1 image base64 4MB qua bridge = 4MB string serialize ở JS → parse 4MB string ở Native → block cả 2 thread vài chục ms. List 1000 item cùng story. Async cũng giới hạn API: không đọc được giá trị native sync trong cùng frame (vd lấy width view ngay) → phải dùng callback hoặc ref + measure. New Arch dùng JSI: JS giữ pointer C++ tới native object → gọi `nativeView.getWidth()` sync như function thường, không serialize, không async. TurboModules giải startup: thay vì init toàn bộ native module lúc app start (cost cao dù chưa dùng), chỉ load khi gọi tới. Fabric concurrent rendering = priority-based (animation priority cao hơn list render). Hermes có thể enable độc lập New Arch — chỉ flip 1 flag, lợi startup ngay (bytecode pre-compile).
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này test hiểu architecture chứ không phải thuộc lòng buzzword. Junior chỉ nhắc "JSI nhanh hơn Bridge" mà không giải thích vì sao → interviewer probe "vì sao serialize chậm?" tịt. Middle phải nói được: serialize chi phí O(N), async giới hạn sync API, JSI giữ C++ ref. Honest về Fabric: đa số team đợi 3rd-party lib core (Reanimated, Gesture Handler, FlashList) stable rồi mới enable — claim đã migrate Fabric khi chưa thử là red flag.
+
+🗣 **Trả lời phỏng vấn:**
+> Old bridge async, JSON serialize 2 chiều, batched mỗi vài ms. Cost lớn nhất là JSON serialize của data to — ví dụ truyền image base64 hoặc list 1000 item qua bridge sẽ block JS thread khi serialize và block UI thread khi deserialize. Async cũng có nghĩa không return sync giá trị từ native được, gây bug khi cần đọc native state ngay. New Architecture giải bằng JSI — JS giữ reference trực tiếp tới native object qua C++ binding, sync call được, không cần JSON. TurboModules lazy load native module, Fabric rewrite UI manager render concurrent. Honest, em đã enable Hermes prod thấy startup nhanh hơn rõ, nhưng Fabric thì chưa migrate, đang đợi 3rd-party lib core stable thì mới enable.
+
+🔎 **Ví dụ dễ hiểu:**
+
+`<ScrollView onScroll={handler}>` — mỗi scroll event JS phải nhận qua bridge, chạy handler, gửi setState — trên list dài là spam, scroll giật. Fix là dùng `useAnimatedScrollHandler` của Reanimated: handler compile thành worklet chạy thẳng UI thread, không round-trip qua bridge → mượt 60fps.
+
+---
+
+### Q3.4 — Profiling tools — what I actually use
+
+**VN:** *"Em dùng tool gì để đo perf RN?"*
+**EN:** *"How do you actually measure RN performance?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **React Profiler** — built-in component `<Profiler id onRender>` + DevTools tab. Đo render count + actualDuration của từng component, phân biệt mount vs update.
+- **Flipper** — desktop debug tool của Meta. Plugin: Network (xem HTTP request), Layout Inspector, Hermes Profiler (CPU sampling JS thread), Crash Reporter.
+- **Hermes Profiler** — sampling profiler cho JS thread. Output `.cpuprofile` mở bằng Chrome DevTools → flame graph thấy function nào chiếm CPU.
+- **Xcode Instruments** — bộ tool profile native iOS: Time Profiler (CPU), Allocations (RAM), Leaks (memory leak), Core Animation (frame drop).
+- **Android Studio Profiler** — tương đương Xcode cho Android: CPU, Memory, Network, Energy. Có "Frame jank" detection.
+- **Bundle visualizer** (`react-native-bundle-visualizer`) — phân tích JS bundle, treemap show lib nào chiếm dung lượng nhiều nhất.
+- **Frame drop / jank** — frame mất quá 16.67ms (60fps) hoặc 8.33ms (120fps) để render → user thấy giật.
+- **Mount vs update** — mount = render đầu tiên (đắt, chạy `useState` init + `useEffect` setup). Update = render sau (rẻ hơn, chỉ diff).
+
+**💡 Ý chính (intuition mobile dev):**
+Mỗi tool ứng với 1 layer khác nhau, không tool nào "1 size fit all". React Profiler trả lời "component này re-render mấy lần khi user tap?" — dùng khi nghi ngờ render-heavy. Flipper + Hermes Profiler trả lời "chậm là JS thread hay network?" — flame graph chỉ ra function nào ngốn CPU. Xcode/AS Profiler trả lời "JS OK rồi, vẫn giật, là do native không?" — đo CPU/memory/frame drop ở native layer (image decode, layout pass, GC). Bundle visualizer cho startup: thấy moment.js chiếm 200KB → thay date-fns còn 30KB. Process kỷ luật: đoán root cause (render count? JS heavy? Native?) → đo bằng tool đúng layer → fix → đo lại để verify, không skip step verify. Skip = fix tưởng work nhưng không, vài tuần sau bug quay lại.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này test "có thật sự debug perf trong prod chưa". Junior trả lời "thêm `React.memo`" mà không nói đo cái gì → interviewer biết chưa mở Profiler. Middle phải kể được tool theo layer + 1 process step-by-step + 1 ví dụ thật (đo gì, thấy gì, fix gì, kết quả ms trước-sau). Trap: claim đã dùng Xcode Instruments hoặc Android Studio Profiler trong khi thực tế chỉ dùng `console.log` — interviewer probe screenshot/flow là tịt.
+
+🗣 **Trả lời phỏng vấn:**
+> Em dùng 4 tool theo layer. React Profiler để đếm render count và render time của component — dùng khi hỏi "component này re-render mấy lần khi user tap?". Flipper với Hermes profiler để xem JS thread, network, layout inspector — dùng khi muốn biết chậm là do JS hay native. Xcode Instruments cho native iOS, đo CPU và memory leak. Android Studio Profiler tương đương cho Android, đo jank frame. Process em follow: đoán trước root cause là render-heavy hay JS-heavy hay native, đo verify, fix, đo lại. Bundle size thì em dùng `react-native-bundle-visualizer` để xem lib nào chiếm size to — em từng thấy moment.js chiếm phần lớn bundle, thay bằng date-fns thì gọn hẳn.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```tsx
+import { Profiler } from 'react';
+
+<Profiler id="HomeList" onRender={(_, phase, actualDuration) => {
+  console.log({ phase, actualDuration });
+}}>
+  <HomeList />
+</Profiler>
+```
+
+Quy trình debug list chậm em hay làm:
+1. Bật Profiler quanh list → confirm nó đang render bao nhiêu lần.
+2. Mở Flipper → JS thread có spike không? Nếu có → tìm function heavy.
+3. Nếu JS OK mà UI vẫn giật → mở Xcode/AS Profiler → có thể là native (image decode, layout).
+
+---
+
+## Topicccccccccccccccc 4 — Navigation (3 Q&As)
+
+### Q4.1 — Stack vs Tab vs Drawer + nesting
+
+**VN:** *"Em chọn navigator nào cho case nào? Khi nest navigator có pitfall gì?"*
+**EN:** *"How do you pick between Stack/Tab/Drawer? Common nesting pitfalls?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Stack navigator** — push/pop màn hình như chồng đĩa: vào Detail = push, back = pop. Mỗi screen có header với back button.
+- **Tab navigator** — bottom/top tab bar, switch giữa các section ngang hàng, **không mất state** khi switch (Home tab giữ scroll position khi quay lại từ Search).
+- **Drawer navigator** — menu trượt từ cạnh, secondary nav. Hide affordance → user khó discover.
+- **Nesting** — đặt navigator này trong navigator khác (vd Tab bên trong Stack). Tạo cấu trúc nav phức tạp hơn.
+- **Back stack** — danh sách screen trong 1 navigator. Back = pop screen trên cùng. Mỗi navigator có back stack riêng.
+- **Header collision** — outer Stack và inner Stack đều render header → user thấy 2 thanh header chồng nhau.
+- **`headerShown: false`** — option tắt header ở 1 level navigator.
+- **Deep link path** — URL `myapp://product/123` phải resolve đúng full path qua các navigator nested (vd `Tab → ProductStack → Detail`), không chỉ screen name cuối.
+
+**💡 Ý chính (intuition mobile dev):**
+Pick navigator theo **shape của user flow**: Stack cho flow tuyến tính có back (login → home → detail), Tab cho sections ngang hàng switch không mất state (home/search/profile), Drawer cho secondary nav (settings, logout, help) — hạn chế dùng trên mobile vì user khó tìm thấy. Pattern nest phổ biến nhất: **outer Stack** cho auth flow (Login/Signup/AppRoot) → **App là Tab** với 3-5 tab → **mỗi tab có Stack riêng** (vd HomeTab có HomeStack: Home → Detail → Comment). Lý do mỗi tab có Stack riêng: back trong tab Home không nhảy sang tab Search. Pitfall hay gặp: (1) header collision khi outer Stack + inner Stack đều show header → tắt 1 level bằng `headerShown: false`; (2) deep link tới screen nested phải resolve full path `Tab → Stack → Screen`, không chỉ tên screen; (3) share Stack giữa các Tab → back có thể "nhảy" sang Tab khác.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Navigator structure là kiến trúc cốt lõi của mobile app — interviewer test có hiểu shape user flow không, hay chỉ "copy template tutorial". Junior hay over-engineer (Drawer cho main nav vì "trông giống web") hoặc share 1 Stack toàn app → back behavior kỳ lạ. Middle phải nói được: pick theo flow shape + pattern nest chuẩn (outer Stack auth + Tab app + inner Stack mỗi tab) + 3 pitfall concrete. Trap: claim đã làm Drawer + Tab + Stack nesting 4 level → interviewer hỏi "deep link resolve thế nào?" tịt.
+
+🗣 **Trả lời phỏng vấn:**
+> Stack dùng cho flow tuyến tính có back, ví dụ login → home → detail. Tab dùng cho sections ngang hàng, switch giữa home/search/profile mà không mất state. Drawer là secondary nav, em hạn chế dùng trên mobile vì hide affordance, user khó discover. Nest phổ biến nhất là Stack outermost cho auth flow, bọc Tab cho app chính, mỗi tab có Stack riêng để back stack độc lập. Pitfall thường gặp: một, deep link tới screen nested thì phải resolve full path `Tab → Stack → Screen`, không chỉ screen name. Hai, header collision khi outer Stack và inner Stack đều show header — fix bằng `headerShown: false` ở một level. Ba, share Stack giữa các Tab thì back từ Detail có thể nhảy sang Tab khác — mỗi Tab phải có Stack riêng.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```
+RootStack (auth)
+├── Login
+├── Signup
+└── App (Tab)
+    ├── HomeTab → HomeStack: Home → Detail
+    ├── SearchTab → SearchStack: Search → Result
+    └── ProfileTab → ProfileStack: Profile → Settings
+```
+
+Mỗi tab 1 Stack riêng → back trong tab Home không ảnh hưởng tab Search. Nếu chia sẻ chung 1 Stack → back ở Detail có thể "nhảy" sang Search vì cùng stack.
+
+---
+
+### Q4.2 — Deep linking + Universal/App Link
+
+**VN:** *"Deep link em setup thế nào? Universal Link và Custom Scheme khác gì?"*
+**EN:** *"Walk me through your deep linking setup."*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Deep link** — URL khi user tap (trong email, SMS, browser, push notification) sẽ mở app tới screen cụ thể, không phải screen home.
+- **Custom URL scheme** — định danh tự đặt như `myapp://product/123`. Đơn giản, không cần verify domain, nhưng app khác có thể claim cùng `myapp://` → user tap link mở nhầm app.
+- **Universal Link** (iOS) — URL https chuẩn `https://myapp.com/product/123` mở thẳng app nếu cài, fallback web nếu chưa. iOS verify ownership qua file `apple-app-site-association` host trên domain.
+- **App Link** (Android) — tương đương Universal Link cho Android. Verify qua `Digital Asset Links` JSON.
+- **`apple-app-site-association` (AASA)** — file JSON đặt tại `https://myapp.com/.well-known/apple-app-site-association`, declare app bundle ID + path nào claim được.
+- **Cold start** — link mở app từ killed state (app chưa chạy). Phải dùng `Linking.getInitialURL()` để đọc URL khởi tạo.
+- **Warm / hot start** — link mở app khi app đang chạy (foreground hoặc background). Phải dùng `Linking.addEventListener('url', ...)` để nhận event.
+- **`linking` config** — object pass cho `NavigationContainer` của React Navigation, map URL pattern → screen name.
+
+**💡 Ý chính (intuition mobile dev):**
+Custom scheme cho dev/internal OK, prod nên dùng Universal/App Link vì 3 lý do: (1) **secure** — chỉ app sở hữu domain đó mới claim được path; (2) **fallback web** — user chưa cài app thì link mở browser (UX không break); (3) **email/SMS auto-link** — `https://...` tự thành link clickable, `myapp://...` không. Setup gồm 2 phần: client config `linking={{prefixes, config}}` cho React Navigation map URL → screen, và server host file verify (AASA cho iOS, Digital Asset Links cho Android). Edge case BẮT BUỘC xử lý: phân biệt **cold start vs warm start** vì dùng 2 API khác nhau. `getInitialURL()` chỉ trả URL nếu app start từ killed state qua link; `addEventListener('url')` chỉ trigger khi app đang chạy. Chỉ handle 1 trong 2 = miss case còn lại = bug "link mở app không tới đúng screen", debug rất khó vì không reproduce được nếu test 1 state.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này test có ship deep link prod chưa, không phải đọc doc. Junior hay quên cold start vs warm — chỉ implement `addEventListener` → app killed thì link không tới screen đúng. Middle phải kể được: 2 API khác nhau, AASA file cần host đúng path `.well-known/`, deep link tới screen yêu cầu auth phải redirect Login với param `redirect`. Trap: dùng custom scheme cho prod payment app → chỉ cần app malware claim cùng scheme là intercept được link → security risk thật, không phải lý thuyết.
+
+🗣 **Trả lời phỏng vấn:**
+> Custom URL scheme kiểu `myapp://product/123` đơn giản, không cần verify domain, nhưng không secure vì app khác có thể claim cùng scheme, và không tự link trong email hay SMS. Universal Link iOS và App Link Android dùng URL https chuẩn, cần host file verify domain — `apple-app-site-association` cho iOS và Digital Asset Links cho Android. Lợi: secure, fallback về web nếu app chưa cài. Production app nên dùng Universal/App Link. Edge case quan trọng nhất là phân biệt cold start và warm: `getInitialURL` cho cold start (app killed, link mở app từ đầu), `addEventListener('url', ...)` cho warm (app đang chạy background). Chỉ handle một là miss case còn lại — bug rất khó debug. Test bằng `xcrun simctl openurl` cho iOS hoặc `adb shell am start -d <url>` cho Android.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```ts
+const linking = {
+  prefixes: ['myapp://', 'https://myapp.com'],
+  config: {
+    screens: {
+      Detail: 'product/:id',
+    },
+  },
+};
+
+useEffect(() => {
+  Linking.getInitialURL().then(url => url && handle(url));
+  const sub = Linking.addEventListener('url', ({ url }) => handle(url));
+  return () => sub.remove();
+}, []);
+```
+
+Trap khác: deep link tới screen yêu cầu auth → linking config mark screen, redirect Login với `redirect` param, sau login navigate lại đúng đích.
+
+---
+
+### Q4.3 — Android hardware back button
+
+**VN:** *"Android có hardware back, iOS không. Em xử lý gì khác biệt?"*
+**EN:** *"How do you handle the Android back button differently from iOS?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Hardware back button** — nút back vật lý / soft button của Android (3-button nav hoặc gesture nav). User expect back behavior nhất quán với mọi app.
+- **`BackHandler`** — RN API subscribe event back: `BackHandler.addEventListener('hardwareBackPress', callback)`. Callback return `true` = đã handle (prevent default), return `false` = để hệ thống xử lý.
+- **Default back behavior** — nếu không có listener nào return `true`: pop stack hiện tại, hoặc exit app nếu đã ở root.
+- **Swipe-back gesture** (iOS) — vuốt từ cạnh trái màn hình để back. Không có equivalent native ở Android (RN simulate được nhưng không idiomatic).
+- **`useFocusEffect`** — hook của React Navigation chạy callback khi screen được focus, cleanup khi blur. Tránh leak listener khi navigate qua screen khác.
+- **Discard confirm** — dialog "Bạn có muốn rời khỏi? Thay đổi chưa lưu sẽ mất" trước khi back ra khỏi form đang edit.
+- **Double-tap-to-exit** — pattern Android: tap back lần 1 show toast "Tap again to exit", tap lần 2 trong 2s mới exit thật.
+
+**💡 Ý chính (intuition mobile dev):**
+Android user **expect** hardware back hoạt động nhất quán: pop screen, close modal, dismiss keyboard, hoặc exit app khi ở root. iOS không có hardware back, dùng swipe-back gesture từ cạnh trái hoặc header back button. RN trên Android, React Navigation auto-handle pop-on-stack rồi, mình chỉ override khi behavior mặc định không đúng UX. 4 case cần override: (1) **modal đang open** → back close modal trước, không pop screen; (2) **form đang edit có thay đổi chưa save** → back show confirm "discard?"; (3) **top of stack** → default Android exit app, có thể implement double-tap-to-exit cho UX an toàn; (4) **WebView có history** → goBack trong webview trước khi pop screen RN. Đăng ký listener trong `useFocusEffect` để cleanup khi screen blur, tránh leak — nếu register raw `useEffect`, screen Detail blur rồi đăng ký vẫn còn → back ở screen khác trigger logic Detail = bug khó debug. Quy tắc: nghĩ Android trước (constraint khắt khe hơn) rồi iOS adapt, không ngược lại.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này test platform awareness — RN dev không thể chỉ "code 1 lần chạy 2 nơi". Junior hay quên override → form 3 step bị silent pop khi user nhấn back, mất sạch data → user complain. Middle phải kể được 4 case override + lý do dùng `useFocusEffect` thay vì `useEffect` (cleanup đúng lúc). Interviewer probe "screen Detail có listener back, navigate qua Profile, back ở Profile có chạy logic Detail không?" — phải biết câu trả lời.
+
+🗣 **Trả lời phỏng vấn:**
+> Android user expect hardware back: pop stack, close modal, dismiss keyboard, hoặc exit app. iOS không có hardware back, dùng swipe-back gesture hoặc header button. Trong RN, React Navigation tự handle back-on-stack rồi, em chỉ custom khi cần override. Có 4 case cần override: một, modal đang open thì back phải close modal, không pop screen. Hai, form đang edit thì back phải confirm "discard changes?". Ba, top of stack thì Android default sẽ exit app, có thể implement double-tap-to-exit để tránh user thoát nhầm. Bốn, WebView có history thì back nên goBack trong webview trước khi pop screen. Cách custom là `BackHandler.addEventListener('hardwareBackPress', ...)`, return `true` để prevent default. Em đăng ký trong `useFocusEffect` để cleanup khi screen blur, tránh leak listener. Quy tắc em apply: nghĩ Android trước rồi iOS adapt, không ngược lại.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```tsx
+useFocusEffect(
+  useCallback(() => {
+    const onBack = () => {
+      if (modalOpen) { setModalOpen(false); return true; }
+      if (hasUnsavedChanges) { confirmDiscard(); return true; }
+      return false;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+    return () => sub.remove();
+  }, [modalOpen, hasUnsavedChanges])
+);
+```
+
+Case phổ biến: form checkout 3 step, user ở step 2 nhấn hardware back → silent pop → mất data → user chửi. Fix: confirm trước khi pop.
+
+---
+
+## Topicccccccccccccccc 5 — Auth & Secure Storage (3 Q&As)
+
+### Q5.1 — Token refresh design pattern
+
+**VN:** *"Em design token refresh thế nào? Concurrent request lúc đang refresh xử lý ra sao?"*
+**EN:** *"Walk me through your access token refresh design."*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Access token** — vé ngắn hạn (15 phút) gắn vào header `Authorization: Bearer ...` mỗi request. Hết hạn nhanh để giảm risk nếu bị leak.
+- **Refresh token** — vé dài hạn (vài tuần) chỉ dùng để xin access token mới. Lưu kỹ vì lộ nó = lộ cả session.
+- **Interceptor** — "trạm kiểm soát" của axios/fetch wrapper. Mọi request/response đi qua đây trước khi tới code app, nên thêm header hoặc retry tự động được.
+- **401 Unauthorized** — server bảo "token không hợp lệ hoặc hết hạn". Đây là tín hiệu để client thử refresh, khác với 403 (đúng token nhưng không có quyền).
+- **Concurrent request** — nhiều request fire **cùng một lúc** (vd vào HomeScreen gọi `/me` + `/feed` + `/notifications` song song).
+- **Race condition** — kết quả phụ thuộc vào "ai về trước" — nondeterministic, lúc đúng lúc sai.
+- **Lock / Singleton promise** — 1 promise duy nhất chia sẻ cho nhiều caller — caller đầu trigger, caller sau `await` cùng promise đó.
+
+**💡 Ý chính (intuition mobile dev):**
+HomeScreen mở lên, app fire 4 request song song. Token vừa hết hạn → cả 4 request cùng nhận 401 → nếu mỗi request tự gọi `/auth/refresh` thì server thấy 4 lần refresh, rotate refresh token 4 lần, 3 lần sau bị reject vì token cũ → user bị logout oan. Fix là **chỉ cho phép 1 lần refresh tại 1 thời điểm**: biến `refreshPromise` là biến module-level, request đầu set nó = `doRefresh()`, request 2-3-4 thấy có rồi thì `await` cùng promise đó. Refresh xong tất cả retry với token mới — server chỉ thấy 1 lần `/auth/refresh`.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này phân biệt rõ Junior/Middle. Junior trả lời tới "interceptor catch 401 rồi refresh" là dừng — interviewer probe "5 request cùng 401 thì sao?" sẽ panic. Middle phải nói được lock pattern + rollback path khi refresh fail (clear cả 2 token, navigate Login, không retry vô hạn vì kill battery + spam server).
+
+🗣 **Trả lời phỏng vấn:**
+> Pattern em dùng là access token short-lived khoảng 15 phút, refresh token dài hơn nhiều, mỗi lần refresh thì rotate refresh token. Interceptor axios hoặc fetch wrapper catch 401, gọi `/auth/refresh`, retry request gốc với token mới. Edge case quan trọng nhất là concurrent request — ví dụ 5 request fire cùng lúc, cùng nhận 401, nếu mỗi request tự refresh sẽ thành 5 lần refresh, server cũ invalidate token, race vô hạn. Fix là lock pattern: dùng 1 promise singleton, request đầu trigger refresh, các request sau `await` cùng promise đó, refresh xong tất cả retry với token mới. Refresh fail thì clear cả 2 token, dispatch logout, navigate Login — không retry vô hạn vì kill battery và spam server.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```ts
+let refreshPromise: Promise<string> | null = null;
+
+async function getValidToken() {
+  if (!refreshPromise) {
+    refreshPromise = doRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+axios.interceptors.response.use(undefined, async (err) => {
+  if (err.response?.status === 401) {
+    const newToken = await getValidToken();
+    err.config.headers.Authorization = `Bearer ${newToken}`;
+    return axios(err.config);
+  }
+  throw err;
+});
+```
+
+10 request cùng 401 → chỉ 1 lần `doRefresh()` chạy, 10 request đều `await` cùng promise đó.
+
+---
+
+### Q5.2 — SecureStore vs AsyncStorage vs MMKV
+
+**VN:** *"Token nên lưu ở đâu? Các option storage khác nhau ra sao?"*
+**EN:** *"Where do you store tokens, and what are the trade-offs?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Keychain** (iOS) — secure storage của Apple, hardware-backed (Secure Enclave trên thiết bị mới). Encrypt by OS, app khác không đọc được.
+- **Keystore** (Android) — equivalent của Keychain trên Android. Cũng hardware-backed trên device mới (TEE - Trusted Execution Environment).
+- **SecureStore** — wrapper RN lib (`expo-secure-store` hoặc `react-native-keychain`) abstract Keychain/Keystore. API thống nhất 2 platform.
+- **Biometric gate** — yêu cầu Face ID / Touch ID / fingerprint mới đọc được key. Built-in vào Keychain/Keystore.
+- **AsyncStorage** — RN lib lưu file-based plaintext. Đọc/ghi async. Có giới hạn ~6MB total trên Android, không có giới hạn iOS.
+- **MMKV** — lib của Tencent, build trên `mmap` (memory-mapped file). Sync API nhanh hơn AsyncStorage 30-100x. Có option encrypt với key.
+- **Plaintext** — data lưu nguyên dạng readable. Device root/jailbreak có thể đọc trực tiếp file.
+- **OS encrypt vs app encrypt** — OS encrypt (Keychain/Keystore) dùng key trong hardware, app không thấy. App encrypt với key hardcode trong JS bundle = bypass được vì decompile bundle ra key.
+
+**💡 Ý chính (intuition mobile dev):**
+3 storage cho 3 use case khác nhau, không thay thế lẫn nhau. **SecureStore (Keychain/Keystore)**: nhạy cảm thật — refresh token, credential, biometric key. OS encrypt với hardware-backed key, app khác không đọc được, có biometric gate. **AsyncStorage**: prefs không nhạy cảm — theme, language, onboarding flag. Plaintext OK vì lộ cũng không hại. Async API. **MMKV**: prefs cần đọc nhanh lúc startup, hoặc nhiều key. Sync API → đọc tức thì như đọc biến (`MMKV.getString('theme')` không cần await), suit cho startup-critical config. Có encrypt option nhưng dùng key trong app — không phải security thật mà chỉ obfuscation. Quy tắc cốt lõi: **nhạy cảm thì để OS encrypt, không tự encrypt bằng key trong app**. Key hardcode JS bundle decompile là ra (`hermes-decompile`), encrypt với key đó là theatre.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này test security awareness. Junior 3 sai lầm phổ biến: (1) lưu refresh token AsyncStorage plaintext → leak khi root; (2) lưu MMKV với encrypt key hardcode → bypass được; (3) confuse "MMKV có encrypt" = "secure như SecureStore" → sai. Middle phải distinguish OS encrypt (real) vs app encrypt (theatre), và biết MMKV use case là perf không phải security. Interviewer probe "key MMKV encrypt lưu ở đâu?" — phải trả lời được.
+
+🗣 **Trả lời phỏng vấn:**
+> SecureStore wrap iOS Keychain và Android Keystore, encrypt by OS, có thể gate biometric — em dùng cho refresh token và credential nhạy cảm. AsyncStorage file-based, plaintext, Android root có thể đọc được — em dùng cho user prefs không nhạy cảm như theme, language, onboarding flag. MMKV là native key-value, sync, nhanh hơn AsyncStorage rõ rệt, có thể encrypt với key — em dùng khi cần đọc nhanh lúc startup hoặc khi list key dài, vì AsyncStorage có thể lag khi đọc nhiều key đồng thời. Refresh token em luôn để SecureStore, không phải MMKV với encrypt key — vì key encrypt nếu hardcode trong JS thì decompile bundle là bypass được, không phải security thật. Nguyên tắc: nhạy cảm thì để OS encrypt, không tự encrypt bằng key trong app.
+
+🔎 **Ví dụ dễ hiểu:**
+
+| Data | Tool | Lý do |
+| --- | --- | --- |
+| Refresh token | SecureStore | OS encrypt, biometric gate được |
+| Access token (in-memory) | RAM/Redux | Short-lived, không cần persist |
+| Theme, language | AsyncStorage / MMKV | Không nhạy cảm |
+| Onboarding done | AsyncStorage / MMKV | Không nhạy cảm, đọc 1 lần lúc startup |
+| User profile cache | Query (in-memory) | Không persist nhạy cảm như email/phone |
+
+---
+
+### Q5.3 — 401 handling end-to-end
+
+**VN:** *"Khi server trả 401, end-to-end em xử lý thế nào?"*
+**EN:** *"Walk me through your 401 handling end-to-end."*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **401 Unauthorized** — server bảo "token không hợp lệ/hết hạn". Khác 403 (đúng token nhưng không có quyền).
+- **End-to-end** — toàn bộ chain xử lý: từ HTTP response 401 → tới UX user thấy (back to Login + toast). Không bỏ step nào ở giữa.
+- **Interceptor** — middleware của axios/fetch wrapper, intercept response trước khi tới code app. Chỗ tốt nhất để handle 401 vì centralize.
+- **Silent logout** — user bị logout mà không thấy gì (no toast, no message), mở app sau lại thấy ở Login → confusion ("Sao tự dưng phải login lại?").
+- **Form draft persist** — lưu nội dung form đang edit (vd checkout step 2) trước khi navigate Login. Sau re-login restore lại đúng chỗ.
+- **PII (Personally Identifiable Information)** — info có thể identify user: email, phone, ID, token. Theo Nghị định 13/2023 VN, log PII = legal risk.
+- **`beforeSend`** — hook của Sentry chạy trước khi gửi event lên server. Strip PII tại đây.
+- **Background sync** — request fire khi app ở background (vd push notification triggers refetch). 401 trên background nguy hiểm vì user không tương tác → silent logout dễ xảy ra.
+
+**💡 Ý chính (intuition mobile dev):**
+4 step chuẩn end-to-end: **(1) Interceptor catch 401**: centralize handler, không phải mỗi screen tự handle. **(2) Check có refresh token không**: nếu không có → user chưa login bao giờ hoặc token bị clear → đi thẳng step 4. **(3) Refresh**: thành công thì lưu token mới SecureStore, retry request gốc với header Authorization mới, return data về caller như chưa có chuyện gì xảy ra → user UX seamless. Concurrent request dùng lock pattern (Q5.1). **(4) Refresh fail hoặc không có refresh token**: clear cả 2 token, dispatch logout (reset Redux), navigate AuthStack, **show toast** "Session expired, please log in" để user biết — không bao giờ silent. UX bonus: nếu user đang ở giữa form quan trọng (checkout, edit profile), persist draft trước khi navigate Login → sau re-login show prompt restore. Logging: chỉ log endpoint + "refreshed: yes/no" + status, KHÔNG log token value (PII + Nghị định 13 risk). Sentry `beforeSend` strip token/email/phone.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này hỏi "auth UX hoàn chỉnh" chứ không chỉ "biết catch 401". Junior dừng ở "catch 401 rồi navigate Login" → bug silent logout (background sync 401 → user click app thấy Login mà không hiểu vì sao). Middle phải kể được toast trước navigate, persist form draft, không log PII, concurrent request queue. Interviewer probe "401 trên background sync xử lý sao?" — phải có câu trả lời (queue toast tới khi user mở app, hoặc skip background fetch khi không có user interaction).
+
+🗣 **Trả lời phỏng vấn:**
+> Em handle 4 step. Một, interceptor axios hoặc fetch wrapper catch status 401. Hai, check có refresh token không — có thì call `/auth/refresh`, không thì sang step 4. Ba, refresh thành công thì lưu token mới vào SecureStore, retry request gốc, return data về caller như chưa có chuyện gì xảy ra. Concurrent request queue như em nói ở Q5.1. Bốn, refresh fail hoặc không có refresh token thì clear cả 2 token, dispatch logout, navigate AuthStack, show toast "Session expired, please log in" để user biết. UX bonus em hay làm: nếu user đang ở giữa form quan trọng như checkout hoặc edit profile, persist draft trước khi navigate Login, restore sau re-login. Logging: chỉ log endpoint và "refreshed: yes/no", không bao giờ log token value vì đó là PII.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```ts
+axios.interceptors.response.use(undefined, async (err) => {
+  if (err.response?.status !== 401) throw err;
+
+  const refreshToken = await SecureStore.getItem('refreshToken');
+
+  if (!refreshToken) {
+    logout(); // clear + navigate Login + toast
+    throw err;
+  }
+
+  try {
+    const newToken = await getValidToken(); // singleton từ Q5.1
+    err.config.headers.Authorization = `Bearer ${newToken}`;
+    return axios(err.config);
+  } catch {
+    logout();
+    throw err;
+  }
+});
+```
+
+Bug case phổ biến: 401 trên background sync → silent logout → user không biết, click vào app thấy đang ở Login mà không hiểu vì sao. Fix: luôn surface toast trước khi navigate.
+
+---
+
+## Topicccccccccccccccc 6 — Reliability & Observability (3 Q&As)
+
+### Q6.1 — Crash reporting setup
+
+**VN:** *"Em setup Sentry hoặc Crashlytics thế nào? Config gì là critical?"*
+**EN:** *"Walk me through your crash reporting setup."*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Sentry / Crashlytics** — service crash reporting. Sentry phổ biến với JS/TS, Crashlytics tích hợp Firebase. Cả 2 đều capture exception + stack trace + breadcrumb + device info.
+- **Release tag** — version identifier (vd `app@1.2.3+456`) gắn vào mỗi event để link với source map đúng version.
+- **Source map** — file `.map` map từ minified bundle (`a.b.c.d.e`) ngược về source code thật (`HomeScreen.tsx:123`). Không có source map = stack trace là chuỗi ký tự không debug được.
+- **Symbolicate** — quá trình replace minified symbol bằng tên thật từ source map. Sentry tự động làm khi upload đúng map version.
+- **`beforeSend`** — hook Sentry chạy trước khi gửi event lên server. Mutate event (strip PII) hoặc return null (drop event).
+- **PII (Personally Identifiable Information)** — email, phone, ID, GPS, token. Theo Nghị định 13/2023 VN, log + leak = legal risk.
+- **Breadcrumb** — log "vết bánh mì" các action user làm trước crash (login, navigate, tap button). Giúp reproduce bug.
+- **`tracesSampleRate`** — % event Sentry collect cho performance monitoring. 0.1 = 10%. Set quá cao = tốn quota nhanh.
+- **Quota** — Sentry/Crashlytics có giới hạn event/tháng theo plan. Log mọi click = hết quota giữa tháng.
+
+**💡 Ý chính (intuition mobile dev):**
+5 thứ critical theo thứ tự: **(1) Init sớm** ngay top-level `index.js` hoặc `App.tsx` trước khi render → crash trong init flow vẫn được capture. Init muộn = miss crash quan trọng nhất. **(2) Release tag + environment** match đúng version build → source map upload cùng version → symbolicate đúng. Không có release tag = stack trace `a.b.c.d.e`, debug như đoán mò. **(3) Upload source map trong CI** sau khi bundle, dùng `sentry-cli sourcemaps upload --release ...`. Phải tự động hoá vì dev hay quên upload → prod crash debug được nửa vời. **(4) `beforeSend` strip PII** — email, phone, token, password, GPS chính xác. Không phải nice-to-have, là legal compliance VN. **(5) Breadcrumb có chọn lọc** cho action quan trọng (login attempt, payment submit, navigation core), không log mọi thứ vì noise + tốn quota. Khi có crash prod: mở dashboard, filter theo release tag, đọc breadcrumb 5 phút trước crash → reproduce được trong 10 phút thay vì vài ngày.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Đây là câu test "đã owned crash trong prod chưa". Junior chỉ `Sentry.init({ dsn })` xong nghĩ là done → prod crash thấy stack `a.b.c` không debug được. Middle phải kể đủ 5 thứ + 1 ví dụ thật (crash gì, dùng breadcrumb tìm ra root cause thế nào, fix ra sao). Trap quan trọng: claim "log mọi action để debug đầy đủ" → tốn quota + leak PII + interviewer hỏi "Nghị định 13" tịt.
+
+🗣 **Trả lời phỏng vấn:**
+> 5 thứ em luôn set khi setup Sentry hoặc Crashlytics. Một, init sớm, ngay top-level `index.js` hoặc `App.tsx` trước render — crash trong init flow sẽ miss nếu init muộn. Hai, set release tag và environment — không có release thì source map không match, stack trace bị minified và không debug được. Ba, upload source map trong CI bằng `sentry-cli` sau khi bundle, match đúng release tag. Bốn, dùng `beforeSend` để strip PII — email, phone, token, password, GPS chính xác — đây là legal risk ở VN theo Nghị định 13. Năm, breadcrumb cho action quan trọng như login attempt, payment submit, navigation core, không log mọi thứ vì noise và tốn quota. Khi có crash prod, em mở dashboard với release tag + breadcrumb, thường dò ra vài phút thay vì vài ngày.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```ts
+Sentry.init({
+  dsn: '...',
+  release: `app@${Constants.expoConfig.version}+${BUILD_NUMBER}`,
+  environment: __DEV__ ? 'dev' : 'production',
+  beforeSend(event) {
+    if (event.user) {
+      delete event.user.email;
+      delete event.user.ip_address;
+    }
+    return event;
+  },
+  tracesSampleRate: 0.1,
+});
+
+Sentry.addBreadcrumb({ category: 'auth', message: 'login_submit' });
+```
+
+Trap thường gặp: dev quên upload source map → mở Sentry thấy stack `a.b.c.d.e` mịt mù.
+
+---
+
+### Q6.2 — Error boundary in RN
+
+**VN:** *"Error boundary có dùng được trong RN không? Limitation gì?"*
+**EN:** *"Do error boundaries work in RN? What can't they catch?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Error boundary** — class component implement `componentDidCatch` + `getDerivedStateFromError`. Catch error trong render của children → render fallback UI thay vì crash toàn app.
+- **`componentDidCatch(error, errorInfo)`** — lifecycle gọi khi child throw trong render. Đây là chỗ gọi `Sentry.captureException`.
+- **`getDerivedStateFromError(error)`** — static method return state mới (vd `{ hasError: true }`). Được gọi trước render để switch sang fallback.
+- **Render error** — error xảy ra trong function render của component (vd `data.user.name` mà `data.user` là null).
+- **Async error** — error trong promise reject, `async/await`, fetch fail. Error boundary KHÔNG catch — phải `try-catch` thủ công.
+- **Event handler error** — error trong `onPress`, `onSubmit`. Error boundary KHÔNG catch — phải `try-catch` trong handler.
+- **Fallback UI** — UI hiển thị khi boundary catch error (vd "Something went wrong, retry").
+- **Reset boundary** — đưa boundary về trạng thái không error để render lại children. 2 cách: đổi `key` để remount, hoặc dùng `react-error-boundary` lib có `resetErrorBoundary`.
+- **Tier strategy** — root boundary (wrap toàn App) + section boundary (wrap từng screen/block) → error 1 section không kill toàn app.
+
+**💡 Ý chính (intuition mobile dev):**
+Error boundary là RN/React feature catch render error trong descendants để app không bị white screen. Limitation quan trọng: KHÔNG catch 4 thứ — async error (promise reject), event handler error, error trong setTimeout/setInterval, error trong chính boundary. Lý do: 4 case này không xảy ra trong render phase, boundary chỉ trap render. Cho 4 case đó phải `try-catch` thủ công + `Sentry.captureException(err)`. Strategy 2 tier để UX tốt: **root boundary** wrap toàn `<App/>` với fallback "Something went wrong, please restart" + auto report Sentry — đây là safety net cuối. **Section boundary** wrap mỗi screen/block lớn với fallback nhỏ — vd list voucher render lỗi → hiện "Cannot load, retry" thay vì white screen toàn app, các phần khác vẫn dùng được. Reset bằng đổi `key` của boundary (force remount) hoặc dùng `react-error-boundary` có `resetErrorBoundary`. Production fallback chỉ nên có title đơn giản + retry button, KHÔNG show stack trace (leak code structure).
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này test có ship error handling layered chưa, hay chỉ wrap 1 boundary root mà không hiểu limit. Junior hay claim "Error Boundary catch hết error" → interviewer hỏi "promise reject thì sao?" tịt. Middle phải nói được 4 case không catch + try-catch thủ công + 2 tier strategy + lý do production không show stack trace. Trap: section boundary đặt lung tung không reset được → user retry mãi không được, phải kill app → UX fail.
+
+🗣 **Trả lời phỏng vấn:**
+> Có, error boundary là class component với `componentDidCatch` và `getDerivedStateFromError`, catch render error trong descendants và render fallback UI. Limitation quan trọng: không catch async error như promise reject, không catch event handler error, không catch error trong `setTimeout`/`setInterval`, và không catch error trong chính boundary. Cho 4 case đó em phải `try-catch` thủ công và gọi `Sentry.captureException`. Strategy em dùng là 2 tier: một root boundary wrap toàn app với fallback "Something went wrong, please restart" và crash report Sentry, cộng với section boundary cho mỗi screen hoặc block lớn — ví dụ list voucher render lỗi sẽ hiện "Cannot load, retry" thay vì white screen toàn app. Reset pattern: đổi `key` của boundary để remount, hoặc dùng lib `react-error-boundary` có `resetErrorBoundary`. Production fallback chỉ nên có title đơn giản và retry button, không show stack trace vì leak info.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```tsx
+class ErrorBoundary extends React.Component {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error, info) {
+    Sentry.captureException(error, { extra: info });
+  }
+  render() {
+    if (this.state.hasError) return <Fallback onRetry={() => this.setState({ hasError: false })} />;
+    return this.props.children;
+  }
+}
+
+<ErrorBoundary>
+  <App />
+</ErrorBoundary>
+
+const handlePress = async () => {
+  try {
+    await api.submit();
+  } catch (err) {
+    Sentry.captureException(err);
+    showToast('Submit failed');
+  }
+};
+```
+
+---
+
+### Q6.3 — Release process end-to-end
+
+**VN:** *"Em làm release process thế nào? Rollback ra sao?"*
+**EN:** *"Walk me through your release process and rollback strategy."*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Semver (Semantic Versioning)** — `MAJOR.MINOR.PATCH` (vd 1.2.3). Major = breaking, Minor = feature, Patch = bugfix.
+- **Build prod** — bundle JS minified + native compile release config. Khác build dev (debug, không minify).
+- **Source map upload** — gửi `.map` lên Sentry với release tag matching. Bắt buộc trong CI để stack trace prod symbolicate.
+- **Smoke test** — test nhanh critical path (login → home → 1 action core) trên device thật (không chỉ simulator) để verify build không broken cơ bản.
+- **TestFlight (iOS) / Play Internal (Android)** — channel beta phân phối trước khi promote production. User test thật, có cơ hội catch bug trước khi rollout 100%.
+- **Promote production** — chuyển build từ beta sang production rollout (% gradually 10% → 50% → 100%).
+- **OTA (Over-The-Air) update** — push JS bundle mới mà không qua app store review. Tools: **EAS Update** (Expo), **CodePush** (Microsoft, deprecated). Chỉ update JS, không update native code.
+- **Native rollback** — bug trong native code (SDK, permission, crash native) → phải submit version mới qua store, đợi review.
+- **Expedited review** — request Apple/Google review nhanh khi critical bug. iOS thường 4-24h, không guarantee.
+- **Feature flag** — boolean flag wrap risky feature, có thể flip on/off remote. Lib: LaunchDarkly, Firebase Remote Config, Statsig.
+
+**💡 Ý chính (intuition mobile dev):**
+Release 7 step kỷ luật: **(1)** bump version semver — patch cho fix, minor cho feature, major cho breaking; **(2)** changelog group theo feature/fix/perf để team CS biết hỏi user gì; **(3)** build prod qua EAS Build hoặc native CI (Fastlane/Bitrise); **(4)** upload source map Sentry với release tag match; **(5)** smoke test critical path trên device thật ít nhất 1 iOS + 1 Android cũ (iOS 14, Android 8) — đây là chỗ catch bug "chỉ xảy ra trên device cũ"; **(6)** submit beta 1-3 ngày tùy risk (TestFlight + Play Internal); **(7)** promote prod khi crash rate dưới threshold (vd <0.5%). Rollback **3 layer** chiến lược: **native code** bug → submit version mới qua store, expedite review nếu critical (1-24h iOS, may rủi); **JS-only** bug → OTA push bundle cũ qua EAS Update/CodePush, vài phút là user nhận được; **feature flag** → flip flag tức thì, không cần build mới. Combine 3 layer: feature flag cho feature mới rủi ro, OTA cho fix nhanh JS, store submission là cuối cùng. Feature flag không phải "nice to have" mà là cứu cánh khi bug ảnh hưởng < 5% user — flip flag trong giây thay vì 8h đợi review.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này test có own end-to-end release chưa, không chỉ "bấm build". Junior trả lời "build → submit store" là dừng → interviewer probe "prod crash 1% user, rollback bằng cách nào?" tịt. Middle phải kể được 3 layer rollback + lý do feature flag là cứu cánh + experience expedite review (timing thật). Trap: claim "rollback store dễ" → khi bug critical, chờ Apple review 8h là mất user.
+
+🗣 **Trả lời phỏng vấn:**
+> Em follow 7 step. Một, bump version semver — patch cho fix, minor cho feature. Hai, viết changelog group theo feature/fix/perf. Ba, build prod qua EAS Build hoặc native CI, test trên device thật chứ không chỉ simulator. Bốn, upload source map Sentry với release tag match. Năm, smoke test critical path login → home → một feature core, trên ít nhất 1 iOS và 1 Android cũ. Sáu, submit store, beta TestFlight và Play Internal 1–3 ngày tùy risk. Bảy, promote production khi crash rate dưới threshold. Rollback có 3 layer: native code thì phải submit version mới qua store, có thể request expedite review nếu critical. JS-only thì dùng OTA update qua EAS Update hoặc CodePush, push bundle cũ trong vài phút. Feature flag thì wrap risky changes, có vấn đề chỉ flip flag, không cần rollback build. Em hay combine cả 3 — flag cho feature mới, OTA cho fix nhanh, store submission là cuối cùng.
+
+🔎 **Ví dụ dễ hiểu:**
+
+| Loại lỗi | Cách rollback | Thời gian |
+| --- | --- | --- |
+| Bug native (crash, permission) | Submit version mới qua store | 1–24 giờ (review) |
+| Bug JS (logic sai, regex broken) | OTA push bundle cũ | Vài phút |
+| Feature mới có vấn đề edge case | Flip feature flag → off | Tức thì |
+
+Trap: nghĩ "rollback store dễ" → khi prod crash 1% user, request review expedite mất 4–8 tiếng — đây là lý do feature flag không phải nice-to-have, mà là cứu cánh.
+
+---
+
+## Topicccccccccccccccc 7 — Testing (3 Q&As)
+
+### Q7.1 — Test pyramid trên RN
+
+**VN:** *"Em phân chia test pyramid trên RN thế nào? Coverage bao nhiêu là đủ?"*
+**EN:** *"How do you structure the test pyramid for RN, and what's a healthy coverage target?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Test pyramid** — mô hình ưu tiên test theo tầng: **đáy nhiều test rẻ + nhanh** (unit), **đỉnh ít test đắt + chậm** (E2E). Pyramid lệch (nhiều E2E ít unit) = "ice cream cone", flaky + chậm.
+- **Unit test** — test 1 đơn vị độc lập (function, hook, mapper). Không touch DOM/native, chạy bằng Jest, dưới 10 giây cho 100+ test.
+- **Component test** — test 1 component render đúng + tương tác (tap, fill form). Dùng React Native Testing Library (RNTL).
+- **Integration test** — test nhiều component + provider (Query/Redux/Navigation) cùng nhau. Flow loading → success → error. Còn gọi là feature test.
+- **E2E (End-to-End)** — test trên app thật chạy trên simulator/device, simulate user thật. Tools: **Detox** (Wix), **Maestro** (Mobile.dev — YAML, dễ học hơn).
+- **Coverage** — % dòng code có test chạy qua. Đo bằng `jest --coverage`. Cao không = chất lượng cao, có thể test trivial (theatre).
+- **Critical path** — flow user buộc phải work: auth (login/signup), payment, list core. Phải có E2E coverage.
+- **Test theatre** — test viết để có coverage, không catch bug thật. Vd test getter/setter trivial.
+- **Flaky test** — test lúc pass lúc fail dù code không đổi. Thường do timing, network mock không deterministic, animation.
+
+**💡 Ý chính (intuition mobile dev):**
+Pyramid 4 layer từ đáy lên đỉnh, ROI giảm dần theo độ đắt: **(1) Unit** Jest cho pure function (formatCurrency, parseDate, validateEmail), mapper, hook đơn giản — nhiều (50-100 test), rẻ, chạy <10s. **(2) Component** RNTL render component đơn lẻ, test interaction tap/fill — vd `<Button onPress>`, `<EmptyState>`, `<Card>`. **(3) Integration** render component cùng `QueryClientProvider`/Redux mock, test flow loading→success→error — đây là layer ROI cao nhất, catch bug thật của business logic, không phải implementation detail. **(4) E2E** Detox/Maestro chỉ chạy critical path (5-10 test): login → home → 1 action core, payment flow. Đắt setup, chậm chạy, dễ flaky → giới hạn số lượng. Coverage target ~70% là healthy — 100% là theatre, test getter/setter là phí. Quan trọng hơn % là **critical path coverage**: auth, payment, list core phải có test ở integration + E2E layer. Nếu phải pick 1 layer ưu tiên: **integration** — ROI cao nhất, catch business bug, không brittle như E2E.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này test "có hiểu test mindset chưa" hay "chỉ ép coverage 100%". Junior thường claim 100% coverage hoặc viết toàn unit cho function trivial → interviewer probe "feature payment có integration test không?" tịt. Middle phải nói được pyramid + critical path > coverage % + honest về team chưa có culture test mạnh ("đang xây test mindset trên repo demo"). Trap: claim đã viết E2E Detox prod trong khi thực tế chưa setup → interviewer hỏi "Detox config thế nào, mock NSURLSession không?" tịt.
+
+🗣 **Trả lời phỏng vấn:**
+> Em follow pyramid 4 layer. Đáy là unit test bằng Jest cho pure function, mapper, util, hook đơn giản — nhiều, rẻ, chạy nhanh dưới 10 giây. Middle là component test bằng React Native Testing Library, render component đơn lẻ, test interaction tap, fill form, snapshot có giới hạn. Trên là integration test, render component cùng QueryClientProvider hoặc Redux mock, test flow từ loading sang success sang error. Đỉnh là E2E bằng Detox hoặc Maestro, chỉ chạy critical path như login đến home đến 1 action core, vì E2E đắt và flaky. Coverage target em nhắm khoảng 70% line coverage cho product app — 100% là theatre, test getter setter là phí. Quan trọng hơn coverage % là critical path coverage: auth, payment, list core phải có test. Em sẽ honest nói luôn em chưa làm trong môi trường có culture test mạnh, đang xây test mindset trên repo demo.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```
+        E2E (Maestro: login → checkout → pay)            ← 5–10 test
+      Integration (RNTL + Query mock: HomeScreen flow)   ← 20–40 test
+   Component (Button, Card, EmptyState)                  ← 50–100 test
+Unit (formatCurrency, parseDate, validateEmail)          ← nhiều, rẻ
+```
+
+Decision: nếu phải chọn 1, ưu tiên integration test cho critical path — ROI cao nhất, catch bug thật không phải bug giả của implementation detail.
+
+---
+
+### Q7.2 — What NOT to test deliberately
+
+**VN:** *"Cái gì em cố tình KHÔNG test? Vì sao?"*
+**EN:** *"What do you deliberately not test, and why?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Implementation detail** — chi tiết bên trong cách code làm (internal state, hook order, tên biến private). Test cái này = test "code đang viết kiểu gì", không phải "code đang làm gì".
+- **Behavior** — output user thấy hoặc API caller thấy. Test cái này mới đúng — refactor giữ behavior thì test vẫn pass.
+- **Brittle test** — test dễ vỡ khi refactor code dù behavior không đổi. Dấu hiệu test sai layer.
+- **Snapshot test** — Jest tạo file `.snap` lưu rendered output, so với render mới. Brittle với UI hay đổi (animation, dynamic text).
+- **Cosmetic** — UI element không liên quan business (animation, transition, color). Test snapshot là noise vì designer đổi style là test fail.
+- **Codegen** — code sinh tự động từ schema (OpenAPI, GraphQL, Protobuf). Test output codegen = test tool sinh code, không phải logic mình viết.
+- **Mock chain** — mock A → A gọi B nên mock B → mock C → ... Mỗi mock là 1 maintenance debt, refactor service = phá hết test.
+- **Test cost** — code phải maintain (update khi refactor, debug khi flaky). Không phải zero — phải tính trade-off.
+
+**💡 Tiêu chí vàng đánh giá test đáng viết:**
+> "Test này có **fail khi bug có thật**, và **pass khi bug đã fix** không?"
+> Không trả lời rõ = test sai.
+
+**💡 Ý chính (intuition mobile dev):**
+4 thứ cố tình không test, mỗi thứ vì 1 lý do khác. **(1) Implementation detail** (internal state, hook order, biến private): test phải fail khi behavior sai và pass khi refactor không đổi behavior. Test implementation thì refactor là phá hết test → ngại refactor → code rot. **(2) Library code**: test `useState` chạy đúng là việc của React team, đã có test ở repo React. Mình test wrapper trivial là phí. **(3) Cosmetic animation** (opacity transition, lottie, value liên tục): snapshot không stable, ROI thấp. Cosmetic dùng E2E visual regression hoặc human review thay. **(4) Generated code** từ codegen OpenAPI/GraphQL: test schema source thay vì test output, vì output là tool sinh ra (đáng tin nếu schema đúng). Quy tắc vàng phải hỏi trước khi viết test: "test này có fail khi bug có thật, và pass khi bug đã fix không?" — không trả lời được thì test sai. Mock chain dài (mock A → mock B → mock C) cũng là dấu hiệu test sai layer hoặc service quá coupling, refactor là phá hết.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này phân biệt người "viết test cho có" với người hiểu test ROI. Junior hay test internal state, count function call, hoặc đẩy coverage 100% bằng test trivial → maintenance debt cao, không catch bug thật. Middle phải nói được tiêu chí vàng (fail khi bug có thật, pass khi fix) + 4 thứ không test + lý do từng thứ. Interviewer probe "tại sao test internal state là sai?" — phải distinguish behavior vs implementation.
+
+🗣 **Trả lời phỏng vấn:**
+> 4 thứ em cố tình không test. Một, implementation detail như internal state, hook order, biến private — test phải fail khi behavior sai và pass khi refactor không đổi behavior, test implementation thì refactor là phá hết test. Hai, library code — `useState` chạy đúng là việc của React team, test wrapper trivial là phí. Ba, cosmetic animation như opacity transition, lottie, value liên tục — snapshot không stable, ROI quá thấp, dùng E2E visual hoặc human review thay. Bốn, generated code từ codegen OpenAPI hoặc GraphQL — test schema source thay vì test output. Em luôn hỏi 1 câu trước khi viết test: "test này có fail khi bug có thật, và pass khi bug đã fix không?". Nếu không trả lời được thì test đó sai. Mock chain dài cũng là dấu hiệu test sai — mỗi mock là 1 maintenance debt, refactor service đơn giản có thể phá hết test mock chain.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```ts
+// ❌ Test implementation — refactor là phá
+test('useCounter calls setState', () => {
+  const { result } = renderHook(() => useCounter());
+  expect(result.current._setState).toBeDefined(); // test internal
+});
+
+// ✅ Test behavior — refactor không đổi behavior thì test vẫn pass
+test('counter increments when increment is called', () => {
+  const { result } = renderHook(() => useCounter());
+  act(() => result.current.increment());
+  expect(result.current.count).toBe(1);
+});
+```
+
+---
+
+### Q7.3 — Mock strategy: MSW vs jest.mock
+
+**VN:** *"Em mock API trong test thế nào? MSW hay jest.mock?"*
+**EN:** *"What's your mock strategy — MSW vs jest.mock?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **MSW (Mock Service Worker)** — lib intercept HTTP request **ở network layer** (fetch/XHR), return response mock. Code app không biết đang test, gọi `fetch()` như prod.
+- **`setupServer`** — API của MSW khởi tạo server mock cho Node/Jest environment. Define handlers một lần, dùng cho cả test suite.
+- **`http.get`/`http.post`** — handler MSW match URL pattern, return `HttpResponse.json(data)`.
+- **`jest.mock(moduleName, factory)`** — Jest API replace **toàn bộ module** bằng mock object. Áp dụng cho mọi import của module đó trong test.
+- **Module-level mock** — mock cả module (vd `expo-secure-store`). Khác MSW chỉ mock HTTP response.
+- **`msw/native`** — MSW package cho RN environment. Cần polyfill thêm vì RN không có Service Worker thật như browser.
+- **`retry: false` + `cacheTime: 0`** — config QueryClient cho test deterministic. Mặc định Query retry 3 lần khi fail → test "lúc pass lúc fail".
+- **Determinism** — test cùng input → cùng output mỗi lần chạy. Flaky test phá CI.
+- **Test wrapper** — component wrap test với providers (QueryClientProvider, Redux Provider, Navigation). Reusable across test files.
+
+**💡 Ý chính (intuition mobile dev):**
+2 layer mock cho 2 use case khác nhau, không thay thế lẫn nhau. **MSW** intercept HTTP ở network layer → code app gọi `fetch()`/`axios.get()` như prod, MSW đứng giữa return mock response. Closest với production behavior — không mock library code, không touch React Query/Apollo internal. Setup 1 lần `setupServer(handlers)` ở `beforeAll`, dùng cho cả test suite → test integration loading→success→error rất gần thật. **jest.mock** mock toàn bộ module → dùng khi cần mock thứ không phải HTTP: `expo-secure-store` (storage), `expo-notifications`, `react-native-reanimated`. Decision đơn giản: **integration test** (HomeScreen + Query + render) ưu tiên MSW, **unit test** pure function thường không cần mock. Trap quan trọng phải tránh: **mock chain** — mock module A, A gọi B nên mock B, rồi C → test brittle cực, refactor service đơn giản là phá hết. Honest về MSW trên RN: cần `msw/native` + polyfill, không plug-and-play như Node/web. Test với Query phải set `retry: false` và `cacheTime: 0` cho deterministic, không thì test "lúc pass lúc fail" do retry hoặc cache leak giữa test.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này test "có ship test thật chưa". Junior chỉ biết `jest.mock` và mock từng API call thủ công → test brittle + verbose. Middle phải distinguish 2 layer + decision tree (HTTP→MSW, module→jest.mock) + honest về limitation MSW trên RN. Trap: claim đã setup MSW prod codebase trong khi mới chỉ thử trên repo demo — interviewer probe `polyfill` cụ thể là tịt.
+
+🗣 **Trả lời phỏng vấn:**
+> Em chia 2 layer. MSW dùng cho integration test, intercept HTTP request thật và return response mock — gần production behavior nhất, không mock library code, setup 1 lần `setupServer` dùng cả test suite. jest.mock dùng cho unit test, mock module level — ví dụ mock `expo-secure-store` khi test logic không phụ thuộc HTTP. Decision đơn giản: integration test ưu tiên MSW vì test thật flow request và response, unit test pure function thì không cần mock. Trap em luôn tránh là mock chain — mock module A, A gọi B nên mock B, rồi mock C — test brittle, refactor service đơn giản là phá hết. Honest, MSW setup trên RN cần `msw/native` hoặc polyfill, không plug-and-play như Node — em đã setup trên repo demo, chưa migrate prod codebase.
+
+🔎 **Ví dụ dễ hiểu:**
+
+```ts
+// MSW — integration test
+const server = setupServer(
+  http.get('/api/todos', () => HttpResponse.json([{ id: 1, title: 'Buy milk' }])),
+);
+
+beforeAll(() => server.listen());
+afterAll(() => server.close());
+
+test('renders todos', async () => {
+  render(<HomeScreen />, { wrapper: QueryProvider });
+  expect(await screen.findByText('Buy milk')).toBeOnTheScreen();
+});
+
+// jest.mock — unit test
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn().mockResolvedValue('mock-token'),
+}));
+```
+
+Test với TanStack Query: nhớ wrap `QueryClientProvider` với `retry: false` và `cacheTime: 0` để test deterministic, tránh test "lúc pass lúc fail".
+
+---
+
+## Topicccccccccccccccc 8 — Behavioral (5 Q&As)
+
+### Q8.1 — Tell me about yourself (60s pitch)
+
+**VN:** *"Em giới thiệu bản thân ngắn gọn."*
+**EN:** *"Tell me about yourself."*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ interview cần biết:**
+- **60s pitch** — phần giới thiệu bản thân nhanh, chuẩn 60-90 giây. Memorize, không đọc — phải nói tự nhiên.
+- **Forward-looking framing** — kể theo hướng "đi tìm gì tiếp theo", không phải "chạy khỏi cái gì". Signal positive intent.
+- **Signal vs noise** — signal = thông tin liên quan role đang apply (RN, mobile, scale). Noise = bằng cấp dài, task vụn, sở thích không liên quan.
+- **Anchor point** — 1-2 detail concrete neo lại trong tâm trí interviewer (vd "ship loyalty feature trên app 500k user", "core contributor 2 sản phẩm"). Không kể chung chung "có kinh nghiệm RN".
+- **Honest framing** — chủ động state điểm chưa mạnh trước khi interviewer đào (vd "mạnh mobile/frontend, backend ở mức debug + setup"). Signal credibility, không pretend full-stack.
+- **Closing hook** — câu cuối mở đường cho interviewer hỏi sâu (vd "...em muốn grow lên Senior trong môi trường team mobile lớn hơn"). Tránh đóng câu cứng.
+
+**💡 Ý chính (intuition mobile dev):**
+60s pitch không phải CV đọc to — nó là **trailer** giới thiệu version interview-ready của mình. 4 phần theo thứ tự: **(1)** mình là ai (role + năm kinh nghiệm trong 1 câu); **(2)** sản phẩm/feature đã ship (anchor point concrete, có scope/scale); **(3)** mình đang tìm gì (forward framing, không kể "chán chỗ cũ"); **(4)** stack chính + honest gap. Trap junior hay mắc là kể từ thời sinh viên, list 8 task, hoặc bằng cấp đại học — đây là noise, interviewer muốn signal cho role mobile cụ thể. Pitch tốt = interviewer hỏi follow-up đúng vào điều mình đã chuẩn bị (vd nhắc loyalty → interviewer hỏi "kể chi tiết loyalty xử lý voucher state thế nào?" → mình ready). Memorize đến mức nói trôi không pause >1s — "umm" đầu câu signal lúng túng. Practice cách nói tự nhiên (không như bài thuyết trình), kèm filler nhẹ ("well", "you know", "thực ra") để sound human.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Đây là 30 giây đầu tiên interviewer ấn tượng về candidate — set tone cả interview. Junior hay nói lan man vô tổ chức hoặc đọc thuộc lòng cứng → signal kém communicate. Middle phải nói trôi 60s + có anchor concrete + forward framing. Trap: claim Senior level qua pitch (vd "lead team", "architect system") khi chưa làm — interviewer sẽ probe team size, decision authority, ra gãy ngay.
+
+🗣 **Trả lời phỏng vấn (memorize, không đọc):**
+> Em là React Native developer với hơn 3 năm kinh nghiệm production. Em đã làm core contributor của 2 sản phẩm — một là mobile commerce app cho end-user, hai là admin SaaS dashboard cho merchant. Trên mobile em ship đầy đủ feature liên quan loyalty: earn points, tier user, referral, gamification. Em quen với cycle full từ design review, implement, release qua store, monitor crash, đến rollback bằng feature flag khi cần. Em đang tìm role Strong Middle hoặc Mid-Senior trong môi trường có team mobile lớn hơn để grow lên Senior. Stack chính: React Native, TypeScript, Redux Toolkit, TanStack Query, Firebase. Em mạnh ở mobile và frontend, backend em đủ để debug API và setup service Firebase, không claim full-stack.
+
+🔎 **Cấu trúc 60s pitch:**
+
+```
+[10s] Role + kinh nghiệm: "RN dev hơn 3 năm production"
+[20s] Sản phẩm ship: kể 1–2 sản phẩm + feature core
+[10s] Đang tìm gì: "role Strong Middle, môi trường team lớn hơn để grow Senior"
+[20s] Stack + honest: "mạnh mobile/frontend, backend ở mức debug + setup"
+```
+
+Trap junior hay mắc: kể từ thời sinh viên, kể bằng cấp, kể list 8 task. Pitch không phải CV đọc to.
+
+---
+
+### Q8.2 — Why are you looking to leave?
+
+**VN:** *"Vì sao em muốn nghỉ chỗ hiện tại?"*
+**EN:** *"Why are you looking to leave?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ interview cần biết:**
+- **Forward framing** — kể theo hướng "đi tìm cái gì mới" (next level, complexity cao hơn, team mentor). Signal proactive growth.
+- **Backward framing** — kể theo hướng "chạy khỏi cái gì" (boss tệ, đồng nghiệp yếu, lương thấp). Signal complaint mindset, red flag.
+- **Hit ceiling** — đạt giới hạn growth ở role hiện tại — đã làm hết complexity team có thể cung cấp. Lý do hợp lệ phổ biến nhất.
+- **Bad-mouth** — nói xấu công ty cũ, manager, đồng nghiệp. Tuyệt đối cấm — interviewer sẽ nghĩ "vài năm sau bạn sẽ nói xấu mình thế này".
+- **Red flag** — dấu hiệu rủi ro về candidate. Bad-mouth + lương là lý do chính + "muốn đổi cho mới" = 3 red flag instant.
+- **Diplomatic framing** — diễn đạt khéo, giữ tôn trọng công ty cũ ngay cả khi có vấn đề thật. Signal maturity.
+- **Secondary reason** — lý do phụ kèm theo lý do chính. Lương có thể là secondary, KHÔNG được là primary.
+
+**💡 Ý chính (intuition mobile dev):**
+Câu này không test "lý do thật của bạn", mà test **maturity + risk signal**. Interviewer muốn biết bạn có mature professional discourse không — bạn rời chỗ cũ vì growth (đi tìm) hay vì drama (chạy khỏi). Frame **forward** an toàn nhất: "hit ceiling học hỏi", "muốn team mobile lớn hơn để pair/mentor", "muốn complexity cao hơn để grow Senior", "muốn architecture rigorous hơn". Frame **backward** là red flag dù bạn có thể nói thật: "boss tệ", "đồng nghiệp yếu", "lương thấp", "chán" — đều signal complaint mindset. Quy tắc vàng: appreciation cho công ty cũ trước (đã học gì, đã ship gì), rồi forward (đang tìm gì tiếp). Nếu HR push "lương có phải lý do chính không?": "Lương là 1 phần fairness, không phải chính. Nếu lương tăng mà team size + complexity không đổi, em vẫn tìm role mới." — câu này signal bạn ưu tiên growth, không price-shopping.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này filter mature vs immature. Junior hay bad-mouth ngầm ("đồng nghiệp không support", "manager không hiểu mobile") → instant red flag. Middle phải forward frame + diplomatic + có lý do concrete (hit ceiling, team size, complexity). Trap: claim "công ty cũ không có gì học" → interviewer biết bạn không tự đào sâu được, khi join họ cũng vậy.
+
+🗣 **Trả lời phỏng vấn:**
+> Em ở chỗ hiện tại hơn 3 năm và học được rất nhiều — ship 2 sản phẩm production, làm core contributor cho mảng loyalty. Gần đây em cảm thấy đã hit ceiling học hỏi ở role này — em muốn làm việc với mobile system scale lớn hơn, có team mentor mạnh hơn để grow lên Senior. Em đã thử grow trong company qua việc lead 1–2 spec nhỏ, nhưng team size và tech stack hiện tại hạn chế khả năng em đi sâu vào architecture hoặc observability. Đó là lý do em apply role này — em thấy company anh chị có team backend strong và mobile complexity cao, đó là môi trường em muốn cho 2–3 năm tới.
+
+🔎 **Mẫu trả lời theo case:**
+
+| Lý do | Phrase OK | Phrase nên tránh |
+| --- | --- | --- |
+| Hit ceiling | "Em đã hit ceiling học hỏi ở role này, muốn next level" | "Ở đây không có gì mới" |
+| Muốn team lớn hơn | "Em muốn team có nhiều mid/senior để pair và mentor" | "Đồng nghiệp hiện tại yếu" |
+| Muốn complexity | "Em muốn mobile system scale lớn hơn để grow architecture" | "Sản phẩm hiện tại boring" |
+| Lương | (Không phải lý do chính, chỉ secondary) | "Lương em thấp" |
+
+Nếu HR push "lương có phải lý do?": "Lương là 1 phần fairness, không phải chính. Nếu lương tăng mà team size không đổi, em vẫn tìm role mới."
+
+---
+
+### Q8.3 — Salary expectations
+
+**VN:** *"Mức lương mong muốn của em là bao nhiêu?"*
+**EN:** *"What are your salary expectations?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ interview cần biết:**
+- **Defer / Deflect** — chuyển hướng câu hỏi sang đối phương. Vd "Anh chị có thể chia sẻ band lương cho role này không?". Mua thời gian + lấy info trước khi commit số.
+- **Anchor / Anchoring** — số đầu tiên đưa ra trong negotiation neo lại expectation. Anchor cao = nego về thấp vẫn được mức tốt. Anchor thấp = không nego lên được.
+- **Range vs single number** — trả range (vd "28-32M") cho linh hoạt nego. Trả single number (vd "30M") là bị anchor cứng, không nego được.
+- **Walkaway number** — số dưới mức này thì politely decline, không phụ thuộc package nào. Phải viết trên giấy TRƯỚC call để không bị áp lực moment hạ thấp.
+- **Full package** — bao gồm: lương cứng + bonus + benefit (BHYT, ESOP, food, gym) + 13th month + project bonus. Number đơn không nói lên giá trị thật.
+- **Current salary disclosure** — share lương hiện tại. Ở VN **không bắt buộc** (khác Mỹ một số state cấm hỏi). Decline politely là OK.
+- **Growth path** — roadmap promote level (Mid → Senior → Staff) với timeline và criteria. Trade off được lương trong ngắn hạn nếu growth path rõ.
+- **Counter-offer** — offer mới sau khi mình từ chối offer đầu, thường cao hơn 10-20%. Có cơ hội nego nếu walkaway có evidence (offer khác, market data).
+
+**💡 Ý chính (intuition mobile dev):**
+Câu này là 1 negotiation, không phải Q&A. 3 nguyên tắc: **(1) Defer trước** — hỏi band của họ trước khi quote số mình. Mua thời gian + lấy info để align. **(2) Trả range không trả single number** — single number bị anchor cứng, range cho phép nego. **(3) Anchor 15-20% trên target** — anchor 32M nếu target thật là 28M, để nego về 28-30M vẫn đạt target. Tâm lý: phỏng vấn luôn nghĩ candidate quote cao, sẽ nego xuống — anchor đúng target = bị nego dưới target. Số hiện tại **KHÔNG bắt buộc** share ở VN, decline politely: "Em không thoải mái share, em focus vào fair market rate cho role này." **Walkaway number** phải viết trên giấy trước call — đây là số nguyên tắc, dưới đó decline. Nếu không có walkaway viết trước, dễ bị áp lực moment chấp nhận thấp hơn intended (loss aversion: "đợi lâu rồi, nhận đi"). Anchor cho Middle RN VN 2026: product 22-28M target → ask 28-32M; outsourcing foreign 28-35M target → ask 35-42M.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+HR hỏi câu này để (1) screen có align budget không, (2) test negotiation skill. Junior hay quote single number (vd "20M") → bị anchor cứng, không lên được, hoặc hủy interview vì "ngoài budget". Middle phải defer + range + anchor 15-20% trên target. Trap: nói "em open, anh chị offer bao nhiêu cũng được" → instant signal "candidate dễ ép giá", nhận được offer thấp nhất band. Trap khác: anchor quá cao (50M cho Middle) khi không có evidence → interviewer nghĩ "không hiểu market" hoặc "over-confident".
+
+🗣 **Trả lời phỏng vấn (defer first):**
+> Cảm ơn anh chị đã hỏi. Trước khi em đưa số, anh chị có thể chia sẻ band lương cho role này không ạ? Em muốn make sure expectation của em align với budget company.
+
+**Nếu bị push:**
+> Dựa vào hơn 3 năm kinh nghiệm production RN của em, expectation của em ở range **[low] tới [high]** triệu một tháng. Số cụ thể phụ thuộc full package — benefit, bonus, growth path, đào tạo.
+
+🔎 **Anchor cho Middle RN VN 2026:**
+
+| Loại company | Target range thực | Anchor (ask) |
+| --- | --- | --- |
+| Product company VN | 22–28M | **28–32M** |
+| Outsourcing có foreign client | 28–35M | **35–42M** |
+
+**Mẫu trả lời các tình huống đào sâu:**
+
+- *"Hiện tại em bao nhiêu?"* → "Em không thoải mái share số hiện tại, em focus vào fair market rate cho role này. Range của em là [anchor]." *(Hợp pháp ở VN, không bắt buộc disclose.)*
+- *"Number cứng, không range được không?"* → "Em prefer range vì final phụ thuộc package. Nếu cần committed number, em chọn [anchor mid]."
+- *"Band của bọn anh là [X] thấp hơn — em cân nhắc không?"* → "Em open cân nhắc nếu growth path và benefit bù được. Cho em xin chi tiết package và roadmap level trong 6–12 tháng."
+
+**Walkaway number** — viết trên giấy trước call: `___ M/tháng`. Dưới số này, polite decline.
+
+---
+
+### Q8.4 — Biggest weakness
+
+**VN:** *"Điểm yếu lớn nhất của em là gì?"*
+**EN:** *"What's your biggest weakness?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ interview cần biết:**
+- **Fake strength** — weakness giả mạo dạng "em quá perfectionist", "em quá tận tâm". Interviewer nghe quá nhiều, eye-roll instant.
+- **Real weakness** — điểm yếu thật, có thể impact role. Vd spoken English under pressure, backend depth, test rigor.
+- **Self-awareness** — khả năng nhận ra điểm yếu của mình mà không bị defensive. Strong Middle signal.
+- **Action plan** — cái mình ĐANG làm để fix weakness. Phải concrete (vd "daily speaking drill 30 phút", "side project GraphQL"), không vague ("em sẽ học thêm").
+- **Progress evidence** — số liệu cụ thể chứng minh đang improve (vd "3 tháng trước em pause 5s mỗi câu, giờ pause 2s"). Optional nhưng giúp credible.
+- **Work-in-progress framing** — frame weakness là "đang grow, chưa fix xong" thay vì "em yếu". Honest + forward-looking.
+- **Honest gap** — gap thật mình chưa làm (vd chưa GraphQL prod, chưa test rigorous). Own up trước khi interviewer đào.
+
+**💡 Ý chính (intuition mobile dev):**
+Câu này có 3 yêu cầu phải đủ cả 3: **(1) Real weakness** — không fake strength. Interviewer biết "em quá perfectionist" là bullshit, nói câu này = signal candidate không tự nhận thức. **(2) Concrete action plan** — đang làm gì cụ thể để fix. Vague action ("em sẽ học thêm") = không nghiêm túc. Concrete ("daily speaking drill 30 phút, mock interview hàng tuần") = signal đã invest. **(3) Progress evidence** — so trước-sau (3 tháng/6 tháng). Có evidence = credible weakness vs claim suông. Có thể kể 2 weakness (1 chính, 1 phụ) để show self-awareness rộng. Pattern an toàn cho Middle RN: spoken English under pressure (universal, không hại job offer), backend depth (Mid mobile thường thiếu, không expect), test culture rigor (honest gap nhiều team có), public speaking (không phải must-have). Tránh: tech skill core của job (vd "em yếu RN" khi apply RN role), red flag personal (lười, hay trễ deadline).
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này test self-awareness + ability to learn. Junior 3 trap: (1) fake strength → interviewer eye-roll; (2) "em không có điểm yếu nào" → red flag thiếu tự nhận thức; (3) yếu mọi thứ → lack confidence. Middle phải kể 1-2 real weakness + concrete action + progress evidence. Trap quan trọng: kể weakness là core skill của job (vd "em không quen TypeScript" khi apply role TS-heavy) → instant disqualify. Trap khác: progress evidence không match — claim "3 tháng improve" nhưng kể chỉ "đọc thêm doc" → không credible.
+
+🗣 **Trả lời phỏng vấn:**
+> Honest mà nói, spoken English under pressure là điểm em đang work in progress. Reading và writing của em ở mức B2 — đọc doc, review PR async không vấn đề. Nhưng trong fast group discussion bằng English, em đôi khi pause để structure câu trong đầu. Để close gap này em đang daily speaking drill khoảng 30–45 phút mỗi ngày, mock interview hàng tuần. So với 3 tháng trước em improve thấy được — pause ít hơn, câu trả lời có structure hơn. Em vẫn đang grow, không claim đã fix xong. Weakness thứ hai là backend depth — em comfortable với REST và Firebase, nhưng chưa hands-on GraphQL hay system design backend complex. Em đang đọc và plan side project để đụng vào trong 3–6 tháng tới.
+
+🔎 **Pattern weakness an toàn cho mid-level RN:**
+
+| Weakness | Vì sao OK | Action kèm theo |
+| --- | --- | --- |
+| Spoken English under pressure | Honest, không fake | Daily drill + mock weekly |
+| Backend depth (GraphQL, system design) | Mid mobile thường thiếu | Side project, đọc spec |
+| Test culture/rigor | Honest nếu cũ không có | Tự build test mindset trên repo demo |
+| Public speaking / talk | Không phải must-have | Tham gia internal sharing |
+
+**KHÔNG nói:**
+- "Em quá perfectionist / quá tận tâm" — fake strength, interviewer eye-roll.
+- "Em không có điểm yếu nào" — red flag tự nhận thức kém.
+- "Em yếu mọi thứ" — lack confidence.
+
+---
+
+### Q8.5 — Conflict story (STAR)
+
+**VN:** *"Kể 1 lần em conflict với teammate, em xử lý thế nào?"*
+**EN:** *"Tell me about a time you disagreed with a teammate."*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ interview cần biết:**
+- **STAR framework** — cấu trúc kể chuyện behavioral: **S**ituation (bối cảnh) → **T**ask (vai trò mình) → **A**ction (mình làm gì) → **R**esult (kết quả + bài học). Universal pattern cho mọi câu kể chuyện.
+- **Situation** (10s) — bối cảnh ngắn: sprint nào, feature gì, ai liên quan. Đủ để interviewer hiểu setting, không lan man.
+- **Task** (5s) — vai trò mình trong câu chuyện. Vd "em là RN dev chính của feature".
+- **Action** (30s) — mình làm gì **cụ thể**: bước 1, 2, 3. Đây là phần dài nhất, signal năng lực.
+- **Result** (15s) — outcome + bài học. Có metric càng tốt (giảm bug X%, ship đúng deadline). Bài học show growth mindset.
+- **Villain framing** — hóa teammate thành "bad guy" trong câu chuyện. Anti-pattern, signal candidate khó collaborate.
+- **Mature signal** — không villain hóa, có data/concrete khi disagree, kết bằng compromise hoặc learning. Senior-thinking signal.
+- **Drama story** — kể câu chuyện cãi nhau Slack, escalate manager, drama emotional. Anti-pattern, signal candidate immature.
+- **Concrete vs abstract** — disagree với data/code/payload size cụ thể vs disagree với opinion ("em nghĩ approach kia xấu"). Concrete win.
+
+**💡 Ý chính (intuition mobile dev):**
+Câu này test 3 thứ: (1) ability collaborate với teammate khác opinion, (2) communication style (assertive vs aggressive vs passive), (3) maturity. STAR là framework chuẩn — nói theo cấu trúc, không lan man. **Mature signal** là chìa khóa: kể chuyện không villain hóa (BE dev không phải "bad guy", chỉ là có view khác), không drama Slack (rủ call 1-1 thay vì cãi public), có data/concrete khi disagree (show payload size, latency, code parse complexity), kết bằng compromise hoặc learning (không phải "em thắng họ thua"). Chọn câu chuyện vừa phải — không quá nhỏ ("disagree về tên biến"), không quá to ("em từng đối đầu CTO"). Sweet spot là disagree về technical decision với teammate đồng cấp, có business impact rõ. Bài học cuối phải transferable — "30 phút call 1-1 hiệu quả hơn 2 ngày Slack" áp dụng được nhiều case khác.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này filter Middle có collaborate được không. Junior 3 trap: (1) villain hóa teammate ("BE dev đó sai hoàn toàn") → red flag; (2) passive ("em im lặng cho qua") → signal không assertive; (3) drama emotional ("cả team căng thẳng cả tuần") → signal immature. Middle phải kể STAR mature, có data, có outcome, có bài học transferable. Trap: bịa câu chuyện hoặc cao trào quá → interviewer detect ngay (probe detail "30 phút call cụ thể nói gì?" → tịt).
+
+🗣 **Trả lời phỏng vấn (STAR):**
+> **Situation:** Trong một sprint feature voucher list, một backend dev propose API trả data nested nhiều level để mobile chỉ cần 1 request. Em không đồng ý vì payload to và mobile parse phức tạp.
+>
+> **Task:** Em là RN dev chính của feature, cần đảm bảo perf mobile mà không block tiến độ BE.
+>
+> **Action:** Em không debate trên Slack. Em request 30 phút call riêng với BE dev. Vào call em show concrete: code parse mobile sẽ phức tạp thế nào, payload to ảnh hưởng load time trên mạng yếu. Em không nói "anh sai" mà hỏi "em đề xuất tách 2 endpoint, một cho list flat và một cho detail on-demand, anh thấy có pain phía BE không?". Sau 30 phút bọn em agree hybrid: 1 endpoint chính trả flat, 1 endpoint phụ trả detail khi user tap vào.
+>
+> **Result:** Ship đúng deadline, payload giảm rõ, BE refactor query không quá đau, mobile parse gọn lại. Bài học em rút ra: disagreement với concrete code và data luôn productive hơn disagreement với opinion abstract — và 30 phút call 1-1 hiệu quả hơn 2 ngày tranh luận trên Slack.
+
+🔎 **Template STAR áp dụng cho mọi câu hỏi behavioral:**
+
+```
+Situation (10s): bối cảnh — sprint nào, feature gì, ai liên quan
+Task (5s):     vai trò mình — em là gì trong câu chuyện này
+Action (30s):  mình làm gì cụ thể — bước 1, bước 2, bước 3
+Result (15s):  kết quả + bài học — đo được + apply tiếp ở đâu
+```
+
+**KHÔNG nói:**
+- "BE dev đó sai hoàn toàn" — villain signal.
+- "Em im lặng cho qua" — passive signal.
+- Story bịa hoặc quá cao trào — interviewer detect ngay.
+
+---
+
+## Bonus — Câu hỏi VN-specific hay được hỏi
+
+### B1 — *"Tại sao em chọn React Native, không phải Flutter / native?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Cross-platform** — viết 1 codebase chạy nhiều OS (iOS + Android). RN, Flutter, Xamarin đều cross-platform.
+- **Native (Swift/Kotlin)** — viết riêng cho từng platform với ngôn ngữ native. Hiệu năng tốt nhất nhưng tốn 2x effort.
+- **Ecosystem** — tổng số lib + community size + Stack Overflow answer + tutorial. Ecosystem lớn = giải bug nhanh, lib mature.
+- **Market demand** — số job posting yêu cầu skill đó. VN 2026: RN nhiều hơn Flutter cho product company và team đầu tư stack JS.
+- **Skill leverage** — share skill giữa các domain. RN dùng JS/TS → share với web. Flutter dùng Dart → không share được.
+- **Bash framework** — nói xấu framework khác để justify chọn của mình. Anti-pattern, signal immature.
+
+**💡 Ý chính (intuition mobile dev):**
+Câu này test mức độ tự nhận thức về tool, không phải bắt mình bash framework khác. 3 lý do hợp lý cho RN: **(1) Ecosystem lớn nhất** trong cross-platform — search bug ra Stack Overflow nhanh, lib mature. **(2) Skill leverage JS/TS** — team nhỏ tận dụng được dev đa năng (web + mobile). **(3) Market VN demand** — Firebase, Sentry, 3rd-party SDK ở VN support RN-first. Honest framing: không bash Flutter — Flutter Dart engine + Skia render mạnh, animation mượt, là choice tốt cho team đầu tư stack đó. Native thuần Swift/Kotlin overkill cho hầu hết product app, chỉ phù hợp khi có hardware integration phức tạp (camera AR, Bluetooth low-level) hoặc team có 2 native dev sẵn. Honest: claim đã đọc Flutter, viết được hello world, chưa ship Flutter prod — không pretend full Flutter knowledge.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này filter candidate có maturity về tool selection hay là fanboy. Junior hay bash Flutter ("Flutter chậm vì Dart") → signal hẹp. Middle phải distinguish khi nào RN win (ecosystem JS, market VN), khi nào Flutter win (animation phức tạp, team đầu tư Dart), khi nào native cần (hardware integration). Trap: claim Flutter thua RN mọi mặt → interviewer biết bạn chưa thử Flutter → mất credibility.
+
+🗣 **Trả lời phỏng vấn:**
+> Em chọn RN vì 3 lý do thực tế cho job. Một, ecosystem và community lớn nhất trong cross-platform — lib và pattern mature, search Stack Overflow ra nhanh. Hai, stack JS/TS share với web — team nhỏ tận dụng được dev đa năng. Ba, Firebase, Sentry và 3rd-party SDK ở VN market support RN-first. Em không chọn Flutter không phải vì Flutter kém — Dart engine và render Skia mạnh, animation mượt — đơn giản là market VN hiện tại demand RN nhiều hơn cho product company và team em đã đầu tư stack RN. Native thuần Swift hay Kotlin thì overkill cho hầu hết product app, chỉ phù hợp khi có hardware integration phức tạp hoặc team có 2 native dev sẵn. Honest, em đã đọc Flutter, viết được hello world, chưa ship Flutter prod.
+
+---
+
+### B2 — *"Em làm việc với designer thế nào? Figma đã dùng chưa?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ EN cần biết:**
+- **Figma** — design tool web-based phổ biến nhất hiện nay (thay Sketch + Zeplin cũ). Hỗ trợ inspect mode để dev lấy spec.
+- **Inspect mode** — chế độ xem trong Figma cho dev: click element → thấy spacing, color hex, font size, padding. Không cần liên hệ designer cho từng giá trị.
+- **Design token** — biến design (color, spacing, font) centralize ở 1 chỗ. Vd `color.primary = #007AFF`, `spacing.md = 16`. Designer đổi token Figma → dev update 1 dòng.
+- **Magic number** — số hardcode rải rác trong code (vd `padding: 17`, `marginTop: 23`). Anti-pattern, không scale được.
+- **Design system** — bộ token + component library + guideline thống nhất. App scale lớn cần có để consistent.
+- **Constraint khác platform** — RN có constraint khác web (Android dùng `elevation` thay `box-shadow`, iOS có safe area cho notch). Designer có thể không biết → cần loop.
+- **Order-taker** — dev chỉ làm theo design, không question. Anti-pattern. Collaborator thì propose alternative khi RN không làm được.
+
+**💡 Ý chính (intuition mobile dev):**
+Câu này test 2 thứ: (1) workflow thực tế với designer, (2) có biết design system/token không. Workflow tốt: **review design trước sprint planning** — list ambiguity và hỏi designer luôn để không tới giữa sprint mới phát hiện edge case. **Implement spacing/typography từ token**, không hardcode magic number — color/spacing/font centralize ở 1 file token để designer update Figma → dev update 1 dòng. **Loop với designer khi RN có constraint** khác web — vd Android dùng `elevation` thay `box-shadow` (iOS web), Safe Area cần chừa cho iPhone notch, FlatList có constraint perf mà ScrollView web không có. Mindset cốt lõi: xem designer là **collaborator không phải order-taker** — có gì RN không làm được hoặc tốn nhiều effort thì propose alternative thay vì silent compromise. KHÔNG cần khoe Figma plugin advanced — chỉ cần show inspect mode + token workflow + 1 ví dụ collaborate khi có constraint.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này filter dev có làm việc với non-tech được không. Junior hay 1 trong 2 trap: (1) silent implement, có gì khó tự "đại khái" → designer không biết → product không match design; (2) push back mọi thứ "RN không làm được" → designer frustrated. Middle phải kể được workflow concrete + design token + 1 case collaborate khi có constraint.
+
+🗣 **Trả lời phỏng vấn:**
+> Có, em dùng Figma hàng ngày — comfort với inspect mode để lấy spacing, color, typography. Quy trình em apply: một, review design trước sprint planning, list ra ambiguity và hỏi designer luôn để không tới giữa sprint mới phát hiện. Hai, implement spacing và typography từ design token, không hardcode magic number — color, spacing, font size đều centralize ở 1 file token để designer update Figma thì em chỉ update token. Ba, loop với designer khi RN có constraint khác web — ví dụ Android dùng elevation thay vì box-shadow web, hoặc Safe Area cần chừa trên iPhone notch. Em xem designer là collaborator không phải order-taker, có gì RN không làm được hoặc tốn nhiều effort em sẽ propose alternative thay vì silent compromise.
+
+---
+
+### B3 — *"Em onboard 1 junior dev RN mới vào team, em sẽ làm gì?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ interview cần biết:**
+- **Onboarding** — quá trình tích hợp dev mới vào team: setup môi trường, làm quen codebase, ship ticket đầu. Thường 1-2 tuần với junior, 3-5 ngày với senior.
+- **Pair programming** — 2 dev ngồi cùng làm 1 ticket, thay nhau drive (gõ code) và navigate (review/suggest). Highest bandwidth của knowledge transfer.
+- **Mentor light** — mentor có structure ít hơn full mentor: review PR khi cần, giải thích pattern, không daily 1-1.
+- **Architecture overview** — tài liệu tóm tắt cấu trúc codebase: folder structure, navigation flow, state management split. Giúp junior hiểu **why** chứ không chỉ **how**.
+- **Decision log** — tài liệu ghi quyết định kỹ thuật quan trọng + lý do (vd "tại sao chọn Redux thay Zustand"). Junior đọc hiểu trade-off.
+- **Confidence over productivity** — tuần 1 onboarding ưu tiên junior tự tin với codebase, không ép ship feature ngay. Productivity tới sau confidence.
+- **Ask vs pretend** — junior **biết hỏi đúng** (ask early, ask specific) thay vì pretend hiểu rồi ship bug. Đây là expectation, không phải "junior phải biết hết".
+
+**💡 Ý chính (intuition mobile dev):**
+Câu này check 2 thứ: (1) có structure khi mentor không (1-2 tuần plan), (2) có hiểu junior khác mid không (expect ask, not pretend). Plan realistic 1-2 tuần: **Tuần 1**: setup env (Xcode, Android Studio, clone repo, run app local trên device thật + simulator) + pair với mình 1 ticket tutorial nhỏ (UI tweak, fix string) — KHÔNG touch state hay navigation phức tạp. Mục tiêu tuần 1 là **confidence với codebase, không productivity**. **Tuần 2**: 1 ticket feature thật scope nhỏ — review PR chi tiết, focus vào pattern hook, navigation, state, không nitpick style (đã có lint). Share architecture overview + decision log để junior hiểu why, không chỉ how. Sau 1 tháng junior tự pick ticket Middle với mentor light. **Mindset cốt lõi**: không expect junior remember mọi thứ — expect junior biết hỏi đúng, không pretend hiểu rồi ship bug. KHÔNG cần curriculum 8 tuần — over-engineer onboarding signal candidate chưa onboard ai thật.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này filter Middle có ready lead/mentor chưa, hay chỉ ship feature solo. Junior hay claim "em sẽ throw junior vào ticket Senior để học nhanh" → signal mentoring kém, junior burnout. Middle phải kể plan realistic + confidence trước productivity + expect ask not pretend. Trap: mô tả curriculum 8 tuần with reading list + workshop → interviewer biết bạn over-engineer, chưa onboard thật.
+
+🗣 **Trả lời phỏng vấn:**
+> Em map onboarding 1–2 tuần. Tuần một: setup môi trường env, Xcode, Android Studio, clone repo, run app local trên device thật và simulator. Pair với em 1 ticket tutorial nhỏ kiểu UI tweak hoặc fix string — không touch state hay navigation phức tạp. Mục tiêu tuần 1 là confidence với codebase, không phải productivity. Tuần hai: 1 ticket feature thật scope nhỏ — em review PR chi tiết, focus vào pattern hook, navigation, state, không nitpick style vì đã có lint. Em share document architecture overview và decision log của team để junior hiểu why chứ không chỉ how. Sau 1 tháng junior tự pick ticket Middle với mentor light. Quan trọng nhất: em không expect junior remember mọi thứ — em expect junior biết hỏi đúng, không pretend hiểu rồi ship bug.
+
+---
+
+### B4 — *"Vì sao em rời công ty cũ?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ interview cần biết:**
+- **Maturity check** — câu hỏi test mức độ trưởng thành chuyên môn của candidate, không phải tech skill. Cách trả lời = signal cách candidate sẽ behave trong team.
+- **Risk signal** — dấu hiệu candidate có thể tạo rủi ro cho team (drama, complaint, bad-mouth, hopping). Interviewer scan câu trả lời để đoán risk.
+- **Forward-looking framing** — kể theo hướng "đi tìm cái gì mới" (next level architecture, team mentor mạnh hơn). Signal proactive growth.
+- **Backward framing** — "chạy khỏi" lý do tiêu cực (boss tệ, đồng nghiệp yếu). Red flag.
+- **Appreciation** — biết ơn công ty cũ về trải nghiệm, học được. Signal mature, không bitter.
+- **Personal blame** — đổ lỗi cụ thể cá nhân ("manager không support em", "đồng nghiệp toxic"). Tuyệt đối tránh.
+- **Job hopping** — đổi job liên tục < 1 năm/job. Red flag với HR. Cần explain rõ nếu có pattern này trong CV.
+
+**💡 Ý chính (intuition mobile dev):**
+Đây là câu kiểm tra **maturity + risk**. Interviewer muốn biết bạn rời đi vì growth (proactive) hay vì drama (reactive). Cách trả lời an toàn: **forward framing** (đi tìm môi trường mới, tech stack scale lớn hơn, team mobile mature hơn) + **appreciation** với công ty cũ (đã học được X, Y, ship Z) + **không blame cá nhân** (manager, đồng nghiệp, công ty đều không phải "bad guy"). Frame cốt lõi: "em đã học được nhiều, hiện cần next level, công ty này có môi trường đó". Câu này thường có follow-up: *"Nếu công ty cũ tăng lương em ở lại không?"* → trả lời: "Lương là 1 phần, nhưng nhu cầu chính là growth path và độ khó kỹ thuật" — signal bạn không price-shopping. *"Có vấn đề với manager không?"* → "Không, em làm việc ổn. Quyết định vì định hướng nghề nghiệp". Câu này có sự tương đồng với Q8.2 (Why are you leaving?) nhưng B4 thường được hỏi ở vòng HR đầu, focus vào risk screening.
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+HR hỏi câu này 100% mọi interview để screen risk. Junior 3 trap phổ biến: (1) bad-mouth công ty cũ → instant red flag; (2) "em chán" — signal không có direction; (3) "lương thấp" là lý do chính → price-shopper signal. Middle phải forward + appreciation + không blame. Trap: nếu bạn job hop (< 1 năm/job) phải proactive explain — "vì 2 lý do cụ thể: A, B" thay vì interviewer phải đào.
+
+🗣 **Trả lời phỏng vấn:**
+> Em gắn bó hơn 3 năm ở công ty cũ và học được rất nhiều, đặc biệt là ship production app từ feature đến release. Lý do em tìm cơ hội mới là em muốn lên next level về mobile architecture và làm trong team mobile có quy mô lớn hơn để học sâu hơn về testing, observability và release process. Em không rời đi vì conflict cá nhân. Em biết ơn quãng thời gian cũ, chỉ là hiện tại em cần môi trường có độ phức tạp cao hơn để grow lên Strong Middle/Senior trong 1–2 năm tới.
+
+🔎 **Follow-up hay bị hỏi tiếp:**
+- *"Nếu công ty cũ tăng lương thì em ở lại không?"* → "Lương là một phần, nhưng nhu cầu chính của em là growth path và độ khó kỹ thuật."
+- *"Em có vấn đề gì với manager cũ không?"* → "Không, em làm việc ổn. Quyết định này là vì định hướng nghề nghiệp."
+
+---
+
+### B5 — *"Kể tên và mô tả 1 tính năng phức tạp gần nhất em đã handle."*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ interview cần biết:**
+- **Complexity** — độ khó kỹ thuật của feature. Có thể là: state coordination giữa nhiều screen, real-time sync, optimistic update, native bridge, animation phức tạp, offline-first.
+- **Owner / contributor** — Owner = chịu trách nhiệm end-to-end (design → ship → monitor). Contributor = làm 1 phần. Phải distinguish khi kể.
+- **Technical decision** — quyết định kiến trúc đã đưa ra: pick lib X, split state Y, dùng pattern Z. Có lý do + trade-off.
+- **State split** — quyết định data nào ở Query (server), nào ở Redux (UI), nào local. Đặc biệt quan trọng khi feature có nhiều screen sync state.
+- **Cache invalidation** — sau mutation, refetch query liên quan để UI sync. Wrong invalidation → stale data, double counting.
+- **Measurable outcome** — kết quả đo được bằng số (giảm bug X%, ship đúng deadline, latency giảm Y ms, ít CS complaint hơn). Vague outcome ("user happy hơn") không credible.
+- **Role clarity** — kể rõ mình làm gì (mình design state split, mình implement cache invalidation) vs team làm gì (BE design API, designer làm Figma).
+
+**💡 Ý chính (intuition mobile dev):**
+Câu này test **thật chiến hay không** — interviewer cần distinguish candidate đã owned feature complex vs chỉ ghép theo template. Khung trả lời: `feature name → bối cảnh → complexity (cái khó nhất) → vai trò mình → technical decision (split state, lib choice, pattern) → kết quả đo được`. Có số liệu càng tốt — "giảm CS report 30%", "ship đúng deadline 2 tuần", "latency p95 giảm từ 2s xuống 800ms". Avoid vague outcome ("user happy hơn", "code clean hơn") — không credible. Role clarity quan trọng: kể rõ mình quyết gì (design state split Query+Redux), mình implement gì (cache invalidation logic), team làm gì (BE design API, designer Figma) — không claim toàn bộ team work là của mình. Pick feature thật sự complex (state coordination nhiều screen, real-time sync, optimistic update) — kể "em làm Login" là too simple, signal chưa đụng feature thật. Template 45-60s: feature + context (10s) → cái khó nhất (10s) → quyết định kỹ thuật (20s) → kết quả + bài học (10-15s).
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này filter "đã ship feature thật" vs "chỉ làm theo template tutorial". Junior hay 1 trong 2 trap: (1) pick feature đơn giản (Login form, Settings screen) → signal chưa đụng complexity; (2) over-claim toàn bộ team work là của mình → interviewer probe role detail là tịt. Middle phải pick feature complex thật + role clarity + measurable outcome. Trap: bịa số liệu → interviewer probe "đo bằng tool gì?" là tịt.
+
+🗣 **Trả lời phỏng vấn:**
+> Tính năng phức tạp gần nhất em handle là Loyalty Voucher Flow trên app mobile, gồm list voucher, detail, apply vào checkout và đồng bộ trạng thái đã dùng/chưa dùng theo thời gian thực. Độ phức tạp nằm ở việc vừa phải tối ưu trải nghiệm người dùng, vừa xử lý consistency dữ liệu giữa nhiều màn. Vai trò của em là owner phía RN: thiết kế state split giữa TanStack Query cho server state và Redux cho UI state của filter/sort, đồng thời chuẩn hóa error handling khi API timeout. Em thêm cơ chế cache + invalidate đúng điểm khi user apply voucher để tránh stale data. Kết quả là flow ổn định hơn, giảm bug trạng thái lệch giữa list và checkout, và team CS report ít case khiếu nại hơn sau release.
+
+🔎 **Template 45–60s để luyện nói:**
+1. Feature + context (10s)
+2. Cái khó nhất (10s)
+3. Em quyết định kỹ thuật gì (20s)
+4. Kết quả/metric + bài học (10–15s)
+
+---
+
+### B6 — *"Em handle deadline như thế nào khi scope lớn nhưng thời gian ngắn?"*
+
+🧠 **Hiểu:**
+
+**📖 Thuật ngữ interview cần biết:**
+- **Trade-off** — chấp nhận đánh đổi giữa scope, time, quality. Tam giác kinh điển: pick 2 trong 3 (Fast, Cheap, Good). Khi deadline cố định, phải cắt scope hoặc giảm quality.
+- **MoSCoW prioritization** — Must / Should / Could / Won't. Pattern phổ biến để chia scope: Must = phải có để ship, Should = nên có nếu kịp, Could = nice to have, Won't = không làm sprint này.
+- **Technical spike** — task ngắn (1-2 ngày) để explore unknown, đo risk, prototype. Fire trước trong 24h đầu để phát hiện blocker sớm.
+- **Quality floor** — mức quality tối thiểu không xuống dưới: code review, error handling, logging critical path, test các critical flow. Cắt dưới sàn này = tạo nợ kỹ thuật to.
+- **Technical debt** — chi phí phải trả sau này do shortcut hôm nay. Vd skip test = nợ test, hardcode = nợ refactor. Đo bằng "thời gian phải sửa sau".
+- **Mid-sprint demo** — demo giữa sprint cho stakeholder để align expectation. Tránh cuối sprint mới thấy lệch yêu cầu.
+- **Feature freeze** — gần release, chỉ nhận bugfix critical, không thêm feature. Tránh ship code không kịp test.
+- **Blocker** — thứ chặn tiến độ (depend BE chưa sẵn, design chưa final, lib bug). Phải raise sớm, không giữ trong lòng.
+
+**💡 Ý chính (intuition mobile dev):**
+Interviewer muốn biết bạn có hiểu **trade-off** không, hay là kiểu "ép em sao em làm vậy". Câu trả lời tốt có 4 phần: **(1) Cắt scope theo must/should/could** — không cố nhồi full scope, chia 3 lớp ưu tiên. **(2) Chốt risk sớm trong 24h đầu** bằng technical spike để phát hiện blocker khi còn kịp xử lý. **(3) Communicate minh bạch** — update tiến độ hằng ngày, raise blocker sớm thay vì chờ sát deadline. **(4) Giữ quality floor** — code review, error handling, logging critical path, test critical flow không bỏ. Cắt dưới sàn này = tạo technical debt cao cho team, sửa sau lâu hơn ship đúng deadline. Mini playbook: scope cut by priority → chốt dependency/blocker ngày đầu → demo mid-sprint align expectation → freeze feature gần release. Mindset: deadline là constraint, không phải excuse — mình proactive negotiate scope, không silent compromise quality. Strong Middle signal: "em raise risk với PM ngày 2 thay vì hy vọng kịp deadline".
+
+**⚠️ Trap / Vì sao interviewer hỏi:**
+Câu này filter Middle có ownership vs Junior chỉ "code theo task". Junior 2 trap phổ biến: (1) "em sẽ làm OT để kịp" → signal không hiểu trade-off, không sustainable; (2) "em sẽ skip test/code review để kịp" → signal phá quality. Middle phải nói được trade-off framework + scope cut + raise risk sớm + giữ quality floor. Trap: claim "em luôn ship đúng deadline với full scope" → interviewer biết bịa hoặc bạn đang OT crazy không kể.
+
+🗣 **Trả lời phỏng vấn:**
+> Khi deadline ngắn, em không cố nhồi full scope ngay từ đầu. Em tách thành 3 lớp: must-have để ship đúng hạn, should-have nếu còn buffer, và could-have để đưa vào sprint sau. Trong 24 giờ đầu em làm technical spike nhanh để phát hiện risk lớn, rồi align lại với PM/tech lead bằng effort và impact rõ ràng. Em update tiến độ hằng ngày, nếu có blocker thì raise sớm thay vì chờ tới sát deadline. Về kỹ thuật, em giữ quality floor: code review, logging/error handling và test các critical path, không bỏ hết để chạy cho kịp. Cách này giúp team giữ được deadline mà không tạo nợ kỹ thuật quá lớn.
+
+🔎 **Mini playbook khi bị ép deadline:**
+- Scope cut theo priority: `Must / Should / Could`
+- Chốt dependency và blocker trong ngày đầu
+- Demo mid-sprint để tránh lệch kỳ vọng
+- Freeze feature gần release, chỉ nhận bugfix critical
+
+---
+
+_End of Q&A bank v2 (refactored for mid-level). Tổng 30 + 6 bonus = 36 Q&As. Format: 🧠 Hiểu / 🗣 Trả lời phỏng vấn / 🔎 Ví dụ dễ hiểu. Refactor Q cũ qua trigger `refine Q<topic>.<num>`._

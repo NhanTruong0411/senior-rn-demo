@@ -1,0 +1,88 @@
+---
+description: Day 12 (23/06) — Stack & Queue. LIFO vs FIFO, ví dụ navigation stack & request queue trong RN.
+alwaysApply: false
+---
+
+# Day 12 · T3 23/06 — Stack & Queue
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **2 cấu trúc cơ bản**: **Stack** (vào sau ra trước) và **Queue** (vào trước ra trước). Khác nhau ở **thứ tự lấy phần tử ra**.
+
+Interviewer hỏi vì hai cái này xuất hiện **khắp nơi trong mobile**: navigation là stack, xử lý request tuần tự là queue. Hiểu chúng giúp bạn giải thích được "back button hoạt động thế nào" — câu rất hay bị hỏi.
+
+---
+
+## 2. Ví dụ đời thường
+
+**Stack = chồng đĩa.** Bạn đặt đĩa mới **lên trên cùng**, và khi lấy cũng **lấy từ trên cùng**. Cái bỏ vào **sau** lại được lấy ra **trước** → **LIFO** (Last In First Out).
+
+**Queue = xếp hàng mua vé.** Ai tới **trước** thì được phục vụ **trước**, người mới tới đứng **cuối hàng**. Vào trước ra trước → **FIFO** (First In First Out).
+
+Một câu nhớ: **Stack lấy từ trên (như chồng đĩa), Queue lấy từ đầu (như xếp hàng).**
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+| | Stack | Queue |
+| --- | --- | --- |
+| Quy tắc | **LIFO** — vào sau ra trước | **FIFO** — vào trước ra trước |
+| Thêm | `push` (lên đỉnh) | `enqueue` (vào cuối) |
+| Lấy | `pop` (lấy đỉnh) | `dequeue` (lấy đầu) |
+| Ảnh đời thường | Chồng đĩa | Xếp hàng |
+
+Cả hai thao tác thêm/lấy đều **O(1)** — nhanh, vì chỉ động vào một đầu.
+
+**Stack dùng ở đâu trong mobile (kể được là điểm cộng):**
+- **Navigation stack** (React Navigation): mở màn mới = `push` lên đỉnh; bấm back = `pop` màn trên cùng ra. Đây là lý do back luôn quay về **màn vừa rời**, không phải màn đầu tiên.
+- **Undo / redo**: mỗi hành động push vào stack, undo thì pop ra.
+- **Call stack** của JS: hàm gọi hàm xếp chồng lên nhau; đệ quy quá sâu → "stack overflow".
+
+**Queue dùng ở đâu:**
+- **Hàng đợi request** (nối Day 09): nhiều request 401 chờ refresh xong rồi chạy lại — đó là một queue.
+- **Xử lý tuần tự**: gửi lần lượt các message/job theo đúng thứ tự đến.
+- **Event loop của JS**: các callback xếp hàng chờ tới lượt chạy (FIFO).
+
+**Lưu ý hiệu năng trong JS:** mảng JS dùng `push`/`pop` (stack) là O(1). Nhưng làm queue bằng `shift()` (lấy đầu mảng) là **O(n)** vì phải dịch toàn bộ phần tử. Với queue lớn nên dùng cấu trúc khác hoặc 2 con trỏ — chi tiết nhỏ nhưng nói ra cho thấy bạn để ý hiệu năng.
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// STACK — LIFO, dùng push/pop (cả hai O(1))
+const stack = [];
+stack.push('A'); stack.push('B');
+stack.pop(); // 'B' — lấy cái vào sau cùng
+
+// QUEUE — FIFO, push để vào cuối, shift để lấy đầu
+const queue = [];
+queue.push('A'); queue.push('B');
+queue.shift(); // 'A' — lấy cái vào trước (lưu ý shift là O(n))
+
+// Liên hệ navigation: stack màn hình
+// push('Home') → push('Detail') → back = pop('Detail') → quay lại 'Home'
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Stack là vào sau ra trước, như chồng đĩa: thêm và lấy đều ở đỉnh. Queue là vào trước ra trước, như xếp hàng: thêm ở cuối, lấy ở đầu. Cả hai thao tác chính đều O(1). Trong mobile tôi gặp stack ở navigation: mở màn mới là push, bấm back là pop màn trên cùng, nên back luôn về màn vừa rời. Undo redo cũng là stack. Queue thì tôi gặp ở hàng đợi request — như khi nhiều request cùng 401 phải chờ refresh xong rồi chạy lại theo thứ tự — và ở event loop của JS các callback xếp hàng FIFO. Một lưu ý là làm queue bằng shift trên mảng JS là O(n) vì phải dịch phần tử, queue lớn thì nên dùng cách khác."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Lẫn LIFO với FIFO — nhớ mẹo: **Stack = chồng đĩa, Queue = xếp hàng**.
+- ❌ Nói "queue bằng shift luôn nhanh" — `shift()` là O(n).
+- ❌ Không liên hệ được với navigation/back — đó là ví dụ mobile dễ ghi điểm nhất, đừng bỏ.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 13)
+
+1. LIFO và FIFO khác nhau thế nào? Cho mỗi cái 1 ảnh đời thường.
+2. Back button trong app hoạt động dựa trên cấu trúc nào? Vì sao back về đúng màn vừa rời?
+3. Vì sao làm queue bằng `shift()` trên mảng JS không tối ưu?

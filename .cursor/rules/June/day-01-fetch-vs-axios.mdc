@@ -1,0 +1,97 @@
+---
+description: Day 01 (08/06) — fetch vs Axios. Hai cách gọi API trong JS/RN, khác nhau ở đâu, khi nào chọn cái nào.
+alwaysApply: true
+---
+
+# Day 01 · T2 08/06 — fetch vs Axios
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **sự khác nhau giữa `fetch` và `axios`** — hai công cụ để app gọi API lấy dữ liệu từ server.
+
+Interviewer hỏi câu này để xem bạn **hiểu cái mình đang dùng** hay chỉ copy code. Cả hai đều "gọi API được", nhưng người làm 3 năm phải nói được *vì sao team chọn cái này thay vì cái kia*.
+
+---
+
+## 2. Ví dụ đời thường
+
+Tưởng tượng bạn cần gửi 1 lá thư:
+
+- **`fetch`** = bạn tự ra bưu điện. Tự dán tem, tự điền địa chỉ, tự kiểm tra thư có tới không. Bưu điện có sẵn (built-in trong trình duyệt/RN), không tốn gì thêm, nhưng **việc gì cũng tự làm tay**.
+- **`axios`** = bạn thuê 1 dịch vụ chuyển phát. Họ tự dán tem, tự báo bạn "thư hỏng rồi" ngay lập tức, tự thử gửi lại. Tiện hơn nhiều, nhưng bạn phải **rước thêm 1 người vào nhà** (cài thư viện, nặng thêm vài KB).
+
+Cùng làm 1 việc (gửi thư = gọi API), khác ở chỗ **bạn làm tay bao nhiêu**.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+`fetch` là API có sẵn (native) của trình duyệt và React Native. `axios` là thư viện bên thứ ba bạn phải `npm install`.
+
+Khác biệt **quan trọng nhất** (phải nhớ 4 điểm này):
+
+**a) Xử lý lỗi HTTP (điểm hay bị hỏi nhất)**
+- `fetch` **KHÔNG tự coi 404/500 là lỗi**. Nó chỉ `reject` khi mạng đứt. Server trả 500 → `fetch` vẫn chạy vào `.then()` bình thường → bạn phải tự check `response.ok`.
+- `axios` **tự ném lỗi** khi status ≥ 400. Lỗi rơi thẳng vào `catch`.
+
+Đây là cái bẫy số 1: dev mới dùng `fetch` quên check `response.ok` → app tưởng thành công trong khi server đã lỗi.
+
+**b) Parse JSON**
+- `fetch`: phải gọi `await response.json()` thêm 1 bước.
+- `axios`: tự parse, data nằm sẵn ở `response.data`.
+
+**c) Tính năng built-in**
+- `axios` có sẵn: **timeout**, **interceptors** (chặn mọi request để tự gắn token), tự transform JSON, hủy request. → rất hợp app thật cần gắn token vào mọi request.
+- `fetch` không có timeout sẵn, phải tự ghép với `AbortController` (học Day 03).
+
+**d) Kích thước**
+- `fetch` = 0 KB (có sẵn).
+- `axios` = ~10–15 KB. Với mobile thì nhỏ, chấp nhận được.
+
+**Thực tế tôi chọn thế nào:** App có auth, cần gắn token vào mọi request, cần xử lý 401 tập trung → tôi dùng **axios + interceptors** vì viết 1 lần dùng mọi nơi. App nhỏ, chỉ gọi 1–2 API public → `fetch` đủ, khỏi thêm dependency.
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// fetch — phải tự check lỗi + tự parse
+async function getUserFetch(id) {
+  const res = await fetch(`/api/users/${id}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`); // BẮT BUỘC tự check
+  return res.json(); // thêm 1 bước parse
+}
+
+// axios — lỗi tự vào catch, data sẵn ở .data
+async function getUserAxios(id) {
+  const res = await axios.get(`/api/users/${id}`);
+  return res.data; // không cần check status, 4xx/5xx tự throw
+}
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Cả hai đều để gọi API. `fetch` là native, có sẵn, không tốn dependency, nhưng nó **không tự coi lỗi HTTP là lỗi** — server trả 500 vẫn chạy vào then, nên tôi phải tự check `response.ok` và tự gọi `.json()`. `axios` là thư viện ngoài, nặng hơn ~10KB, nhưng tự ném lỗi khi status ≥ 400, tự parse JSON, và quan trọng nhất là có **interceptors** để gắn token vào mọi request và xử lý 401 tập trung. Ở dự án có auth tôi chọn axios vì viết một lần dùng mọi nơi; app nhỏ public thì fetch đủ."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "fetch không bắt được lỗi" — SAI. Nó bắt lỗi mạng, chỉ **không tự coi 4xx/5xx là lỗi**. Nói cho đúng.
+- ❌ "axios tốt hơn fetch" — đừng nói tuyệt đối. Nói theo **trade-off**: tiện vs thêm dependency.
+- ❌ Đừng quên nhắc `interceptors` — đó là lý do thật khiến team production chọn axios.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 02)
+
+1. Server trả 404. Dùng `fetch`, code có rơi vào `catch` không? Vì sao?
+- Khồng, vì fetch không xem 4xx/5xx là lỗi nên vẫn sẽ rơi vào then.
+
+2. Vì sao app có auth thường chọn axios? (1 từ khóa)
+- Có interceptors để gắn token cho các request khác hoặc sử lý lỗi tập trung tại 1 nơi và dùng cho nhiều case.
+
+3. `fetch` cần mấy bước để lấy được object JSON? Axios cần mấy bước?
+- fetch cần 2 bước: trước tiên là phải fetch data và kiểm tra xem có response.ok và parse data từ dạng json bằng .json() còn với Axios thì cần return response.data là đã lấy được object JSON.

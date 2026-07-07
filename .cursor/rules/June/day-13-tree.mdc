@@ -1,0 +1,96 @@
+---
+description: Day 13 (24/06) — Tree (cây). Node/parent/child, vì sao UI là cây, duyệt cây cơ bản.
+alwaysApply: false
+---
+
+# Day 13 · T4 24/06 — Tree (cây)
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **Tree (cây)** — cấu trúc phân cấp: một gốc, mỗi nút có thể có nhiều "con", con lại có con. Không có vòng lặp (không quay lại chính nó).
+
+Interviewer hỏi vì **toàn bộ giao diện React/RN là một cây** (component tree), DOM là cây, JSON lồng nhau là cây, comment lồng nhau là cây. Hiểu cây giúp bạn giải thích re-render, render danh sách phân cấp, và xử lý dữ liệu lồng.
+
+---
+
+## 2. Ví dụ đời thường
+
+**Cây gia phả.** Trên cùng là ông tổ (**root** — gốc). Mỗi người có thể có nhiều con (**child**), mỗi con lại có con của nó. Người ngay phía trên bạn là **cha (parent)**. Người không có con nào là **lá (leaf)**.
+
+Hoặc **thư mục máy tính**: 1 folder gốc → chứa nhiều folder con → mỗi folder con chứa file/folder nữa. File không chứa gì là lá.
+
+Điểm chung: **phân cấp trên–dưới, đi từ gốc tỏa xuống, không có đường vòng lại.**
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**Từ vựng phải thuộc (interviewer dùng liên tục):**
+- **Node (nút):** một phần tử trong cây.
+- **Root (gốc):** nút trên cùng, không có cha.
+- **Parent / Child:** quan hệ trên–dưới trực tiếp.
+- **Leaf (lá):** nút không có con.
+- **Depth (độ sâu):** nút cách gốc bao nhiêu bậc.
+- **Subtree (cây con):** một nút + tất cả con cháu của nó.
+
+**Vì sao mobile dev phải nắm cây (phần ăn điểm):**
+- **Component tree:** App là gốc, mỗi component là một nút, render con của nó. Khi state đổi, React **duyệt cây từ nút đó xuống** để re-render → hiểu cái này mới hiểu vì sao đặt state ở đúng chỗ giúp giảm re-render thừa (liên hệ memo/perf).
+- **JSON lồng nhau** từ API (comment có reply, menu nhiều cấp) chính là cây → bạn cần **duyệt đệ quy** để render hoặc tính toán.
+- **Cây tìm kiếm nhị phân (BST):** loại cây đặc biệt, mỗi nút có ≤2 con, trái nhỏ hơn, phải lớn hơn → tìm kiếm nhanh O(log n). Biết khái niệm là đủ ở mức Middle.
+
+**Duyệt cây (traversal) — 2 kiểu để biết:**
+- **DFS (theo chiều sâu):** đi sâu hết một nhánh rồi mới sang nhánh khác. Thường viết bằng **đệ quy** (đệ quy chính là dùng call stack — nối Day 12).
+- **BFS (theo chiều rộng):** duyệt hết các nút cùng tầng rồi mới xuống tầng dưới, dùng **queue**.
+
+(Hai cách duyệt này học kỹ ở Day 15. Hôm nay chỉ cần biết cây **duyệt được** theo 2 hướng.)
+
+**Đệ quy + cây — mẹo nhớ:** xử lý cây gần như luôn là "làm gì đó với nút hiện tại, rồi **gọi lại chính hàm đó cho từng con**". Điều kiện dừng: gặp lá (không còn con).
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// Cây dạng JSON lồng (vd menu nhiều cấp / comment có reply)
+const tree = {
+  id: 1,
+  children: [
+    { id: 2, children: [] },
+    { id: 3, children: [{ id: 4, children: [] }] },
+  ],
+};
+
+// Duyệt đệ quy (DFS): thăm mọi nút
+function visit(node) {
+  console.log(node.id);                 // xử lý nút hiện tại
+  node.children.forEach(visit);         // gọi lại cho từng con
+}
+visit(tree); // 1, 2, 3, 4
+
+// Đếm tổng số nút bằng đệ quy
+function countNodes(node) {
+  return 1 + node.children.reduce((sum, c) => sum + countNodes(c), 0);
+}
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Cây là cấu trúc phân cấp: một gốc, mỗi nút có nhiều con, con lại có con, và không có đường vòng lại. Từ vựng chính là root, parent, child, leaf. Tôi gặp cây mỗi ngày trong RN: component tree, khi state đổi React duyệt từ nút đó xuống để re-render — hiểu cái này giúp tôi đặt state đúng chỗ để giảm render thừa. JSON lồng nhau từ API như comment có reply hay menu nhiều cấp cũng là cây, tôi duyệt đệ quy để render. Duyệt cây có hai hướng: DFS đi sâu một nhánh trước, thường viết đệ quy dựa trên call stack; BFS duyệt theo từng tầng, dùng queue. Xử lý cây thường là làm gì đó với nút hiện tại rồi gọi lại hàm cho từng con, dừng khi gặp lá."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Lẫn cây với graph (Day 14) — cây **không có vòng**, có 1 đường duy nhất từ gốc xuống mỗi nút. Graph có thể có vòng.
+- ❌ Quên điều kiện dừng khi đệ quy → vòng lặp vô tận / stack overflow.
+- ❌ Nói "cây chỉ là lý thuyết" — UI và JSON lồng nhau chính là cây, đây là ví dụ thực tế ghi điểm.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 14)
+
+1. Kể các thuật ngữ: root, parent, child, leaf — mỗi cái 1 câu.
+2. Vì sao component tree liên quan tới re-render? Đặt state sai chỗ thì sao?
+3. Xử lý cây hay dùng đệ quy — điều kiện dừng thường là gì?

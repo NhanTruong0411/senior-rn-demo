@@ -1,0 +1,117 @@
+---
+description: Day 09 (18/06) — Bảo mật API tổng hợp. HTTPS, access/refresh token, xử lý 401, refresh queue trong RN.
+alwaysApply: false
+---
+
+# Day 09 · T5 18/06 — Bảo mật API tổng hợp
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Hôm nay **gom** các mảnh tuần này (HTTPS, JWT, hash, mã hóa) thành **một luồng bảo mật API hoàn chỉnh**: app đăng nhập → giữ token → gọi API → token hết hạn → tự làm mới → xử lý 401.
+
+Đây là câu interview rất hay đào sâu (note Sacombank ghi "cơ chế xử lý API bảo mật"). Trả lời được trọn luồng này = tín hiệu Strong Middle, không chỉ "biết JWT là gì".
+
+---
+
+## 2. Ví dụ đời thường
+
+Vẫn là cái **vòng tay hội nghị** (Day 06), giờ thêm quy trình đầy đủ:
+
+- Bạn check-in (đăng nhập) → nhận **vòng tay hạn 1 giờ** (access token) + **phiếu gia hạn** (refresh token, để trong ví).
+- Đi các phòng chỉ giơ vòng tay (gắn token vào header).
+- Sau 1 giờ vòng tay hết hạn (401). Bạn **không cần check-in lại** — ra quầy đưa **phiếu gia hạn**, đổi vòng tay mới (refresh).
+- Lỡ phiếu gia hạn cũng hết hạn → mới phải đăng nhập lại từ đầu.
+
+Toàn bộ cuộc nói chuyện với quầy đều qua **đường dây bảo mật** (HTTPS) để không ai nghe lén.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**Luồng bảo mật API đầy đủ — 5 lớp:**
+
+**1) HTTPS (nối Day 08):** mọi request đi qua HTTPS để mã hóa đường truyền. Không có HTTPS thì token gắn header bị nghe lén → vô nghĩa mọi thứ khác.
+
+**2) Đăng nhập:** app gửi username + password (qua HTTPS). Server so **hash** mật khẩu (Day 07), đúng thì trả về **2 token**:
+- **Access token** — hạn ngắn (vài phút–1 giờ), gắn vào mọi request.
+- **Refresh token** — hạn dài (ngày/tuần), chỉ dùng để xin access token mới.
+
+**3) Gắn token vào request:** dùng **request interceptor** (Day 01) tự thêm `Authorization: Bearer <access token>` vào mọi call. Viết 1 lần, dùng mọi nơi.
+
+**4) Xử lý 401 + tự refresh (phần khó nhất):**
+- Server trả **401** = token hết hạn / không hợp lệ.
+- **Response interceptor** bắt 401 → gọi API refresh bằng refresh token → nhận access token mới → **gọi lại request vừa lỗi** → user không hề biết.
+- **Bẫy lớn:** nếu 5 request cùng lỗi 401 một lúc, đừng gọi refresh 5 lần. Phải có **cờ "đang refresh"** + **hàng đợi**: request đầu tiên refresh, các request khác chờ, refresh xong thì chạy lại tất cả bằng token mới. (Đây gọi là **refresh queue**.)
+- Nếu **refresh cũng fail** (refresh token hết hạn) → xóa token, **đẩy về màn login**.
+
+**5) Lưu token an toàn (nối Day 06):** dùng **Keychain (iOS) / Keystore (Android)** qua `react-native-keychain`, không để plain text trong AsyncStorage.
+
+**Vì sao tách access ngắn + refresh dài (lý do thật):** JWT là stateless, khó thu hồi giữa chừng (Day 06). Để access hạn ngắn nên lỡ lộ cũng chỉ dùng được vài phút. Refresh dài giúp user không phải đăng nhập lại liên tục. Cân bằng giữa **bảo mật** và **trải nghiệm**.
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// Response interceptor: bắt 401 → refresh 1 lần → chạy lại request, có hàng đợi
+let isRefreshing = false;
+let queue = []; // các request đang chờ token mới
+
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const original = error.config;
+    if (error.response?.status !== 401 || original._retried) {
+      return Promise.reject(error); // không phải 401, hoặc đã thử rồi → bỏ
+    }
+    original._retried = true;
+
+    if (isRefreshing) {
+      // đang refresh → xếp hàng chờ token mới rồi gọi lại
+      return new Promise((resolve) => {
+        queue.push((newToken) => {
+          original.headers.Authorization = `Bearer ${newToken}`;
+          resolve(api(original));
+        });
+      });
+    }
+
+    isRefreshing = true;
+    try {
+      const newToken = await refreshAccessToken(); // dùng refresh token
+      queue.forEach((cb) => cb(newToken));          // giải phóng hàng đợi
+      queue = [];
+      original.headers.Authorization = `Bearer ${newToken}`;
+      return api(original);                          // chạy lại request gốc
+    } catch (e) {
+      logout(); // refresh fail → về login
+      return Promise.reject(e);
+    } finally {
+      isRefreshing = false;
+    }
+  }
+);
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Luồng của tôi gồm 5 lớp. Mọi request đi qua HTTPS để mã hóa đường truyền. Đăng nhập thì server so hash mật khẩu rồi trả về access token hạn ngắn và refresh token hạn dài. Request interceptor tự gắn access token vào mọi call. Khi server trả 401 là token hết hạn, response interceptor sẽ tự dùng refresh token lấy access token mới rồi gọi lại request cũ, user không hề biết. Điểm tôi để ý là nếu nhiều request cùng 401 thì chỉ refresh một lần, còn lại xếp hàng chờ token mới — tránh refresh trùng. Nếu refresh cũng fail thì xóa token và đẩy về login. Token tôi lưu trong Keychain hoặc Keystore, không để plain text. Access ngắn để lỡ lộ cũng mau hết hạn, refresh dài để user khỏi đăng nhập lại liên tục."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Quên hàng đợi refresh → nhiều request 401 cùng lúc gọi refresh nhiều lần, sinh race condition.
+- ❌ Để access token hạn rất dài "cho tiện" → lỗ hổng bảo mật.
+- ❌ "Gắn token thủ công ở từng request" — nên dùng interceptor, viết 1 lần.
+- ❌ Quên HTTPS → mọi lớp token bên trên đều vô nghĩa nếu đường truyền bị nghe lén.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 10)
+
+1. Access token và refresh token khác nhau ở hạn dùng và vai trò thế nào?
+2. Khi gặp 401, interceptor làm gì để user không phải đăng nhập lại?
+3. Vì sao cần "hàng đợi" khi nhiều request cùng 401 một lúc?

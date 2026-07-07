@@ -1,0 +1,99 @@
+---
+description: Day 33 (18/07) — Networking nâng cao. Hiểu REST, GraphQL, WebSocket, SSE và Retry Strategy trong React Native.
+alwaysApply: false
+---
+
+# Day 33 · T7 18/07 — Advanced Networking
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học các kỹ thuật networking vượt ra ngoài REST cơ bản (Day 01-04): khi nào **GraphQL** đáng cân nhắc thay REST, **WebSocket** và **SSE** khác nhau ở đâu và dùng cho trường hợp nào, và cách thiết kế **Retry Strategy** đúng đắn khi mạng di động chập chờn.
+
+Interviewer không kỳ vọng bạn thành Backend Engineer, nhưng sẽ kỳ vọng bạn biết **khi nào nên dùng công nghệ nào** — thay vì mọi bài toán đều dùng REST theo quán tính.
+
+---
+
+## 2. Ví dụ đời thường
+
+Hình dung bạn muốn theo dõi giá cổ phiếu liên tục thay đổi. Với **REST**, bạn phải chủ động hỏi lại server mỗi lần muốn biết giá mới — hỏi xong nhận một câu trả lời, muốn cập nhật phải hỏi lại. Với **WebSocket**, bạn chỉ cần kết nối một lần, sau đó server chủ động gửi giá mới về ngay khi nó thay đổi, cả hai phía đều có thể chủ động gửi dữ liệu. Với **SSE (Server-Sent Events)**, kết nối cũng chỉ mở một lần và server liên tục đẩy dữ liệu về, nhưng chiều ngược lại — client gửi lên server — vẫn phải qua request thông thường, không có kênh hai chiều thật sự.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) REST vs GraphQL — khác nhau ở cách client lấy dữ liệu**
+
+REST tổ chức theo từng endpoint cố định, mỗi endpoint trả về một cấu trúc dữ liệu đã định sẵn (`GET /users/1` luôn trả về đúng field mà backend đã thiết kế, dù client chỉ cần một phần trong đó). GraphQL đảo ngược cách tiếp cận: client tự khai báo chính xác field nào mình cần trong một query, và có thể lấy dữ liệu từ nhiều resource liên quan trong **một lần gọi** thay vì phải gọi nhiều endpoint REST rồi tự ghép ở client. Lợi ích rõ nhất của GraphQL là tránh **over-fetching** (lấy thừa dữ liệu không dùng tới) và **under-fetching** (phải gọi thêm request phụ để lấy đủ dữ liệu cần) — hai vấn đề rất phổ biến khi dùng REST cho các màn hình phức tạp cần ghép dữ liệu từ nhiều nguồn. Đổi lại, GraphQL có chi phí học và vận hành cao hơn: cần thiết kế schema, cần thư viện client riêng (Apollo, Relay) để quản lý cache hiệu quả.
+
+**b) WebSocket — kênh giao tiếp hai chiều thật sự**
+
+WebSocket thiết lập một kết nối bền (persistent connection) giữa client và server, cho phép cả hai phía **chủ động gửi dữ liệu bất cứ lúc nào** mà không cần chờ phía kia hỏi trước. Đây là lựa chọn phù hợp cho các tính năng cần độ trễ thấp và giao tiếp hai chiều liên tục: chat realtime, game nhiều người chơi, theo dõi vị trí trực tiếp. Chi phí đánh đổi là phải tự quản lý vòng đời kết nối — xử lý mất kết nối, tự reconnect, và giữ kết nối sống (heartbeat) — phức tạp hơn nhiều so với một request REST thông thường.
+
+**c) SSE (Server-Sent Events) — chỉ cần server đẩy dữ liệu một chiều**
+
+SSE cũng duy trì một kết nối mở liên tục, nhưng chỉ truyền dữ liệu theo **một chiều: server → client**. Nếu bài toán chỉ cần server liên tục cập nhật thông tin cho client mà không cần client gửi dữ liệu ngược lại qua cùng kênh đó — ví dụ thông báo, cập nhật tiến trình xử lý, hoặc streaming câu trả lời từ AI (nối Day 18) — SSE thường đơn giản triển khai hơn WebSocket vì nó dựa trên HTTP thông thường, không cần giao thức riêng, và trình duyệt/thư viện tự động xử lý việc reconnect khi mất kết nối.
+
+**d) Retry Strategy — không phải lỗi nào cũng retry giống nhau (nối Day 02)**
+
+Mạng di động vốn không ổn định, nên việc retry khi request thất bại là cần thiết — nhưng retry sai cách có thể gây hại nhiều hơn lợi. Nguyên tắc quan trọng nhất đã học ở Day 02: chỉ nên retry các thao tác **đọc** (GET) một cách an toàn, vì gọi lại nhiều lần không thay đổi kết quả; các thao tác **ghi** (POST tạo đơn hàng, thanh toán) cần cẩn trọng hơn nhiều vì retry có thể tạo trùng dữ liệu nếu không có cơ chế idempotency ở phía backend. Cách retry phổ biến và an toàn là **Exponential Backoff** — thử lại sau khoảng thời gian tăng dần theo cấp số nhân (đợi 1 giây, thất bại thì đợi 2 giây, rồi 4 giây...) thay vì gọi lại ngay lập tức liên tục, tránh làm server vốn đang gặp sự cố phải chịu thêm tải dồn dập từ hàng loạt client cùng retry một lúc.
+
+**e) Chọn công nghệ nào cho đúng bài toán**
+
+Không có công nghệ nào "tốt nhất tuyệt đối" — quan trọng là khớp đúng đặc điểm bài toán: CRUD thông thường phù hợp với REST vì đơn giản và dễ cache; màn hình cần ghép dữ liệu phức tạp từ nhiều nguồn thì GraphQL giúp tránh over/under-fetching; tính năng cần hai chiều liên tục như chat, game thì WebSocket; tính năng chỉ cần server đẩy dữ liệu một chiều như thông báo hoặc AI streaming thì SSE thường gọn và đủ dùng.
+
+---
+
+## 4. Code tối thiểu
+
+```ts
+// Exponential Backoff — thử lại với thời gian chờ tăng dần
+async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return res;
+    } catch {
+      // lỗi mạng — thử lại nếu còn lượt
+    }
+    if (attempt < maxRetries) {
+      const delay = 2 ** attempt * 1000; // 1s, 2s, 4s...
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw new Error('Request failed after retries');
+}
+```
+
+```ts
+// SSE — nhận stream dữ liệu một chiều từ server (ví dụ AI streaming, Day 18)
+const eventSource = new EventSource(`${API_BASE_URL}/stream`);
+eventSource.onmessage = (event) => {
+  appendChunk(event.data); // server đẩy từng đoạn dữ liệu về
+};
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Tôi dùng REST cho các API CRUD thông thường vì đơn giản, dễ cache và dễ debug. Nếu màn hình cần ghép dữ liệu từ nhiều resource và muốn tránh gọi thừa hoặc gọi thiếu dữ liệu, GraphQL là lựa chọn tốt hơn vì client tự khai báo đúng field cần lấy. Với tính năng realtime hai chiều như chat hoặc theo dõi vị trí, tôi dùng WebSocket; còn nếu chỉ cần server đẩy dữ liệu một chiều như thông báo hoặc AI streaming thì SSE đơn giản và đủ dùng, không cần WebSocket phức tạp hơn mức cần thiết. Về retry, tôi chỉ tự động retry các request đọc dữ liệu, không retry request ghi dữ liệu như thanh toán để tránh tạo trùng, và luôn dùng Exponential Backoff thay vì gọi lại liên tục ngay lập tức để tránh dồn tải lên server."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "GraphQL thay thế hoàn toàn REST" — sai, tùy bài toán; REST vẫn đơn giản và phù hợp cho CRUD thông thường.
+- ❌ "Chat nên dùng REST polling để đơn giản" — sai hướng, polling tốn tài nguyên và độ trễ cao hơn nhiều so với WebSocket.
+- ❌ "WebSocket luôn tốt hơn SSE" — sai, nếu chỉ cần một chiều thì SSE đơn giản hơn và đủ dùng, không cần độ phức tạp của WebSocket.
+- ❌ "Retry liên tục không giới hạn cho tới khi thành công" — nguy hiểm, dễ làm server quá tải thêm; luôn giới hạn số lần và dùng backoff.
+- ❌ "Retry mọi loại request giống nhau" — POST tạo đơn mà retry vô tội vạ có thể tạo trùng đơn hàng.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 34)
+
+1. REST và GraphQL khác nhau ở cách client lấy dữ liệu như thế nào? GraphQL giải quyết vấn đề gì mà REST hay gặp?
+2. WebSocket khác SSE ở điểm cốt lõi nào — một chiều hay hai chiều?
+3. Vì sao chỉ nên retry an toàn với GET, còn POST cần cẩn trọng hơn?
+4. Exponential Backoff là gì? Vì sao nó tốt hơn việc gọi lại ngay lập tức liên tục?
+5. Nếu xây tính năng Chat và tính năng AI Streaming, bạn sẽ chọn giao thức nào cho mỗi trường hợp? Vì sao?

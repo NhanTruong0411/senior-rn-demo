@@ -1,0 +1,106 @@
+---
+description: Day 39 (24/07) — Animation & Gesture. Cơ bản về Reanimated, UI Thread vs JS Thread, và xử lý Gesture.
+alwaysApply: false
+---
+
+# Day 39 · T6 24/07 — Animation & Gesture
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học cách làm app "mượt" và "sống động" bằng Animation (chuyển động) và Gesture (cử chỉ vuốt/chạm). Trọng tâm là thư viện **React Native Reanimated** và sự khác biệt sống còn giữa **UI Thread** và **JS Thread** khi làm chuyển động.
+
+Interviewer thường hỏi về Animation nếu sản phẩm của họ yêu cầu trải nghiệm UI/UX cao (như app ngân hàng, ví điện tử, app thương mại điện tử). Với Middle Developer, bạn không cần phải là "phù thủy Animation", nhưng phải hiểu nguyên lý cơ bản để không viết ra những animation giật lag.
+
+---
+
+## 2. Ví dụ đời thường
+
+Hình dung JS Thread là **Nhà Biên Kịch** (nghĩ kịch bản, tính toán) và UI Thread là **Diễn Viên** (múa may trên sân khấu).
+- **Cách cũ (Animated của RN)**: Mỗi lần diễn viên muốn nhấc tay lên 1cm, nhà biên kịch phải hét từ cánh gà "Nhấc 1cm!", diễn viên làm theo. Rồi lại hét "Nhấc 2cm!", diễn viên làm theo. Rất mệt, và nếu kịch bản bị rối (JS bận tính toán data), diễn viên sẽ đứng đơ ra.
+- **Cách mới (Reanimated)**: Nhà biên kịch giao nguyên kịch bản "Giơ tay từ từ trong 3 giây" cho diễn viên (Worklet). Diễn viên tự biên tự diễn mượt mà trên sân khấu mà không cần chờ lệnh, nhà biên kịch ra sau cánh gà uống nước (JS rảnh tay làm việc khác).
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) Vì sao Animation cơ bản hay bị giật?**
+
+Trong RN, JS Thread chạy toàn bộ code React, call API, parse JSON. Nếu bạn dùng API `Animated` cũ mà không bật `useNativeDriver: true`, mỗi khung hình (frame) chuyển động đều phải gửi lệnh qua Bridge từ JS Thread sang UI Thread. Nếu đúng lúc đó JS đang bận parse một file JSON nặng, animation sẽ bị khựng lại (drop frame).
+
+**b) Reanimated và Worklet**
+
+Thư viện **React Native Reanimated (v2/v3)** giải quyết triệt để vấn đề trên. Nó sử dụng một khái niệm gọi là **Worklet** — những hàm JavaScript nhỏ xíu được đẩy trực tiếp sang UI Thread để chạy. Khi chạy trên UI Thread, nó đồng bộ hoàn toàn với tốc độ quét màn hình (thường là 60fps hoặc 120fps) mà không cần chờ JS Thread, do đó cực kỳ mượt mà.
+
+**c) Shared Values (Giá trị chia sẻ)**
+
+Thay vì dùng `useState` (gây re-render component trên JS Thread), Reanimated dùng `useSharedValue()`. Đây là biến có thể được đọc và ghi bởi cả JS Thread lẫn UI Thread. Khi `Shared Value` thay đổi, nó lập tức trigger UI update trên UI Thread mà không làm Component của bạn bị render lại.
+
+**d) Gesture Handler (Xử lý cử chỉ)**
+
+Để vuốt, kéo thả (Drag/Drop) hoặc zoom, ta dùng thư viện **React Native Gesture Handler**. Khi kết hợp với Reanimated, bạn bắt được tọa độ vuốt ngón tay của user trên UI Thread và cập nhật ngay lập tức vào `Shared Value` để di chuyển UI, hoàn toàn không dính líu đến JS Thread.
+
+**e) Mức độ Middle cần gì?**
+
+Bạn không cần tự viết ra các animation phức tạp như "Vuốt Tinder", nhưng bạn cần biết dùng `useSharedValue`, `useAnimatedStyle`, `withSpring`, `withTiming` để làm các hiệu ứng đơn giản: Button nhún khi bấm, Sidebar trượt ra, Fade In/Out mượt mà.
+
+---
+
+## 4. Code tối thiểu
+
+```tsx
+// ✅ Animation Fade In cơ bản bằng Reanimated
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
+
+function FadeBox() {
+  // 1. Tạo biến Shared Value (Nằm trên UI Thread)
+  const opacity = useSharedValue(0);
+  const width = useSharedValue(100);
+
+  // 2. Map Shared Value vào Style
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value,
+      width: width.value,
+    };
+  });
+
+  // 3. Trigger Animation (Bấm nút -> Thay đổi Shared Value)
+  const handlePress = () => {
+    // JS Thread bảo UI Thread: "Tăng opacity lên 1 trong 500ms"
+    opacity.value = withTiming(1, { duration: 500 });
+    // Dùng hiệu ứng lò xo (Spring) cho width
+    width.value = withSpring(200);
+  };
+
+  return (
+    <View>
+      {/* 4. Dùng thẻ <Animated.View> thay vì <View> */}
+      <Animated.View style={[styles.box, animatedStyle]} />
+      <Button title="Hiện Box" onPress={handlePress} />
+    </View>
+  );
+}
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Khi làm animation trong React Native, vấn đề lớn nhất là nếu chạy trên JS Thread, chuyển động sẽ bị giật khi app bận xử lý logic khác. Để giải quyết, nếu dùng Animated mặc định tôi luôn nhớ bật useNativeDriver. Còn ở dự án hiện đại, tôi dùng thư viện Reanimated. Khái niệm cốt lõi của nó là Shared Value và Worklet: nó đẩy các tính toán chuyển động sang chạy trực tiếp trên UI Thread, do đó đạt được 60 khung hình/giây mượt mà độc lập với JS Thread. Tôi thường dùng các hook như useSharedValue kết hợp useAnimatedStyle và withSpring để làm các hiệu ứng UI thông dụng mà không gây re-render component."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Tôi dùng useState để làm animation" — cực kỳ sai lầm, `setState` trigger vòng đời render của React trên JS Thread, cứ 16ms render 1 lần sẽ làm máy nóng và giật tung chảo.
+- ❌ "Worklet chạy trên JS Thread" — sai, Worklet chạy trên UI Thread.
+- ❌ Nhận "biết làm mọi animation phức tạp" nếu bạn chưa từng viết — đây là mảng dễ bị vặn hỏi sâu về toán và tọa độ. Hãy nhận mức cơ bản nếu bạn chưa làm nhiều.
+
+---
+
+## 7. Tự kiểm tra
+
+1. Vì sao không nên dùng `useState` và `setInterval` để làm chuyển động?
+2. `useNativeDriver: true` trong API Animated cũ có tác dụng gì?
+3. Worklet trong Reanimated là gì và nó chạy trên thread nào?
+4. Kể tên 3 hook cơ bản nhất của Reanimated khi tạo một component có hiệu ứng lò xo (spring)?

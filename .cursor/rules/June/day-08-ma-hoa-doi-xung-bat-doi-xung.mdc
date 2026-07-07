@@ -1,0 +1,91 @@
+---
+description: Day 08 (17/06) — Mã hóa đối xứng vs bất đối xứng. Một khóa vs cặp khóa, vì sao HTTPS dùng cả hai.
+alwaysApply: false
+---
+
+# Day 08 · T4 17/06 — Mã hóa đối xứng vs bất đối xứng
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **2 kiểu mã hóa**: đối xứng (dùng **1 khóa** cho cả khóa và mở) và bất đối xứng (dùng **cặp 2 khóa** — công khai + bí mật).
+
+Interviewer hỏi để xem bạn hiểu **HTTPS/SSL bảo vệ dữ liệu thế nào** — vì thực tế HTTPS dùng **cả hai** kết hợp. Hôm qua (Day 07) đã tách hash khỏi mã hóa; hôm nay làm rõ chính mã hóa.
+
+---
+
+## 2. Ví dụ đời thường
+
+**Đối xứng = ổ khóa thường.** Bạn và bạn thân có **cùng một chiếc chìa**. Ai có chìa đều khóa/mở được rương. Nhanh, gọn. Vấn đề: làm sao **đưa chìa cho bạn thân an toàn** mà không bị copy giữa đường?
+
+**Bất đối xứng = hộp thư có khe bỏ thư.** Ai cũng bỏ thư vào khe được (**khóa công khai** — public key, phát cho cả thiên hạ), nhưng **chỉ người có chìa mở hộp** (**khóa bí mật** — private key, giữ riêng) mới lấy thư ra đọc. Bỏ vào thì dễ, lấy ra chỉ chủ hộp làm được.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+| | Đối xứng (Symmetric) | Bất đối xứng (Asymmetric) |
+| --- | --- | --- |
+| Số khóa | **1 khóa** dùng chung | **Cặp 2 khóa**: public + private |
+| Cách dùng | Cùng khóa để mã hóa và giải mã | Public mã hóa → chỉ private giải được |
+| Tốc độ | **Nhanh** | **Chậm** hơn nhiều |
+| Vấn đề chính | Làm sao chia sẻ khóa an toàn | Chậm, không hợp dữ liệu lớn |
+| Ví dụ thuật toán | AES | RSA, ECC |
+
+**Mấu chốt mỗi loại giải quyết gì:**
+
+- **Đối xứng (AES):** rất nhanh, hợp để mã hóa **khối lượng dữ liệu lớn**. Nhưng có **bài toán chia khóa**: hai bên phải có cùng 1 khóa — gửi khóa đó qua mạng kiểu gì để không bị nghe lén?
+- **Bất đối xứng (RSA):** giải đúng bài toán chia khóa. Vì public key có thể phát công khai, ai cũng dùng để mã hóa gửi cho bạn, mà chỉ bạn (có private key) giải được. Nhưng **chậm**, không hợp mã hóa cả luồng dữ liệu.
+
+**HTTPS dùng CẢ HAI — đây là phần ăn điểm nhất:**
+
+1. Khi app kết nối server qua HTTPS, hai bên cần một **khóa chung** để nói chuyện nhanh (đối xứng).
+2. Nhưng truyền khóa chung đó qua mạng thì sợ bị nghe lén. → Dùng **bất đối xứng** để **trao đổi khóa an toàn**: server có cặp khóa, app mã hóa khóa chung bằng public key của server, chỉ server giải ra được.
+3. Sau khi cả hai đã có khóa chung, **chuyển sang đối xứng** cho nhanh để mã hóa toàn bộ dữ liệu còn lại.
+
+> Tóm: **bất đối xứng dùng lúc bắt tay để trao khóa; đối xứng dùng cho phần còn lại vì nhanh.** Đây chính là lý do "vì sao HTTPS an toàn mà vẫn nhanh".
+
+**Liên hệ Day 06–07 để không lẫn 3 khái niệm:**
+- **Hash:** một chiều, không giải lại — dùng so khớp (mật khẩu).
+- **Mã hóa đối xứng:** hai chiều, 1 khóa — nhanh, dữ liệu lớn.
+- **Mã hóa bất đối xứng:** hai chiều, 2 khóa — trao khóa an toàn, chữ ký số.
+
+---
+
+## 4. Code tối thiểu
+
+```text
+# Đối xứng (AES): cùng 1 khóa
+ciphertext = AES_encrypt(plaintext, key)
+plaintext  = AES_decrypt(ciphertext, key)   // y hệt khóa đó
+
+# Bất đối xứng (RSA): public mã hóa, private giải
+ciphertext = RSA_encrypt(plaintext, publicKey)
+plaintext  = RSA_decrypt(ciphertext, privateKey) // chỉ private mở được
+
+# HTTPS (giản lược): bất đối xứng để trao "session key", rồi đối xứng cho data
+sessionKey = random()
+sent       = RSA_encrypt(sessionKey, server.publicKey) // chỉ server giải
+// từ đây cả hai dùng AES với sessionKey cho mọi gói tin tiếp theo
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Có hai kiểu. Đối xứng dùng một khóa chung cho cả mã hóa và giải mã, ví dụ AES — rất nhanh, hợp dữ liệu lớn, nhưng có vấn đề là làm sao chia khóa an toàn cho hai bên. Bất đối xứng dùng cặp khóa: public phát công khai để mã hóa, private giữ riêng để giải, ví dụ RSA — giải được bài toán chia khóa nhưng chậm. Thực tế HTTPS dùng cả hai: lúc bắt tay nó dùng bất đối xứng để trao đổi một khóa chung an toàn, rồi chuyển sang đối xứng cho nhanh để mã hóa toàn bộ dữ liệu. Phân biệt với hash hôm trước: hash một chiều dùng so khớp, còn mã hóa hai chiều có thể giải ngược lại."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Lẫn hash với mã hóa — hash không giải ngược được, mã hóa thì có.
+- ❌ "HTTPS chỉ dùng RSA" — SAI. RSA chỉ để trao khóa lúc bắt tay; phần lớn dữ liệu đi qua AES (đối xứng) cho nhanh.
+- ❌ "Bất đối xứng an toàn hơn nên luôn dùng nó" — bỏ qua chuyện nó chậm, không hợp dữ liệu lớn.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 09)
+
+1. Đối xứng và bất đối xứng khác nhau ở số khóa và tốc độ thế nào?
+2. Vì sao HTTPS phải dùng cả hai? Mỗi loại làm việc gì trong lúc bắt tay?
+3. Xếp 3 khái niệm: hash / đối xứng / bất đối xứng — cái nào một chiều, cái nào trao khóa?

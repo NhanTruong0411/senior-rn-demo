@@ -1,0 +1,148 @@
+---
+description: Day 25 (10/07) — Giảm Bundle Size trong React Native. Bundle là gì, vì sao app nặng và các cách tối ưu phổ biến.
+alwaysApply: false
+---
+
+# Day 25 · T6 10/07 — Giảm Bundle Size
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **vì sao app React Native ngày càng nặng** và **cách giảm dung lượng** trước khi phát hành: bundle gồm những gì, nguyên nhân phổ biến, và thứ tự ưu tiên khi tối ưu.
+
+Interviewer hỏi vì Middle Developer không chỉ làm feature — còn phải quan tâm **app tải có nặng không**, **mở app có chậm không**, và **bản release có khác bản debug không** (nối Day 23). Đây cũng là chỗ hay kể **story có số**: "app từng nặng X MB, sau khi nén ảnh + xóa lib thừa còn Y MB."
+
+---
+
+## 2. Ví dụ đời thường
+
+Bundle size giống **hành lý mang lên máy bay**.
+
+Bạn có thể nhét mọi thứ vào vali — quần áo cả bốn mùa, sách không đọc, giày không mang — thì vali nặng, kéo chậm, lên máy bay phải trả phí thêm.
+
+App cũng vậy: càng nhét nhiều **ảnh lớn, thư viện không dùng, font thừa** thì file cài (APK/AAB/IPA) càng nặng. Người dùng trên mạng yếu sẽ **bỏ tải** trước khi mở app lần đầu.
+
+Mục tiêu không phải "càng nhẹ càng tốt bằng mọi giá", mà là **chỉ mang những gì thực sự cần** — phần còn lại bỏ hoặc tải sau.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**A. "Bundle" trong RN nghĩa là gì — đừng chỉ nghĩ JavaScript:**
+
+Khi nói app nặng, nhiều dev chỉ nghĩ tới **JS bundle** (file Metro gom toàn bộ code JS). Thực tế file người dùng tải — **APK/AAB (Android)** hoặc **IPA (iOS)** — gồm nhiều thứ ghép lại (nối Day 23):
+
+- **Native code** — phần iOS/Android gốc, các thư viện native (camera, maps…)
+- **JS bundle** — toàn bộ logic React Native, đã qua Hermes biên dịch sẵn
+- **Ảnh, font, icon, video** — asset nằm trong thư mục `assets/`
+- **Thư viện native kèm theo** — mỗi `npm install` có thể kéo thêm code native vào build
+
+→ Khi app đột nhiên tăng 30MB, **đừng chỉ soi JS** — mở APK Analyzer (Android) hoặc xem Archive size (iOS) để biết **phần nào chiếm nhiều nhất**.
+
+**B. Nguyên nhân hay gặp nhất (theo thứ tự ưu tiên kiểm tra):**
+
+1. **Ảnh quá lớn** — một banner PNG 4K có thể nặng 5–8MB; màn hình chỉ hiển thị 400px rộng thì ảnh 2000px là lãng phí. Đây thường là thủ phạm số 1.
+2. **Thư viện nặng / trùng lặp** — cài cả `moment` + `date-fns`, hoặc import cả `lodash` chỉ để dùng `debounce`. Mỗi lib kéo thêm code vào bundle.
+3. **Dependency không dùng** — feature cũ xóa code nhưng quên gỡ package → vẫn nằm trong build.
+4. **Font không cần thiết** — embed cả bộ font 6 weight trong khi UI chỉ dùng Regular + Bold.
+5. **Debug build** — bản debug nặng hơn release rất nhiều. **Luôn đo trên bản Release** (Day 23).
+
+**C. Tối ưu ảnh — hiệu quả cao, làm được ngay:**
+
+- **Nén trước khi đưa vào repo** — TinyPNG, Squoosh, hoặc script CI. Đừng commit ảnh gốc từ designer chưa qua xử lý.
+- **Dùng WebP** (Android hỗ trợ tốt; iOS từ iOS 14+) — cùng chất lượng nhìn thấy, dung lượng nhỏ hơn PNG/JPEG đáng kể.
+- **Đúng kích thước hiển thị** — ảnh banner 400×200 trên màn hình thì file nên ~400×200 (hoặc 2x cho retina), không phải 4000×2000.
+- **Icon/SVG cho icon đơn giản** thay vì PNG nhiều kích thước nếu team đã setup được.
+
+Ví dụ thực tế: `banner.png` 8MB → nén + chuyển WebP → ~250KB. Người dùng gần như không thấy khác biệt.
+
+**D. Import đúng cách — tránh kéo cả thư viện vào bundle:**
+
+Metro (bundler của RN) có **tree-shaking hạn chế** hơn web. Import `import _ from 'lodash'` thường kéo **cả thư viện** (~70KB+ gzip). Import `import debounce from 'lodash/debounce'` chỉ lấy **đúng hàm cần dùng**.
+
+Tương tự với icon library: `import { Ionicons } from '@expo/vector-icons'` ổn; import cả bộ icon font không cần thiết thì nặng.
+
+**E. Lazy loading — tải sau thay vì nhét hết lúc mở app:**
+
+Ý tưởng: user mở **Home** trước → chưa cần code màn **Payment** → chỉ khi bấm vào Payment mới tải phần đó.
+
+Trong RN, cách phổ biến nhất là **React Navigation** với `lazy: true` trên Tab Navigator — tab chưa mở thì chưa mount screen. Với màn hình nặng (chart, PDF viewer), có thể **dynamic import** khi navigate:
+
+```tsx
+// Chỉ tải module nặng khi user thực sự vào màn đó
+navigation.navigate('Payment'); // screen đã được tách bundle riêng nếu setup đúng
+```
+
+Lợi ích: **bundle ban đầu nhỏ hơn**, cold start nhanh hơn — user cảm nhận app "mở lẹ" hơn là file APK nhỏ 2MB (hai thứ liên quan nhưng không hoàn toàn giống nhau).
+
+**F. Hermes — giúp startup, KHÔNG phải phép màu giảm APK (nối Day 23):**
+
+Hermes là engine JS của RN. Nó giúp:
+- **Mở app nhanh hơn** — bytecode biên dịch sẵn, không parse JS lúc startup
+- **Giảm memory** khi chạy
+
+Hermes **không** tự động xóa ảnh 8MB hay gỡ lodash thừa. Đừng trả lời phỏng vấn "bật Hermes là app nhẹ" — sai hướng. Hermes tối ưu **runtime**, còn giảm dung lượng file cài thì phải xử lý **asset + dependency**.
+
+**G. Checklist trước khi release (Middle nên có sẵn trong đầu):**
+
+- Gỡ dependency không dùng (`yarn why <package>` để trace ai kéo lib vào)
+- Nén + resize toàn bộ ảnh trong `assets/`
+- Chỉ giữ font weight thực sự dùng
+- Import từng module, không import cả library
+- Android: build **AAB** thay APK — Play Store tự cắt bản gọn theo từng máy (Day 23)
+- Bật **ProGuard/R8** (Android) để rút gọn native code thừa
+- **Build Release** rồi mới đo size — không đo bản Debug
+
+---
+
+## 4. Code tối thiểu
+
+```ts
+// ❌ Kéo cả lodash (~70KB+) chỉ để debounce
+import _ from 'lodash';
+const fn = _.debounce(handleSearch, 300);
+
+// ✅ Chỉ lấy đúng hàm cần
+import debounce from 'lodash/debounce';
+const fn = debounce(handleSearch, 300);
+```
+
+```tsx
+// Tab Navigator — tab chưa mở thì chưa render (lazy)
+<Tab.Navigator screenOptions={{ lazy: true }}>
+  <Tab.Screen name="Home" component={HomeScreen} />
+  <Tab.Screen name="Profile" component={ProfileScreen} /> {/* chưa bấm = chưa mount */}
+</Tab.Navigator>
+```
+
+```bash
+# Android — xem APK/AAB nặng ở đâu (Android Studio → Build → Analyze APK)
+# Hoặc sau build:
+cd android && ./gradlew bundleRelease
+# So sánh size trước/sau khi tối ưu — luôn trên bản Release
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Khi nói app nặng, tôi không chỉ nghĩ JS bundle — file APK hay IPA gồm native code, JS bundle, ảnh, font và resource. Tôi thường kiểm tra theo thứ tự: ảnh quá lớn trước, rồi dependency thừa hoặc import cả library chỉ để dùng một hàm, rồi font không cần. Cách xử lý cụ thể: nén ảnh và chuyển WebP, import từng module thay vì cả lodash, gỡ package không dùng, lazy tab hoặc màn hình nặng bằng React Navigation. Android tôi build AAB và bật ProGuard; luôn đo trên bản Release. Hermes tôi bật vì giúp startup nhanh hơn, nhưng nó không thay thế việc nén ảnh hay dọn dependency — hai việc khác nhau."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Bundle chỉ là JavaScript" — APK/IPA còn native code, ảnh, font, resource native.
+- ❌ "Bật Hermes là app nhẹ nhiều MB" — Hermes giúp **startup + memory**, không tự xóa asset thừa.
+- ❌ Đo size trên bản **Debug** rồi kết luận — Debug nặng hơn Release, số sai (Day 23).
+- ❌ `import _ from 'lodash'` khi chỉ cần một hàm — kéo cả thư viện vào bundle.
+- ❌ Commit ảnh designer gốc 4K chưa nén — thường là thủ phạm số 1.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 26)
+
+1. File APK/IPA gồm những thành phần nào? JS bundle chỉ là một phần — còn gì nữa?
+2. Vì sao `import debounce from 'lodash/debounce'` tốt hơn `import _ from 'lodash'`?
+3. Lazy loading trong RN thường làm bằng cách nào? Nó giúp gì khi mở app?
+4. Hermes giải quyết vấn đề gì, và **không** giải quyết vấn đề gì liên quan bundle size?
+5. App đột nhiên tăng thêm 30MB — bạn kiểm tra 3 thứ **đầu tiên** theo thứ tự ưu tiên?

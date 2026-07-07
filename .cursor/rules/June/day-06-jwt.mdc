@@ -1,0 +1,89 @@
+---
+description: Day 06 (15/06) — JWT là gì. Cấu trúc 3 phần, vì sao không cần hỏi DB mỗi lần, lưu token ở đâu trong RN.
+alwaysApply: false
+---
+
+# Day 06 · T2 15/06 — JWT là gì
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **JWT (JSON Web Token)** — tấm "thẻ ra vào" mà server cấp cho app sau khi đăng nhập, để các lần gọi API sau app không phải nhập lại mật khẩu.
+
+Interviewer hỏi vì gần như app nào cũng có đăng nhập. Họ muốn xem bạn hiểu **server làm sao biết bạn là ai** sau khi login, chứ không chỉ "lưu token vào storage rồi gắn vào header".
+
+---
+
+## 2. Ví dụ đời thường
+
+Bạn đi hội nghị. Ở quầy check-in bạn đưa CMND (username + password) **một lần**. Họ phát cho bạn **vòng tay dán tên** (JWT).
+
+- Vào các phòng sau, bạn chỉ giơ vòng tay ra — bảo vệ **nhìn là cho vào**, không gọi điện về quầy kiểm tra lại.
+- Vòng tay có **dấu niêm phong** đặc biệt: ai cắt ra sửa tên là dấu vỡ ngay → bảo vệ biết giả.
+- Vòng tay có **giờ hết hạn** in trên đó: quá giờ thì hết giá trị, phải ra quầy đổi cái mới.
+
+JWT đúng là cái vòng tay đó: chứa sẵn thông tin "bạn là ai", có niêm phong chống sửa, có hạn dùng.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**JWT có 3 phần, ngăn nhau bằng dấu chấm:** `header.payload.signature`
+
+1. **Header** — ghi "loại thẻ này dùng thuật toán ký nào" (vd HS256).
+2. **Payload** — chứa **dữ liệu thật**: userId, role, thời điểm hết hạn (`exp`). 
+3. **Signature (chữ ký)** — phần quan trọng nhất. Server lấy header + payload + **một khóa bí mật chỉ server biết** rồi tạo ra chữ ký. Đây là cái "niêm phong".
+
+**Điểm cốt lõi phải hiểu (đây là chỗ ăn điểm):**
+
+- 2 phần đầu **KHÔNG mã hóa**, chỉ là encode Base64 — ai cũng giải ra đọc được. → **Đừng bao giờ bỏ mật khẩu hay dữ liệu nhạy cảm vào payload.**
+- Cái khiến JWT an toàn không phải là giấu dữ liệu, mà là **chống sửa**. Nếu hacker đổi `role: user` thành `role: admin` trong payload, chữ ký sẽ không khớp nữa → server tính lại chữ ký, thấy lệch → **từ chối ngay**. Vì hacker không có khóa bí mật nên không tạo lại chữ ký đúng được.
+
+**Vì sao JWT tiện cho server (lý do thật):** Server **không cần lưu session trong DB**. Mỗi request, server chỉ cần lấy token ra, tính lại chữ ký bằng khóa bí mật, khớp thì tin. Đây gọi là **stateless** — server không phải nhớ ai đang đăng nhập, đỡ tốn DB, dễ scale nhiều server.
+
+**Mặt trái của stateless:** vì server không lưu gì, nên **không "thu hồi" token giữa chừng dễ dàng**. Lỡ token bị lộ, nó vẫn dùng được tới khi hết hạn. → Vì vậy access token để **hạn ngắn** (vài phút–1 giờ), kèm **refresh token** hạn dài để xin token mới (chi tiết Day 09).
+
+**Trong React Native, lưu token ở đâu:**
+- ❌ **Không** lưu access token "nhạy cảm" trong AsyncStorage thường nếu app yêu cầu bảo mật cao — nó là plain text.
+- ✅ Dùng **Keychain (iOS) / Keystore (Android)** qua thư viện như `react-native-keychain` để lưu token an toàn.
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// Payload sau khi giải Base64 — ai cũng đọc được, nên KHÔNG để dữ liệu mật ở đây
+{
+  "userId": 42,
+  "role": "user",
+  "exp": 1718000000 // mốc thời gian hết hạn (Unix time)
+}
+
+// Gắn token vào mọi request bằng interceptor (nối với Day 01)
+axios.interceptors.request.use((config) => {
+  const token = getAccessToken(); // lấy từ Keychain/Keystore
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "JWT là token server cấp sau khi đăng nhập, để các request sau app không phải gửi lại mật khẩu. Nó gồm 3 phần: header, payload, và chữ ký. Payload chứa userId, role, thời gian hết hạn — nhưng chỉ là Base64, ai cũng đọc được, nên tôi không bao giờ để dữ liệu nhạy cảm vào đó. Cái làm nó an toàn là chữ ký: server ký bằng một khóa bí mật chỉ server biết, nên nếu ai sửa payload thì chữ ký lệch và server từ chối. Ưu điểm là stateless — server không cần lưu session, dễ scale. Đổi lại khó thu hồi giữa chừng, nên access token để hạn ngắn và đi kèm refresh token. Trong React Native tôi lưu token trong Keychain hoặc Keystore, không để plain text."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "JWT được mã hóa nên an toàn" — SAI. Payload chỉ encode Base64, đọc được. An toàn nằm ở **chữ ký chống sửa**, không phải giấu dữ liệu.
+- ❌ Bỏ mật khẩu / số thẻ vào payload — lỗi bảo mật nghiêm trọng.
+- ❌ "Token không bao giờ hết hạn cho tiện" — đó là lỗ hổng. Phải có `exp`.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 07)
+
+1. JWT gồm mấy phần? Phần nào làm nó chống bị sửa?
+2. Payload có được mã hóa không? Suy ra điều gì không nên để vào đó?
+3. "Stateless" nghĩa là gì, và mặt trái của nó là gì?

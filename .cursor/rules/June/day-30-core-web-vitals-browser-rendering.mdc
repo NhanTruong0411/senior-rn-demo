@@ -1,0 +1,72 @@
+---
+description: Day 30 (15/07) — Core Web Vitals. Hiểu các chỉ số đánh giá hiệu năng Website và liên hệ với React Native.
+alwaysApply: false
+---
+
+# Day 30 · T4 15/07 — Core Web Vitals
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **Core Web Vitals** — bộ ba chỉ số Google dùng để đánh giá trải nghiệm người dùng trên website: LCP, INP, CLS. Đây là kiến thức thuộc về React Web, nhưng vẫn hay bị hỏi ở JD React Native — đặc biệt khi công ty có cả sản phẩm web và mobile dùng chung một đội frontend (giống mô hình nhiều công ty ở VN hiện nay), vì tư duy tối ưu trải nghiệm giữa hai nền tảng có nhiều điểm chung.
+
+---
+
+## 2. Ví dụ đời thường
+
+Hình dung bạn đi vào một siêu thị. Bạn sẽ khó chịu nếu cửa tự động mở quá chậm, nếu bấm nút gọi thang máy mà không thấy phản hồi gì, hoặc nếu đang định chạm vào một sản phẩm thì kệ hàng bỗng dịch chuyển. Ba trải nghiệm khó chịu này tương ứng chính xác với ba thứ Core Web Vitals đo lường trên website: **tốc độ hiển thị nội dung chính** (LCP), **tốc độ phản hồi khi tương tác** (INP), và **độ ổn định của layout** (CLS).
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) LCP (Largest Contentful Paint) — tốc độ hiển thị nội dung chính**
+
+LCP đo thời gian từ lúc trang bắt đầu tải đến khi **phần tử lớn nhất trong khung nhìn** hiển thị xong — thường là banner, ảnh sản phẩm chính, hoặc tiêu đề lớn. Mục tiêu tốt là **≤ 2.5 giây**. Nguyên nhân phổ biến khiến LCP chậm: ảnh quá nặng chưa tối ưu, server phản hồi chậm, hoặc CSS/JS chặn render (render-blocking resources) khiến trình duyệt phải tải xong mới vẽ được nội dung chính.
+
+**b) INP (Interaction to Next Paint) — tốc độ phản hồi khi tương tác**
+
+INP đo thời gian từ lúc người dùng tương tác (bấm nút, gõ phím, chạm màn hình) đến khi giao diện **phản hồi lại bằng hình ảnh** trên màn hình — ví dụ bấm nút thì nút phải đổi màu hoặc trang phải bắt đầu chuyển ngay, không phải đợi vài giây mới thấy gì xảy ra. Mục tiêu tốt là **≤ 200ms**. INP thay thế cho chỉ số cũ FID (First Input Delay) vì đo được toàn bộ vòng đời tương tác, không chỉ độ trễ ban đầu. Nguyên nhân phổ biến khiến INP tệ: JavaScript thread bị chặn bởi tác vụ nặng đang chạy (tương tự vấn đề JS thread bận ở Day 16), khiến trình duyệt không kịp vẽ phản hồi ngay.
+
+**c) CLS (Cumulative Layout Shift) — độ ổn định của layout**
+
+CLS đo mức độ "nhảy" của các phần tử trên trang trong lúc tải — ví dụ người dùng đang định bấm nút Login thì một banner quảng cáo bất ngờ xuất hiện phía trên, đẩy nút Login lệch xuống, khiến người dùng bấm nhầm chỗ khác. Mục tiêu tốt là **≤ 0.1**. Nguyên nhân phổ biến: ảnh/video không khai báo kích thước trước (khiến trình duyệt phải "dịch chuyển" bố cục khi ảnh tải xong), font chữ thay thế đột ngột (font swap), hoặc nội dung động (quảng cáo, banner) chèn vào giữa trang mà không dành sẵn chỗ trống.
+
+**d) React Native có liên quan gì đến Core Web Vitals?**
+
+Core Web Vitals là chỉ số dành riêng cho **trình duyệt và website**, không áp dụng trực tiếp cho React Native vì RN không có khái niệm "trang tải qua trình duyệt". Nhưng **tư duy đứng sau** ba chỉ số này áp dụng gần như nguyên vẹn sang mobile: LCP tương ứng với việc rút ngắn Startup Time và tránh màn hình trắng lâu (Day 25, Day 27); INP tương ứng với việc giữ UI thread rảnh để phản hồi tương tác ngay lập tức, không để tác vụ nặng chặn (Day 16, Day 27); CLS tương ứng với việc tránh giao diện "nhảy" khi dữ liệu tải xong — ví dụ khai báo trước kích thước ảnh hoặc dùng skeleton loading thay vì để UI dịch chuyển đột ngột khi nội dung load xong.
+
+---
+
+## 4. Ví dụ liên hệ thực tế
+
+```
+Web (Core Web Vitals)          →  React Native (tư duy tương ứng)
+─────────────────────────────────────────────────────────────────
+LCP: hiển thị nội dung chính   →  Startup Time, tránh màn hình trắng lâu (Day 25, 27)
+INP: phản hồi khi tương tác    →  Giữ JS/UI thread rảnh để phản hồi ngay (Day 16, 27)
+CLS: layout không bị nhảy      →  Skeleton loading, khai báo trước kích thước ảnh
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Core Web Vitals gồm ba chỉ số: LCP đo tốc độ hiển thị nội dung chính, mục tiêu dưới 2.5 giây; INP đo tốc độ phản hồi khi người dùng tương tác, mục tiêu dưới 200ms; CLS đo mức độ ổn định của layout, mục tiêu dưới 0.1. Đây là chỉ số dành cho web nên không áp dụng trực tiếp cho React Native, nhưng tư duy đứng sau thì tương đồng: rút ngắn thời gian khởi động giống LCP, giữ UI thread rảnh để phản hồi tương tác ngay giống INP, và tránh giao diện nhảy khi tải dữ liệu xong giống CLS — ví dụ dùng skeleton loading thay vì để layout dịch chuyển đột ngột."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Core Web Vitals áp dụng trực tiếp cho React Native" — sai, đây là chỉ số dành cho trình duyệt/website.
+- ❌ "LCP là tốc độ tải toàn bộ trang" — sai, LCP chỉ đo phần tử **lớn nhất** hiển thị xong, không phải toàn trang.
+- ❌ "CLS là tốc độ phản hồi tương tác" — nhầm với INP; CLS đo độ ổn định layout.
+- ❌ "INP là thời gian tải trang" — nhầm với LCP; INP đo phản hồi sau khi người dùng tương tác.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 31)
+
+1. LCP, INP, CLS mỗi cái đo điều gì? Ngưỡng "tốt" của từng cái là bao nhiêu?
+2. Vì sao React Native không có Core Web Vitals, nhưng vẫn nên hiểu khái niệm này?
+3. Kể một ví dụ cụ thể trong React Native tương ứng với việc tránh CLS trên web.
+4. Nguyên nhân phổ biến nào khiến INP tệ đi? Nó liên quan gì đến kiến thức UI thread ở Day 16?

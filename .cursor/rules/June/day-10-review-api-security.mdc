@@ -1,0 +1,84 @@
+---
+description: Day 10 (19/06) — Review tuần API + Security (Day 1–9). Bản đồ liên kết khái niệm + mini mock 6 câu.
+alwaysApply: false
+---
+
+# Day 10 · T6 19/06 — Review API + Security (mini mock)
+
+## 1. Hôm nay làm gì + vì sao
+
+Hôm nay **không học khái niệm mới**. Mục tiêu: ráp Day 1–9 thành **một bức tranh liền mạch**, và **tự mock** để biết câu nào còn vấp. Interview thật hỏi nối nhau ("ok, vậy nếu token hết hạn thì sao?") — nên hiểu rời từng ngày là chưa đủ, phải nối được chúng lại.
+
+---
+
+## 2. Bản đồ liên kết — nhìn 1 hình nhớ cả tuần
+
+Một request đi từ lúc bấm nút tới lúc có data, **xuyên qua mọi thứ tuần này**:
+
+```text
+[Bấm nút]
+   │
+   ├─ Gọi API: fetch hay axios?        ← Day 01 (axios + interceptor cho app có auth)
+   │
+   ├─ Cách gọi: tay / hook / RQ?       ← Day 02 (3 trạng thái: loading/success/error)
+   │
+   ├─ Gắn token vào header (interceptor)← Day 06 + Day 09
+   │
+   ├─ Đi qua HTTPS (mã hóa đường truyền)← Day 08 (bất đối xứng trao khóa → đối xứng cho data)
+   │
+   ├─ Server kiểm JWT (chữ ký = hash)  ← Day 06 + Day 07
+   │
+   ├─ 401? → refresh token → gọi lại    ← Day 09 (có hàng đợi, fail thì logout)
+   │
+   ├─ Rời màn / search lại → abort       ← Day 03 + Day 04
+   │
+   └─ data server → React Query cache   ← Day 05 (client state để Redux)
+```
+
+> Một câu nối cả tuần: *"App dùng axios + interceptor gắn JWT, đi qua HTTPS, server xác thực bằng chữ ký (hash); 401 thì tự refresh có hàng đợi; request thừa thì abort; data server cache bằng React Query, client state để Redux."*
+
+---
+
+## 3. Phân biệt 3 khái niệm hay bị lẫn (chốt lại)
+
+| Khái niệm | Một/Hai chiều | Dùng để | Ngày |
+| --- | --- | --- | --- |
+| **Hash** | Một chiều, không giải lại | So khớp mật khẩu, chữ ký JWT | Day 07 |
+| **Mã hóa đối xứng** | Hai chiều, **1 khóa** | Mã hóa dữ liệu lớn nhanh (AES) | Day 08 |
+| **Mã hóa bất đối xứng** | Hai chiều, **2 khóa** | Trao khóa an toàn lúc bắt tay (RSA) | Day 08 |
+
+Và 2 loại state (Day 05): **client** (app tự quyết → Redux) vs **server** (mượn từ API → React Query).
+
+---
+
+## 4. Mini mock — 6 câu, tự nói ≤60s rồi tự chấm
+
+Tự trả lời thành tiếng **trước khi đọc gợi ý**. Chấm theo: có **claim → lý do → boundary** không?
+
+1. **fetch vs axios — chọn cái nào cho app có auth, vì sao?** → axios + interceptor (Day 01).
+2. **Một request có mấy trạng thái? Cách gọi nào cho production?** → loading/success/error; React Query (Day 02).
+3. **JWT gồm mấy phần? Cái gì làm nó chống sửa? Payload có mã hóa không?** → 3 phần; chữ ký + khóa bí mật; payload chỉ Base64 (Day 06).
+4. **Khác biệt hash vs mã hóa? Mật khẩu lưu kiểu nào?** → một chiều vs hai chiều; hash + salt + bcrypt (Day 07).
+5. **Vì sao HTTPS dùng cả đối xứng lẫn bất đối xứng?** → bất đối xứng trao khóa, đối xứng cho data vì nhanh (Day 08).
+6. **Token hết hạn (401) thì app xử lý sao?** → interceptor refresh, có hàng đợi, fail thì logout (Day 09).
+
+**Tự chấm:** câu nào nói không trôi ≤60s, hoặc chỉ đọc định nghĩa mà không nêu được lý do/boundary → đánh dấu, đọc lại đúng ngày đó.
+
+---
+
+## 5. Bẫy hay gặp khi bị hỏi nối (đừng vấp)
+
+- ❌ Lẫn hash với mã hóa → mất điểm ngay vì đây là câu phân biệt cơ bản.
+- ❌ Nói "JWT được mã hóa" → payload chỉ encode, không mã hóa.
+- ❌ Kể luồng 401 mà quên hàng đợi → để lộ chưa làm refresh thực tế.
+- ❌ Nói "React Query thay Redux" → chúng quản 2 loại state khác nhau.
+
+---
+
+## 6. Carry-forward (cuối ngày)
+
+- Câu nói trôi ≤60s:
+- Câu còn vấp / cần đọc lại ngày nào:
+- Liên kết nào trong "bản đồ Section 2" mình chưa nối mượt:
+
+> Hết tuần API + Security. Tuần sau (Day 11–15) chuyển sang DSA: hash map, stack/queue, tree, graph, BFS/DFS.

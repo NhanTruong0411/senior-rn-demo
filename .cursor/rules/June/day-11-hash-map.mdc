@@ -1,0 +1,98 @@
+---
+description: Day 11 (22/06) — Hash Map / Hash Table. Vì sao tra cứu O(1), khi nào dùng thay vì mảng, ví dụ RN.
+alwaysApply: false
+---
+
+# Day 11 · T2 22/06 — Hash Map / Hash Table
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **Hash Map (Hash Table)** — cấu trúc lưu cặp **key → value** và **tra cứu cực nhanh** (gần như tức thì). Trong JS chính là `Object` và `Map`.
+
+Interviewer hỏi vì đây là cấu trúc **dùng nhiều nhất khi giải bài** và trong code thật. Câu kinh điển: "làm sao tăng tốc tìm kiếm từ chậm thành nhanh" — đáp án thường là "dùng hash map".
+
+---
+
+## 2. Ví dụ đời thường
+
+Tìm số điện thoại của một người:
+
+- **Không hash map = lật từng trang danh bạ** từ đầu. 1000 người → có thể lật gần 1000 lần. Đây là **mảng**: muốn tìm phải duyệt qua.
+- **Có hash map = danh bạ điện thoại có mục lục theo tên.** Bạn tra thẳng tên "Nam" → ra số ngay, không lật từng trang.
+
+Hash map giống cái **tủ có ngăn dán nhãn**: đưa cái nhãn (key) là biết mở đúng ngăn (value) ngay, không cần mở từng ngăn tìm.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**Vì sao tra cứu nhanh — O(1):** Khi bạn đưa một key (vd `"email"`), hash map chạy key đó qua một **hàm hash** để tính ra **vị trí ô nhớ** cần đặt/lấy value. Vì tính thẳng ra vị trí nên **không cần duyệt** — lấy ngay. Đó là **O(1)** ("thời gian không đổi", dù có 10 hay 10 triệu phần tử).
+
+So với mảng:
+
+| Thao tác | Mảng (Array) | Hash Map |
+| --- | --- | --- |
+| Tìm theo key/giá trị | O(n) — duyệt từng phần tử | **O(1)** — tính thẳng vị trí |
+| Thêm / xóa theo key | O(n) (nếu phải tìm) | **O(1)** |
+| Giữ thứ tự | Có | `Map` giữ thứ tự chèn; `Object` không đảm bảo |
+
+> **O(1) vs O(n)** là điểm phải nói được. O(n) = càng nhiều dữ liệu càng chậm theo tỷ lệ thẳng. O(1) = nhanh như nhau bất kể dữ liệu lớn cỡ nào.
+
+**Collision (va chạm) — biết để không bị hỏi hớ:** đôi khi 2 key khác nhau hash ra cùng 1 vị trí. Hash map xử lý bằng cách xâu chuỗi nhiều phần tử ở 1 ô (chaining). Vì collision mà O(1) là "trung bình", xấu nhất có thể tệ hơn — nhưng thực tế các thư viện lo việc này, bạn chỉ cần biết khái niệm.
+
+**`Object` vs `Map` trong JS (RN hay dùng):**
+- `Object`: key chỉ là string/symbol. Quen thuộc, đủ cho phần lớn case.
+- `Map`: key là **kiểu gì cũng được** (cả object), giữ **thứ tự chèn**, có `.size`, dễ duyệt. Hợp khi key động hoặc cần thứ tự.
+
+**Khi nào dùng (gắn với code RN thật):**
+- Đổi mảng API trả về thành map theo `id` để **tra O(1)** thay vì `.find()` mỗi lần (rất hay dùng khi normalize data — giống cách Redux normalize state).
+- **Đếm tần suất**, **khử trùng lặp**, **nhóm theo key**.
+- Bài phỏng vấn kinh điển **Two Sum**: dùng hash map để tìm phần bù trong O(n) thay vì O(n²).
+
+---
+
+## 4. Code tối thiểu
+
+```js
+// Đổi mảng → map theo id để tra O(1) thay vì .find() O(n)
+const users = [{ id: 1, name: 'An' }, { id: 2, name: 'Bình' }];
+const byId = new Map(users.map(u => [u.id, u]));
+byId.get(2); // { id: 2, name: 'Bình' } — lấy ngay, không duyệt
+
+// Đếm tần suất bằng object
+const count = {};
+for (const w of ['a', 'b', 'a']) count[w] = (count[w] ?? 0) + 1;
+// { a: 2, b: 1 }
+
+// Two Sum — O(n) nhờ hash map
+function twoSum(nums, target) {
+  const seen = new Map();              // value → index
+  for (let i = 0; i < nums.length; i++) {
+    const need = target - nums[i];
+    if (seen.has(need)) return [seen.get(need), i];
+    seen.set(nums[i], i);
+  }
+}
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Hash map lưu cặp key–value và tra cứu gần như tức thì. Lý do là khi đưa key vào, nó chạy qua một hàm hash để tính thẳng ra vị trí ô nhớ, nên lấy ngay không cần duyệt — đó là O(1). So với mảng thì tìm theo giá trị trong mảng là O(n) vì phải duyệt từng phần tử, càng nhiều dữ liệu càng chậm. Trong JS tôi dùng Object khi key là string, dùng Map khi key động hoặc cần giữ thứ tự. Thực tế tôi hay đổi mảng API trả về thành map theo id để tra O(1) thay vì find mỗi lần — giống normalize state trong Redux. Bài kinh điển Two Sum cũng dùng hash map để hạ từ O(n bình phương) xuống O(n). Lưu ý có collision nên O(1) là trung bình."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ "Hash map luôn O(1) tuyệt đối" — là O(1) **trung bình**; có collision. Nói "trung bình" mới chuẩn.
+- ❌ Lẫn "hash" của hash map với "hash mật khẩu" (Day 07) — cùng ý tưởng hàm hash nhưng mục đích khác: ở đây để **định vị nhanh**, không phải bảo mật.
+- ❌ Dùng `.find()` trong vòng lặp lớn rồi than chậm — đó là O(n²), nên đổi sang map.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 12)
+
+1. Vì sao hash map tra cứu O(1) còn tìm trong mảng là O(n)?
+2. Khi nào chọn `Map` thay vì `Object` trong JS?
+3. Cho 1 ví dụ trong code RN bạn đổi mảng thành map để tăng tốc.
