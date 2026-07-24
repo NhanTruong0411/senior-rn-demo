@@ -8,7 +8,7 @@ alwaysApply: false
 > **Thời lượng:** 1.5–2h/ngày · ~10h/sprint.
 > **Theme:** BookEase — đặt lịch dịch vụ (spa/salon/clinic mini).
 > **Entity:** `User`, `Service`, `TimeSlot`, `Booking`.
-> **3 kỹ năng nâng cao:** Push Notification · Deep Link · WebSocket real-time (Sprint 3–4).
+> **4 kỹ năng nâng cao:** Push Notification · Deep Link · WebSocket real-time · Mobile First Design.
 
 ---
 
@@ -18,7 +18,7 @@ alwaysApply: false
 - [ ] **1.1** Khởi tạo `web-admin/` (NextJS) + `mobile-app/` (Expo), TypeScript.
 - [ ] **1.2** PostgreSQL cloud (Neon/Supabase) + Prisma init + schema `User`.
 - [ ] **1.3** API `POST /api/v1/auth/login` + `register` — hash password (bcrypt), JWT access/refresh. *(Day 06, 07, 09)*
-- [ ] **1.4** Web Login UI (shadcn/ui) + React Query mutation + Next middleware guard. *(Day 28, 29, 26)*
+- [ ] **1.4** 📱 **Mobile First Design:** Web Login UI (shadcn/ui) code giao diện mobile trước, scale lên desktop sau bằng Tailwind (`md:`, `lg:`). Tích hợp React Query mutation. *(Day 28, 29)*
 - [ ] **1.5** Mobile Login + SecureStore + fetch/axios interceptor skeleton. *(Day 26)*
 - [ ] **1.6** GitHub repo + branch `feature/sprint-1-auth` + README skeleton. *(Day 22)*
 
@@ -27,17 +27,17 @@ alwaysApply: false
 
 - [ ] **2.1** Prisma schema `Service`, `TimeSlot`, `Booking` + quan hệ + migration.
 - [ ] **2.2** CRUD API `/api/v1/services` + `/api/v1/slots` + Zod validate.
-- [ ] **2.3** Admin layout (sidebar, header) — feature-based folders. *(Day 35)*
-- [ ] **2.4** Màn Danh sách dịch vụ + slot: React Query + pagination + loading/error/empty. *(Day 02, 05)*
+- [ ] **2.3** 📱 **Mobile First Design:** Admin layout (sidebar vuốt ra trên mobile, cố định trên PC) — feature-based folders. *(Day 35)*
+- [ ] **2.4** Màn Danh sách dịch vụ + slot: React Query + pagination + loading/error/empty (responsive table/cards). *(Day 02, 05)*
 - [ ] **2.5** Form tạo/sửa dịch vụ + tạo slot: React Hook Form + Zod. *(Day 28)*
-- [ ] **2.6** Màn duyệt Booking: đổi status (pending/confirmed/cancelled).
+- [ ] **2.6** Màn duyệt Booking + Chức năng Search/Filter booking (Áp dụng **AbortController** để hủy request cũ khi type nhanh). *(Day 03)*
 
 ## Sprint 3: Mobile End-User + Booking Flow (Tuần 3)
 **Mục tiêu:** User đặt lịch được + auth hardening + bắt đầu 3 kỹ năng nâng cao.
 
 - [ ] **3.1** API user: `GET /api/v1/services`, `GET /api/v1/slots?serviceId=`, `POST /api/v1/bookings`.
 - [ ] **3.2** Expo Router: tabs (Home, My Bookings, Profile) + stack detail. *(Day 36)*
-- [ ] **3.3** FlatList danh sách dịch vụ/slot — memo, keyExtractor, image cache. *(Day 27)*
+- [ ] **3.3** FlatList danh sách dịch vụ/slot — memo, keyExtractor, image cache. Áp dụng tư duy **UI Thread vs JS Thread** để giữ FPS mượt khi cuộn. *(Day 16, 27)*
 - [ ] **3.4** Book slot flow — loading/error/success + xử lý **race condition** (slot đã bị đặt → báo lỗi rõ). *(Day 02)*
 - [ ] **3.5** 401 interceptor + refresh token queue + logout. *(Day 09)*
 - [ ] **3.6** Firebase Crashlytics init + test crash + đọc dashboard. *(Day 38)*
@@ -51,7 +51,7 @@ alwaysApply: false
 - [ ] **4.2** Web Lighthouse / Core Web Vitals pass cơ bản. *(Day 30)*
 - [ ] **4.3** Mobile bundle check + Profiler scroll list. *(Day 17, 25)*
 - [ ] **4.4** GitHub Actions: lint + test on PR. *(Day 24)*
-- [ ] **4.5** Deploy NextJS → Vercel; Mobile point API prod URL; EAS build APK demo. *(Day 23)*
+- [ ] **4.5** Đóng gói App (Versioning, App Icon, Splash Screen) & Deploy NextJS → Vercel; EAS build APK demo. *(Day 23)*
 - [ ] **4.6** README: architecture diagram, setup, demo credentials, tech decisions (REST vs WebSocket, race condition handling).
 - [ ] **4.7** Map 5+ câu trong `coding/qa-bank.mdc` → story từ BookEase.
 

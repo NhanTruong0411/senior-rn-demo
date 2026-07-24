@@ -7,7 +7,7 @@ alwaysApply: false
 
 > Domain: **BookEase** — đặt lịch dịch vụ (spa/salon/clinic mini). Theme B trong `04-project-themes.mdc`.
 > Entity chính: `User`, `Service`, `TimeSlot`, `Booking`.
-> 3 kỹ năng nâng cao: **Push Notification** (expo-notifications + FCM), **Deep Link** (Expo Router linking), **WebSocket/Real-time** (Supabase Realtime / SSE).
+> 4 kỹ năng nâng cao: **Push Notification** (expo-notifications + FCM), **Deep Link** (Expo Router linking), **WebSocket/Real-time** (Supabase Realtime / SSE), và **Mobile First Design** (Tailwind CSS trên NextJS).
 
 ## 1. Thành phần
 
@@ -61,4 +61,8 @@ alwaysApply: false
 | Navigation + **Deep Link** (mobile) | Day 36 |
 | **Networking / WebSocket real-time** | Day 33 |
 | **Push Notification** | Day 38 (tie-in) |
+| Request cancellation (search/filter) | Day 03 |
+| Mobile-first design & Design System | Day 28, 29 |
+| Đóng gói app & Versioning | Day 23 |
+| UI thread awareness | Day 16 |
 | Offline (optional) | Day 34 |

@@ -15,7 +15,7 @@ alwaysApply: false
 | --- | --- | --- |
 | **Next.js 14+ (App Router)** | Web Admin + Backend API trong 1 repo | Mọi màn admin + Route Handlers `/api/v1/*` |
 | **TypeScript** | Type-safe, giảm bug runtime | Toàn project |
-| **Tailwind CSS** | Utility-first styling, nhanh, consistent spacing | Layout, responsive |
+| **Tailwind CSS** | Utility-first styling, nhanh, consistent spacing | Layout, responsive (**Mobile First Design**: code UI nhỏ trước, dùng `md:`, `lg:` scale lên) |
 | **shadcn/ui** | Component UI copy-paste (Button, Dialog, Table...) — không cần designer | Form, table, modal admin |
 | **TanStack Query** | Server state: cache, refetch, loading/error, pagination | Mọi API call từ Web/Mobile |
 | **Zustand** | Client-only UI state nhẹ (sidebar open, theme toggle) | Không dùng Redux cho API data |
