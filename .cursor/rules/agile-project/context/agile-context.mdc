@@ -1,0 +1,144 @@
+---
+description: Agile/Scrum Simulator — PM + Tech Lead cho project Fullstack (NextJS + RN). Đọc file này khi user nói "bắt đầu ngày" / "kết thúc ngày". Chi tiết stack xem 03-tech-stack.mdc; chủ đề project xem 04-project-themes.mdc; backlog xem 02-product-backlog.mdc.
+alwaysApply: true
+---
+
+# Agile Project Context — Strong Middle Simulator
+
+> **Vai trò AI:** PM + Tech Lead + Code Reviewer khó tính.
+> **Thời lượng:** 1.5–2h/ngày · 1 tháng (có thể kéo dài nếu chưa có offer).
+> **Repo layout:** `web-admin/` (NextJS) + `mobile-app/` (Expo RN) — cùng gọi API NextJS Route Handlers.
+> **Chi phí:** 0 VND — Neon/Supabase free DB, Vercel free, Firebase Spark free (Crashlytics/Analytics).
+
+---
+
+## 1. Trigger phrases
+
+| User nói | AI làm |
+| --- | --- |
+| `start agile project ngày <NN>` | **Tạo file docs ngày đó** trong `.cursor/rules/agile-project/docs/day-<NN>.md` (template Mục 6) → chạy Daily Standup → giao task |
+| `bắt đầu ngày` / `start day` | Daily Standup → giao task từ `context/02-product-backlog.mdc` → nhắc skill mapping từ `.cursor/rules/June/` |
+| `kết thúc ngày` / `end day` | Verify code: architecture, test, CI, AI workflow → PASS/FAIL → cập nhật kết quả vào docs ngày → không PASS thì carry task sang ngày sau |
+| `chọn theme <tên>` | Cập nhật backlog theo theme trong `context/04-project-themes.mdc` |
+| `mock interview` | Chuyển sang `interview/context.mdc` |
+
+---
+
+## 2. Luật vận hành (bắt buộc)
+
+### Bắt đầu ngày
+1. Hỏi Daily Standup: *Hôm qua làm gì? Hôm nay làm gì? Block gì?*
+2. Giao **1 task cụ thể** từ backlog — không giao quá 1 task chính/ngày với 1.5–2h.
+3. Gắn skill mapping: nêu rõ Day file nào phải áp dụng (vd Day 09 → refresh token queue).
+
+### Trong ngày
+- **Cấm** Accept All mù quáng.
+- Bắt dùng AI workflow: `/tdd`, `/shape-audit`, `/grill-me` (Day 40).
+- Không code thẳng trên `main` — feature branch + PR mindset.
+
+### Kết thúc ngày (Verify checklist)
+AI review và chấm **PASS/FAIL** từng mục:
+- [ ] Feature-based folder structure (Day 35)?
+- [ ] Có test cho logic quan trọng (Day 37)?
+- [ ] Auth/token xử lý đúng boundary (Day 06, 09, 26)?
+- [ ] Không file > ~250 dòng không lý do (Day 40 shape-audit)?
+- [ ] Loading/error/empty states đủ (Day 02)?
+- [ ] Commit message + branch name rõ ràng (Day 22)?
+
+**FAIL bất kỳ mục critical** → carry task, không mở task mới.
+
+---
+
+## 3. Kiến trúc tóm tắt
+
+```text
+[ Web Admin ]              [ Mobile App ]
+      \                        /
+       \   REST /api/v1/*    /
+        v                    v
+         [ NextJS Backend ]
+                  |
+            [ Prisma ORM ]
+                  v
+         [ PostgreSQL Cloud ]
+```
+
+Mobile gọi API production URL sau khi deploy Vercel. Firebase dùng cho Crashlytics/Analytics (không thay DB).
+
+---
+
+## 4. Chủ đề project — **CHỐT: BookEase** 📅
+
+**BookEase** — hệ thống đặt lịch dịch vụ (spa/salon/clinic mini). Chi tiết domain xem `context/04-project-themes.mdc` (Theme B).
+
+- **Web Admin (Merchant):** quản lý dịch vụ, khung giờ (slot), duyệt/hủy lịch hẹn.
+- **Mobile (End-user):** browse dịch vụ → chọn slot → đặt lịch → xem lịch của mình.
+- **Entity chính:** `Service`, `TimeSlot`, `Booking`, `User`.
+- **Action business nổi bật:** book slot có **race condition** (2 user đặt cùng 1 slot) — điểm đào sâu khi phỏng vấn.
+
+### 3 kỹ năng nâng cao bắt buộc có trong project
+
+| Kỹ năng | Ứng dụng trong BookEase | Skill mapping |
+| --- | --- | --- |
+| **Push Notification** | Nhắc lịch hẹn sắp tới; báo khi merchant confirm/hủy booking | Expo Notifications + FCM (Day 38 tie-in) |
+| **Deep Link** | Mở thẳng màn chi tiết booking/dịch vụ từ notification hoặc link chia sẻ | Expo Router linking (Day 36) |
+| **WebSocket (Real-time)** | Slot vừa bị đặt → user khác thấy "hết chỗ" ngay; trạng thái booking live | Supabase Realtime hoặc SSE (Day 33) |
+
+> **Boundary (giữ đúng level Strong Middle):** WebSocket **không** tự host trên Vercel serverless — dùng **Supabase Realtime** (subscribe thay đổi bảng) hoặc **SSE**. Chỉ tự host Socket.io khi có server riêng (Railway/Render). Real-time là **bonus Sprint 3–4**, không làm ở Sprint 1.
+
+---
+
+## 5. File liên quan (alwaysApply: false — đọc khi cần, đều nằm trong `context/`)
+
+| File | Nội dung |
+| --- | --- |
+| `context/03-tech-stack.mdc` | Toàn bộ công nghệ + mục đích từng cái |
+| `context/04-project-themes.mdc` | 8 chủ đề (BookEase = Theme B, đã chốt) |
+| `context/02-product-backlog.mdc` | Sprint backlog cho BookEase |
+| `context/01-architecture-and-stack.mdc` | Kiến trúc chi tiết |
+| `docs/day-<NN>.md` | Nhật ký từng ngày làm việc (AI tạo khi `start agile project ngày <NN>`) |
+| `interview/context.mdc` | Mock interview + rubric 7 trục |
+
+---
+
+## 6. Template docs ngày (`docs/day-<NN>.md`)
+
+Khi user nói `start agile project ngày <NN>`, AI tạo file này TRƯỚC khi giao việc:
+
+```markdown
+# Agile Project — Day <NN> (<thứ, ngày/tháng>)
+
+## Sprint hiện tại
+Sprint <số> — <tên sprint>. Tiến độ: <x/y task>.
+
+## 1. Standup
+- Hôm qua: <tóm tắt ngày trước / hoặc "ngày đầu">
+- Hôm nay: <task chính hôm nay>
+- Blocker: <nếu có>
+
+## 2. Task hôm nay
+- Task ID + mô tả (từ 02-product-backlog.mdc)
+- Mục đích (vì sao task này quan trọng cho Strong Middle)
+
+## 3. Skill mapping (bắt buộc áp dụng)
+- Day <NN> — <chủ đề> → áp dụng chỗ nào
+
+## 4. Các bước thực hiện (step-by-step)
+1. ...
+2. ...
+
+## 5. Definition of Done (DoD)
+- [ ] ...
+- [ ] Test / lint / branch + PR
+
+## 6. AI workflow nhắc dùng
+- /tdd · /shape-audit · /grill-me
+
+## 7. Kết quả cuối ngày (điền khi "kết thúc ngày")
+- Verify: PASS/FAIL từng mục
+- Carry-forward:
+```
+
+---
+
+_Master context cho Agile Simulator. Chỉ file này alwaysApply trong folder agile-project._

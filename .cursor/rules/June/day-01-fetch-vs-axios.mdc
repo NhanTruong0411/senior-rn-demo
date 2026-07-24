@@ -1,6 +1,6 @@
 ---
 description: Day 01 (08/06) — fetch vs Axios. Hai cách gọi API trong JS/RN, khác nhau ở đâu, khi nào chọn cái nào.
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Day 01 · T2 08/06 — fetch vs Axios

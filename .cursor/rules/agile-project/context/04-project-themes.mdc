@@ -1,0 +1,125 @@
+---
+description: 8 chủ đề project Fullstack thay thế Loyalty/Voucher. User chọn 1 theme rồi báo "chọn theme <tên>" để cập nhật backlog.
+alwaysApply: false
+---
+
+# Project Themes — Chọn 1 domain
+
+> Tiêu chí mỗi theme: đủ CRUD admin + user flow mobile + auth + list performance + 1 action "business" rõ ràng.
+> Tất cả đều map được skill Strong Middle — khác nhau ở **story phỏng vấn**, không khác stack.
+
+---
+
+## Theme A — **TaskFlow** (Quản lý công việc cá nhân/nhóm)
+| | |
+| --- | --- |
+| **Web Admin** | Tạo project, gán task, set deadline, xem burndown đơn giản |
+| **Mobile** | User xem task được giao, đánh dấu done, filter theo status |
+| **Entity chính** | Project, Task, Assignee |
+| **Action nổi bật** | Complete task + optimistic UI (chỉ UI đơn giản, không payment) |
+| **Phỏng vấn hay kể** | State machine (todo/doing/done), FlatList filter, offline queue *(Day 34)* |
+| **Độ khó** | ⭐⭐ Trung bình — dễ hiểu, interviewer relate nhanh |
+
+---
+
+## Theme B — **BookEase** (Đặt lịch dịch vụ — spa/salon/clinic mini) ✅ **ĐÃ CHỐT**
+
+> Kèm 3 kỹ năng nâng cao: **Push Notification** · **Deep Link** · **WebSocket real-time**. Xem `agile-context.mdc` Mục 4 và `02-product-backlog.mdc`.
+
+| | |
+| --- | --- |
+| **Web Admin** | Quản lý slot, dịch vụ, lịch hẹn, confirm/cancel |
+| **Mobile** | User browse dịch vụ → chọn slot → book → xem lịch của mình |
+| **Entity chính** | Service, TimeSlot, Booking |
+| **Action nổi bật** | Book slot (race condition — 2 user book cùng slot) |
+| **Phỏng vấn hay kể** | Concurrency, validation, error handling, calendar UX |
+| **Độ khó** | ⭐⭐⭐ Khá — logic thời gian + conflict |
+
+---
+
+## Theme C — **SpendWise** (Quản lý chi tiêu cá nhân)
+| | |
+| --- | --- |
+| **Web Admin** | (Optional) Merchant/category admin — hoặc chỉ analytics dashboard |
+| **Mobile** | Log expense, category, chart tháng, budget alert |
+| **Entity chính** | Expense, Category, Budget |
+| **Action nổi bật** | Add expense nhanh + local persist draft *(Day 34 offline)* |
+| **Phỏng vấn hay kể** | Form UX, chart render perf, data aggregation |
+| **Độ khó** | ⭐⭐ Trung bình — visual đẹp, demo tốt trên mobile |
+
+---
+
+## Theme D — **FitTrack** (Theo dõi workout / habit)
+| | |
+| --- | --- |
+| **Web Admin** | Tạo workout plan template, quản lý user (coach view) |
+| **Mobile** | Log workout, streak habit, timer rest |
+| **Entity chính** | Workout, Exercise, HabitLog |
+| **Action nổi bật** | Streak calculation + push notification local *(Expo Notifications)* |
+| **Phỏng vấn hay kể** | Date handling, streak logic, animation timer *(Day 39)* |
+| **Độ khó** | ⭐⭐ Trung bình — portfolio visual tốt |
+
+---
+
+## Theme E — **EventHub** (Sự kiện / meetup mini)
+| | |
+| --- | --- |
+| **Web Admin** | Tạo event, set capacity, duyệt attendee |
+| **Mobile** | Browse event → RSVP → QR check-in code |
+| **Entity chính** | Event, RSVP, CheckIn |
+| **Action nổi bật** | RSVP khi gần full capacity — waitlist logic |
+| **Phỏng vấn hay kể** | Capacity limit, deep link mở event detail *(Day 36)* |
+| **Độ khó** | ⭐⭐⭐ Khá — social/event apps interviewer quen domain |
+
+---
+
+## Theme F — **InventoryLite** (Quản lý kho mini — SME)
+| | |
+| --- | --- |
+| **Web Admin** | CRUD sản phẩm, nhập/xuất kho, low-stock alert |
+| **Mobile** | Scan barcode (mock) → cập nhật tồn kho nhanh |
+| **Entity chính** | Product, StockMovement, Warehouse |
+| **Action nổi bật** | Stock in/out transaction — không được âm kho |
+| **Phỏng vấn hay kể** | Transaction integrity, validation business rule |
+| **Độ khó** | ⭐⭐⭐ Khá — gần domain thương mại nhưng không loyalty |
+
+---
+
+## Theme G — **LearnBits** (Micro-learning / flashcard)
+| | |
+| --- | --- |
+| **Web Admin** | Tạo deck, thêm card, xem progress user |
+| **Mobile** | Học flashcard, spaced repetition đơn giản, progress |
+| **Entity chính** | Deck, Card, StudySession |
+| **Action nổi bật** | Swipe card + animation *(Day 39 Reanimated cơ bản)* |
+| **Phỏng vấn hay kể** | Gesture, animation UI thread, gamification nhẹ |
+| **Độ khó** | ⭐⭐⭐ Khá — UI/UX impression cao |
+
+---
+
+## Theme H — **ReportDesk** (Báo cáo sự cố / ticket nội bộ)
+| | |
+| --- | --- |
+| **Web Admin** | Dashboard ticket, assign, đổi status, filter |
+| **Mobile** | User tạo ticket (ảnh + mô tả), theo dõi status |
+| **Entity chính** | Ticket, Comment, Attachment |
+| **Action nổi bật** | Upload ảnh + status workflow (open/in-progress/resolved) |
+| **Phỏng vấn hay kể** | File upload, auth role (user vs admin), Crashlytics tie-in |
+| **Độ khó** | ⭐⭐ Trung bình — gần enterprise, hợp outsource/client nước ngoài |
+
+---
+
+## Gợi ý chọn nhanh
+
+| Bạn muốn... | Chọn |
+| --- | --- |
+| Dễ ship trong 1 tháng, story rõ | **A TaskFlow** hoặc **H ReportDesk** |
+| Demo mobile đẹp, ấn tượng visual | **C SpendWise** hoặc **G LearnBits** |
+| Business logic sâu, impress senior | **B BookEase** hoặc **F InventoryLite** |
+| Tránh nhắc lại Firegroup domain | **Tránh** loyalty/voucher/e-commerce cart — tất cả theme trên đều OK |
+
+---
+
+## Sau khi chọn
+
+User nói: `chọn theme TaskFlow` (vd) → AI cập nhật `02-product-backlog.mdc` với tên entity cụ thể và viết 1 dòng pitch cho README.

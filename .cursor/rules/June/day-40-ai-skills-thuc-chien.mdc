@@ -1,0 +1,124 @@
+---
+description: Day 40 (28/07) — AI Skills Thực chiến (Từ Matt Pocock & Claude Code). Cách quản lý AI Agent bằng Context, quy trình /grill-me, /tdd và áp dụng vào Cursor.
+alwaysApply: false
+---
+
+# Day 40 · T3 28/07 — AI Skills Thực chiến (Học từ repo 165k sao của Matt Pocock)
+
+## 1. Hôm nay học gì + vì sao bị hỏi
+
+Học **cách điều khiển AI bằng "Skills" (Quy trình đóng gói)** thay vì "Vibe coding" (code tùy hứng). Trọng tâm là repo 165k sao của Matt Pocock cấu hình cho Claude Code, và cách áp dụng tư duy đó sang Cursor (thông qua `.cursorrules` và thư mục `rules`).
+
+**Vì sao bị hỏi?** Nhà tuyển dụng hiện nay (như Ocany) rất thích hỏi: *"Em dùng AI trong công việc thế nào?"*. Họ muốn tìm người biết **làm chủ AI** (đặt ra rule, ép AI theo kiến trúc, bắt viết test) chứ không phải người **phụ thuộc AI** (AI gợi ý sao tab lấy vậy, code nát cấu trúc).
+
+---
+
+## 2. Ví dụ đời thường
+
+Tưởng tượng AI là một bạn Intern (Thực tập sinh) đánh máy cực nhanh nhưng ngây thơ:
+
+- **Vibe coding (Cách dev yếu dùng AI):** Bạn quăng cho intern 1 câu *"Làm cho anh cái giỏ hàng"*. Intern tự biên tự diễn, dùng bừa thư viện, code một đống rác rồi nộp. Bạn tốn cả ngày sửa lại.
+- **AI Skills (Cách Senior dùng AI):** Bạn dán 1 tờ giấy ghi chú (Skill) lên bàn Intern: *"Khẩu lệnh: /grill-me. Khi anh giao task, em KHÔNG ĐƯỢC CODE NGAY. Em phải hỏi anh 3 câu về edge-cases (lỗi mạng, data rỗng) trước. Khi nào anh chốt thì mới bắt đầu."* 
+
+AI Skills bản chất chính là **viết quy trình (workflow) dạng text** để ép AI tuân thủ.
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+Bài học từ kho Skills của Claude Code có 4 kỹ năng kinh điển mà ta có thể clone (sao chép) sang Cursor:
+
+**a. The Context (`CONTEXT.md` / `.cursorrules`)**
+Đóng vai trò là "Ngôn ngữ chung". Ép AI phải biết app dùng Redux Toolkit (không dùng Context API), dùng TanStack Query (không fetch chay), quy tắc đặt tên. 
+*Ứng dụng Cursor:* Bỏ hết chuẩn dự án vào `.cursorrules`. Mỗi lần chat, Cursor tự đọc và không bao giờ gợi ý thư viện rác.
+# PROJECT CONTEXT
+- Đây là dự án React Native, dùng TypeScript.
+- State management toàn cục: Redux Toolkit.
+- Fetch API & Cache: TanStack Query (React Query). KHÔNG dùng useEffect để fetch data.
+- UI Framework: NativeWind (Tailwind cho RN).
+- Cấu trúc thư mục: Feature-based architecture (src/features/).
+- Quy tắc đặt tên: Component luôn dùng PascalCase. Hook luôn dùng camelCase và bắt đầu bằng "use".
+
+Khi viết code, BẮT BUỘC tuân thủ các quy tắc trên, không tự ý thêm thư viện ngoài như Axios nếu chưa xin phép.
+
+**b. Lệnh `/grill-me` (Khảo vấn requirement)**
+Buộc AI phải hỏi ngược lại user về phạm vi, edge-cases, error handling trước khi phun ra code. Tránh tình trạng hiểu sai ý.
+# Lệnh: /grill-me
+Khi user sử dụng lệnh này và đưa ra một yêu cầu tính năng, BẠN KHÔNG ĐƯỢC VIẾT CODE NGAY.
+Thay vào đó, hãy thực hiện quy trình sau:
+1. Đặt ra 3-5 câu hỏi sắc bén về các trường hợp ngoại lệ (edge-cases).
+2. Hỏi về cách xử lý lỗi (Ví dụ: Mất mạng thì sao? API trả về 500 thì sao?).
+3. Hỏi xem tính năng này có ảnh hưởng đến các màn hình khác không.
+Chỉ khi nào user trả lời thỏa đáng các câu hỏi trên, bạn mới được tóm tắt lại spec và bắt đầu đề xuất code.
+
+**c. Lệnh `/tdd` (Test-Driven Development)**
+Với Agent có quyền chạy Terminal (như Claude Code hoặc Cursor Agent), bắt nó: Tạo file test -> Chạy `npm test` lỗi -> Viết code -> Chạy lại xanh mới được dừng.
+# Lệnh: /tdd [tên_tính_năng]
+Khi nhận được lệnh này, hãy làm đúng theo thứ tự:
+Bước 1: Tạo một file test (.test.ts) mô tả tính năng.
+Bước 2: Tự động chạy lệnh `npm test` trong terminal. Test phải FAILED (vì chưa có code).
+Bước 3: Viết code implementation để thỏa mãn test đó.
+Bước 4: Chạy lại `npm test`. Nếu vẫn lỗi, tự sửa code.
+Bước 5: Chỉ dừng lại báo cáo cho User khi test đã PASSED màu xanh.
+
+**d. Lệnh `/audit` (Khám bệnh / Refactor)**
+Dùng để review file định kỳ. Yêu cầu AI chỉ ra các function quá 250 dòng, vi phạm Single Responsibility, và đề xuất cách chia nhỏ (không tự sửa, chỉ báo cáo).
+# Lệnh: /audit
+Quét file hiện tại và làm các việc sau:
+1. Xác định xem file có vượt quá 250 dòng không.
+2. Tìm các Component hoặc Hàm làm quá nhiều việc (Vi phạm Single Responsibility).
+3. Đề xuất cách tách các hàm xử lý logic ra file hooks riêng.
+4. KHÔNG tự ý sửa file. In ra một báo cáo (Report) gồm 3 gạch đầu dòng những điểm cần cải thiện để User duyệt.
+
+---
+
+## 4. Cấu hình tối thiểu (Ví dụ tạo Skill `/grill-me` trong Cursor)
+
+Bạn chỉ cần tạo một file `.mdc` trong thư mục `.cursor/rules/` với nội dung prompt ép buộc quy trình.
+
+```text
+---
+description: Trigger khi user gõ /grill-me. Ép AI phải hỏi ngược lại để làm rõ requirement.
+globs: *
+---
+
+# Khẩu lệnh: /grill-me
+
+Khi User bắt đầu câu chat bằng `/grill-me` và một yêu cầu tính năng, bạn KHÔNG ĐƯỢC VIẾT CODE NGAY.
+
+Hãy thực hiện đúng quy trình sau:
+1. Đóng vai trò là một Senior Tech Lead khó tính.
+2. Đặt ra đúng 3 câu hỏi sắc bén về:
+   - Các trường hợp ngoại lệ (Edge-cases).
+   - Xử lý lỗi (Error handling / Offline state).
+   - Tác động đến kiến trúc/màn hình khác.
+3. Yêu cầu User trả lời 3 câu hỏi này.
+4. Chỉ khi User trả lời xong, bạn mới được tóm tắt lại thiết kế và đề xuất code.
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s
+
+> "Bản chất của AI Skills không phải là cài plugin phức tạp, mà là **đóng gói các quy trình kỹ sư thành Prompt có cấu trúc**. Thay vì để AI tự do sinh code (vibe coding), em tạo ra các bộ Rules (như lệnh `/grill-me` để ép AI hỏi rõ requirements, hay `/tdd` để ép viết test trước). Ở Cursor, em cấu hình các file `.cursorrules` và `.mdc` để kiểm soát Context của dự án, ép AI phải dùng đúng chuẩn Redux hay React Query của team. Việc này biến AI từ một cái máy gõ chữ thành một thành viên tuân thủ đúng quy trình (Pipeline) và kiến trúc do mình đặt ra."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ **"Em dùng ChatGPT, bí chỗ nào hỏi chỗ đó"** → Đừng trả lời kiểu thợ code phụ thuộc.
+- ❌ **"Em gõ prompt dài lắm"** → Độ dài không quan trọng bằng việc thiết lập sẵn quy trình (workflow/skills) để dùng lại.
+- ❌ **Sợ AI thay thế** → Đừng thể hiện sự e dè. Hãy thể hiện mình là "Người quản lý AI" (AI Manager / AI Orchestrator).
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới xong)
+
+1. Vibe coding khác với AI Skills ở điểm cốt lõi nào?
+- Vibe coding là giao phó hoàn toàn (chỉ cần chạy được), AI Skills là đưa AI vào khuôn khổ quy trình (Context, TDD, Review).
+
+2. Mục đích của lệnh `/grill-me` là gì?
+- Ngăn AI sinh code ngay lập tức, bắt nó hỏi ngược lại để làm rõ các edge-case và error handling.
+
+3. Trong Cursor, file nào tương đương với `CONTEXT.md` trong Claude Code?
+- File `.cursorrules` ở thư mục gốc, hoặc các file `.mdc` trong `.cursor/rules/`.

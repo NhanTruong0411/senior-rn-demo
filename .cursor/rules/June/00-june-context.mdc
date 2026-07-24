@@ -1,6 +1,6 @@
 ---
 description: Lộ trình ôn tháng 6/2026 — lấp lỗ hổng kiến thức web/API/security/DSA sau phỏng vấn Sacombank. Mỗi ngày 1 khái niệm, đi sâu, chậm mà chắc.
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Tháng 6/2026 — Lấp lỗ hổng kiến thức (post-Sacombank)

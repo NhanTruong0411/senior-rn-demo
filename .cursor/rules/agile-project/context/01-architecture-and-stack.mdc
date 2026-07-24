@@ -1,0 +1,64 @@
+---
+description: Kiến trúc chi tiết project Fullstack NextJS + React Native. Đọc khi setup repo hoặc giải thích architecture lúc phỏng vấn.
+alwaysApply: false
+---
+
+# Kiến trúc Hệ thống — BookEase (Fullstack Mini SaaS)
+
+> Domain: **BookEase** — đặt lịch dịch vụ (spa/salon/clinic mini). Theme B trong `04-project-themes.mdc`.
+> Entity chính: `User`, `Service`, `TimeSlot`, `Booking`.
+> 3 kỹ năng nâng cao: **Push Notification** (expo-notifications + FCM), **Deep Link** (Expo Router linking), **WebSocket/Real-time** (Supabase Realtime / SSE).
+
+## 1. Thành phần
+
+### A. Backend & Web Admin — NextJS (App Router)
+- **Vai trò:** Admin dashboard (Web) + REST API (`/api/v1/...`) cho Mobile.
+- **Stack:** NextJS 14+, TypeScript, Tailwind, shadcn/ui, TanStack Query, Zustand, Prisma.
+- **Hosting:** Vercel (free).
+
+### B. Mobile App — React Native (Expo)
+- **Vai trò:** End-user app gọi API từ NextJS.
+- **Stack:** Expo, TypeScript, Expo Router, TanStack Query, SecureStore.
+- **Test local:** Expo Go / simulator.
+
+### C. Database
+- PostgreSQL trên **Neon.tech** hoặc **Supabase** (free tier).
+
+### D. Observability
+- **Firebase Crashlytics** — crash mobile (free, unlimited).
+- **Firebase Analytics** — event cơ bản (free).
+- **Sentry** (optional) — web + source map.
+
+## 2. Data Flow
+
+```text
+[ Web Admin ]              [ Mobile App ]
+      \                        /  ▲ deep link mở booking/[id]
+       \   REST /api/v1/*    /   │ push notif (expo-notifications + FCM)
+        v                    v   │
+         [ NextJS Route Handlers ]
+                  |
+            [ Prisma ORM ]
+                  v
+         [ PostgreSQL Cloud ] ──► [ Supabase Realtime / SSE ]
+                                        │ slot/booking đổi → đẩy event
+                                        ▼
+                              client invalidate React Query cache
+```
+
+## 3. Skill Mapping (`.cursor/rules/June/`)
+
+| Sprint focus | Day files |
+| --- | --- |
+| Auth & API security | Day 06, 07, 09, 26 |
+| State management | Day 02, 05 |
+| Performance | Day 17, 25, 27, 30 |
+| Architecture | Day 35 |
+| Testing | Day 37 |
+| CI/CD & Git | Day 22, 24 |
+| Crash reporting | Day 38 |
+| AI workflow | Day 40 |
+| Navigation + **Deep Link** (mobile) | Day 36 |
+| **Networking / WebSocket real-time** | Day 33 |
+| **Push Notification** | Day 38 (tie-in) |
+| Offline (optional) | Day 34 |

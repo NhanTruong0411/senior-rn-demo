@@ -1,6 +1,6 @@
 ---
 description: Day 02 (09/06) — Các cách gọi API + cơ chế xử lý 1 request từ đầu đến cuối (lifecycle, loading/error, retry).
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Day 02 · T3 09/06 — Các cách gọi API + cơ chế xử lý request

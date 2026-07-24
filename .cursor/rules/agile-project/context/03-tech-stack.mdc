@@ -1,0 +1,147 @@
+---
+description: Toàn bộ công nghệ dùng trong Agile project + mục đích từng cái. Đọc khi setup hoặc giải thích tech choice lúc phỏng vấn.
+alwaysApply: false
+---
+
+# Tech Stack — Công nghệ & Mục đích
+
+> Nguyên tắc: **Free tier trước**, local dev đủ dùng, deploy cloud khi Sprint 4.
+
+---
+
+## Frontend Web
+
+| Công nghệ | Mục đích | Khi nào dùng |
+| --- | --- | --- |
+| **Next.js 14+ (App Router)** | Web Admin + Backend API trong 1 repo | Mọi màn admin + Route Handlers `/api/v1/*` |
+| **TypeScript** | Type-safe, giảm bug runtime | Toàn project |
+| **Tailwind CSS** | Utility-first styling, nhanh, consistent spacing | Layout, responsive |
+| **shadcn/ui** | Component UI copy-paste (Button, Dialog, Table...) — không cần designer | Form, table, modal admin |
+| **TanStack Query** | Server state: cache, refetch, loading/error, pagination | Mọi API call từ Web/Mobile |
+| **Zustand** | Client-only UI state nhẹ (sidebar open, theme toggle) | Không dùng Redux cho API data |
+| **React Hook Form + Zod** | Form validate + type-safe schema | Create/Edit entity |
+| **next/font** | Tối ưu font, giảm CLS | Core Web Vitals |
+
+---
+
+## Mobile
+
+| Công nghệ | Mục đích | Khi nào dùng |
+| --- | --- | --- |
+| **Expo (React Native)** | Dev nhanh, OTA, build APK/AAB free tier | Toàn mobile app |
+| **Expo Router** | File-based navigation (stack + tabs) + **deep linking** | Auth flow, tab bar, mở màn từ link |
+| **TanStack Query** | Gọi API NextJS, cache list/detail | Giống Web — pattern thống nhất |
+| **expo-secure-store** | Lưu JWT an toàn (Keychain/Keystore) | Access/refresh token |
+| **expo-notifications** | **Push notification** — nhắc lịch, báo confirm/hủy | Sprint 3 |
+| **NativeWind** (optional) | Tailwind syntax trên RN | Nếu muốn đồng bộ design token Web/Mobile |
+| **React Native Testing Library + Jest** | Component/integration test | Sprint 3–4 |
+
+---
+
+## 3 Kỹ năng nâng cao (BookEase)
+
+| Kỹ năng | Công nghệ | Mục đích | Boundary / lưu ý |
+| --- | --- | --- | --- |
+| **Push Notification** | `expo-notifications` + FCM (Android) / APNs (iOS) | Nhắc lịch hẹn sắp tới; báo merchant confirm/hủy booking | Cần device thật hoặc dev build; Expo Go giới hạn. Token push lưu DB gắn user |
+| **Deep Link** | Expo Router `Linking` + universal/app link scheme | Notification / link chia sẻ → mở thẳng `booking/[id]` | Cấu hình scheme (`bookease://`) + prefixes; test bằng `npx uri-scheme open` |
+| **WebSocket / Real-time** | **Supabase Realtime** (khuyên) hoặc **SSE** | Slot bị đặt → client khác thấy "hết chỗ" live; booking status live | **KHÔNG** tự host WS trên Vercel serverless. Supabase Realtime subscribe bảng → invalidate Query cache |
+
+---
+
+## Backend (trong NextJS)
+
+| Công nghệ | Mục đích | Khi nào dùng |
+| --- | --- | --- |
+| **Route Handlers** (`app/api/...`) | REST API cho Web + Mobile | CRUD, auth, business logic |
+| **Prisma ORM** | Schema DB, migration, type-safe query | Mọi DB operation |
+| **bcrypt / argon2** | Hash password one-way | Register/login *(Day 07)* |
+| **jsonwebtoken / jose** | Sign/verify JWT access + refresh | Auth *(Day 06)* |
+| **Middleware Next.js** | Chặn route protected, check token | Admin pages, API guard |
+
+---
+
+## Database & Storage
+
+| Công nghệ | Mục đích | Chi phí |
+| --- | --- | --- |
+| **Neon.tech** hoặc **Supabase (PostgreSQL)** | Database cloud, không cài local nặng | **Free** |
+| **Cloudinary** hoặc **Supabase Storage** (optional) | Upload avatar, attachment | **Free tier** đủ portfolio |
+
+---
+
+## DevOps & Git
+
+| Công nghệ | Mục đích | Khi nào dùng |
+| --- | --- | --- |
+| **Git + GitHub** | Version control, PR, code review | Mọi ngày *(Day 22)* |
+| **GitHub Actions** | CI: lint + test auto khi push/PR | Sprint 4 *(Day 24)* |
+| **Vercel** | Deploy NextJS + API, preview URL mỗi PR | Sprint 4 |
+| **EAS Build (Expo)** | Build APK/IPA cloud | Khi cần demo file cài *(Day 23)* |
+| **ESLint + Prettier** | Code style consistent | Setup Sprint 1 |
+
+---
+
+## Observability & Analytics
+
+| Công nghệ | Mục đích | Chi phí |
+| --- | --- | --- |
+| **Firebase Crashlytics** | Theo dõi crash mobile trên dashboard, stack trace, device/OS breakdown | **Free, unlimited** |
+| **Firebase Analytics** | Event cơ bản (login, action chính) | **Free** |
+| **Firebase Cloud Messaging (FCM)** | Backend cho push notification Android | **Free** |
+| **Source Maps upload** | Giải mã JS minified trong crash log | Sprint 4 *(Day 38)* |
+| **Sentry** (optional) | Web + mobile error tracking nâng cao | Free tier 5k events/tháng |
+
+---
+
+## Real-time
+
+| Công nghệ | Mục đích | Chi phí |
+| --- | --- | --- |
+| **Supabase Realtime** | Subscribe thay đổi bảng Postgres → đẩy event tới client (slot/booking live) | **Free tier** |
+| **SSE (Server-Sent Events)** | NextJS stream one-way server→client (chạy được trên Vercel) | Free |
+| **Socket.io** (chỉ khi tự host) | Full-duplex WS — cần server riêng (Railway/Render) | Không dùng trừ khi cần |
+
+> **Lưu ý:** Firebase **không** thay PostgreSQL. Chỉ dùng Crashlytics/Analytics/FCM — tránh Firestore để không phải học 2 DB pattern.
+
+---
+
+## Testing
+
+| Công nghệ | Mục đích | Khi nào dùng |
+| --- | --- | --- |
+| **Jest** | Unit test logic (validate, calculate, auth helper) | Sprint 2+ *(Day 37)* |
+| **React Testing Library** | Test component render + interaction | Form, list item |
+| **MSW** (optional) | Mock API trong test | Test không cần DB thật |
+
+---
+
+## AI Workflow (Cursor)
+
+| Kỹ thuật | Mục đích |
+| --- | --- |
+| **Cursor Rules / Skills** | Context cố định — AI không drift architecture |
+| **`/tdd`** | AI viết test fail trước → code pass sau |
+| **`/shape-audit`** | Check file dài, SRP violation |
+| **`/grill-me`** | AI hỏi edge case trước khi merge |
+| **Composer / Agent mode** | Multi-file refactor có kiểm soát |
+
+---
+
+## UI Resources (không cần designer)
+
+| Nguồn | Mục đích |
+| --- | --- |
+| **shadcn/ui** | Component admin sẵn dùng |
+| **v0.dev** | Generate UI từ prompt (Tailwind + shadcn) |
+| **Figma Community** | Search "SaaS dashboard free" — lấy spacing/color reference |
+| **Heroicons / Lucide** | Icon set (shadcn dùng Lucide) |
+| **Unsplash / Pexels** | Placeholder image free |
+
+---
+
+## Skill → Interview story mapping
+
+Sau khi ship project, mỗi tech trên = 1 câu trả lời concrete trong phỏng vấn:
+- *"Em setup CI bằng GitHub Actions, PR fail nếu test đỏ..."*
+- *"Em dùng Crashlytics, upload source map, trace crash từ dashboard..."*
+- *"Em tách server state Query vs client state Zustand vì..."*
