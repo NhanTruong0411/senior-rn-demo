@@ -1,0 +1,209 @@
+---
+description: Flutter Day 04 — Navigation + Networking cho RN dev. Ánh xạ React Navigation sang Navigator/go_router, axios sang dio, xử lý API lifecycle.
+alwaysApply: false
+---
+
+# Flutter Day 04 — Navigation + Networking (vs React Navigation + axios)
+
+## 1. Hôm nay học gì + vì sao
+
+Hai thứ mọi app đều cần: **điều hướng màn hình** (Navigator / go_router thay React Navigation) và **gọi API** (dio thay axios). Phần networking gần như y hệt RN — đây là phần dễ nhất. Navigation cần map lại API nhưng cùng tư duy stack bạn đã biết.
+
+---
+
+## 2. Ví dụ đời thường
+
+- **Navigation** = chồng đĩa (stack): vào màn mới = đặt đĩa lên (push), back = lấy đĩa ra (pop). Bạn đã hiểu chính xác điều này từ React Navigation.
+- **Networking** = gọi món ở quán: gửi request → loading → success/error → retry. Đúng 3 trạng thái bạn đã học ở RN (loading/success/error).
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+### A. Navigation
+
+**Cách 1 — Navigator (built-in, giống stack navigator cơ bản)**
+
+```dart
+// PUSH (= navigation.navigate('Detail', {id}))
+Navigator.push(
+  context,
+  MaterialPageRoute(builder: (_) => DetailScreen(id: 123)),
+);
+
+// POP (= navigation.goBack())
+Navigator.pop(context);
+
+// PUSH + xóa hết stack (= reset, dùng sau login)
+Navigator.pushAndRemoveUntil(context, route, (r) => false);
+```
+
+**Cách 2 — go_router (chuẩn production 2026, giống React Navigation + deep link)**
+
+```dart
+final router = GoRouter(
+  routes: [
+    GoRoute(path: '/', builder: (_, __) => HomeScreen()),
+    GoRoute(path: '/product/:id', builder: (_, state) {   // = deep link config
+      final id = state.pathParameters['id'];
+      return ProductScreen(id: id);
+    }),
+  ],
+);
+
+// Điều hướng
+context.go('/product/123');    // thay cả stack
+context.push('/product/123');  // push lên stack
+```
+
+| React Navigation | Flutter |
+| --- | --- |
+| `navigation.navigate('Detail')` | `Navigator.push(...)` / `context.push('/detail')` |
+| `navigation.goBack()` | `Navigator.pop(context)` |
+| Stack Navigator | Navigator / go_router |
+| Bottom Tabs | `BottomNavigationBar` + `IndexedStack` |
+| `linking` config (deep link) | go_router `path: '/product/:id'` |
+| route params | `state.pathParameters` / constructor params |
+
+> **Lợi thế của bạn:** Bạn đã hiểu deep link cold-start vs warm-start, nested navigator, back stack (từ kinh nghiệm RN). go_router giải quyết cùng bài toán — chỉ khác API. Nói được điều này lúc phỏng vấn = ghi điểm.
+
+**Bottom Tabs (CellphoneS app chắc chắn có):**
+
+```dart
+Scaffold(
+  body: IndexedStack(index: _tabIndex, children: _screens),  // giữ state các tab
+  bottomNavigationBar: BottomNavigationBar(
+    currentIndex: _tabIndex,
+    onTap: (i) => setState(() => _tabIndex = i),
+    items: const [
+      BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+      BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+    ],
+  ),
+)
+```
+
+`IndexedStack` = giữ state của các tab khi switch (giống Tab Navigator RN không mất state).
+
+### B. Networking — gần như y hệt RN
+
+**dio = axios của Flutter** (có interceptor, timeout, cancel — mọi thứ bạn quen).
+
+```dart
+final dio = Dio(BaseOptions(
+  baseUrl: 'https://api.example.com',
+  connectTimeout: const Duration(seconds: 10),   // = timeout
+));
+
+// Interceptor gắn token (Y HỆT axios interceptor bạn đã làm!)
+dio.interceptors.add(InterceptorsWrapper(
+  onRequest: (options, handler) {
+    options.headers['Authorization'] = 'Bearer $token';
+    handler.next(options);
+  },
+  onError: (e, handler) {
+    if (e.response?.statusCode == 401) {
+      // refresh token / logout — xử lý 401 tập trung như RN
+    }
+    handler.next(e);
+  },
+));
+
+// Gọi API (giống axios: data nằm ở response.data, 4xx/5xx tự throw)
+Future<User> fetchUser(int id) async {
+  final res = await dio.get('/users/$id');
+  return User.fromJson(res.data);   // parse JSON
+}
+```
+
+| axios (RN) | dio (Flutter) |
+| --- | --- |
+| `axios.get()` | `dio.get()` |
+| `response.data` | `response.data` |
+| interceptors (token, 401) | `dio.interceptors.add()` |
+| timeout | `connectTimeout` / `receiveTimeout` |
+| AbortController / CancelToken | `CancelToken` |
+| 4xx/5xx auto throw | dio cũng auto throw |
+
+> **Điểm bán hàng:** "Interceptor gắn token và xử lý 401 tập trung trong dio giống hệt cách tôi làm với axios ở Firegroup." Đây là kiến thức Day 01-02 tháng 6 của bạn — dùng lại được nguyên.
+
+**JSON parsing (khác RN 1 chút — Dart cần model class):**
+
+```dart
+class User {
+  final int id;
+  final String name;
+  User({required this.id, required this.name});
+
+  factory User.fromJson(Map<String, dynamic> json) =>
+      User(id: json['id'], name: json['name']);
+}
+```
+
+- RN/TS: JSON auto thành object (dynamic typing). Dart typed nên cần `fromJson`/`toJson` (thường dùng codegen `json_serializable` để tự sinh). Đây là điểm khác đáng nhớ.
+
+**3 trạng thái loading/success/error — bạn đã hiểu:**
+
+```dart
+// Với FutureBuilder (nhanh gọn cho 1 request)
+FutureBuilder<User>(
+  future: fetchUser(1),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return CircularProgressIndicator();          // loading
+    }
+    if (snapshot.hasError) return Text('Error');    // error
+    return Text(snapshot.data!.name);               // success
+  },
+)
+```
+
+`FutureBuilder` xử lý đúng 3 nhánh loading/error/success bạn đã học. Production thì thường dùng Bloc/Riverpod thay FutureBuilder để quản state tốt hơn.
+
+---
+
+## 4. Code tối thiểu
+
+```dart
+// Gọi API + hiển thị, xử lý đủ 3 trạng thái
+class UserScreen extends StatelessWidget {
+  const UserScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<User>(
+      future: fetchUser(1),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snap.hasError) {
+          return Center(child: Text('Lỗi: ${snap.error}'));
+        }
+        return Center(child: Text('Hi ${snap.data!.name}'));
+      },
+    );
+  }
+}
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s ("Flutter gọi API và điều hướng thế nào?")
+
+> "Networking trong Flutter với dio gần như y hệt axios: có interceptor để gắn token và xử lý 401 tập trung, có timeout, có CancelToken để hủy request — đúng những thứ tôi đã làm ở Firegroup. Khác biệt nhỏ là Dart typed nên cần model class với fromJson để parse, thường dùng codegen. Về navigation, tôi map React Navigation sang go_router: push/pop cùng tư duy stack, route params và deep link thì go_router config path kiểu /product/:id, tương đương linking config của React Navigation. Bottom tabs thì dùng BottomNavigationBar với IndexedStack để giữ state các tab. Nền tảng networking và navigation của tôi từ RN chuyển sang gần như 1:1."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Đừng quên nhắc model class `fromJson` — RN dev hay quên Dart cần parse thủ công/codegen, không auto như JS.
+- ❌ Đừng nói "FutureBuilder là chuẩn production" — nó OK cho case đơn giản, production thường Bloc/Riverpod.
+- ❌ Đừng nhầm `context.go()` (thay stack) với `context.push()` (thêm vào stack) trong go_router.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 05)
+
+1. `dio` interceptor `onRequest`/`onError` ánh xạ tới cái gì bạn đã làm với axios?
+2. Vì sao Dart cần `User.fromJson()` còn TS thì không?
+3. `context.go()` và `context.push()` trong go_router khác nhau chỗ nào?

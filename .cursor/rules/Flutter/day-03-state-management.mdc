@@ -1,0 +1,146 @@
+---
+description: Flutter Day 03 — State management cho RN dev. Ánh xạ useState/Context/Redux/TanStack Query sang setState/Provider/Riverpod/Bloc.
+alwaysApply: false
+---
+
+# Flutter Day 03 — State management (vs useState / Redux / TanStack Query)
+
+## 1. Hôm nay học gì + vì sao
+
+Học các cách quản lý state trong Flutter và **ánh xạ về những thứ bạn đã dùng ở RN**: `setState` (local), `Provider`/`Riverpod` (global, giống Context/Redux nhẹ), và `Bloc` (giống Redux có kỷ luật). Đây là câu Tech Lead **chắc chắn hỏi** — giống hệt câu "Redux vs TanStack Query" ở phỏng vấn RN.
+
+CellphoneS/DTV và đa số team Flutter VN dùng **Bloc** hoặc **Riverpod**. Biết map 2 cái này về Redux là đủ ghi điểm.
+
+---
+
+## 2. Ví dụ đời thường
+
+Quản state giống quản tiền:
+- **setState** = ví tiền cá nhân trong túi (local, chỉ 1 màn hình dùng).
+- **Provider/Riverpod** = tài khoản ngân hàng chung của gia đình (nhiều màn hình đọc/ghi).
+- **Bloc** = công ty có quy trình kế toán chặt: muốn chi tiền phải làm phiếu yêu cầu (event) → kế toán duyệt (business logic) → cập nhật sổ (state). Kỷ luật hơn nhưng rõ ràng, dễ audit.
+
+Bạn đã hiểu trade-off này rồi từ "Redux vs local state" — chỉ đổi tên công cụ.
+
+---
+
+## 3. Đi sâu kỹ thuật — Bảng ánh xạ
+
+| Nhu cầu | React Native | Flutter |
+| --- | --- | --- |
+| State 1 màn hình | `useState` | `setState` (StatefulWidget) |
+| Share state vài màn hình | Context API | `Provider` / `InheritedWidget` |
+| Global state + logic gọn | Redux Toolkit nhẹ / Zustand | `Riverpod` |
+| Global state có kỷ luật (event → reducer) | Redux (action → reducer → store) | `Bloc` / `Cubit` |
+| Server state (cache, refetch) | TanStack Query | `dio` + Bloc/Riverpod (hoặc `flutter_query`) |
+
+**a) setState — bạn đã hiểu (Day 02)**
+
+Local state, gọi `setState()` → rebuild widget. = `useState` + re-render.
+
+**b) Provider — giống Context API + hook**
+
+```dart
+// Định nghĩa store (giống 1 slice / context value)
+class CartModel extends ChangeNotifier {
+  final List<Item> _items = [];
+  List<Item> get items => _items;
+
+  void add(Item item) {
+    _items.add(item);
+    notifyListeners();   // = báo re-render (giống dispatch/setState)
+  }
+}
+
+// Đọc trong widget (giống useContext / useSelector)
+final cart = context.watch<CartModel>();   // watch = subscribe, rebuild khi đổi
+context.read<CartModel>().add(item);         // read = chỉ gọi action, không subscribe
+```
+
+- `ChangeNotifier` + `notifyListeners()` ≈ store + dispatch.
+- `context.watch()` = `useSelector` (subscribe, rebuild khi state đổi).
+- `context.read()` = lấy 1 lần để gọi hàm, không subscribe (giống `useDispatch`).
+
+**c) Riverpod — Provider "bản nâng cấp" (rất phổ biến 2026)**
+
+```dart
+// Khai báo provider (giống 1 atom/slice, khai báo ngoài widget)
+final counterProvider = StateProvider<int>((ref) => 0);
+
+// Đọc trong widget (widget phải là ConsumerWidget)
+final count = ref.watch(counterProvider);              // = useSelector
+ref.read(counterProvider.notifier).state++;             // = dispatch
+```
+
+- Riverpod ≈ Zustand/Recoil của thế giới Flutter: khai báo provider global, không cần bọc widget tree thủ công nhiều, type-safe, dễ test.
+- Nếu team dùng Riverpod → bạn map nó về "Redux Toolkit nhưng ít boilerplate".
+
+**d) Bloc / Cubit — giống Redux nhất (nhiều team VN dùng)**
+
+```dart
+// Cubit = Bloc rút gọn (không cần event class) — giống Redux Toolkit slice
+class CounterCubit extends Cubit<int> {
+  CounterCubit() : super(0);              // initial state = 0
+  void increment() => emit(state + 1);    // emit = dispatch new state
+}
+
+// Bloc đầy đủ = Redux chuẩn: Event → mapEventToState → State
+// CounterEvent (action) → Bloc (reducer) → CounterState (store)
+
+// Dùng trong UI
+BlocBuilder<CounterCubit, int>(          // = <Provider> + useSelector
+  builder: (context, count) => Text('$count'),
+)
+context.read<CounterCubit>().increment();  // = dispatch(increment())
+```
+
+**Ánh xạ vàng cho phỏng vấn:**
+- `Event` (Bloc) = `Action` (Redux)
+- `Bloc/reducer logic` = `reducer` (Redux)
+- `State` = `store state` (Redux)
+- `emit(newState)` = return new state trong reducer
+- `BlocBuilder` = `connect()` / `useSelector`
+
+**Cubit vs Bloc:** Cubit gọi method trực tiếp (như Zustand), Bloc dùng event (như Redux chuẩn). Cubit cho case đơn giản, Bloc cho flow phức tạp cần trace event.
+
+---
+
+## 4. Code tối thiểu — so sánh cạnh nhau
+
+```dart
+// RN Redux Toolkit:
+// const slice = createSlice({ name:'counter', initialState:0,
+//   reducers:{ increment: s => s+1 } })
+// dispatch(increment())
+// const count = useSelector(s => s.counter)
+
+// Flutter Cubit (tương đương):
+class CounterCubit extends Cubit<int> {
+  CounterCubit() : super(0);
+  void increment() => emit(state + 1);
+}
+// context.read<CounterCubit>().increment();
+// final count = context.watch<CounterCubit>().state;
+```
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s ("Flutter quản state thế nào? Bạn biết Bloc không?")
+
+> "Tôi map các pattern Flutter về những gì tôi đã dùng ở React Native. setState là local state, giống useState. Provider và Riverpod là global state — Provider giống Context API, Riverpod giống Redux Toolkit nhưng ít boilerplate. Còn Bloc thì gần như Redux: Event tương đương Action, Bloc xử lý logic như reducer, rồi emit ra State mới, UI đọc qua BlocBuilder giống useSelector. Cubit là bản rút gọn của Bloc khi không cần event. Ở RN tôi dùng Redux Toolkit cho client state và TanStack Query cho server state, nên tư duy tách client/server state và one-way data flow tôi đã quen — với Flutter chỉ là học API mới của Bloc hoặc Riverpod, không phải học lại khái niệm."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Đừng nói "Bloc giống hệt Redux 100%" — Bloc dùng Stream, có async built-in, không cần middleware như redux-thunk. Nói "gần giống" + kể điểm khác.
+- ❌ Đừng claim "tôi thành thạo Riverpod" nếu chưa viết. Nói "tôi hiểu concept, map được về Redux, sẽ nắm nhanh khi vào code thật."
+- ❌ Đừng quên: Flutter không có TanStack Query built-in phổ biến — server state thường tự lo bằng dio + Bloc/Riverpod. Đây là điểm khác đáng nói.
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 04)
+
+1. Trong Bloc: `Event`, `emit(state)`, `BlocBuilder` lần lượt ánh xạ tới khái niệm nào của Redux?
+2. `context.watch()` vs `context.read()` khác nhau chỗ nào? Map về hook RN nào?
+3. Cubit khác Bloc ở điểm gì? Khi nào dùng cái nào?

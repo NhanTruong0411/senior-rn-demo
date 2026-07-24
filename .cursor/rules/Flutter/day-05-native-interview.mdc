@@ -1,0 +1,124 @@
+---
+description: Flutter Day 05 — Native bridge (MethodChannel/Pigeon) + bộ Q&A phỏng vấn Flutter cho RN dev. Đọc trước khi phỏng vấn CellphoneS/DTV.
+alwaysApply: false
+---
+
+# Flutter Day 05 — Native bridge + Interview Q&A (ĐỌC TRƯỚC KHI PHỎNG VẤN)
+
+> Nếu phỏng vấn gấp và chỉ đọc được 1 file → đọc file này. Phần 3 (native bridge) là **vũ khí riêng** của bạn, phần 4 (Q&A) là đạn để bắn.
+
+## 1. Hôm nay học gì + vì sao
+
+Học 2 thứ để "chốt deal" phỏng vấn:
+1. **Native bridge trong Flutter** (MethodChannel/Pigeon) — biến kinh nghiệm Kotlin/Swift của bạn thành lợi thế cạnh tranh mà ít RN dev có.
+2. **Bộ Q&A phỏng vấn Flutter** — 6 câu Tech Lead hay hỏi khi tuyển RN dev sang Flutter.
+
+---
+
+## 2. Ví dụ đời thường
+
+Bạn đã biết "làm phiên dịch" giữa JS và native (Kotlin/Swift) trong RN qua Native Modules. Flutter cũng cần phiên dịch y hệt — chỉ đổi "bàn phiên dịch" từ Bridge/JSI sang **MethodChannel**. Bạn không học nghề phiên dịch lại từ đầu; bạn chỉ đổi chỗ ngồi.
+
+---
+
+## 3. Đi sâu — Native bridge (LỢI THẾ CẠNH TRANH CỦA BẠN)
+
+**RN Native Module → Flutter MethodChannel: ánh xạ trực tiếp**
+
+| React Native | Flutter |
+| --- | --- |
+| Native Module (Java/Kotlin/Swift/ObjC) | Platform Channel — `MethodChannel` |
+| `NativeModules.MyModule.doThing()` | `channel.invokeMethod('doThing')` |
+| Bridge / JSI (JS ↔ Native) | MethodChannel (Dart ↔ Native) |
+| Emit event JS ← Native | `EventChannel` (stream Native → Dart) |
+| Manual bridging | `Pigeon` (codegen type-safe — chuẩn mới) |
+
+**Dart side (gọi xuống native):**
+
+```dart
+static const platform = MethodChannel('com.app/wallet');
+
+Future<void> addToWallet(String passData) async {
+  try {
+    await platform.invokeMethod('addPass', {'data': passData});
+  } on PlatformException catch (e) {
+    // xử lý lỗi từ native
+  }
+}
+```
+
+**Android side (Kotlin — bạn đã viết cái này trong RN!):**
+
+```kotlin
+MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.app/wallet")
+  .setMethodCallHandler { call, result ->
+    when (call.method) {
+      "addPass" -> {
+        val data = call.argument<String>("data")
+        // logic Google Wallet — GIỐNG HỆT logic bạn viết ở Firegroup
+        result.success(null)
+      }
+      else -> result.notImplemented()
+    }
+  }
+}
+```
+
+> **Đây là điểm bán hàng LỚN NHẤT của bạn.** Logic native (Kotlin cho Google Wallet, Swift cho Apple Wallet) bạn đã viết ở Firegroup **dùng lại được gần như nguyên** — chỉ đổi cách Dart gọi vào (MethodChannel thay vì RN Bridge). Rất ít Flutter dev level Middle biết viết native side. Nói được điều này = bạn nổi bật ngay.
+
+**Pigeon** = công cụ codegen sinh binding type-safe giữa Dart ↔ Kotlin/Swift (giống Codegen của RN New Architecture bạn đã học ở Day 32 tháng 6). Nhắc tên này = thể hiện bạn cập nhật.
+
+---
+
+## 4. Bộ Q&A phỏng vấn Flutter (drill mỗi câu ≤60s)
+
+### Q1 — "Bạn làm RN, giờ học Flutter thấy sao? Mất bao lâu?"
+
+> "Tôi hoàn toàn thoải mái. Tôi không chỉ làm ở tầng JavaScript mà đã viết native bridge Kotlin và Swift cho tính năng Wallet pass. Vì tôi đã nắm mobile lifecycle cả 2 platform, học Flutter chủ yếu là học Dart syntax và Widget system — còn tư duy kiến trúc, state management, gọi API thì ngôn ngữ nào cũng như nhau. Tôi tự tin đọc code và fix bug nhỏ trong tuần đầu, viết feature độc lập trong 2-3 tuần. Cách tôi học là map từng pattern Flutter về React Native tôi đã biết, và đọc thẳng codebase công ty để bắt nhịp convention."
+
+### Q2 — "Flutter khác React Native ở điểm cốt lõi nào?"
+
+> "Ba điểm chính. Một, kiến trúc render: RN dựng UI bằng native component qua bridge, còn Flutter tự vẽ mọi pixel bằng engine Skia/Impeller nên UI đồng nhất giữa iOS/Android và ít lệ thuộc native view. Hai, 'everything is a widget' — padding, căn giữa, style đều là widget, không có StyleSheet riêng. Ba, Dart compile AOT ra native code, không cần JS bridge lúc runtime nên performance ổn định hơn ở animation. Về tư duy component, state, navigation thì hai bên rất giống nhau."
+
+### Q3 — "State management trong Flutter — bạn biết gì?"
+
+> (tóm tắt Day 03) "setState cho local giống useState. Provider/Riverpod cho global giống Context/Redux Toolkit. Bloc thì gần Redux nhất: Event như Action, Bloc xử lý như reducer, emit ra State, UI đọc qua BlocBuilder như useSelector. Ở RN tôi dùng Redux Toolkit và TanStack Query nên tư duy tách client/server state và one-way data flow tôi đã quen."
+
+### Q4 — "Vì sao Flutter mượt hơn / performance thế nào?"
+
+> "Flutter compile Dart thành native code AOT và tự render bằng engine đồ họa riêng, không đi qua bridge JS-native lúc runtime như RN kiến trúc cũ. Nên animation và scroll ổn định 60fps mà không lo JS thread bị block. Điều này giống lợi ích mà RN New Architecture với JSI đang hướng tới — tôi có tìm hiểu JSI và Fabric ở RN nên hiểu vì sao bỏ được bridge lại quan trọng cho performance."
+
+### Q5 — "Bạn xử lý gọi API và lỗi trong Flutter thế nào?"
+
+> (tóm tắt Day 04) "Dùng dio, gần như y hệt axios: interceptor gắn token, xử lý 401 tập trung, timeout, CancelToken để hủy request khi rời màn hình. Dart typed nên parse JSON qua model class fromJson, thường dùng codegen json_serializable. UI thì tôi luôn xử lý đủ 3 trạng thái loading, success, error."
+
+### Q6 — "Điểm mạnh của bạn khi vào team Flutter là gì?" (câu chốt)
+
+> "Native integration. Tôi đã tự viết native module Kotlin và Swift trong RN, nên khi Flutter cần platform channel để gọi SDK native — ví dụ thanh toán, wallet, hay SDK hãng — tôi làm được cả 2 đầu Dart và native, không phải chờ người khác. Cộng với nền tảng tối ưu performance (tôi từng giảm bundle app từ 45MB xuống 28MB, tối ưu list) và kinh nghiệm release App Store/Play Store, tôi nghĩ mình đóng góp được ngay ở phần tích hợp và chất lượng, trong lúc bổ sung dần độ sâu Flutter thuần."
+
+---
+
+## 5. Câu hỏi NGƯỢC nên hỏi Tech Lead (thể hiện đã tìm hiểu)
+
+- "Team đang dùng state management gì — Bloc, Riverpod hay Provider? Để em chuẩn bị đúng hướng."
+- "App của CellphoneS/DTV/CareS là các app riêng hay một super app dùng chung (như Smember)?"
+- "Team có dùng platform channel nhiều không? Vì đó là thế mạnh native của em."
+- "Lộ trình onboarding cho người từ RN sang Flutter ở team mình thường thế nào?"
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Đừng chê RN để khen Flutter (hoặc ngược lại). Nói theo trade-off, trung lập.
+- ❌ Đừng claim đã ship app Flutter production nếu chưa. Honest: "đang học, nền tảng mobile vững nên bắt nhịp nhanh."
+- ❌ Đừng nói "Flutter dễ, học 3 ngày là xong." Nói timeline thực tế: tuần đầu đọc/fix, 2-3 tuần viết feature.
+- ❌ Nếu bị đào sâu Bloc internals (Stream, BuildContext, widget lifecycle) mà chưa chắc → thành thật "phần đó em đang học sâu thêm", đừng chém.
+
+---
+
+## 7. Tự kiểm tra (checklist trước phỏng vấn)
+
+1. Nói trôi Q1 và Q6 (2 câu quan trọng nhất) chưa? Mỗi câu ≤60s.
+2. Giải thích được `MethodChannel` map với Native Module RN thế nào?
+3. Kể được 3 khác biệt cốt lõi RN vs Flutter (render engine, everything-is-widget, AOT compile)?
+4. Có ít nhất 2 câu hỏi ngược cho Tech Lead chưa?

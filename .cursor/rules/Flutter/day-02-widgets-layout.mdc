@@ -1,0 +1,191 @@
+---
+description: Flutter Day 02 — Widgets & Layout cho RN dev. Ánh xạ Component + Flexbox (RN) sang Widget tree, Stateless/Stateful, Row/Column/Expanded.
+alwaysApply: false
+---
+
+# Flutter Day 02 — Widgets & Layout (vs Component + Flexbox)
+
+## 1. Hôm nay học gì + vì sao
+
+Học cách Flutter dựng UI: **Widget tree** (thay cho component tree), **StatelessWidget vs StatefulWidget** (thay cho function component + useState), và **layout Row/Column/Expanded** (thay cho Flexbox).
+
+Đây là phần bạn gặp nhiều nhất khi đọc code Flutter. Tech Lead mở file `.dart` ra là 90% bạn nhìn thấy widget tree. Đọc hiểu được là qua ải onboarding tuần đầu.
+
+---
+
+## 2. Ví dụ đời thường
+
+RN: bạn xây nhà bằng "khung nhà" (component) rồi sơn/trang trí riêng (StyleSheet). Flutter: mọi thứ đều là "viên gạch lego" (Widget) — kể cả khoảng cách (Padding), căn giữa (Center), màu nền (Container) đều là 1 viên lego bọc quanh viên khác. Nhà Flutter là các viên lego lồng vào nhau, không có bước "sơn riêng".
+
+---
+
+## 3. Đi sâu kỹ thuật
+
+**a) "Everything is a Widget" — khác biệt tư duy #1**
+
+```
+RN:                          Flutter:
+<View style={{padding:16}}>  Padding(padding: EdgeInsets.all(16),
+  <Text>Hi</Text>              child: Text('Hi'))
+</View>
+```
+
+Trong RN, padding là **prop**. Trong Flutter, `Padding` là **1 Widget riêng** bọc ngoài. Center, Align, SizedBox (khoảng trống), Container (View đa năng)... tất cả là widget. → code nested sâu hơn RN, đó là bình thường.
+
+**b) StatelessWidget vs StatefulWidget — ánh xạ trực tiếp**
+
+| React Native | Flutter |
+| --- | --- |
+| Function component không có state | `StatelessWidget` |
+| Function component có `useState` | `StatefulWidget` + `setState()` |
+| `props` | tham số constructor (final fields) |
+| `return <JSX>` | `Widget build(context) => ...` |
+| re-render khi state đổi | `setState()` gọi lại `build()` |
+
+```dart
+// StatelessWidget = function component thuần (chỉ nhận props, không state)
+class Greeting extends StatelessWidget {
+  final String name;
+  const Greeting({required this.name, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text('Hello $name');
+  }
+}
+
+// StatefulWidget = component có useState
+class Counter extends StatefulWidget {
+  const Counter({super.key});
+  @override
+  State<Counter> createState() => _CounterState();
+}
+
+class _CounterState extends State<Counter> {
+  int count = 0;   // = useState
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text('Count: $count'),
+        ElevatedButton(
+          onPressed: () => setState(() => count++),  // = setCount(count+1)
+          child: const Text('Increment'),
+        ),
+      ],
+    );
+  }
+}
+```
+
+> **Ánh xạ vàng:** `setState(() => count++)` chính là `setCount(count + 1)`. Gọi `setState` → Flutter chạy lại `build()` → UI update. Y hệt cơ chế re-render của RN.
+
+**c) `key` — y hệt RN**
+
+`super.key` / `Key` trong Flutter = `key` prop trong FlatList của RN. Cùng mục đích: giúp framework reconcile item đúng khi list thay đổi. Bạn đã hiểu cái này rồi (từ kinh nghiệm keyExtractor).
+
+**d) Layout — Flexbox đổi tên**
+
+| RN (Flexbox) | Flutter |
+| --- | --- |
+| `flexDirection: 'row'` | `Row` |
+| `flexDirection: 'column'` | `Column` |
+| `flex: 1` | `Expanded(child: ...)` |
+| `justifyContent` | `mainAxisAlignment` |
+| `alignItems` | `crossAxisAlignment` |
+| `<View>` (hộp đa năng) | `Container` |
+| `<ScrollView>` | `SingleChildScrollView` |
+| `<FlatList>` | `ListView.builder` |
+| `<Image>` | `Image.network` / `Image.asset` |
+| `<TouchableOpacity>` | `GestureDetector` / `InkWell` |
+| `<TextInput>` | `TextField` |
+| `<SafeAreaView>` | `SafeArea` |
+
+```dart
+// RN: <View style={{flexDirection:'row', justifyContent:'space-between'}}>
+Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    Text('Left'),
+    Expanded(child: Text('Middle grows')),  // flex: 1
+    Text('Right'),
+  ],
+)
+```
+
+**e) FlatList → ListView.builder (bạn sẽ dùng nhiều)**
+
+```dart
+// = <FlatList data={items} renderItem={...} keyExtractor={...} />
+ListView.builder(
+  itemCount: items.length,
+  itemBuilder: (context, index) {   // = renderItem
+    final item = items[index];
+    return ListTile(
+      title: Text(item.name),
+      key: ValueKey(item.id),        // = keyExtractor
+    );
+  },
+)
+```
+
+`ListView.builder` cũng **lazy render** như FlatList (chỉ build item trong viewport). Cùng nguyên lý virtualization bạn đã biết.
+
+---
+
+## 4. Code tối thiểu — 1 màn hình hoàn chỉnh
+
+```dart
+import 'package:flutter/material.dart';
+
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(                       // = màn hình khung (có appBar, body)
+      appBar: AppBar(title: const Text('Profile')),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text('Nhan', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),          // = khoảng cách (thay margin)
+              Text('React Native → Flutter'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+
+- `Scaffold` = bộ khung màn hình (AppBar + body + FAB). Không có tương đương chính xác trong RN, cứ hiểu là "screen template".
+- `SizedBox(height: 8)` = cách tạo khoảng cách phổ biến nhất (thay cho margin).
+- Style = truyền `TextStyle(...)` vào, KHÔNG có StyleSheet.
+
+---
+
+## 5. Trả lời phỏng vấn ≤60s ("Flutter dựng UI khác RN thế nào?")
+
+> "Khác biệt lớn nhất là trong Flutter mọi thứ đều là Widget — kể cả padding, căn giữa, khoảng cách đều là widget bọc quanh nhau, không có StyleSheet riêng như RN. Về component thì ánh xạ khá thẳng: StatelessWidget là function component thuần, StatefulWidget với setState chính là component có useState — gọi setState là build lại UI y như re-render. Layout thì Flutter dùng Row, Column, Expanded thay cho Flexbox nhưng cùng tư duy main axis / cross axis. FlatList thì thành ListView.builder, cũng lazy render như nhau. Nên với nền tảng RN của tôi, phần UI là phần tôi bắt nhịp nhanh nhất."
+
+---
+
+## 6. Bẫy / đừng nói
+
+- ❌ Đừng tìm "file StyleSheet" trong Flutter — không có. Style nằm trong constructor widget.
+- ❌ Đừng nói "Flutter không có state" — có, qua StatefulWidget + setState.
+- ❌ Nhớ: nested widget sâu là bình thường trong Flutter, không phải code bẩn. Tách widget con để đỡ rối (giống tách component RN).
+
+---
+
+## 7. Tự kiểm tra (trả lời được mới qua Day 03)
+
+1. `StatefulWidget` + `setState()` ánh xạ tới cái gì trong RN?
+2. `Expanded`, `mainAxisAlignment`, `crossAxisAlignment` tương đương gì trong Flexbox?
+3. `ListView.builder` khác gì `ListView` thường, và nó giống component nào của RN?

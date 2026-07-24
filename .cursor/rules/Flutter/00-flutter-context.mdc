@@ -1,0 +1,100 @@
+---
+description: Flutter cấp tốc cho RN dev — context/roadmap. Học chuyển từ React Native sang Flutter để chuẩn bị phỏng vấn CellphoneS/Điện Thoại Vui (và các job Flutter khác).
+alwaysApply: false
+---
+
+# Flutter cấp tốc cho React Native dev — Context & Roadmap
+
+> **Bối cảnh:** Tôi là RN dev 3+ năm (Firegroup), biết Native bridge Kotlin/Swift, TypeScript,
+> Redux Toolkit, TanStack Query. Đang phỏng vấn CellphoneS / Điện Thoại Vui (stack chính **Flutter**),
+> và có thể gặp Flutter ở các job khác (Unified Intelligence, v.v.).
+> Mục tiêu file này: **học Flutter đủ để pass phỏng vấn + onboarding tuần đầu**, KHÔNG phải master Flutter.
+
+> **Triết lý học (bắt buộc giữ):**
+> - Tôi KHÔNG học lại mobile cơ bản (lifecycle, render, async, state) — tôi đã có. Tôi chỉ học **ánh xạ (mapping)** RN → Flutter.
+> - Mỗi khái niệm Flutter phải nói được câu: *"Cái này trong RN chính là ___"*.
+> - Đo bằng khả năng trả lời phỏng vấn ≤60s + đọc hiểu code Flutter, KHÔNG phải số dòng code viết ra.
+> - Tuần đầu onboarding chỉ cần: đọc hiểu code + fix bug nhỏ. Viết feature độc lập là chuyện 2-3 tuần sau khi nhận job.
+
+---
+
+## 1. Vì sao chuyển RN → Flutter là dễ với tôi (nói được lúc phỏng vấn)
+
+| Kỹ năng tôi đã có (RN) | Chuyển sang Flutter | Độ khó |
+| --- | --- | --- |
+| Mobile lifecycle (iOS/Android) | Y hệt — Flutter cũng chạy trên cùng OS lifecycle | ✅ Đã có |
+| Component tree, props, state | Widget tree, constructor params, State | 🟡 Đổi tên khái niệm |
+| JSX | Widget nested trong `build()` | 🟡 Đổi cú pháp |
+| TypeScript | Dart (typed, giống TS) | 🟡 Cú pháp mới, tư duy cũ |
+| Redux / TanStack Query | Provider / Riverpod / Bloc | 🟡 Pattern tương đương |
+| React Navigation | Navigator / go_router | 🟡 API khác |
+| axios / fetch | dio / http | ✅ Gần như y hệt |
+| Native bridge (Kotlin/Swift) | MethodChannel / Pigeon | ✅ Lợi thế lớn — cùng native side |
+| Flexbox | Row/Column/Expanded (Flutter flex) | 🟡 Đổi tên, cùng tư duy |
+
+**Điểm bán hàng lúc phỏng vấn:** "Tôi hiểu mobile lifecycle + đã viết native bridge cả 2 platform. Với tôi học Flutter chỉ là học Dart syntax + Widget system, còn tư duy kiến trúc thì ngôn ngữ nào cũng như nhau."
+
+---
+
+## 2. Khác biệt tư duy CỐT LÕI (nhớ 4 cái này là hiểu 80% Flutter)
+
+1. **"Everything is a Widget."** Trong RN có View/Text/component + style tách riêng (StyleSheet). Trong Flutter, **cả layout, cả style, cả padding, cả animation đều là Widget**. Padding là 1 Widget bọc ngoài, Center là 1 Widget, không phải prop.
+
+2. **Không có CSS/StyleSheet.** Style = truyền params vào constructor Widget (vd `TextStyle`, `BoxDecoration`). Không có file style riêng.
+
+3. **Composition over configuration.** RN: `<View style={{padding:16, alignItems:'center'}}>`. Flutter: bọc nhiều Widget lồng nhau `Padding(child: Center(child: ...))`. Nested sâu hơn RN nhiều — đó là bình thường.
+
+4. **Hot Reload cực mạnh.** Giống Fast Refresh của RN nhưng nhanh và ổn định hơn — giữ nguyên state khi sửa UI.
+
+---
+
+## 3. Lộ trình 5 ngày (mỗi ngày 60-90 phút, học lúc nào cũng được)
+
+| Day | Topic | File | Ánh xạ chính |
+| --- | --- | --- | --- |
+| 01 | Dart syntax | `day-01-dart-syntax.mdc` | TS → Dart |
+| 02 | Widgets & Layout | `day-02-widgets-layout.mdc` | Component + Flexbox → Widget tree |
+| 03 | State management | `day-03-state-management.mdc` | useState/Redux → setState/Provider/Riverpod/Bloc |
+| 04 | Navigation + Networking | `day-04-navigation-networking.mdc` | React Navigation + axios → go_router + dio |
+| 05 | Native bridge + Interview | `day-05-native-interview.mdc` | Native Modules → MethodChannel + bộ Q&A phỏng vấn |
+
+**Không có deadline cứng.** Học được ngày nào hay ngày đó. Nếu phỏng vấn gấp → đọc thẳng **Day 05 (Interview Q&A)** trước, rồi bổ sung Day 01-04 sau.
+
+---
+
+## 4. Setup tối thiểu (làm 1 lần, ~30 phút — làm khi rảnh)
+
+```bash
+# macOS
+brew install --cask flutter        # hoặc tải SDK từ flutter.dev
+flutter doctor                     # check môi trường, làm theo hướng dẫn nó báo
+flutter create demo_app            # tạo project mẫu
+cd demo_app && flutter run         # chạy trên simulator/emulator đang mở
+```
+
+- IDE: VS Code + extension **Flutter** (và **Dart**). Bạn đã quen VS Code/Cursor rồi nên OK.
+- Không bắt buộc phải setup được mới học — có thể đọc lý thuyết + xem code trước, setup sau.
+- **DartPad** (dartpad.dev) — chạy Dart/Flutter thẳng trên browser, không cần cài gì. Dùng để test nhanh Day 01.
+
+---
+
+## 5. Definition of Done — trước buổi phỏng vấn Tech Lead
+
+- [ ] Nói được ≤60s: "RN khác Flutter chỗ nào, vì sao tôi học nhanh" (Day 00 + 05)
+- [ ] Đọc 1 file `.dart` bất kỳ và hiểu được widget tree đang render gì (Day 02)
+- [ ] Biết ít nhất 2 cách quản state Flutter và map về RN (Day 03)
+- [ ] Kể được cách gọi API + điều hướng màn hình trong Flutter (Day 04)
+- [ ] Trả lời trôi 5 câu Q&A phỏng vấn Flutter (Day 05)
+- [ ] Nói được lợi thế native bridge của mình áp dụng vào Flutter thế nào (Day 05)
+
+---
+
+## 6. Nguyên tắc khi phỏng vấn (đừng over-claim)
+
+- ✅ Honest: "Tôi đang học Flutter, nền tảng mobile + native tôi đã vững nên tự tin bắt nhịp nhanh."
+- ❌ Đừng nói: "Tôi thành thạo Flutter" khi chưa ship app thật → Tech Lead đào 1 câu về Bloc/Riverpod internals là lộ.
+- ✅ Kể được mapping (RN ↔ Flutter) là đủ chứng minh "hiểu bản chất, không học vẹt."
+
+---
+
+_Single source of truth cho việc chuyển RN → Flutter. Sau khi nhận job, mở rộng thêm phase 2 (đi sâu Bloc, testing, CI/CD Flutter)._
