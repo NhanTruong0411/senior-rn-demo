@@ -1,9 +1,11 @@
 ---
-description: Flutter Day 01 — Dart syntax cho người đã biết TypeScript. Học nhanh cú pháp Dart bằng cách ánh xạ từ TS/JS.
+description: Flutter Day 01 — Dart syntax cho người đã biết TypeScript. Học nhanh cú pháp Dart bằng cách ánh xạ từ TS/JS. Code có comment từng dòng.
 alwaysApply: false
 ---
 
 # Flutter Day 01 — Dart syntax (cho người đã biết TypeScript)
+
+> Đọc `day-00-giai-phau-cu-phap.mdc` trước nếu bạn chưa rõ `extends`, `@override`, `Widget`, `build`.
 
 ## 1. Hôm nay học gì + vì sao
 
@@ -21,115 +23,297 @@ Giống như bạn biết lái xe số sàn (TS), giờ chuyển sang xe số s�
 
 ## 3. Đi sâu kỹ thuật — Bảng ánh xạ TS → Dart
 
-**a) Khai báo biến**
+### a) Khai báo biến
 
 ```dart
-// TS: const name = 'Nhan';  let age = 30;
-final name = 'Nhan';     // final = const runtime (gán 1 lần, biết lúc chạy)
-const pi = 3.14;         // const = compile-time constant
-var age = 30;            // var = có thể gán lại
-int count = 0;           // typed rõ ràng như TS
-String? nickname;        // nullable (giống TS `string | undefined`)
+// ── 'final' = biến gán ĐÚNG 1 LẦN, sau đó không đổi được.
+//    Giá trị được biết lúc CHẠY (runtime).
+//    → Tương đương `const name = 'Nhan'` trong JS.
+final name = 'Nhan';
+
+// ── 'const' của Dart MẠNH HƠN final: hằng số biết ngay lúc BIÊN DỊCH (compile-time).
+//    Dùng cho giá trị cố định tuyệt đối (số pi, chuỗi cứng, widget không đổi).
+//    → Trong Flutter, đặt `const` trước widget giúp tối ưu performance (không rebuild).
+const pi = 3.14;
+
+// ── 'var' = biến CÓ THỂ gán lại. Dart tự suy ra kiểu (ở đây là int).
+//    → Tương đương `let age = 30` trong JS.
+var age = 30;
+
+// ── Khai báo kiểu TƯỜNG MINH: 'int' là kiểu, 'count' là tên biến.
+//    Thứ tự NGƯỢC với TypeScript!
+//    TS:   let count: number = 0;   ← tên trước, kiểu sau
+//    Dart: int count = 0;           ← kiểu trước, tên sau
+int count = 0;
+
+// ── Dấu '?' sau kiểu = NULLABLE (biến này CÓ THỂ null).
+//    Không có '?' nghĩa là biến KHÔNG BAO GIỜ được null (null safety).
+//    → Tương đương `string | undefined` hoặc `string | null` trong TS.
+String? nickname;         // OK, có thể để trống (mặc định = null)
+// String fullName;       // ❌ LỖI: kiểu không nullable mà chưa gán giá trị
+
+// ── Dấu '!' sau BIẾN = khẳng định "tôi chắc chắn biến này không null".
+//    → Giống `nickname!` trong TypeScript. Dùng cẩn thận, sai là crash runtime.
+String safe = nickname!;  // nếu nickname đang null → crash
 ```
 
-- `final` ≈ `const` của JS (gán 1 lần). `const` của Dart mạnh hơn = hằng số compile-time.
-- **Null safety**: `String` không thể null, `String?` mới nullable. Y hệt strict TS.
+**Bảng tóm tắt:**
 
-**b) Function**
+| Dart | Ý nghĩa | TS/JS tương đương |
+| --- | --- | --- |
+| `final` | gán 1 lần, biết lúc runtime | `const` |
+| `const` | hằng số compile-time | (không có tương đương chuẩn) |
+| `var` | gán lại được | `let` |
+| `String?` | có thể null | `string \| undefined` |
+| `bien!` | khẳng định không null | `bien!` |
+
+---
+
+### b) Function (hàm)
 
 ```dart
-// TS: const add = (a: number, b: number): number => a + b;
-int add(int a, int b) => a + b;               // arrow cho 1 dòng
-int addLong(int a, int b) { return a + b; }   // block
+// ── Hàm 1 DÒNG: dùng '=>' (arrow), KHÔNG cần 'return'.
+//    'int'    = kiểu trả về (đặt TRƯỚC tên hàm)
+//    'add'    = tên hàm
+//    '(int a, int b)' = tham số, mỗi tham số ghi 'kiểu tên'
+//    → TS: const add = (a: number, b: number): number => a + b;
+int add(int a, int b) => a + b;
 
-// Named parameters (RẤT phổ biến trong Flutter widget)
-void greet({required String name, int age = 0}) { ... }
-greet(name: 'Nhan', age: 30);   // gọi bằng tên — giống props trong RN!
+// ── Hàm NHIỀU DÒNG: dùng { } và phải có 'return'.
+int addLong(int a, int b) {
+  return a + b;
+}
+
+// ── 'void' = hàm KHÔNG trả về gì (giống void trong TS).
+void printHello() {
+  print('Hello');   // 'print' = console.log của Dart
+}
+
+// ══════════════════════════════════════════════════════════════
+// ── NAMED PARAMETERS — QUAN TRỌNG NHẤT, gặp trong MỌI widget Flutter
+// ══════════════════════════════════════════════════════════════
+// Dấu '{ }' bao quanh tham số = tham số phải gọi BẰNG TÊN, không theo thứ tự.
+//
+// 'required String name' = tham số BẮT BUỘC phải truyền, kiểu String.
+// 'int age = 0'          = tham số TÙY CHỌN, nếu không truyền thì mặc định = 0.
+void greet({required String name, int age = 0}) {
+  print('Hi $name, age $age');
+}
+
+// Cách GỌI hàm có named parameters: phải ghi rõ 'tên: giá trị'
+greet(name: 'Nhan', age: 30);   // ✅ đúng
+greet(name: 'Nhan');            // ✅ đúng, age tự = 0
+// greet('Nhan', 30);           // ❌ LỖI: named param phải gọi bằng tên
 ```
 
-> **Quan trọng:** Named params `{required ...}` chính là "props" của Flutter widget. Mỗi widget constructor nhận named params. Đây là thứ bạn gặp nhiều nhất.
+> **Vì sao named parameters quan trọng?**
+> Đây CHÍNH LÀ cách Flutter truyền "props" cho widget.
+> RN: `<Greeting name="Nhan" age={30} />`
+> Flutter: `Greeting(name: 'Nhan', age: 30)`
+> Mọi widget bạn gặp (`Text`, `Padding`, `Column`...) đều dùng named parameters.
 
-**c) Class (giống TS nhưng gọn hơn)**
+---
+
+### c) Class (lớp)
 
 ```dart
+// 'class' = khai báo lớp, giống hệt TypeScript.
 class User {
+  // ── FIELDS (thuộc tính). 'final' = gán 1 lần lúc tạo object, sau đó bất biến.
+  //    Trong Flutter widget, các field này chính là "props".
   final String name;
   final int age;
-  User({required this.name, required this.age});  // constructor gọn
+
+  // ── CONSTRUCTOR (hàm khởi tạo) — TÊN PHẢI TRÙNG TÊN CLASS.
+  //    '{ }'        = named parameters (gọi bằng tên).
+  //    'required'   = bắt buộc truyền.
+  //    'this.name'  = CÚ PHÁP TẮT của Dart: tự động gán giá trị truyền vào cho field `name`.
+  //                   Không cần viết `this.name = name;` như TS.
+  User({required this.name, required this.age});
+
+  // ── METHOD (phương thức) — hàm bên trong class.
+  //    'String'   = kiểu trả về
+  //    'describe' = tên method
+  //    '$name'    = nhúng biến vào chuỗi (giống `${name}` của JS)
+  String describe() => '$name is $age years old';
 }
-final u = User(name: 'Nhan', age: 30);  // KHÔNG cần `new`
+
+// ── TẠO OBJECT: Dart KHÔNG CẦN từ khóa 'new' (khác Java/C#).
+//    Chỉ cần gọi tên class như gọi hàm.
+final u = User(name: 'Nhan', age: 30);
+print(u.describe());   // in ra: Nhan is 30 years old
 ```
 
-**d) Async — y hệt TS**
+**So sánh với TypeScript:**
 
-```dart
-Future<User> fetchUser(int id) async {       // Future = Promise
-  final res = await http.get(...);
-  return User(...);
+```typescript
+// TypeScript tương đương:
+class User {
+  constructor(
+    public readonly name: string,   // ~ final String name
+    public readonly age: number,    // ~ final int age
+  ) {}
+  describe(): string { return `${this.name} is ${this.age} years old`; }
 }
-// Stream<T> = observable/async iterator (nhiều giá trị theo thời gian)
+const u = new User('Nhan', 30);      // ← Dart KHÔNG cần `new`
 ```
 
-- `Future<T>` = `Promise<T>`. `async/await` giống hệt.
-- `Stream<T>` = luồng nhiều giá trị (giống RxJS Observable) — dùng nhiều trong Bloc.
+---
 
-**e) Collection + spread + cascade**
+### d) Async — gần như y hệt TypeScript
 
 ```dart
+// ── 'Future<T>' = kiểu dữ liệu cho giá trị sẽ có TRONG TƯƠNG LAI.
+//    → CHÍNH LÀ 'Promise<T>' của JavaScript. Chỉ đổi tên.
+//    'Future<User>' = Promise<User>
+//
+// ── 'async'  = đánh dấu hàm bất đồng bộ (giống async trong JS).
+// ── 'await'  = chờ Future hoàn thành (giống await trong JS).
+Future<User> fetchUser(int id) async {
+  // 'await' chờ request xong mới chạy dòng tiếp theo — y hệt JS.
+  final res = await http.get(Uri.parse('https://api.com/users/$id'));
+
+  // Trả về object User. Vì hàm khai báo là Future<User>,
+  // Dart tự bọc giá trị này vào Future.
+  return User(name: 'Nhan', age: 30);
+}
+
+// ── Cách GỌI hàm async:
+void main() async {
+  final user = await fetchUser(1);   // chờ kết quả
+  print(user.name);
+}
+
+// ── 'Stream<T>' = luồng NHIỀU giá trị theo thời gian (Future chỉ có 1 giá trị).
+//    → Giống Observable của RxJS, hoặc async iterator trong JS.
+//    → Bloc dùng Stream rất nhiều để phát ra các state liên tiếp.
+Stream<int> countStream() async* {   // 'async*' = hàm trả về Stream
+  for (int i = 0; i < 5; i++) {
+    yield i;                          // 'yield' = phát ra 1 giá trị vào stream
+  }
+}
+```
+
+| Dart | JavaScript/TS |
+| --- | --- |
+| `Future<T>` | `Promise<T>` |
+| `async` / `await` | `async` / `await` (y hệt) |
+| `Stream<T>` | `Observable` (RxJS) / async iterator |
+| `yield` | `yield` (generator) |
+
+---
+
+### e) Collection (List/Map) + cú pháp đặc sản Dart
+
+```dart
+// ── LIST = mảng. Cú pháp giống JS.
+//    '<int>' = kiểu phần tử (giống Array<number> trong TS). Có thể bỏ, Dart tự suy.
 final list = [1, 2, 3];
-final doubled = list.map((e) => e * 2).toList();   // .toList() BẮT BUỘC
-final combined = [...list, 4, 5];                  // spread giống JS
+final typedList = <int>[1, 2, 3];
 
-// Collection-if / collection-for (đặc sản Dart, gặp nhiều trong build())
+// ── '.map()' giống JS NHƯNG trả về Iterable (lazy), KHÔNG phải List.
+//    → PHẢI gọi '.toList()' để biến thành List thật.
+//    ⚠️ Đây là lỗi RN dev hay mắc nhất khi mới học Dart!
+final doubled = list.map((e) => e * 2).toList();   // [2, 4, 6]
+// final wrong = list.map((e) => e * 2);           // ❌ Iterable, không dùng trực tiếp được
+
+// ── '.where()' = filter của JS.
+final evens = list.where((e) => e % 2 == 0).toList();   // [2]
+
+// ── SPREAD OPERATOR '...' — giống hệt JS.
+final combined = [...list, 4, 5];   // [1, 2, 3, 4, 5]
+
+// ── MAP (dictionary) = object của JS.
+//    '<String, dynamic>' = key kiểu String, value kiểu bất kỳ.
+//    'dynamic' = kiểu động, tắt type-check (giống `any` trong TS).
+final Map<String, dynamic> json = {'id': 1, 'name': 'Nhan'};
+print(json['name']);   // Nhan
+
+// ══════════════════════════════════════════════════════════════
+// ── COLLECTION-IF & COLLECTION-FOR — ĐẶC SẢN DART
+//    Cho phép viết if/for NGAY BÊN TRONG danh sách.
+//    Bạn sẽ gặp cái này liên tục khi build UI Flutter.
+// ══════════════════════════════════════════════════════════════
+final bool isLoggedIn = true;
+final items = ['A', 'B'];
+
 final widgets = [
-  Text('Always'),
-  if (isLoggedIn) Text('Welcome'),      // if ngay trong list!
-  for (var item in items) Text(item),   // for ngay trong list!
+  // Phần tử luôn có
+  'Always shown',
+
+  // 'if' ngay trong list: chỉ thêm phần tử này khi điều kiện đúng.
+  // → RN tương đương: {isLoggedIn && <Text>Welcome</Text>}
+  if (isLoggedIn) 'Welcome back',
+
+  // 'for' ngay trong list: sinh ra nhiều phần tử từ vòng lặp.
+  // → RN tương đương: {items.map(item => <Text key={item}>{item}</Text>)}
+  for (var item in items) 'Item $item',
 ];
+// Kết quả: ['Always shown', 'Welcome back', 'Item A', 'Item B']
 
-// Cascade (..) — gọi nhiều method trên 1 object
-final p = Paint()..color = Colors.red..strokeWidth = 4;
+// ── CASCADE OPERATOR '..' — gọi nhiều method/gán nhiều thuộc tính trên CÙNG 1 object.
+//    Mỗi '..' trả về chính object đó, nên nối chuỗi được.
+//    → Không có tương đương trong JS (JS phải viết nhiều dòng hoặc dùng Object.assign).
+final paint = Paint()
+  ..color = Colors.red        // gán color
+  ..strokeWidth = 4           // gán strokeWidth (vẫn trên object Paint đó)
+  ..style = PaintingStyle.stroke;
 ```
-
-> `.map(...).toList()` — nhớ `.toList()`, vì `.map()` trả về lazy iterable, không phải List. Đây là lỗi RN dev hay quên.
 
 ---
 
 ## 4. Code tối thiểu — chạy thử trên DartPad (dartpad.dev)
 
+Mở [dartpad.dev](https://dartpad.dev), dán đoạn này vào, bấm **Run**. Không cần cài gì.
+
 ```dart
+// ── 'void main()' = ĐIỂM BẮT ĐẦU của mọi chương trình Dart.
+//    Giống hàm main trong C/Java. Dart chạy hàm này đầu tiên.
 void main() {
+  // Tạo một List chứa 3 object User.
   final users = [
     User(name: 'Nhan', age: 30),
     User(name: 'An', age: 25),
+    User(name: 'Bo', age: 15),
   ];
 
-  final adults = users.where((u) => u.age >= 18).map((u) => u.name).toList();
-  print(adults);   // [Nhan, An]
+  final adults = users
+      .where((u) => u.age >= 18)   // lọc: chỉ giữ người >= 18 tuổi
+      .map((u) => u.name)          // biến đổi: chỉ lấy tên
+      .toList();                   // BẮT BUỘC: chuyển Iterable → List
+
+  print(adults);   // in ra: [Nhan, An]
+
+  // Gọi method của object
+  print(users[0].describe());   // in ra: Nhan is 30 years old
 }
 
 class User {
-  final String name;
-  final int age;
+  final String name;   // props: tên
+  final int age;       // props: tuổi
+
+  // Constructor với named parameters bắt buộc
   User({required this.name, required this.age});
+
+  // Method trả về chuỗi mô tả
+  String describe() => '$name is $age years old';
 }
 ```
 
-Mở dartpad.dev, dán vào, bấm Run. Không cần cài gì.
-
 ---
 
-## 5. Trả lời phỏng vấn ≤60s (nếu bị hỏi "Dart có khó không?")
+## 5. Trả lời phỏng vấn ≤60s ("Dart có khó không?")
 
-> "Dart với người biết TypeScript thì rất dễ tiếp cận — cùng là typed language, có null safety, class, async/await với Future giống hệt Promise. Khác biệt chính tôi thấy là named parameters — cái này thực ra rất hợp với Flutter vì mỗi widget nhận tham số theo tên, giống như props trong React Native. Và Dart có vài cú pháp tiện như collection-if, collection-for để build UI list, cascade operator. Về tư duy lập trình thì không có gì mới, chỉ là làm quen cú pháp trong vài ngày."
+> "Dart với người biết TypeScript thì rất dễ tiếp cận — cùng là typed language, có null safety, class, async/await với Future giống hệt Promise. Khác biệt chính tôi thấy là named parameters — cái này thực ra rất hợp với Flutter vì mỗi widget nhận tham số theo tên, giống như props trong React Native. Và Dart có vài cú pháp tiện như collection-if, collection-for để build UI list, cascade operator để gán nhiều thuộc tính. Về tư duy lập trình thì không có gì mới, chỉ là làm quen cú pháp trong vài ngày."
 
 ---
 
 ## 6. Bẫy / đừng nói
 
-- ❌ Đừng nói "Dart giống Java" — nghe như chưa dùng thật. Dart gần TS/JS hơn Java nhiều (async, arrow, type inference).
-- ❌ Quên `.toList()` sau `.map()` → code không compile. Nhớ kỹ.
-- ❌ Đừng nhầm `final` với `const` của Dart. `const` = compile-time; `final` = gán 1 lần lúc runtime.
+- ❌ Đừng nói "Dart giống Java" — nghe như chưa dùng thật. Dart gần TS/JS hơn Java nhiều (async, arrow, type inference, không cần `new`).
+- ❌ **Quên `.toList()` sau `.map()`** → code không compile. Đây là lỗi số 1 của RN dev mới học Dart.
+- ❌ Đừng nhầm `final` với `const`. `const` = compile-time; `final` = gán 1 lần lúc runtime.
+- ❌ Nhớ thứ tự khai báo NGƯỢC với TS: Dart là `int count`, TS là `count: number`.
 
 ---
 
@@ -138,3 +322,5 @@ Mở dartpad.dev, dán vào, bấm Run. Không cần cài gì.
 1. `Future<T>` trong Dart tương đương gì trong JS/TS?
 2. Named parameter `{required String name}` trong Dart ánh xạ tới khái niệm nào của React Native?
 3. Vì sao `list.map((e) => e*2)` chưa đủ, phải thêm gì?
+4. `final` và `const` của Dart khác nhau chỗ nào?
+5. `String?` và `String` khác nhau thế nào?

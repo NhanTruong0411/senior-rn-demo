@@ -1,0 +1,294 @@
+---
+description: Flutter Day 00 — Giải phẫu cú pháp. Giải thích từng từ khóa (extends, @override, Widget, build, BuildContext, super.key, child) mà RN dev hay bị lú khi đọc code Flutter lần đầu.
+alwaysApply: false
+---
+
+# Flutter Day 00 — Giải phẫu cú pháp (ĐỌC FILE NÀY TRƯỚC TIÊN)
+
+> **File này sinh ra để trả lời đúng 1 câu hỏi:** *"Nhìn vào code Flutter, từng chữ đó nghĩa là gì?"*
+> Nếu bạn đọc code Flutter mà thấy lú vì `extends`, `@override`, `Widget`, `build`, `BuildContext` — đọc hết file này là hết lú.
+
+---
+
+## 1. Mổ xẻ đoạn code Flutter kinh điển — từng chữ một
+
+Đây là đoạn code bạn sẽ thấy trong MỌI file Flutter. Tôi chú thích **từng chữ**:
+
+```dart
+// ┌─ 'class'   = từ khóa khai báo một lớp (giống `class` trong TypeScript/JS)
+// │  ┌─ 'Greeting' = TÊN widget bạn tự đặt (giống tên component `function Greeting()` trong RN)
+// │  │        ┌─ 'extends' = KẾ THỪA. Nghĩa là "Greeting là một loại StatelessWidget,
+// │  │        │              nó thừa hưởng toàn bộ khả năng của StatelessWidget".
+// │  │        │              Giống việc trong RN bạn viết `function X()` và React tự hiểu
+// │  │        │              đó là component. Ở Flutter phải nói rõ bằng `extends`.
+// │  │        │           ┌─ 'StatelessWidget' = LOẠI widget KHÔNG có state nội bộ.
+// v  v        v           v                      = function component không dùng useState.
+class Greeting extends StatelessWidget {
+
+  // 'final'  = biến chỉ gán 1 lần, không đổi được sau đó (giống `const` của JS).
+  // 'String' = kiểu dữ liệu chuỗi (giống `string` trong TypeScript).
+  // 'name'   = tên biến. ĐÂY CHÍNH LÀ "PROPS" trong React Native.
+  //            Trong RN: function Greeting({ name }) { ... }
+  //            Trong Flutter: khai báo field `final String name;` rồi nhận qua constructor.
+  final String name;
+
+  // CONSTRUCTOR — hàm khởi tạo, chạy khi bạn viết `Greeting(name: 'Nhan')`.
+  //
+  // 'const'         = widget này là hằng số compile-time → Flutter tối ưu, không rebuild thừa.
+  //                   (Cứ thấy widget không đổi thì thêm `const`, giúp performance.)
+  // 'Greeting({...})' = constructor cùng tên với class (giống constructor trong TS).
+  // '{ }'           = dấu ngoặc nhọn = NAMED PARAMETERS (tham số gọi theo tên).
+  //                   Đây là lý do bạn gọi `Greeting(name: 'Nhan')` chứ không phải `Greeting('Nhan')`.
+  //                   → Chính là cách RN truyền props: <Greeting name="Nhan" />
+  // 'required'      = bắt buộc phải truyền, không được bỏ trống (giống prop không optional trong TS).
+  // 'this.name'     = gán thẳng giá trị truyền vào cho field `name` ở trên (cú pháp tắt của Dart).
+  // 'super.key'     = chuyển tham số `key` lên class cha (StatelessWidget).
+  //                   `key` ở đây CHÍNH LÀ `key` prop bạn dùng trong FlatList của RN —
+  //                   giúp Flutter nhận diện đúng widget khi list thay đổi.
+  const Greeting({required this.name, super.key});
+
+  // '@override' = ANNOTATION (chú thích cho compiler), báo rằng:
+  //               "Hàm build() bên dưới đang GHI ĐÈ hàm build() có sẵn của class cha
+  //                (StatelessWidget)".
+  //               StatelessWidget đã định nghĩa sẵn một hàm build() rỗng;
+  //               bạn phải override nó để nói cho Flutter biết widget này vẽ ra cái gì.
+  //               → Bỏ @override đi code VẪN CHẠY, nhưng nó giúp compiler bắt lỗi
+  //                 nếu bạn gõ sai tên hàm (vd `buid` thay vì `build`).
+  @override
+
+  // 'Widget'       = KIỂU TRẢ VỀ của hàm. Widget = "một mảnh UI" trong Flutter.
+  //                  Mọi thứ hiển thị trên màn hình đều là Widget: Text, Padding, Column...
+  //                  → Tương đương `JSX.Element` / `ReactNode` trong React Native.
+  // 'build'        = TÊN HÀM (bắt buộc phải đặt đúng tên này, vì Flutter gọi nó).
+  //                  Flutter gọi build() mỗi khi cần vẽ lại widget.
+  //                  → Tương đương phần `return (...)` trong function component của RN.
+  //                    Trong RN: function Greeting() { return <Text>Hi</Text> }
+  //                    Trong Flutter: Widget build(...) { return Text('Hi'); }
+  // 'BuildContext' = KIỂU dữ liệu của tham số. Nó là "vị trí của widget này trong cây widget".
+  //                  Dùng để: lấy theme, lấy kích thước màn hình, điều hướng (Navigator),
+  //                  đọc Provider... → Gần giống `Context` trong React nhưng tự động truyền vào.
+  // 'context'      = TÊN BIẾN (bạn có thể đặt tên khác nhưng mọi người đều đặt là `context`).
+  Widget build(BuildContext context) {
+
+    // 'return' = trả về UI (giống return JSX trong RN).
+    // 'Text(...)' = widget hiển thị chữ = <Text> trong RN.
+    // '$name'  = STRING INTERPOLATION — nhúng biến vào chuỗi.
+    //            Giống `${name}` trong template literal của JS.
+    //            (Dart: dùng $ cho biến đơn, ${...} cho biểu thức phức tạp.)
+    return Text('Hello $name');
+  }
+}
+```
+
+**Cách gọi widget này (giống dùng component trong RN):**
+
+```dart
+// Flutter:                            // React Native tương đương:
+Greeting(name: 'Nhan')                 // <Greeting name="Nhan" />
+```
+
+---
+
+## 2. Bảng tra từ khóa — tra nhanh khi đọc code
+
+| Từ khóa Flutter/Dart | Nghĩa là gì | Tương đương RN/TS |
+| --- | --- | --- |
+| `class X extends Y` | X kế thừa Y, thừa hưởng khả năng của Y | `class X extends Y` (TS) |
+| `StatelessWidget` | Widget KHÔNG có state nội bộ | Function component không dùng `useState` |
+| `StatefulWidget` | Widget CÓ state nội bộ | Function component có `useState` |
+| `Widget` | Một mảnh UI (kiểu dữ liệu) | `JSX.Element` / `ReactNode` |
+| `build(context)` | Hàm vẽ UI, Flutter tự gọi | phần `return (<JSX/>)` |
+| `BuildContext context` | Vị trí widget trong cây; dùng để lấy theme, navigate | `Context` của React (nhưng auto-inject) |
+| `@override` | Báo compiler: đang ghi đè hàm của class cha | (TS có `override` keyword tương tự) |
+| `final` | Biến gán 1 lần, không đổi | `const` (JS) |
+| `const` (trước constructor) | Hằng số compile-time → Flutter tối ưu, tránh rebuild | Không có tương đương trực tiếp |
+| `required` | Tham số bắt buộc | prop không optional trong TS |
+| `this.name` | Gán tham số vào field cùng tên | `this.name = name` |
+| `super.key` | Đẩy `key` lên class cha | `key` prop trong FlatList |
+| `key` | ID để Flutter reconcile widget đúng | `key` / `keyExtractor` |
+| `child:` | Widget con DUY NHẤT (1 cái) | `{children}` khi chỉ có 1 con |
+| `children:` | DANH SÁCH widget con (nhiều cái) | `{children}` khi có nhiều con |
+| `$bien` trong chuỗi | Nhúng biến vào string | `${bien}` template literal |
+| `=>` | Arrow function (hàm 1 dòng) | `=>` arrow function |
+| `_TenClass` | Dấu `_` đầu tên = PRIVATE, chỉ dùng trong file đó | `private` / không export |
+| `late` | Biến sẽ gán sau, hứa là không null lúc dùng | `!` non-null assertion |
+| `?` sau kiểu (`String?`) | Có thể null | `string \| undefined` |
+| `!` sau biến (`data!`) | Khẳng định "chắc chắn không null" | `data!` (TS) |
+
+---
+
+## 3. `child` vs `children` — điểm hay nhầm nhất
+
+Trong RN bạn chỉ có `{children}`. Flutter tách làm 2:
+
+```dart
+// 'child:' — widget này chỉ chứa ĐÚNG 1 widget con
+Padding(
+  padding: EdgeInsets.all(16),   // padding 16 tất cả các cạnh
+  child: Text('Chỉ 1 con thôi'), // <-- child (số ít)
+)
+
+// 'children:' — widget này chứa NHIỀU widget con (nhận vào 1 List)
+Column(
+  children: [                     // <-- children (số nhiều), dấu [] = List
+    Text('Con thứ 1'),
+    Text('Con thứ 2'),
+    Text('Con thứ 3'),
+  ],
+)
+```
+
+**Mẹo nhớ:** Widget nào "bọc" (Padding, Center, Container, SizedBox) → dùng `child`.
+Widget nào "xếp hàng" (Column, Row, ListView, Stack) → dùng `children`.
+
+---
+
+## 4. Vì sao code Flutter lồng sâu (nested) — và cách nó khớp với RN
+
+```dart
+// ══════ REACT NATIVE ══════
+// <View style={{ padding: 16, alignItems: 'center' }}>
+//   <Text style={{ fontSize: 20 }}>Hi</Text>
+// </View>
+//
+// → RN gộp padding + alignItems vào 1 object `style`.
+
+// ══════ FLUTTER ══════
+Padding(                              // Widget #1: lo phần padding
+  padding: EdgeInsets.all(16),        // EdgeInsets.all(16) = padding: 16 cả 4 cạnh
+  child: Center(                      // Widget #2: lo phần căn giữa (= alignItems: 'center')
+    child: Text(                      // Widget #3: hiển thị chữ
+      'Hi',
+      style: TextStyle(fontSize: 20), // style truyền vào constructor, KHÔNG có StyleSheet
+    ),
+  ),
+)
+// → Flutter tách mỗi việc thành 1 Widget riêng → lồng 3 tầng.
+//   ĐÂY LÀ BÌNH THƯỜNG, không phải code bẩn.
+```
+
+**Cách dân Flutter chống rối:** bôi đen khối code → nhấn `Cmd + .` (macOS) → chọn **Extract Widget** → IDE tự tách thành class riêng. Giống việc bạn tách component nhỏ trong RN.
+
+---
+
+## 5. Vòng đời `build()` — vì sao Flutter gọi lại nó
+
+```
+RN:                                    Flutter:
+state đổi (setCount)                   state đổi (setState)
+  ↓                                      ↓
+React re-render component              Flutter gọi lại build()
+  ↓                                      ↓
+so sánh Virtual DOM                    so sánh Widget tree (Element tree)
+  ↓                                      ↓
+update native view                     vẽ lại pixel qua engine Skia/Impeller
+```
+
+→ **`build()` chạy RẤT nhiều lần** (mỗi lần state đổi, xoay màn hình, bàn phím bật lên...).
+Vì vậy: **không đặt logic nặng hay gọi API trong `build()`** — giống hệt quy tắc "không side effect trong render" của React mà bạn đã biết.
+
+---
+
+## 6. Ví dụ hoàn chỉnh — có state, chú thích từng dòng
+
+```dart
+// 'import' = nhập thư viện (giống import trong JS).
+// 'package:flutter/material.dart' = bộ widget Material Design (Google style) của Flutter.
+//    → Cung cấp Scaffold, AppBar, Text, Column, ElevatedButton... 
+//    → Gần giống việc bạn import { View, Text } from 'react-native'.
+import 'package:flutter/material.dart';
+
+// ══════════ WIDGET CÓ STATE — CẦN 2 CLASS ══════════
+// Vì sao cần 2 class? Vì Flutter tách:
+//   - Class 1 (StatefulWidget): phần CẤU HÌNH (props), bị hủy & tạo lại mỗi khi rebuild.
+//   - Class 2 (State):          phần DỮ LIỆU (state), ĐƯỢC GIỮ LẠI xuyên suốt.
+// → Đây là lý do state không bị mất khi widget rebuild.
+//   (Trong RN, React tự lo việc này ngầm bên trong nên bạn không thấy.)
+
+// ─── CLASS 1: phần khai báo widget ───
+class Counter extends StatefulWidget {
+  // Constructor. Không có props nào ngoài `key`.
+  const Counter({super.key});
+
+  // 'createState()' = hàm BẮT BUỘC của StatefulWidget.
+  //                   Nhiệm vụ: tạo ra object State đi kèm.
+  // 'State<Counter>' = kiểu trả về: một State gắn với widget Counter.
+  // '=> _CounterState()' = arrow function, trả về instance của class State bên dưới.
+  @override
+  State<Counter> createState() => _CounterState();
+}
+
+// ─── CLASS 2: phần chứa state + UI ───
+// '_' đầu tên = private, chỉ dùng trong file này.
+// 'extends State<Counter>' = đây là State dành riêng cho widget Counter.
+class _CounterState extends State<Counter> {
+
+  // BIẾN STATE. Đây chính là `const [count, setCount] = useState(0)` của RN.
+  // Khai báo bình thường như biến class, không cần hook.
+  int count = 0;
+
+  // Hàm xử lý tăng count. Đặt tên tùy ý.
+  void _increment() {
+    // 'setState(() { ... })' = báo cho Flutter: "state đã đổi, hãy gọi lại build()".
+    //   → Tương đương setCount(count + 1) trong RN.
+    //   → BẮT BUỘC phải bọc trong setState, nếu chỉ viết `count++` thì
+    //     biến đổi nhưng UI KHÔNG cập nhật (giống mutate state trực tiếp trong React).
+    setState(() {
+      count++;   // tăng biến state lên 1
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 'Column' = xếp các widget con theo chiều DỌC (= flexDirection: 'column' trong RN).
+    return Column(
+      // 'mainAxisAlignment' = căn theo trục chính (với Column, trục chính là DỌC)
+      //                     = justifyContent trong Flexbox.
+      // 'MainAxisAlignment.center' = căn giữa theo chiều dọc.
+      mainAxisAlignment: MainAxisAlignment.center,
+
+      // 'children' = danh sách widget con (dấu [] = List).
+      children: [
+        // Widget hiển thị chữ. '$count' nhúng giá trị biến count vào chuỗi.
+        Text('Count: $count'),
+
+        // 'ElevatedButton' = nút bấm nổi (Material) = <TouchableOpacity> + style trong RN.
+        ElevatedButton(
+          // 'onPressed' = callback khi bấm = onPress trong RN.
+          //   Truyền thẳng tên hàm `_increment` (không có dấu ngoặc () phía sau,
+          //   vì ta truyền THAM CHIẾU hàm, không phải gọi nó ngay).
+          onPressed: _increment,
+
+          // 'child' = nội dung bên trong nút (chỉ 1 widget).
+          // 'const' phía trước Text = widget này không bao giờ đổi → Flutter tối ưu, không rebuild.
+          child: const Text('Tăng'),
+        ),
+      ],
+    );
+  }
+}
+```
+
+---
+
+## 7. Checklist tự kiểm tra (nhìn code Flutter mà trả lời được là ổn)
+
+Nhìn vào 1 file `.dart` bất kỳ, bạn phải chỉ ra được:
+
+1. Class này `extends StatelessWidget` hay `StatefulWidget`? → widget này có state không?
+2. Các `final` fields ở đầu class là gì? → đó là props của widget.
+3. Hàm `build()` return widget gì? → widget gốc của UI này.
+4. Chỗ nào dùng `child` (1 con), chỗ nào dùng `children` (nhiều con)?
+5. Có `setState()` ở đâu không? → chỗ đó là nơi state thay đổi và UI rebuild.
+
+Trả lời được 5 câu này = bạn đọc hiểu được ~80% code Flutter trong dự án thật.
+
+---
+
+## 8. Trả lời phỏng vấn nếu bị hỏi về cú pháp
+
+> "Cú pháp Flutter ban đầu nhìn lồng sâu hơn JSX vì mọi thứ đều là Widget — padding, căn giữa đều là widget bọc ngoài chứ không gộp vào một object style như React Native. Nhưng bản chất thì ánh xạ rất thẳng: `StatelessWidget` là function component không state, `StatefulWidget` với `setState` chính là component có `useState`, hàm `build()` tương đương phần return JSX, còn các field `final` trong class chính là props. Cái `@override` chỉ là annotation báo compiler biết mình đang ghi đè hàm `build` của lớp cha. Khi hiểu được ánh xạ này thì đọc code Flutter không còn khó nữa."
+
+---
+
+_Đọc xong file này → sang `day-01-dart-syntax.mdc` để nắm cú pháp Dart, rồi `day-02` để học Widget & Layout._

@@ -1,9 +1,11 @@
 ---
-description: Flutter Day 02 — Widgets & Layout cho RN dev. Ánh xạ Component + Flexbox (RN) sang Widget tree, Stateless/Stateful, Row/Column/Expanded.
+description: Flutter Day 02 — Widgets & Layout cho RN dev. Ánh xạ Component + Flexbox (RN) sang Widget tree, Stateless/Stateful, Row/Column/Expanded. Code có comment từng dòng.
 alwaysApply: false
 ---
 
 # Flutter Day 02 — Widgets & Layout (vs Component + Flexbox)
+
+> Chưa đọc `day-00-giai-phau-cu-phap.mdc`? Đọc trước, vì file này giả định bạn đã hiểu `extends`, `@override`, `build`, `child` vs `children`.
 
 ## 1. Hôm nay học gì + vì sao
 
@@ -21,56 +23,144 @@ RN: bạn xây nhà bằng "khung nhà" (component) rồi sơn/trang trí riêng
 
 ## 3. Đi sâu kỹ thuật
 
-**a) "Everything is a Widget" — khác biệt tư duy #1**
+### a) "Everything is a Widget" — khác biệt tư duy #1
 
+```dart
+// ══════════ REACT NATIVE ══════════
+// <View style={{ padding: 16 }}>
+//   <Text>Hi</Text>
+// </View>
+// → padding là 1 PROP nằm trong object style.
+
+// ══════════ FLUTTER ══════════
+Padding(                            // 'Padding' là 1 WIDGET RIÊNG, không phải prop
+  // 'padding:' = tham số của widget Padding (named parameter).
+  // 'EdgeInsets.all(16)' = tạo padding 16 pixel cho CẢ 4 CẠNH.
+  //   Các biến thể khác:
+  //   EdgeInsets.symmetric(horizontal: 16, vertical: 8)  → trái/phải 16, trên/dưới 8
+  //   EdgeInsets.only(top: 12, left: 4)                  → chỉ định từng cạnh
+  padding: EdgeInsets.all(16),
+
+  // 'child:' = widget CON DUY NHẤT nằm bên trong Padding.
+  child: Text('Hi'),                // 'Text' = widget hiển thị chữ = <Text> của RN
+)
 ```
-RN:                          Flutter:
-<View style={{padding:16}}>  Padding(padding: EdgeInsets.all(16),
-  <Text>Hi</Text>              child: Text('Hi'))
-</View>
-```
 
-Trong RN, padding là **prop**. Trong Flutter, `Padding` là **1 Widget riêng** bọc ngoài. Center, Align, SizedBox (khoảng trống), Container (View đa năng)... tất cả là widget. → code nested sâu hơn RN, đó là bình thường.
+Trong RN, padding là **prop**. Trong Flutter, `Padding` là **1 Widget riêng** bọc ngoài. `Center`, `Align`, `SizedBox` (khoảng trống), `Container` (View đa năng)... tất cả đều là widget. → code lồng sâu hơn RN, **đó là bình thường**.
 
-**b) StatelessWidget vs StatefulWidget — ánh xạ trực tiếp**
+---
+
+### b) StatelessWidget vs StatefulWidget — ánh xạ trực tiếp
 
 | React Native | Flutter |
 | --- | --- |
 | Function component không có state | `StatelessWidget` |
 | Function component có `useState` | `StatefulWidget` + `setState()` |
-| `props` | tham số constructor (final fields) |
-| `return <JSX>` | `Widget build(context) => ...` |
-| re-render khi state đổi | `setState()` gọi lại `build()` |
+| `props` | các field `final` trong class |
+| `return <JSX>` | `Widget build(context) { return ...; }` |
+| re-render khi state đổi | `setState()` → Flutter gọi lại `build()` |
+
+#### StatelessWidget — widget KHÔNG có state
 
 ```dart
-// StatelessWidget = function component thuần (chỉ nhận props, không state)
+// 'class Greeting' = tên widget do bạn đặt (giống tên component trong RN).
+// 'extends StatelessWidget' = kế thừa StatelessWidget
+//   → nói với Flutter: "đây là widget không có state nội bộ, chỉ nhận props rồi vẽ".
+//   → Tương đương: function Greeting({ name }) { return <Text>...</Text> }
 class Greeting extends StatelessWidget {
+
+  // ── PROPS. Trong Flutter, props = các field 'final' của class.
+  //    'final' vì props không được đổi từ bên trong widget (giống React: props read-only).
   final String name;
+
+  // ── CONSTRUCTOR: cách nhận props từ bên ngoài.
+  //    'const'      = widget này là hằng số compile-time → Flutter tối ưu, tránh rebuild thừa.
+  //    '{ }'        = named parameters → gọi kiểu Greeting(name: 'Nhan')
+  //    'required'   = bắt buộc phải truyền `name`.
+  //    'this.name'  = tự động gán giá trị truyền vào cho field `name` ở trên.
+  //    'super.key'  = chuyển tham số `key` lên lớp cha (StatelessWidget).
+  //                   `key` chính là `key` prop trong FlatList của RN.
   const Greeting({required this.name, super.key});
 
+  // ── '@override' = báo compiler: đang GHI ĐÈ hàm build() có sẵn của StatelessWidget.
   @override
+  // 'Widget'        = kiểu trả về (một mảnh UI) — tương đương JSX.Element.
+  // 'build'         = tên hàm BẮT BUỘC. Flutter tự gọi hàm này để vẽ UI.
+  // 'BuildContext'  = kiểu của tham số: "vị trí của widget này trong cây widget".
+  //                   Dùng để lấy theme, kích thước màn hình, navigate, đọc Provider.
+  // 'context'       = tên biến (quy ước, ai cũng đặt tên này).
   Widget build(BuildContext context) {
+    // 'return' UI. '$name' nhúng biến vào chuỗi (giống `${name}` của JS).
     return Text('Hello $name');
   }
 }
 
-// StatefulWidget = component có useState
+// ── CÁCH DÙNG (giống dùng component trong RN):
+//    Flutter:  Greeting(name: 'Nhan')
+//    RN:       <Greeting name="Nhan" />
+```
+
+#### StatefulWidget — widget CÓ state (cần 2 class)
+
+```dart
+// ⚠️ VÌ SAO CẦN 2 CLASS?
+//    Flutter tách widget có state thành 2 phần:
+//    - Class 1 (StatefulWidget): phần CẤU HÌNH/props — bị hủy & tạo lại mỗi lần rebuild.
+//    - Class 2 (State):          phần DỮ LIỆU/state — ĐƯỢC GIỮ LẠI xuyên suốt vòng đời.
+//    → Nhờ tách vậy, state KHÔNG bị mất khi widget rebuild.
+//    (React làm việc này ngầm bên trong nên bạn không thấy 2 phần.)
+
+// ─────────── CLASS 1: khai báo widget + nhận props ───────────
 class Counter extends StatefulWidget {
+  // Constructor. Widget này không có props nào ngoài `key`.
   const Counter({super.key});
+
+  // ── 'createState()' = hàm BẮT BUỘC của mọi StatefulWidget.
+  //    Nhiệm vụ: tạo ra object State đi kèm với widget này.
+  //    'State<Counter>' = kiểu trả về: một State gắn với widget Counter.
+  //    '=> _CounterState()' = arrow function trả về instance của class State bên dưới.
   @override
   State<Counter> createState() => _CounterState();
 }
 
+// ─────────── CLASS 2: chứa state + hàm build UI ───────────
+// Dấu '_' đầu tên = PRIVATE (chỉ dùng được trong file này). Quy ước của Dart.
+// 'extends State<Counter>' = đây là State dành riêng cho widget Counter.
 class _CounterState extends State<Counter> {
-  int count = 0;   // = useState
+
+  // ── BIẾN STATE. Chính là `const [count, setCount] = useState(0)` của RN.
+  //    Khai báo như biến class bình thường, KHÔNG cần hook.
+  //    Không dùng 'final' vì giá trị sẽ thay đổi.
+  int count = 0;
 
   @override
   Widget build(BuildContext context) {
+    // 'Column' = xếp các widget con theo chiều DỌC.
+    //          = <View style={{ flexDirection: 'column' }}> của RN.
     return Column(
+      // 'children:' = DANH SÁCH widget con (số nhiều → nhận vào một List [ ]).
       children: [
+
+        // Widget hiển thị chữ. '$count' nhúng giá trị biến count vào chuỗi.
         Text('Count: $count'),
+
+        // 'ElevatedButton' = nút bấm nổi kiểu Material.
+        //                  ≈ <TouchableOpacity> + style trong RN.
         ElevatedButton(
-          onPressed: () => setState(() => count++),  // = setCount(count+1)
+          // 'onPressed:' = callback khi bấm nút = 'onPress' trong RN.
+          //
+          // '() => setState(() => count++)' — giải nghĩa từ ngoài vào trong:
+          //   1. '() => ...'          : arrow function chạy khi user bấm.
+          //   2. 'setState(...)'      : BÁO cho Flutter "state đã đổi, hãy gọi lại build()".
+          //                             → tương đương setCount(...) trong RN.
+          //   3. '() => count++'      : hàm bên trong setState, thực hiện tăng count lên 1.
+          //
+          // ⚠️ BẮT BUỘC bọc trong setState. Nếu chỉ viết `count++` thì
+          //    biến có tăng nhưng UI KHÔNG cập nhật (giống mutate state trực tiếp trong React).
+          onPressed: () => setState(() => count++),
+
+          // 'child:' = nội dung bên trong nút (CHỈ 1 widget).
+          // 'const' trước Text = chữ này không bao giờ đổi → Flutter tối ưu, không rebuild.
           child: const Text('Increment'),
         ),
       ],
@@ -79,81 +169,184 @@ class _CounterState extends State<Counter> {
 }
 ```
 
-> **Ánh xạ vàng:** `setState(() => count++)` chính là `setCount(count + 1)`. Gọi `setState` → Flutter chạy lại `build()` → UI update. Y hệt cơ chế re-render của RN.
+> **Ánh xạ vàng:** `setState(() => count++)` chính là `setCount(count + 1)`.
+> Gọi `setState` → Flutter chạy lại `build()` → UI update. Y hệt cơ chế re-render của RN.
 
-**c) `key` — y hệt RN**
+---
 
-`super.key` / `Key` trong Flutter = `key` prop trong FlatList của RN. Cùng mục đích: giúp framework reconcile item đúng khi list thay đổi. Bạn đã hiểu cái này rồi (từ kinh nghiệm keyExtractor).
+### c) `key` — y hệt RN
 
-**d) Layout — Flexbox đổi tên**
+`super.key` / `Key` trong Flutter = `key` prop trong FlatList của RN. Cùng mục đích: giúp framework reconcile item đúng khi list thay đổi. Bạn đã hiểu cái này rồi từ kinh nghiệm `keyExtractor`.
 
-| RN (Flexbox) | Flutter |
-| --- | --- |
-| `flexDirection: 'row'` | `Row` |
-| `flexDirection: 'column'` | `Column` |
-| `flex: 1` | `Expanded(child: ...)` |
-| `justifyContent` | `mainAxisAlignment` |
-| `alignItems` | `crossAxisAlignment` |
-| `<View>` (hộp đa năng) | `Container` |
-| `<ScrollView>` | `SingleChildScrollView` |
-| `<FlatList>` | `ListView.builder` |
-| `<Image>` | `Image.network` / `Image.asset` |
-| `<TouchableOpacity>` | `GestureDetector` / `InkWell` |
-| `<TextInput>` | `TextField` |
-| `<SafeAreaView>` | `SafeArea` |
+---
+
+### d) Layout — Flexbox đổi tên
+
+| RN (Flexbox) | Flutter | Ghi chú |
+| --- | --- | --- |
+| `flexDirection: 'row'` | `Row` | xếp NGANG |
+| `flexDirection: 'column'` | `Column` | xếp DỌC |
+| `flex: 1` | `Expanded(child: ...)` | chiếm hết chỗ trống |
+| `justifyContent` | `mainAxisAlignment` | căn theo TRỤC CHÍNH |
+| `alignItems` | `crossAxisAlignment` | căn theo TRỤC PHỤ |
+| `<View>` | `Container` | hộp đa năng (màu, border, padding) |
+| `<ScrollView>` | `SingleChildScrollView` | cuộn nội dung ngắn |
+| `<FlatList>` | `ListView.builder` | list dài, lazy render |
+| `<Image>` | `Image.network` / `Image.asset` | ảnh từ URL / từ file local |
+| `<TouchableOpacity>` | `GestureDetector` / `InkWell` | InkWell có hiệu ứng ripple |
+| `<TextInput>` | `TextField` | ô nhập liệu |
+| `<SafeAreaView>` | `SafeArea` | tránh tai thỏ/thanh trạng thái |
+| `marginBottom: 8` | `SizedBox(height: 8)` | tạo khoảng trống |
+
+> **Mẹo nhớ trục:** Với `Row` (ngang) → trục chính = NGANG, trục phụ = DỌC.
+> Với `Column` (dọc) → trục chính = DỌC, trục phụ = NGANG.
+> `mainAxisAlignment` luôn căn theo hướng widget đó xếp.
 
 ```dart
-// RN: <View style={{flexDirection:'row', justifyContent:'space-between'}}>
-Row(
+// ══════ RN: <View style={{flexDirection:'row', justifyContent:'space-between'}}> ══════
+
+Row(                                          // xếp các con theo hàng NGANG
+  // 'mainAxisAlignment' = căn theo trục chính (với Row là trục NGANG)
+  //                     = justifyContent của Flexbox.
+  // Các giá trị hay dùng:
+  //   MainAxisAlignment.start        → dồn về đầu
+  //   MainAxisAlignment.center       → căn giữa
+  //   MainAxisAlignment.spaceBetween → dàn đều, sát 2 mép
+  //   MainAxisAlignment.spaceEvenly  → dàn đều kể cả 2 mép
   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+  // 'crossAxisAlignment' = căn theo trục phụ (với Row là trục DỌC)
+  //                      = alignItems của Flexbox.
+  crossAxisAlignment: CrossAxisAlignment.center,
+
   children: [
-    Text('Left'),
-    Expanded(child: Text('Middle grows')),  // flex: 1
-    Text('Right'),
+    Text('Left'),                             // widget con 1
+
+    // 'Expanded' = widget con này CHIẾM HẾT chỗ trống còn lại.
+    //            = style={{ flex: 1 }} trong RN.
+    // Nếu có nhiều Expanded, dùng 'flex:' để chia tỉ lệ:
+    //   Expanded(flex: 2, child: ...) → chiếm gấp đôi Expanded(flex: 1, ...)
+    Expanded(child: Text('Middle grows')),
+
+    Text('Right'),                            // widget con 3
   ],
 )
 ```
 
-**e) FlatList → ListView.builder (bạn sẽ dùng nhiều)**
+---
+
+### e) FlatList → ListView.builder (bạn sẽ dùng nhiều)
 
 ```dart
-// = <FlatList data={items} renderItem={...} keyExtractor={...} />
+// ══════ RN ══════
+// <FlatList
+//   data={items}
+//   renderItem={({ item }) => <Text>{item.name}</Text>}
+//   keyExtractor={item => item.id}
+// />
+
+// ══════ FLUTTER ══════
 ListView.builder(
+  // 'itemCount:' = TỔNG số item trong list.
+  //                Flutter cần biết con số này để tính thanh cuộn.
+  //                = prop `data.length` (RN tự suy ra từ mảng data).
   itemCount: items.length,
-  itemBuilder: (context, index) {   // = renderItem
+
+  // 'itemBuilder:' = HÀM vẽ ra từng item = 'renderItem' của RN.
+  //   Flutter gọi hàm này MỘT LẦN cho mỗi item hiển thị trên màn hình (lazy).
+  //   Tham số:
+  //     'context' = BuildContext của item đó
+  //     'index'   = vị trí item trong list (0, 1, 2, ...)
+  itemBuilder: (context, index) {
+    // Lấy item tại vị trí index từ mảng data.
     final item = items[index];
+
+    // 'ListTile' = widget dựng sẵn 1 dòng danh sách (có title, subtitle, icon...).
+    //              Tiện, không phải tự dựng Row + Padding.
     return ListTile(
-      title: Text(item.name),
-      key: ValueKey(item.id),        // = keyExtractor
+      // 'key:' = ID để Flutter nhận diện đúng item khi list thay đổi.
+      //          'ValueKey(item.id)' bọc giá trị id thành 1 Key.
+      //          = keyExtractor={item => item.id} của RN.
+      key: ValueKey(item.id),
+
+      title: Text(item.name),          // dòng chữ chính
+      subtitle: Text(item.email),      // dòng chữ phụ (nhỏ, xám)
+      trailing: const Icon(Icons.chevron_right),  // icon bên phải
+      onTap: () {                      // = onPress khi bấm vào dòng này
+        // xử lý khi tap
+      },
     );
   },
 )
 ```
 
-`ListView.builder` cũng **lazy render** như FlatList (chỉ build item trong viewport). Cùng nguyên lý virtualization bạn đã biết.
+`ListView.builder` cũng **lazy render** như FlatList (chỉ build item nằm trong viewport). Cùng nguyên lý virtualization bạn đã biết. Dùng `ListView.builder` cho list dài, dùng `ListView(children: [...])` cho list ngắn cố định.
 
 ---
 
-## 4. Code tối thiểu — 1 màn hình hoàn chỉnh
+## 4. Code tối thiểu — 1 màn hình hoàn chỉnh, comment từng dòng
 
 ```dart
+// ── 'import' = nhập thư viện (giống import của JS).
+//    'package:flutter/material.dart' = bộ widget Material Design của Google.
+//    Cung cấp: Scaffold, AppBar, Text, Column, ElevatedButton, Colors, Icons...
+//    ≈ import { View, Text } from 'react-native'
 import 'package:flutter/material.dart';
 
+// Widget không có state → dùng StatelessWidget.
 class ProfileScreen extends StatelessWidget {
+  // Constructor: không có props, chỉ nhận `key`.
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(                       // = màn hình khung (có appBar, body)
-      appBar: AppBar(title: const Text('Profile')),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+
+    // ── 'Scaffold' = BỘ KHUNG chuẩn của 1 màn hình Material.
+    //    Nó lo sẵn: thanh AppBar trên cùng, vùng body, nút FAB, drawer, bottom bar.
+    //    RN không có tương đương chính xác — cứ hiểu là "screen template".
+    return Scaffold(
+
+      // 'backgroundColor:' = màu nền toàn màn hình.
+      backgroundColor: Colors.white,
+
+      // ── 'appBar:' = thanh tiêu đề trên cùng (giống header của React Navigation).
+      appBar: AppBar(
+        title: const Text('Profile'),   // 'title:' = chữ hiển thị trên thanh
+      ),
+
+      // ── 'body:' = phần nội dung chính của màn hình.
+      body: SafeArea(                   // 'SafeArea' = tránh tai thỏ / thanh trạng thái
+                                        //            = <SafeAreaView> của RN
+        child: Padding(                 // bọc thêm lớp padding
+          padding: const EdgeInsets.all(16),   // padding 16 cả 4 cạnh
+
+          child: Column(                // xếp các widget con theo chiều DỌC
+
+            // 'crossAxisAlignment' với Column = căn theo trục NGANG.
+            // 'CrossAxisAlignment.start' = dồn các con về bên TRÁI.
+            //   (mặc định là center, nên phải khai báo nếu muốn căn trái)
             crossAxisAlignment: CrossAxisAlignment.start,
+
+            // 'const' đặt trước List → cả list này là hằng số, Flutter tối ưu tối đa.
             children: const [
-              Text('Nhan', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),          // = khoảng cách (thay margin)
+
+              // Widget chữ với style tùy chỉnh.
+              Text(
+                'Nhan',
+                // 'style:' nhận vào object TextStyle. KHÔNG có StyleSheet như RN.
+                style: TextStyle(
+                  fontSize: 24,                 // cỡ chữ
+                  fontWeight: FontWeight.bold,  // in đậm
+                  color: Colors.black87,        // màu chữ
+                ),
+              ),
+
+              // ── 'SizedBox' = hộp rỗng có kích thước cố định.
+              //    Đây là cách PHỔ BIẾN NHẤT để tạo khoảng cách trong Flutter
+              //    (thay cho marginBottom của RN).
+              //    height: 8 → tạo khoảng trống dọc 8 pixel.
+              SizedBox(height: 8),
+
               Text('React Native → Flutter'),
             ],
           ),
@@ -164,15 +357,16 @@ class ProfileScreen extends StatelessWidget {
 }
 ```
 
-- `Scaffold` = bộ khung màn hình (AppBar + body + FAB). Không có tương đương chính xác trong RN, cứ hiểu là "screen template".
-- `SizedBox(height: 8)` = cách tạo khoảng cách phổ biến nhất (thay cho margin).
-- Style = truyền `TextStyle(...)` vào, KHÔNG có StyleSheet.
+**Tóm tắt 3 điều cần nhớ từ ví dụ trên:**
+- `Scaffold` = bộ khung màn hình (AppBar + body + FAB).
+- `SizedBox(height: 8)` = cách tạo khoảng cách phổ biến nhất (thay margin).
+- Style = truyền object (`TextStyle`, `BoxDecoration`) vào constructor, **không có StyleSheet**.
 
 ---
 
 ## 5. Trả lời phỏng vấn ≤60s ("Flutter dựng UI khác RN thế nào?")
 
-> "Khác biệt lớn nhất là trong Flutter mọi thứ đều là Widget — kể cả padding, căn giữa, khoảng cách đều là widget bọc quanh nhau, không có StyleSheet riêng như RN. Về component thì ánh xạ khá thẳng: StatelessWidget là function component thuần, StatefulWidget với setState chính là component có useState — gọi setState là build lại UI y như re-render. Layout thì Flutter dùng Row, Column, Expanded thay cho Flexbox nhưng cùng tư duy main axis / cross axis. FlatList thì thành ListView.builder, cũng lazy render như nhau. Nên với nền tảng RN của tôi, phần UI là phần tôi bắt nhịp nhanh nhất."
+> "Khác biệt lớn nhất là trong Flutter mọi thứ đều là Widget — kể cả padding, căn giữa, khoảng cách đều là widget bọc quanh nhau, không có StyleSheet riêng như RN. Về component thì ánh xạ khá thẳng: StatelessWidget là function component thuần, StatefulWidget với setState chính là component có useState — gọi setState là build lại UI y như re-render. Layout thì Flutter dùng Row, Column, Expanded thay cho Flexbox nhưng cùng tư duy main axis và cross axis. FlatList thì thành ListView.builder, cũng lazy render như nhau. Nên với nền tảng RN của tôi, phần UI là phần tôi bắt nhịp nhanh nhất."
 
 ---
 
@@ -180,12 +374,15 @@ class ProfileScreen extends StatelessWidget {
 
 - ❌ Đừng tìm "file StyleSheet" trong Flutter — không có. Style nằm trong constructor widget.
 - ❌ Đừng nói "Flutter không có state" — có, qua StatefulWidget + setState.
-- ❌ Nhớ: nested widget sâu là bình thường trong Flutter, không phải code bẩn. Tách widget con để đỡ rối (giống tách component RN).
+- ❌ Nhớ: widget lồng sâu là bình thường trong Flutter, không phải code bẩn. Dùng **Extract Widget** (`Cmd + .`) để tách nhỏ, giống tách component RN.
+- ❌ Đừng quên `setState()` khi đổi state — sửa biến trực tiếp thì UI không cập nhật.
 
 ---
 
 ## 7. Tự kiểm tra (trả lời được mới qua Day 03)
 
-1. `StatefulWidget` + `setState()` ánh xạ tới cái gì trong RN?
+1. `StatefulWidget` + `setState()` ánh xạ tới cái gì trong RN? Vì sao cần 2 class?
 2. `Expanded`, `mainAxisAlignment`, `crossAxisAlignment` tương đương gì trong Flexbox?
 3. `ListView.builder` khác gì `ListView` thường, và nó giống component nào của RN?
+4. `child` và `children` khác nhau chỗ nào?
+5. Muốn tạo khoảng cách dọc 12px giữa 2 widget trong Column thì viết gì?

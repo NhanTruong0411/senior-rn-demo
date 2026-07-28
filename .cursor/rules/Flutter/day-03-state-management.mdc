@@ -1,5 +1,5 @@
 ---
-description: Flutter Day 03 — State management cho RN dev. Ánh xạ useState/Context/Redux/TanStack Query sang setState/Provider/Riverpod/Bloc.
+description: Flutter Day 03 — State management cho RN dev. Ánh xạ useState/Context/Redux/TanStack Query sang setState/Provider/Riverpod/Bloc. Code có comment từng dòng.
 alwaysApply: false
 ---
 
@@ -24,7 +24,7 @@ Bạn đã hiểu trade-off này rồi từ "Redux vs local state" — chỉ đ�
 
 ---
 
-## 3. Đi sâu kỹ thuật — Bảng ánh xạ
+## 3. Bảng ánh xạ tổng quan
 
 | Nhu cầu | React Native | Flutter |
 | --- | --- | --- |
@@ -32,115 +32,290 @@ Bạn đã hiểu trade-off này rồi từ "Redux vs local state" — chỉ đ�
 | Share state vài màn hình | Context API | `Provider` / `InheritedWidget` |
 | Global state + logic gọn | Redux Toolkit nhẹ / Zustand | `Riverpod` |
 | Global state có kỷ luật (event → reducer) | Redux (action → reducer → store) | `Bloc` / `Cubit` |
-| Server state (cache, refetch) | TanStack Query | `dio` + Bloc/Riverpod (hoặc `flutter_query`) |
+| Server state (cache, refetch) | TanStack Query | `dio` + Bloc/Riverpod (tự lo) |
 
-**a) setState — bạn đã hiểu (Day 02)**
+---
 
-Local state, gọi `setState()` → rebuild widget. = `useState` + re-render.
+## 4. Đi sâu từng cách — code có comment
 
-**b) Provider — giống Context API + hook**
+### a) setState — local state (đã học ở Day 02)
+
+Local state, gọi `setState()` → rebuild widget. Chính là `useState` + re-render. Xem lại Day 02 nếu chưa rõ.
+
+---
+
+### b) Provider — giống Context API + useContext
 
 ```dart
-// Định nghĩa store (giống 1 slice / context value)
+// ══════════ BƯỚC 1: ĐỊNH NGHĨA "STORE" ══════════
+
+// 'ChangeNotifier' = class có sẵn của Flutter, cung cấp cơ chế "thông báo cho ai đang lắng nghe".
+//   'extends ChangeNotifier' = CartModel thừa hưởng khả năng phát tín hiệu thay đổi.
+//   → Tương đương: 1 slice trong Redux, hoặc value của 1 Context Provider.
 class CartModel extends ChangeNotifier {
+
+  // ── STATE THẬT. Dấu '_' đầu tên = PRIVATE (không cho bên ngoài sửa trực tiếp).
+  //    'final' vì bản thân biến list không đổi (chỉ nội dung bên trong đổi).
   final List<Item> _items = [];
+
+  // ── GETTER: cho bên ngoài ĐỌC nhưng không cho ghi.
+  //    'List<Item> get items' = định nghĩa thuộc tính chỉ-đọc tên `items`.
+  //    '=> _items;' = trả về danh sách private ở trên.
+  //    → Đọc từ widget: cart.items
   List<Item> get items => _items;
 
+  // ── ACTION: hàm thay đổi state. Tương đương 1 reducer case / action trong Redux.
   void add(Item item) {
-    _items.add(item);
-    notifyListeners();   // = báo re-render (giống dispatch/setState)
+    _items.add(item);        // thay đổi dữ liệu
+
+    // ⚠️ 'notifyListeners()' = BÁO cho tất cả widget đang lắng nghe: "state đổi rồi, rebuild đi!"
+    //    → Tương đương: dispatch trong Redux, hoặc setState trong local state.
+    //    Quên gọi dòng này = data đổi nhưng UI đứng im (bug kinh điển).
+    notifyListeners();
+  }
+
+  void remove(Item item) {
+    _items.remove(item);
+    notifyListeners();       // luôn nhớ gọi sau khi đổi state
   }
 }
 
-// Đọc trong widget (giống useContext / useSelector)
-final cart = context.watch<CartModel>();   // watch = subscribe, rebuild khi đổi
-context.read<CartModel>().add(item);         // read = chỉ gọi action, không subscribe
+// ══════════ BƯỚC 2: CUNG CẤP STORE CHO CÂY WIDGET ══════════
+// Giống việc bọc <Provider store={store}> ở gốc app trong Redux/Context.
+
+ChangeNotifierProvider(
+  // 'create:' = hàm tạo instance của store. Chạy 1 lần khi provider được dựng.
+  //   '(context) => CartModel()' = arrow function, trả về store mới.
+  create: (context) => CartModel(),
+
+  // 'child:' = toàn bộ cây widget bên dưới sẽ TRUY CẬP ĐƯỢC store này.
+  child: MyApp(),
+)
+
+// ══════════ BƯỚC 3: ĐỌC / GHI TRONG WIDGET ══════════
+
+// ── 'context.watch<CartModel>()' = ĐĂNG KÝ LẮNG NGHE store.
+//    Widget này sẽ TỰ REBUILD mỗi khi CartModel gọi notifyListeners().
+//    '<CartModel>' = generic, nói rõ muốn lấy store loại nào.
+//    → Tương đương: useSelector(state => state.cart) trong Redux.
+final cart = context.watch<CartModel>();
+Text('Có ${cart.items.length} sản phẩm');   // dùng dữ liệu, tự update khi đổi
+
+// ── 'context.read<CartModel>()' = LẤY store 1 LẦN, KHÔNG đăng ký lắng nghe.
+//    Dùng khi chỉ muốn GỌI HÀM, không cần widget rebuild.
+//    → Tương đương: useDispatch() trong Redux.
+//    ⚠️ Dùng read trong onPressed, dùng watch trong build. Nhầm chỗ → rebuild thừa hoặc UI không update.
+ElevatedButton(
+  onPressed: () => context.read<CartModel>().add(newItem),
+  child: const Text('Thêm vào giỏ'),
+)
 ```
 
-- `ChangeNotifier` + `notifyListeners()` ≈ store + dispatch.
-- `context.watch()` = `useSelector` (subscribe, rebuild khi state đổi).
-- `context.read()` = lấy 1 lần để gọi hàm, không subscribe (giống `useDispatch`).
+| Provider | Redux/Context tương đương |
+| --- | --- |
+| `ChangeNotifier` | store / context value |
+| `notifyListeners()` | dispatch (báo có thay đổi) |
+| `context.watch<T>()` | `useSelector` (subscribe → rebuild) |
+| `context.read<T>()` | `useDispatch` (chỉ gọi hàm, không subscribe) |
+| `ChangeNotifierProvider` | `<Provider store={...}>` |
 
-**c) Riverpod — Provider "bản nâng cấp" (rất phổ biến 2026)**
+---
+
+### c) Riverpod — Provider "bản nâng cấp" (rất phổ biến 2026)
 
 ```dart
-// Khai báo provider (giống 1 atom/slice, khai báo ngoài widget)
+// ══════════ KHAI BÁO PROVIDER (đặt ở cấp GLOBAL, ngoài mọi widget) ══════════
+
+// 'StateProvider<int>' = provider giữ 1 giá trị đơn giản kiểu int, có thể thay đổi.
+//   '(ref) => 0'  = hàm khởi tạo, trả về giá trị ban đầu là 0.
+//   'ref'         = tham chiếu cho phép provider này đọc provider khác (dependency injection).
+//   'final counterProvider' = biến global, khai báo 1 lần dùng khắp app.
+//   → Tương đương: 1 atom trong Recoil, hoặc 1 slice nhỏ trong Redux Toolkit.
 final counterProvider = StateProvider<int>((ref) => 0);
 
-// Đọc trong widget (widget phải là ConsumerWidget)
-final count = ref.watch(counterProvider);              // = useSelector
-ref.read(counterProvider.notifier).state++;             // = dispatch
+// ══════════ DÙNG TRONG WIDGET ══════════
+// ⚠️ Widget phải 'extends ConsumerWidget' (thay vì StatelessWidget)
+//    để nhận được tham số 'ref'.
+class CounterScreen extends ConsumerWidget {
+  const CounterScreen({super.key});
+
+  @override
+  // ⚠️ Chú ý: build() của ConsumerWidget có THÊM tham số thứ 2 là 'ref'.
+  //    'WidgetRef ref' = công cụ để đọc/ghi các provider.
+  Widget build(BuildContext context, WidgetRef ref) {
+
+    // ── 'ref.watch(...)' = ĐĂNG KÝ LẮNG NGHE provider.
+    //    Widget tự rebuild khi giá trị đổi.
+    //    → Tương đương useSelector của Redux.
+    final count = ref.watch(counterProvider);
+
+    return Column(
+      children: [
+        Text('Count: $count'),
+
+        ElevatedButton(
+          // ── 'ref.read(...)' = lấy provider 1 lần, không lắng nghe (dùng trong callback).
+          //    '.notifier'     = truy cập vào object điều khiển state của provider.
+          //    '.state++'      = tăng giá trị state lên 1.
+          //    → Tương đương dispatch(increment()) trong Redux.
+          onPressed: () => ref.read(counterProvider.notifier).state++,
+          child: const Text('Tăng'),
+        ),
+      ],
+    );
+  }
+}
 ```
 
-- Riverpod ≈ Zustand/Recoil của thế giới Flutter: khai báo provider global, không cần bọc widget tree thủ công nhiều, type-safe, dễ test.
-- Nếu team dùng Riverpod → bạn map nó về "Redux Toolkit nhưng ít boilerplate".
+**Tóm tắt:** Riverpod ≈ Zustand/Recoil của thế giới Flutter. Khai báo provider global, type-safe, dễ test, ít boilerplate hơn Provider. Nếu team dùng Riverpod → map nó về "Redux Toolkit nhưng gọn hơn".
 
-**d) Bloc / Cubit — giống Redux nhất (nhiều team VN dùng)**
+---
+
+### d) Bloc / Cubit — giống Redux nhất (nhiều team VN dùng)
+
+#### Cubit — bản rút gọn (không cần Event class)
 
 ```dart
-// Cubit = Bloc rút gọn (không cần event class) — giống Redux Toolkit slice
+// 'Cubit<int>' = Cubit quản lý state kiểu int.
+//   '<int>' là kiểu của STATE. Có thể là class phức tạp thay vì int.
+//   → Tương đương 1 slice của Redux Toolkit (gọi method trực tiếp, không cần action object).
 class CounterCubit extends Cubit<int> {
-  CounterCubit() : super(0);              // initial state = 0
-  void increment() => emit(state + 1);    // emit = dispatch new state
+
+  // ── CONSTRUCTOR. ': super(0)' = truyền giá trị KHỞI TẠO của state lên lớp cha Cubit.
+  //    Dấu ':' trước super gọi là "initializer list" — chạy trước thân constructor.
+  //    → Tương đương initialState: 0 trong Redux.
+  CounterCubit() : super(0);
+
+  // ── ACTION: hàm thay đổi state.
+  //    'state'  = biến có sẵn từ lớp Cubit, chứa giá trị state HIỆN TẠI.
+  //    'emit(x)' = PHÁT RA state mới = x. Mọi widget đang lắng nghe sẽ rebuild.
+  //               → Tương đương: return newState trong reducer của Redux.
+  void increment() => emit(state + 1);
+
+  void decrement() => emit(state - 1);
+
+  void reset() => emit(0);
+}
+```
+
+#### Bloc đầy đủ — có Event (giống Redux chuẩn nhất)
+
+```dart
+// ══════════ BƯỚC 1: ĐỊNH NGHĨA EVENT (= ACTION của Redux) ══════════
+// 'abstract class' = lớp trừu tượng, không tạo object trực tiếp được,
+//                    chỉ dùng làm "kiểu cha" cho các event con.
+abstract class CounterEvent {}
+
+// Mỗi event là 1 class con. Tương đương { type: 'INCREMENT' } trong Redux.
+class IncrementPressed extends CounterEvent {}
+class DecrementPressed extends CounterEvent {}
+
+// ══════════ BƯỚC 2: ĐỊNH NGHĨA BLOC (= REDUCER + STORE) ══════════
+// 'Bloc<CounterEvent, int>' = Bloc nhận Event kiểu CounterEvent, quản state kiểu int.
+class CounterBloc extends Bloc<CounterEvent, int> {
+
+  // ': super(0)' = state khởi tạo = 0.
+  CounterBloc() : super(0) {
+
+    // ── 'on<T>(handler)' = ĐĂNG KÝ xử lý cho event kiểu T.
+    //    → Tương đương 1 case trong switch của reducer Redux.
+    //    'event' = object event nhận được (chứa payload nếu có).
+    //    'emit'  = hàm phát state mới.
+    on<IncrementPressed>((event, emit) {
+      emit(state + 1);       // phát state mới
+    });
+
+    on<DecrementPressed>((event, emit) {
+      emit(state - 1);
+    });
+  }
 }
 
-// Bloc đầy đủ = Redux chuẩn: Event → mapEventToState → State
-// CounterEvent (action) → Bloc (reducer) → CounterState (store)
+// ══════════ BƯỚC 3: DÙNG TRONG UI ══════════
 
-// Dùng trong UI
-BlocBuilder<CounterCubit, int>(          // = <Provider> + useSelector
-  builder: (context, count) => Text('$count'),
+// 'BlocBuilder<CounterBloc, int>' = widget lắng nghe CounterBloc, state kiểu int.
+//   → Tương đương connect() / useSelector của Redux.
+BlocBuilder<CounterBloc, int>(
+  // 'builder:' = hàm vẽ UI, được gọi lại MỖI KHI state đổi.
+  //   'context' = BuildContext
+  //   'count'   = giá trị state hiện tại (Bloc tự truyền vào)
+  builder: (context, count) {
+    return Text('Count: $count');
+  },
 )
-context.read<CounterCubit>().increment();  // = dispatch(increment())
+
+// ── GỬI EVENT (= dispatch action):
+//    '.add(event)' = đẩy event vào Bloc để xử lý.
+//    → Tương đương dispatch(increment()) trong Redux.
+ElevatedButton(
+  onPressed: () => context.read<CounterBloc>().add(IncrementPressed()),
+  child: const Text('Tăng'),
+)
+
+// ── Với Cubit thì gọi method trực tiếp, không cần event:
+//    context.read<CounterCubit>().increment();
 ```
 
 **Ánh xạ vàng cho phỏng vấn:**
-- `Event` (Bloc) = `Action` (Redux)
-- `Bloc/reducer logic` = `reducer` (Redux)
-- `State` = `store state` (Redux)
-- `emit(newState)` = return new state trong reducer
-- `BlocBuilder` = `connect()` / `useSelector`
 
-**Cubit vs Bloc:** Cubit gọi method trực tiếp (như Zustand), Bloc dùng event (như Redux chuẩn). Cubit cho case đơn giản, Bloc cho flow phức tạp cần trace event.
+| Bloc | Redux |
+| --- | --- |
+| `Event` (class) | `Action` (object có `type`) |
+| `on<Event>((event, emit) {...})` | `case 'ACTION':` trong reducer |
+| `emit(newState)` | `return newState` |
+| `state` | `store.getState()` |
+| `BlocBuilder` | `connect()` / `useSelector` |
+| `bloc.add(event)` | `dispatch(action)` |
+
+**Cubit vs Bloc:** Cubit gọi method trực tiếp (như Zustand), Bloc dùng event (như Redux chuẩn). Cubit cho case đơn giản, Bloc cho flow phức tạp cần trace được lịch sử event.
 
 ---
 
-## 4. Code tối thiểu — so sánh cạnh nhau
+## 5. So sánh cạnh nhau — Redux Toolkit vs Cubit
 
 ```dart
-// RN Redux Toolkit:
-// const slice = createSlice({ name:'counter', initialState:0,
-//   reducers:{ increment: s => s+1 } })
-// dispatch(increment())
-// const count = useSelector(s => s.counter)
+// ══════════ REACT NATIVE — Redux Toolkit ══════════
+// const counterSlice = createSlice({
+//   name: 'counter',
+//   initialState: 0,
+//   reducers: {
+//     increment: (state) => state + 1,
+//   },
+// });
+// dispatch(increment());
+// const count = useSelector(s => s.counter);
 
-// Flutter Cubit (tương đương):
-class CounterCubit extends Cubit<int> {
-  CounterCubit() : super(0);
-  void increment() => emit(state + 1);
+// ══════════ FLUTTER — Cubit (tương đương) ══════════
+class CounterCubit extends Cubit<int> {   // ~ createSlice
+  CounterCubit() : super(0);              // ~ initialState: 0
+  void increment() => emit(state + 1);    // ~ reducers.increment
 }
-// context.read<CounterCubit>().increment();
-// final count = context.watch<CounterCubit>().state;
+// context.read<CounterCubit>().increment();          // ~ dispatch(increment())
+// final count = context.watch<CounterCubit>().state; // ~ useSelector
 ```
 
 ---
 
-## 5. Trả lời phỏng vấn ≤60s ("Flutter quản state thế nào? Bạn biết Bloc không?")
+## 6. Trả lời phỏng vấn ≤60s ("Flutter quản state thế nào? Bạn biết Bloc không?")
 
-> "Tôi map các pattern Flutter về những gì tôi đã dùng ở React Native. setState là local state, giống useState. Provider và Riverpod là global state — Provider giống Context API, Riverpod giống Redux Toolkit nhưng ít boilerplate. Còn Bloc thì gần như Redux: Event tương đương Action, Bloc xử lý logic như reducer, rồi emit ra State mới, UI đọc qua BlocBuilder giống useSelector. Cubit là bản rút gọn của Bloc khi không cần event. Ở RN tôi dùng Redux Toolkit cho client state và TanStack Query cho server state, nên tư duy tách client/server state và one-way data flow tôi đã quen — với Flutter chỉ là học API mới của Bloc hoặc Riverpod, không phải học lại khái niệm."
+> "Tôi map các pattern Flutter về những gì tôi đã dùng ở React Native. setState là local state, giống useState. Provider và Riverpod là global state — Provider giống Context API với notifyListeners đóng vai trò dispatch, còn Riverpod giống Redux Toolkit nhưng ít boilerplate. Bloc thì gần Redux nhất: Event tương đương Action, hàm on-event xử lý như reducer, rồi emit ra State mới, UI đọc qua BlocBuilder giống useSelector. Cubit là bản rút gọn của Bloc khi không cần event object. Ở RN tôi dùng Redux Toolkit cho client state và TanStack Query cho server state, nên tư duy tách client/server state và one-way data flow tôi đã quen — với Flutter chỉ là học API mới, không phải học lại khái niệm."
 
 ---
 
-## 6. Bẫy / đừng nói
+## 7. Bẫy / đừng nói
 
 - ❌ Đừng nói "Bloc giống hệt Redux 100%" — Bloc dùng Stream, có async built-in, không cần middleware như redux-thunk. Nói "gần giống" + kể điểm khác.
 - ❌ Đừng claim "tôi thành thạo Riverpod" nếu chưa viết. Nói "tôi hiểu concept, map được về Redux, sẽ nắm nhanh khi vào code thật."
-- ❌ Đừng quên: Flutter không có TanStack Query built-in phổ biến — server state thường tự lo bằng dio + Bloc/Riverpod. Đây là điểm khác đáng nói.
+- ❌ Quên `notifyListeners()` trong Provider → data đổi nhưng UI đứng im. Lỗi phổ biến nhất.
+- ❌ Nhầm `watch` với `read`: dùng `read` trong `build()` → UI không update; dùng `watch` trong callback → rebuild thừa.
+- ❌ Flutter **không có** TanStack Query phổ biến built-in — server state thường tự lo bằng dio + Bloc/Riverpod. Đây là điểm khác đáng nói.
 
 ---
 
-## 7. Tự kiểm tra (trả lời được mới qua Day 04)
+## 8. Tự kiểm tra (trả lời được mới qua Day 04)
 
 1. Trong Bloc: `Event`, `emit(state)`, `BlocBuilder` lần lượt ánh xạ tới khái niệm nào của Redux?
 2. `context.watch()` vs `context.read()` khác nhau chỗ nào? Map về hook RN nào?
 3. Cubit khác Bloc ở điểm gì? Khi nào dùng cái nào?
+4. Trong Provider, quên gọi `notifyListeners()` thì chuyện gì xảy ra?
+5. `CounterCubit() : super(0)` — con số `0` ở đây nghĩa là gì?

@@ -1,5 +1,5 @@
 ---
-description: Flutter Day 05 — Native bridge (MethodChannel/Pigeon) + bộ Q&A phỏng vấn Flutter cho RN dev. Đọc trước khi phỏng vấn CellphoneS/DTV.
+description: Flutter Day 05 — Native bridge (MethodChannel/Pigeon) + bộ Q&A phỏng vấn Flutter cho RN dev. Đọc trước khi phỏng vấn CellphoneS/DTV. Code có comment từng dòng.
 alwaysApply: false
 ---
 
@@ -21,52 +21,195 @@ Bạn đã biết "làm phiên dịch" giữa JS và native (Kotlin/Swift) trong
 
 ---
 
-## 3. Đi sâu — Native bridge (LỢI THẾ CẠNH TRANH CỦA BẠN)
+## 3. Native bridge — LỢI THẾ CẠNH TRANH CỦA BẠN
 
-**RN Native Module → Flutter MethodChannel: ánh xạ trực tiếp**
+### a) Bảng ánh xạ
 
 | React Native | Flutter |
 | --- | --- |
-| Native Module (Java/Kotlin/Swift/ObjC) | Platform Channel — `MethodChannel` |
+| Native Module (Kotlin/Swift) | Platform Channel — `MethodChannel` |
 | `NativeModules.MyModule.doThing()` | `channel.invokeMethod('doThing')` |
 | Bridge / JSI (JS ↔ Native) | MethodChannel (Dart ↔ Native) |
-| Emit event JS ← Native | `EventChannel` (stream Native → Dart) |
-| Manual bridging | `Pigeon` (codegen type-safe — chuẩn mới) |
+| Emit event từ Native → JS | `EventChannel` (stream Native → Dart) |
+| Bridging thủ công | `Pigeon` (codegen type-safe — chuẩn mới) |
 
-**Dart side (gọi xuống native):**
+### b) Phía Dart — gọi xuống native
 
 ```dart
-static const platform = MethodChannel('com.app/wallet');
+// 'import' thư viện services để dùng MethodChannel.
+import 'package:flutter/services.dart';
 
-Future<void> addToWallet(String passData) async {
-  try {
-    await platform.invokeMethod('addPass', {'data': passData});
-  } on PlatformException catch (e) {
-    // xử lý lỗi từ native
-  }
-}
-```
+class WalletService {
 
-**Android side (Kotlin — bạn đã viết cái này trong RN!):**
+  // ── ĐỊNH NGHĨA KÊNH GIAO TIẾP.
+  //    'static'          = biến thuộc về class, không thuộc về từng object (dùng chung).
+  //    'const'           = hằng số compile-time.
+  //    'MethodChannel'   = kênh giao tiếp 2 chiều Dart ↔ Native theo kiểu gọi hàm.
+  //    "'com.app/wallet'" = TÊN KÊNH (chuỗi tùy đặt).
+  //       ⚠️ Tên này PHẢI GIỐNG HỆT tên khai báo bên Kotlin/Swift,
+  //          nếu lệch 1 ký tự → gọi không tới, báo MissingPluginException.
+  //       Quy ước đặt tên: 'domain_nguoc/ten_tinh_nang'.
+  static const platform = MethodChannel('com.app/wallet');
 
-```kotlin
-MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.app/wallet")
-  .setMethodCallHandler { call, result ->
-    when (call.method) {
-      "addPass" -> {
-        val data = call.argument<String>("data")
-        // logic Google Wallet — GIỐNG HỆT logic bạn viết ở Firegroup
-        result.success(null)
-      }
-      else -> result.notImplemented()
+  // ── HÀM GỌI XUỐNG NATIVE.
+  //    'Future<void>' = bất đồng bộ, không trả về giá trị.
+  //    (Mọi lời gọi native đều async vì phải đi qua kênh giao tiếp.)
+  static Future<void> addToWallet(String passData) async {
+
+    // 'try/catch' = bắt lỗi, giống JS.
+    try {
+      // ── 'invokeMethod' = GỌI một hàm bên native.
+      //    Tham số 1: tên method — bên Kotlin/Swift sẽ so khớp chuỗi này.
+      //    Tham số 2: arguments — Map chứa dữ liệu truyền xuống.
+      //       Flutter tự serialize Map này sang kiểu native tương ứng
+      //       (Map → HashMap ở Android, NSDictionary ở iOS).
+      //    'await' vì phải chờ native xử lý xong.
+      await platform.invokeMethod('addPass', {'data': passData});
+
+    } on PlatformException catch (e) {
+      // ── 'on PlatformException catch (e)' = bắt RIÊNG loại lỗi PlatformException.
+      //    'PlatformException' = lỗi do phía native ném ra (qua result.error(...)).
+      //    'e.code'    = mã lỗi native gửi lên
+      //    'e.message' = mô tả lỗi
+      print('Native lỗi: ${e.code} - ${e.message}');
+
+    } on MissingPluginException {
+      // Lỗi này xảy ra khi: tên channel sai, hoặc native chưa đăng ký handler,
+      // hoặc chạy trên platform chưa implement (vd gọi code iOS trên Android).
+      print('Chưa implement bên native cho platform này');
     }
   }
+
+  // ── VÍ DỤ CÓ GIÁ TRỊ TRẢ VỀ TỪ NATIVE:
+  static Future<String?> getDeviceId() async {
+    // 'invokeMethod<String>' = chỉ định kiểu dữ liệu mong đợi nhận về.
+    //   Trả về String? vì native có thể trả null.
+    final String? id = await platform.invokeMethod<String>('getDeviceId');
+    return id;
+  }
 }
 ```
 
-> **Đây là điểm bán hàng LỚN NHẤT của bạn.** Logic native (Kotlin cho Google Wallet, Swift cho Apple Wallet) bạn đã viết ở Firegroup **dùng lại được gần như nguyên** — chỉ đổi cách Dart gọi vào (MethodChannel thay vì RN Bridge). Rất ít Flutter dev level Middle biết viết native side. Nói được điều này = bạn nổi bật ngay.
+### c) Phía Android (Kotlin) — bạn đã viết cái này trong RN rồi!
 
-**Pigeon** = công cụ codegen sinh binding type-safe giữa Dart ↔ Kotlin/Swift (giống Codegen của RN New Architecture bạn đã học ở Day 32 tháng 6). Nhắc tên này = thể hiện bạn cập nhật.
+```kotlin
+// File: android/app/src/main/kotlin/.../MainActivity.kt
+
+// 'class MainActivity : FlutterActivity()' = Activity gốc của app Flutter trên Android.
+class MainActivity : FlutterActivity() {
+
+    // Hằng số tên kênh. ⚠️ PHẢI GIỐNG HỆT chuỗi bên Dart.
+    private val CHANNEL = "com.app/wallet"
+
+    // ── Hàm này Flutter gọi khi engine khởi tạo xong → nơi đăng ký các channel.
+    //    'override' = ghi đè hàm của lớp cha (giống @override của Dart).
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)   // gọi hàm gốc của lớp cha trước
+
+        // ── Tạo MethodChannel phía native, cùng tên với bên Dart.
+        //    'flutterEngine.dartExecutor.binaryMessenger' = "đường ống" giao tiếp
+        //       giữa native và Dart mà engine cung cấp sẵn.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+
+            // ── 'setMethodCallHandler' = đăng ký hàm xử lý khi Dart gọi xuống.
+            //    'call'   = thông tin lời gọi (tên method + arguments).
+            //    'result' = đối tượng để TRẢ KẾT QUẢ ngược lên Dart.
+            .setMethodCallHandler { call, result ->
+
+                // 'when' = switch-case của Kotlin. So khớp theo tên method.
+                when (call.method) {
+
+                    "addPass" -> {
+                        // 'call.argument<String>("data")' = lấy tham số tên "data",
+                        //   ép kiểu String. Trả về String? (có thể null).
+                        val data = call.argument<String>("data")
+
+                        // ══════════════════════════════════════════════════
+                        // ĐÂY LÀ CHỖ ĐẶT LOGIC NATIVE.
+                        // Logic Google Wallet bạn viết ở Firegroup DÙNG LẠI NGUYÊN Ở ĐÂY.
+                        // Chỉ thay đổi cách nhận lời gọi (MethodChannel thay vì RN Bridge).
+                        // ══════════════════════════════════════════════════
+
+                        // 'result.success(value)' = trả kết quả THÀNH CÔNG về Dart.
+                        //   Truyền null nếu không có giá trị trả về.
+                        result.success(null)
+                    }
+
+                    "getDeviceId" -> {
+                        val deviceId = "ABC-123"        // logic lấy device id thật
+                        result.success(deviceId)         // trả chuỗi về cho Dart
+                    }
+
+                    else -> {
+                        // ── 'result.notImplemented()' = báo Dart rằng method này không tồn tại.
+                        //    Dart sẽ nhận MissingPluginException.
+                        result.notImplemented()
+                    }
+                }
+            }
+    }
+}
+
+// ── TRẢ LỖI VỀ DART (khi cần):
+// result.error("WALLET_ERROR", "Không thêm được pass", null)
+//   → Bên Dart bắt được qua `on PlatformException catch (e)`,
+//     với e.code = "WALLET_ERROR", e.message = "Không thêm được pass".
+```
+
+### d) Phía iOS (Swift) — tương tự
+
+```swift
+// File: ios/Runner/AppDelegate.swift
+
+@UIApplicationMain
+@objc class AppDelegate: FlutterAppDelegate {
+  override func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+  ) -> Bool {
+
+    // Lấy view controller gốc của Flutter.
+    let controller = window?.rootViewController as! FlutterViewController
+
+    // Tạo channel cùng tên với bên Dart.
+    let walletChannel = FlutterMethodChannel(
+      name: "com.app/wallet",                        // ⚠️ giống hệt bên Dart
+      binaryMessenger: controller.binaryMessenger
+    )
+
+    // Đăng ký handler xử lý lời gọi từ Dart.
+    // 'call'   = thông tin lời gọi.
+    // 'result' = closure để trả kết quả về Dart.
+    walletChannel.setMethodCallHandler { (call, result) in
+
+      switch call.method {
+      case "addPass":
+        // Lấy arguments, ép kiểu về Dictionary.
+        let args = call.arguments as? [String: Any]
+        let data = args?["data"] as? String
+
+        // ═══ LOGIC APPLE WALLET (PassKit) — dùng lại từ Firegroup ═══
+
+        result(nil)                                   // trả thành công
+
+      default:
+        result(FlutterMethodNotImplemented)           // method không tồn tại
+      }
+    }
+
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+}
+```
+
+> **ĐÂY LÀ ĐIỂM BÁN HÀNG LỚN NHẤT CỦA BẠN.**
+> Logic native (Kotlin cho Google Wallet, Swift cho Apple Wallet) bạn đã viết ở Firegroup **dùng lại được gần như nguyên** — chỉ đổi cách Dart gọi vào (MethodChannel thay vì RN Bridge). Rất ít Flutter dev level Middle biết viết native side. Nói được điều này = bạn nổi bật ngay.
+
+### e) Pigeon — bản nâng cấp type-safe
+
+`Pigeon` = công cụ codegen sinh binding type-safe giữa Dart ↔ Kotlin/Swift. Bạn viết 1 file định nghĩa interface, Pigeon tự sinh code cho cả 3 phía → không còn lo gõ sai tên method hay sai kiểu argument.
+
+→ Giống **Codegen của RN New Architecture** mà bạn đã học ở Day 32 tháng 6. Nhắc tên này lúc phỏng vấn = thể hiện bạn cập nhật.
 
 ---
 
@@ -74,34 +217,34 @@ MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.app/wallet")
 
 ### Q1 — "Bạn làm RN, giờ học Flutter thấy sao? Mất bao lâu?"
 
-> "Tôi hoàn toàn thoải mái. Tôi không chỉ làm ở tầng JavaScript mà đã viết native bridge Kotlin và Swift cho tính năng Wallet pass. Vì tôi đã nắm mobile lifecycle cả 2 platform, học Flutter chủ yếu là học Dart syntax và Widget system — còn tư duy kiến trúc, state management, gọi API thì ngôn ngữ nào cũng như nhau. Tôi tự tin đọc code và fix bug nhỏ trong tuần đầu, viết feature độc lập trong 2-3 tuần. Cách tôi học là map từng pattern Flutter về React Native tôi đã biết, và đọc thẳng codebase công ty để bắt nhịp convention."
+> "Tôi hoàn toàn thoải mái. Tôi không chỉ làm ở tầng JavaScript mà đã viết native bridge Kotlin và Swift cho tính năng Wallet pass. Vì tôi đã nắm mobile lifecycle cả hai platform, học Flutter chủ yếu là học Dart syntax và Widget system — còn tư duy kiến trúc, state management, gọi API thì ngôn ngữ nào cũng như nhau. Tôi tự tin đọc code và fix bug nhỏ trong tuần đầu, viết feature độc lập trong hai đến ba tuần. Cách tôi học là map từng pattern Flutter về React Native tôi đã biết, và đọc thẳng codebase công ty để bắt nhịp convention."
 
 ### Q2 — "Flutter khác React Native ở điểm cốt lõi nào?"
 
-> "Ba điểm chính. Một, kiến trúc render: RN dựng UI bằng native component qua bridge, còn Flutter tự vẽ mọi pixel bằng engine Skia/Impeller nên UI đồng nhất giữa iOS/Android và ít lệ thuộc native view. Hai, 'everything is a widget' — padding, căn giữa, style đều là widget, không có StyleSheet riêng. Ba, Dart compile AOT ra native code, không cần JS bridge lúc runtime nên performance ổn định hơn ở animation. Về tư duy component, state, navigation thì hai bên rất giống nhau."
+> "Ba điểm chính. Một, kiến trúc render: RN dựng UI bằng native component qua bridge, còn Flutter tự vẽ mọi pixel bằng engine Skia hoặc Impeller nên UI đồng nhất giữa iOS và Android, ít lệ thuộc native view. Hai, everything is a widget — padding, căn giữa, style đều là widget, không có StyleSheet riêng. Ba, Dart compile AOT ra native code, không cần JS bridge lúc runtime nên performance ổn định hơn ở animation. Về tư duy component, state, navigation thì hai bên rất giống nhau."
 
 ### Q3 — "State management trong Flutter — bạn biết gì?"
 
-> (tóm tắt Day 03) "setState cho local giống useState. Provider/Riverpod cho global giống Context/Redux Toolkit. Bloc thì gần Redux nhất: Event như Action, Bloc xử lý như reducer, emit ra State, UI đọc qua BlocBuilder như useSelector. Ở RN tôi dùng Redux Toolkit và TanStack Query nên tư duy tách client/server state và one-way data flow tôi đã quen."
+> "setState cho local giống useState. Provider và Riverpod cho global giống Context API và Redux Toolkit. Bloc thì gần Redux nhất: Event như Action, hàm on-event xử lý như reducer, emit ra State mới, UI đọc qua BlocBuilder như useSelector. Cubit là bản rút gọn khi không cần event object. Ở RN tôi dùng Redux Toolkit và TanStack Query nên tư duy tách client state với server state và one-way data flow tôi đã quen."
 
-### Q4 — "Vì sao Flutter mượt hơn / performance thế nào?"
+### Q4 — "Vì sao Flutter mượt hơn? Performance thế nào?"
 
 > "Flutter compile Dart thành native code AOT và tự render bằng engine đồ họa riêng, không đi qua bridge JS-native lúc runtime như RN kiến trúc cũ. Nên animation và scroll ổn định 60fps mà không lo JS thread bị block. Điều này giống lợi ích mà RN New Architecture với JSI đang hướng tới — tôi có tìm hiểu JSI và Fabric ở RN nên hiểu vì sao bỏ được bridge lại quan trọng cho performance."
 
 ### Q5 — "Bạn xử lý gọi API và lỗi trong Flutter thế nào?"
 
-> (tóm tắt Day 04) "Dùng dio, gần như y hệt axios: interceptor gắn token, xử lý 401 tập trung, timeout, CancelToken để hủy request khi rời màn hình. Dart typed nên parse JSON qua model class fromJson, thường dùng codegen json_serializable. UI thì tôi luôn xử lý đủ 3 trạng thái loading, success, error."
+> "Dùng dio, gần như y hệt axios: interceptor gắn token, xử lý 401 tập trung, timeout, CancelToken để hủy request khi rời màn hình. Dart typed nên parse JSON qua model class với fromJson, thường dùng codegen json_serializable. UI thì tôi luôn xử lý đủ ba trạng thái loading, success, error."
 
 ### Q6 — "Điểm mạnh của bạn khi vào team Flutter là gì?" (câu chốt)
 
-> "Native integration. Tôi đã tự viết native module Kotlin và Swift trong RN, nên khi Flutter cần platform channel để gọi SDK native — ví dụ thanh toán, wallet, hay SDK hãng — tôi làm được cả 2 đầu Dart và native, không phải chờ người khác. Cộng với nền tảng tối ưu performance (tôi từng giảm bundle app từ 45MB xuống 28MB, tối ưu list) và kinh nghiệm release App Store/Play Store, tôi nghĩ mình đóng góp được ngay ở phần tích hợp và chất lượng, trong lúc bổ sung dần độ sâu Flutter thuần."
+> "Native integration. Tôi đã tự viết native module Kotlin và Swift trong RN, nên khi Flutter cần platform channel để gọi SDK native — ví dụ thanh toán, wallet, hay SDK của hãng — tôi làm được cả hai đầu Dart và native, không phải chờ người khác. Cộng với nền tảng tối ưu performance, tôi từng giảm bundle app từ 45MB xuống 28MB và tối ưu list, cùng kinh nghiệm release App Store và Play Store, tôi nghĩ mình đóng góp được ngay ở phần tích hợp và chất lượng, trong lúc bổ sung dần độ sâu Flutter thuần."
 
 ---
 
 ## 5. Câu hỏi NGƯỢC nên hỏi Tech Lead (thể hiện đã tìm hiểu)
 
 - "Team đang dùng state management gì — Bloc, Riverpod hay Provider? Để em chuẩn bị đúng hướng."
-- "App của CellphoneS/DTV/CareS là các app riêng hay một super app dùng chung (như Smember)?"
+- "App của CellphoneS, Điện Thoại Vui và CareS là các app riêng hay một super app dùng chung như Smember?"
 - "Team có dùng platform channel nhiều không? Vì đó là thế mạnh native của em."
 - "Lộ trình onboarding cho người từ RN sang Flutter ở team mình thường thế nào?"
 
@@ -119,6 +262,7 @@ MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.app/wallet")
 ## 7. Tự kiểm tra (checklist trước phỏng vấn)
 
 1. Nói trôi Q1 và Q6 (2 câu quan trọng nhất) chưa? Mỗi câu ≤60s.
-2. Giải thích được `MethodChannel` map với Native Module RN thế nào?
-3. Kể được 3 khác biệt cốt lõi RN vs Flutter (render engine, everything-is-widget, AOT compile)?
-4. Có ít nhất 2 câu hỏi ngược cho Tech Lead chưa?
+2. Giải thích được `MethodChannel` map với Native Module của RN thế nào?
+3. Vì sao tên channel bên Dart và bên Kotlin/Swift phải giống hệt nhau?
+4. Kể được 3 khác biệt cốt lõi RN vs Flutter (render engine, everything-is-widget, AOT compile)?
+5. Có ít nhất 2 câu hỏi ngược cho Tech Lead chưa?

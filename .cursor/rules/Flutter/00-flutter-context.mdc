@@ -48,17 +48,24 @@ alwaysApply: false
 
 ---
 
-## 3. Lộ trình 5 ngày (mỗi ngày 60-90 phút, học lúc nào cũng được)
+## 3. Lộ trình 6 ngày (mỗi ngày 60-90 phút, học lúc nào cũng được)
 
 | Day | Topic | File | Ánh xạ chính |
 | --- | --- | --- | --- |
+| **00** | **Giải phẫu cú pháp** ⭐ | `day-00-giai-phau-cu-phap.mdc` | `extends`, `@override`, `Widget`, `build`, `BuildContext`, `child` vs `children` |
 | 01 | Dart syntax | `day-01-dart-syntax.mdc` | TS → Dart |
 | 02 | Widgets & Layout | `day-02-widgets-layout.mdc` | Component + Flexbox → Widget tree |
 | 03 | State management | `day-03-state-management.mdc` | useState/Redux → setState/Provider/Riverpod/Bloc |
 | 04 | Navigation + Networking | `day-04-navigation-networking.mdc` | React Navigation + axios → go_router + dio |
 | 05 | Native bridge + Interview | `day-05-native-interview.mdc` | Native Modules → MethodChannel + bộ Q&A phỏng vấn |
 
-**Không có deadline cứng.** Học được ngày nào hay ngày đó. Nếu phỏng vấn gấp → đọc thẳng **Day 05 (Interview Q&A)** trước, rồi bổ sung Day 01-04 sau.
+> ⭐ **Đọc Day 00 TRƯỚC TIÊN.** File này giải thích từng từ khóa trong code Flutter (`extends StatelessWidget` là gì, vì sao có `@override`, `Widget build(BuildContext context)` nghĩa là gì). Không hiểu những thứ này thì đọc Day 01-05 sẽ bị lú.
+
+**Toàn bộ code mẫu trong các file đều có comment giải thích từng dòng** — đọc code là hiểu, không cần tra Google.
+
+**Không có deadline cứng.** Học được ngày nào hay ngày đó.
+
+**Nếu phỏng vấn gấp (≤2 ngày):** đọc **Day 00** (hiểu cú pháp) → **Day 05** (Q&A + native bridge) → **Day 03** (state management, câu chắc chắn bị hỏi). Ba file này là đủ để không bị "đứng hình".
 
 ---
 
@@ -68,8 +75,8 @@ alwaysApply: false
 # macOS
 brew install --cask flutter        # hoặc tải SDK từ flutter.dev
 flutter doctor                     # check môi trường, làm theo hướng dẫn nó báo
-flutter create demo_app            # tạo project mẫu
-cd demo_app && flutter run         # chạy trên simulator/emulator đang mở
+flutter create flutter_demo_app            # tạo project mẫu
+cd flutter_demo_app && flutter run         # chạy trên simulator/emulator đang mở
 ```
 
 - IDE: VS Code + extension **Flutter** (và **Dart**). Bạn đã quen VS Code/Cursor rồi nên OK.

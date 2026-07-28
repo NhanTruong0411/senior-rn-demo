@@ -1,5 +1,5 @@
 ---
-description: Day 40 (28/07) — AI Skills Thực chiến (Từ Matt Pocock & Claude Code). Cách quản lý AI Agent bằng Context, quy trình /grill-me, /tdd và áp dụng vào Cursor.
+description: Day 40 (28/07) — AI Skills Thực chiến (Từ Matt Pocock & Claude Code). Context, /grill-me, /tdd, /refactor, /rn-flutter-map, /flutter-shape, /observe — áp dụng vào Cursor.
 alwaysApply: false
 ---
 
@@ -26,7 +26,7 @@ AI Skills bản chất chính là **viết quy trình (workflow) dạng text** �
 
 ## 3. Đi sâu kỹ thuật
 
-Bài học từ kho Skills của Claude Code có 4 kỹ năng kinh điển mà ta có thể clone (sao chép) sang Cursor:
+Bài học từ kho Skills của Claude Code có các kỹ năng kinh điển clone sang Cursor, cộng thêm skill chuyển RN→Flutter và skill observability cho production:
 
 **a. The Context (`CONTEXT.md` / `.cursorrules`)**
 Đóng vai trò là "Ngôn ngữ chung". Ép AI phải biết app dùng Redux Toolkit (không dùng Context API), dùng TanStack Query (không fetch chay), quy tắc đặt tên. 
@@ -46,7 +46,7 @@ Buộc AI phải hỏi ngược lại user về phạm vi, edge-cases, error han
 # Lệnh: /grill-me
 Khi user sử dụng lệnh này và đưa ra một yêu cầu tính năng, BẠN KHÔNG ĐƯỢC VIẾT CODE NGAY.
 Thay vào đó, hãy thực hiện quy trình sau:
-1. Đặt ra 3-5 câu hỏi sắc bén về các trường hợp ngoại lệ (edge-cases).
+1. Đặt ra 3-5 câu hỏi sắc bén về các trường hợp ngoại lệ (edge-cases, App background/foreground, permission, deep link cơ bản).
 2. Hỏi về cách xử lý lỗi (Ví dụ: Mất mạng thì sao? API trả về 500 thì sao?).
 3. Hỏi xem tính năng này có ảnh hưởng đến các màn hình khác không.
 Chỉ khi nào user trả lời thỏa đáng các câu hỏi trên, bạn mới được tóm tắt lại spec và bắt đầu đề xuất code.
@@ -61,46 +61,71 @@ Bước 3: Viết code implementation để thỏa mãn test đó.
 Bước 4: Chạy lại `npm test`. Nếu vẫn lỗi, tự sửa code.
 Bước 5: Chỉ dừng lại báo cáo cho User khi test đã PASSED màu xanh.
 
-**d. Lệnh `/audit` (Khám bệnh / Refactor)**
+**d. Lệnh `/refactor` (Khám bệnh / Refactor)**
 Dùng để review file định kỳ. Yêu cầu AI chỉ ra các function quá 250 dòng, vi phạm Single Responsibility, và đề xuất cách chia nhỏ (không tự sửa, chỉ báo cáo).
-# Lệnh: /audit
+# Lệnh: /refactor
 Quét file hiện tại và làm các việc sau:
 1. Xác định xem file có vượt quá 250 dòng không.
 2. Tìm các Component hoặc Hàm làm quá nhiều việc (Vi phạm Single Responsibility).
 3. Đề xuất cách tách các hàm xử lý logic ra file hooks riêng.
 4. KHÔNG tự ý sửa file. In ra một báo cáo (Report) gồm 3 gạch đầu dòng những điểm cần cải thiện để User duyệt.
 
+**e. Lệnh `/rn-flutter-map` (Ánh xạ RN → Flutter)**
+Dùng khi chuyển task từ React Native sang Flutter, hoặc khi AI bắt đầu gợi ý API RN (`useEffect`, Redux, StyleSheet, FlatList…) trong project Flutter. Ép AI trả lời bằng bảng ánh xạ trước khi viết code — học paradigm, không copy cú pháp mù.
+# Lệnh: /rn-flutter-map
+Khi user dùng lệnh này (kèm mô tả tính năng hoặc đoạn code RN), BẠN KHÔNG ĐƯỢC VIẾT CODE FLUTTER NGAY.
+Thay vào đó, hãy làm theo thứ tự:
+1. Liệt kê bảng ánh xạ khái niệm liên quan (ít nhất 4 dòng): RN concept → Flutter equivalent.
+   Ví dụ bắt buộc nhớ: FlatList → ListView.builder; axios interceptor → dio InterceptorsWrapper;
+   Redux action/reducer → Bloc Event / emit (hoặc Cubit method); Native Module → MethodChannel / Pigeon;
+   StyleSheet/padding prop → Widget bọc (Padding, SizedBox); useState → setState / StatefulWidget.
+2. Chỉ ra 1–2 chỗ dễ viết sai paradigm (ví dụ gọi API trong build(), quên .toList() sau map, nhầm watch/read).
+3. Sau khi user xác nhận bảng map, mới đề xuất code Flutter theo convention team (Bloc/Riverpod/dio/go_router…).
+4. Không claim "thành thạo Flutter production" hộ user — giữ mức honest: mapping + đọc hiểu + implement theo pattern team.
+
+**f. Lệnh `/flutter-shape` (Giữ đúng idiom Flutter)**
+Dùng sau khi AI (hoặc bạn) vừa viết UI/logic Flutter, hoặc trước khi mở PR. Giống `/refactor` nhưng checklist riêng cho Flutter — chặn code "Flutter viết kiểu React Native".
+# Lệnh: /flutter-shape
+Quét code Flutter đang xét và báo cáo (KHÔNG tự ý sửa trừ khi user yêu cầu rõ):
+1. Không gọi API / side-effect nặng trong `build()`.
+2. `context.watch` / `ref.watch` chỉ trong build; `read` chỉ trong callback (onPressed…).
+3. Ưu tiên `const` constructor khi widget không đổi; dùng `child` vs `children` đúng chỗ.
+4. List dài → `ListView.builder` (lazy); không nhét list dài vào `Column` không scroll đúng cách.
+5. State đúng tầng: local → setState; share vài màn → Provider/Riverpod/Cubit/Bloc theo Context dự án.
+6. In báo cáo 3–5 gạch đầu dòng: OK / cần sửa / đề xuất tách widget hoặc Cubit.
+
+**g. Lệnh `/observe` (Observability umbrella — Reliability + Analytics + Business)**
+Dùng trước khi ship feature mới, sau release 24–48h, hoặc khi PM hỏi "sao metric tụt / crash tăng". AI KHÔNG viết feature mới — AI thiết kế/review instrumentation theo 3 lớp. SDK thường dùng: Sentry + Firebase (Crashlytics/Analytics) — RN và Flutter đều có package tương ứng (`sentry_flutter`, `firebase_crashlytics`, `firebase_analytics`).
+# Lệnh: /observe [tên_flow hoặc feature]
+Khi nhận lệnh này, BẠN KHÔNG ĐƯỢC CODE TÍNH NĂNG MỚI. Trả về checklist 4 mục:
+1. Reliability: crash / error / ANR cần bắt ở đâu; Error Boundary (RN) hoặc FlutterError.onError + runZonedGuarded (Flutter); breadcrumb (màn → API → action trước crash); release + source map / dSYM.
+2. Product analytics: event name (screen_view, *_tap, funnel steps); properties (id, source_screen…); KHÔNG track PII (SĐT, email raw).
+3. Business metrics: KPI derive từ analytics + backend (conversion, AOV, cancel rate, crash-free users %).
+4. Action plan: metric nào bất thường → giả thuyết → chỗ code / API / native SDK cần xem.
+Chỉ khi user chốt event + KPI, mới được đề xuất đoạn integrate SDK tối thiểu (nếu được yêu cầu).
+
 ---
 
-## 4. Cấu hình tối thiểu (Ví dụ tạo Skill `/grill-me` trong Cursor)
+## 4. Cấu hình trong Cursor (đã cài sẵn)
 
-Bạn chỉ cần tạo một file `.mdc` trong thư mục `.cursor/rules/` với nội dung prompt ép buộc quy trình.
+Skills procedural nằm ở **`.cursor/skills/<tên>/SKILL.md`** (không nhét vào Rules). Context dự án vẫn dùng `.cursor/rules/` với `alwaysApply: true`.
 
-```text
----
-description: Trigger khi user gõ /grill-me. Ép AI phải hỏi ngược lại để làm rõ requirement.
-globs: *
----
+| Skill | Path | Cách gọi |
+| --- | --- | --- |
+| `/grill-me` | `.cursor/skills/grill-me/SKILL.md` | Agent chat: `/grill-me <feature>` |
+| `/tdd` | `.cursor/skills/tdd/SKILL.md` | `/tdd <tên_tính_năng>` |
+| `/refactor` | `.cursor/skills/refactor/SKILL.md` | `/refactor` (+ file đang xét) |
+| `/rn-flutter-map` | `.cursor/skills/rn-flutter-map/SKILL.md` | `/rn-flutter-map <mô tả hoặc code RN>` |
+| `/flutter-shape` | `.cursor/skills/flutter-shape/SKILL.md` | `/flutter-shape` |
+| `/observe` | `.cursor/skills/observe/SKILL.md` | `/observe <flow>` |
 
-# Khẩu lệnh: /grill-me
-
-Khi User bắt đầu câu chat bằng `/grill-me` và một yêu cầu tính năng, bạn KHÔNG ĐƯỢC VIẾT CODE NGAY.
-
-Hãy thực hiện đúng quy trình sau:
-1. Đóng vai trò là một Senior Tech Lead khó tính.
-2. Đặt ra đúng 3 câu hỏi sắc bén về:
-   - Các trường hợp ngoại lệ (Edge-cases).
-   - Xử lý lỗi (Error handling / Offline state).
-   - Tác động đến kiến trúc/màn hình khác.
-3. Yêu cầu User trả lời 3 câu hỏi này.
-4. Chỉ khi User trả lời xong, bạn mới được tóm tắt lại thiết kế và đề xuất code.
-```
+Tất cả skill trên có `disable-model-invocation: true` → chỉ chạy khi bạn gọi rõ bằng `/`, Agent không tự bật.
 
 ---
 
 ## 5. Trả lời phỏng vấn ≤60s
 
-> "Bản chất của AI Skills không phải là cài plugin phức tạp, mà là **đóng gói các quy trình kỹ sư thành Prompt có cấu trúc**. Thay vì để AI tự do sinh code (vibe coding), em tạo ra các bộ Rules (như lệnh `/grill-me` để ép AI hỏi rõ requirements, hay `/tdd` để ép viết test trước). Ở Cursor, em cấu hình các file `.cursorrules` và `.mdc` để kiểm soát Context của dự án, ép AI phải dùng đúng chuẩn Redux hay React Query của team. Việc này biến AI từ một cái máy gõ chữ thành một thành viên tuân thủ đúng quy trình (Pipeline) và kiến trúc do mình đặt ra."
+> "Bản chất của AI Skills không phải là cài plugin phức tạp, mà là **đóng gói các quy trình kỹ sư thành Prompt có cấu trúc**. Thay vì để AI tự do sinh code (vibe coding), em tạo ra các bộ Rules: `/grill-me` hỏi rõ requirements, `/tdd` ép viết test trước, `/refactor` review shape trước PR. Khi chuyển RN sang Flutter em thêm `/rn-flutter-map` và `/flutter-shape`; trước khi ship em dùng `/observe` để chốt crash, product event và business KPI. Ở Cursor, em cấu hình `.cursorrules` và `.mdc` để kiểm soát Context — biến AI từ máy gõ chữ thành thành viên tuân thủ pipeline và kiến trúc team."
 
 ---
 
@@ -115,10 +140,13 @@ Hãy thực hiện đúng quy trình sau:
 ## 7. Tự kiểm tra (trả lời được mới xong)
 
 1. Vibe coding khác với AI Skills ở điểm cốt lõi nào?
-- Vibe coding là giao phó hoàn toàn (chỉ cần chạy được), AI Skills là đưa AI vào khuôn khổ quy trình (Context, TDD, Review).
+- Vibe coding là giao phó hoàn toàn (chỉ cần chạy được), AI Skills là đưa AI vào khuôn khổ quy trình (Context, TDD, Refactor, Observe).
 
 2. Mục đích của lệnh `/grill-me` là gì?
 - Ngăn AI sinh code ngay lập tức, bắt nó hỏi ngược lại để làm rõ các edge-case và error handling.
 
 3. Trong Cursor, file nào tương đương với `CONTEXT.md` trong Claude Code?
 - File `.cursorrules` ở thư mục gốc, hoặc các file `.mdc` trong `.cursor/rules/`.
+
+4. `/observe` gom 3 lớp nào? Vì sao không trộn SDK?
+- Reliability (crash/error/ANR/breadcrumb), Product analytics (screen/click/funnel), Business metrics (conversion/AOV…). Gộp checklist suy nghĩ trước khi ship; implement vẫn tách SDK (Crashlytics/Sentry vs Analytics).

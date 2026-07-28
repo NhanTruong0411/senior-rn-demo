@@ -1,0 +1,340 @@
+---
+description: Context phỏng vấn CellphoneS / Diệu Phúc — Middle Mobile App Engineer. Dùng khi mock interview hoặc mở chat mới trước buổi phỏng vấn Tech Lead. Đọc file này TRƯỚC khi hỏi/chấm.
+alwaysApply: false
+---
+
+# CellphoneS Interview Context — Trương Hữu Nhân (RN → Flutter)
+
+> **Cách dùng:**
+> 1. Mở chat mới / trước phỏng vấn thật → nói *"đọc CellphoneContext"* hoặc *"mock interview CellphoneS"*.
+> 2. AI đọc toàn bộ file này + tham chiếu `.cursor/rules/interview/context.mdc` (rubric chung) + `.cursor/rules/Flutter/` (ánh xạ RN→Flutter nếu hỏi sâu).
+> 3. Chạy mock theo **Mục 10**. Cuối buổi chấm theo **Mục 11**.
+> 4. File TĨNH — không ghi kết quả mock vào đây.
+
+---
+
+## 1. Ứng viên & buổi phỏng vấn
+
+| | |
+|---|---|
+| **Ứng viên** | Trương Hữu Nhân · sinh 04/11/1995 |
+| **Level thực tế** | Middle React Native · **~4 năm** (Firegroup 11/2022 – 03/2026) |
+| **Dự án đã ship** | **OneMobile** (app merchant Shopify) · **OneLoyalty** (loyalty multi-provider) |
+| **Apply qua** | TopCV — Công ty TNHH Dịch vụ Sửa chữa Điện Thoại Vui (cùng hệ Diệu Phúc) |
+| **Vị trí** | Middle Mobile App Engineer |
+| **Vòng hiện tại** | Phỏng vấn **Tech Lead** (đã qua sơ vấn HR/ recruiter) |
+| **Lương offer** | **22–28M gross** |
+| **Học vấn** | Cao đẳng CNTT (ITC) — nhiều JD ghi ĐH; bù bằng kinh nghiệm ship production |
+| **English** | B1+ nói · B2 đọc/viết — **buổi CellphoneS chủ yếu tiếng Việt** |
+
+---
+
+## 2. Công ty & hệ sinh thái (AI phải biết trước khi hỏi)
+
+### 2.1 CellphoneS vs Điện Thoại Vui vs Diệu Phúc
+
+- **Diệu Phúc (Diệu Phúc Technology)** = công ty mẹ / pháp nhân tech (CTCP Dịch vụ và Công nghệ Diệu Phúc).
+- **CellphoneS** = thương hiệu bán lẻ điện thoại, laptop, phụ kiện — Top 3 VN (cùng TGDĐ, FPT Shop).
+- **Điện Thoại Vui (ĐTV)** = thương hiệu sửa chữa, thu cũ — **cùng tập đoàn Diệu Phúc**, không phải công ty đối thủ.
+- **CareS, Schannel, Smember** = các mảng / chương trình trong hệ sinh thái.
+- Apply qua ĐTV vẫn có thể làm app **CellphoneS** hoặc app hệ sinh thái — **cùng team mobile**, cùng văn hóa.
+
+### 2.2 Quy mô & bối cảnh
+
+- **1000+ nhân sự**, hàng trăm cửa hàng, doanh thu nghìn tỷ — **product/retail ổn định**, không phải startup đốt tiền.
+- **Loại hình:** Product B2C e-commerce + loyalty + ERP nội bộ — **không outsourcing**.
+- **Office HCM (tech):** 350 Võ Văn Kiệt, P. Cô Giang, Q.1 (theo JD tuyển dụng công khai).
+- **Phúc lợi (tham khảo):** 13th month, KPI bonus, extra package, BHXH/BHYT/BHTN, review 2 lần/năm.
+- **Lưu ý BHXH:** Một số vị trí đóng trên mức **6–7.7M** (không full gross) — khác Firegroup (full lương). Hỏi rõ khi negotiate, không assume.
+
+### 2.3 App CellphoneS (ứng viên đã cài & quan sát)
+
+- App **đã mature**: UI đẹp, mượt, UX tốt (home banner, grid danh mục, Smember, giá theo khu vực, bottom tabs).
+- Package Android: `vn.com.cellphones.android.smember` — app mua sắm + **Smember gộp một**.
+- **Stack mobile chính: Flutter** (không phải RN) — JD nội bộ và tuyển dụng hệ Diệu Phúc ghi Flutter Mobile & Web.
+- Backend hệ thống lớn: .NET Core, microservices, Kafka, SQL Server/MongoDB/Redis (theo JD .NET Developer công khai).
+
+---
+
+## 3. Vì sao app đã xịn vẫn tuyển Mobile? (Câu hỏi ứng viên hay thắc mắc — Tech Lead CÓ THỂ hỏi)
+
+**Không phải làm lại app từ đầu.** App mature = bằng chứng team đang chạy; họ tuyển để **duy trì velocity + mở rộng**.
+
+| Lý do tuyển | Ví dụ trên app thật |
+|---|---|
+| Campaign / marketing liên tục | Banner pre-order Fold8, "Đổi điểm lên deal", deadline theo tuần |
+| Giá & tồn theo vùng | "Xem giá tại Hồ Chí Minh" |
+| Loyalty / Smember | Hạng thành viên, voucher, lịch sử mua, S-Student |
+| Checkout / đơn / bảo hành | Luồng tiền — bug nhỏ = mất doanh thu |
+| Performance & scale | List sản phẩm, carousel, ảnh nặng, crash máy yếu |
+| Hệ sinh thái nhiều app | CellphoneS, ĐTV, CareS — share module hoặc team riêng |
+| Backfill / tăng headcount | Người nghỉ, backlog feature, on-call release |
+
+**Câu trả lời mẫu 60s (nếu bị hỏi "App ổn rồi, em vào làm gì?"):**
+
+> "Em thấy app đã mature về UI và UX. Em kỳ vọng đóng góp ở feature mới theo campaign, tối ưu performance list và ảnh, luồng Smember/voucher/checkout, và maintain release ổn định — đúng kiểu product e-commerce scale lớn, không phải greenfield. Em có kinh nghiệm OneLoyalty và OneMobile nên hiểu phần loyalty và merchant flow tương tự."
+
+---
+
+## 4. JD & match CV (để AI hỏi đúng, chấm đúng)
+
+### 4.1 Họ cần gì (Middle Mobile — suy từ JD + app thật)
+
+- Flutter (hoặc sẵn sàng chuyển nhanh từ RN).
+- Hiểu mobile lifecycle Android/iOS.
+- REST API, async, error/loading/empty states.
+- List performance, release store, crash reporting.
+- Làm việc Agile sprint 2 tuần, code review, ownership.
+- **Plus:** native bridge, module hóa — nếu có thì nổi bật (ứng viên có).
+
+### 4.2 Match CV ứng viên
+
+| Yêu cầu | Firegroup / CV | Match |
+|---|---|---|
+| Cross-platform mobile production | RN 4 năm, OneMobile + OneLoyalty | ✅ Mạnh (RN, chưa Flutter production) |
+| E-commerce / loyalty | OneLoyalty V3 multi-provider | ✅ Rất liên quan Smember |
+| Performance | Bundle 45→28MB, FlatList, Hermes, Profiler | ✅ |
+| Auth / token | Shopify token, SecureStore, 401 | ✅ |
+| Native bridge | Wallet Pass Kotlin + Swift production | ✅ Vượt Middle thường |
+| Firebase / CodePush / Crashlytics | Có | ✅ |
+| Flutter / Dart | Đang học crash course | ⚠️ Honest gap — map từ RN |
+| Unit test culture | Jest/RNTL có, Firegroup ít culture test sâu | ⚠️ Own gap |
+| English daily | B1+ spoken | ⚠️ CellphoneS VN — ít áp lực hơn UI Singapore |
+
+### 4.3 Pitch RN → Flutter (bắt buộc nói trôi)
+
+> "Em làm RN 4 năm nhưng không chỉ ở tầng JS — em đã viết native bridge Kotlin/Swift cho Wallet Pass. Với Flutter, em map tư duy sang: StatelessWidget ≈ function component, setState ≈ useState, Bloc ≈ Redux, ListView.builder ≈ FlatList. Em kỳ vọng tuần đầu đọc codebase, tháng đầu ship task an toàn, 2–3 tháng tự làm feature sprint — không cần master Dart trước khi vào."
+
+Chi tiết ánh xạ: `.cursor/rules/Flutter/` (đọc day-00 trước).
+
+---
+
+## 5. Mong đợi doanh nghiệp (3 tháng đầu)
+
+### Tháng 1 — Onboard, không phá production
+
+- Setup Flutter/Android/iOS, Git, CI (nếu có).
+- Đọc kiến trúc app: state mgmt, navigation, API layer.
+- Hiểu flow: Home → Product → Cart → Checkout → Order → Smember.
+- Bugfix / task nhỏ có mentor review.
+- **Pass:** merge PR, không crash do thay đổi của ứng viên.
+
+### Tháng 2 — Feature sprint độc lập
+
+- Campaign UI (banner, pre-order), list/detail, API integration.
+- Deep link / push mở đúng màn.
+- Perf list: lazy render, cache ảnh, tránh rebuild thừa.
+- **Pass:** tự estimate & ship trong sprint 2 tuần.
+
+### Tháng 3 — Own module + release
+
+- Own 1 mảng: voucher, Smember tier, tra cứu đơn/bảo hành, pre-order...
+- Tham gia release store, đọc crash post-release.
+- **Pass:** ticket end-to-end spec → ship → release.
+
+### Red flag sau 3 tháng (Tech Lead sẽ không giữ)
+
+- Chỉ fix typo, không merge feature.
+- PR bị rewrite nhiều vì không follow convention team.
+- Không hiểu flow đơn hàng / Smember.
+- Estimate luôn trượt sprint.
+
+---
+
+## 6. Tech Lead muốn gì khi hire? (Góc nhìn người phỏng vấn)
+
+Tech Lead **không** tìm Flutter guru ngày 1. Họ tìm:
+
+1. **Ship được trên codebase có sẵn** — follow pattern, không rewrite kiến trúc tuần đầu.
+2. **Tư duy mobile + product** — hiểu e-commerce: conversion, campaign deadline, loyalty ≠ CRUD demo.
+3. **Ownership** — tự unblock, hỏi đúng chỗ, không cần hand-hold mọi PR.
+4. **Performance instinct** — biết list giật, bundle nặng, crash trên máy yếu là chuyện thật.
+5. **Honest về gap** — RN sang Flutter OK nếu nói rõ timeline học, không claim "Flutter 3 năm".
+6. **Culture fit** — làm việc Q.1, sprint 2 tuần, review code lịch sự, không bad-mouth công ty cũ.
+7. **Bonus:** native bridge — ít Flutter dev có; ứng viên có Wallet Pass = differentiate.
+
+### Mentor khi onboard sẽ kỳ vọng
+
+- Đặt câu hỏi có chuẩn bị (đã đọc app, đã chạy app trước buổi PV).
+- PR nhỏ, dễ review, có screenshot/video.
+- Ghi notes convention team (Bloc vs Riverpod, folder structure, naming).
+- Không "cải tiến" codebase lớn khi chưa hiểu lý do cũ.
+
+---
+
+## 7. Story pool — bắt ứng viên kể theo Vấn đề → Giải pháp → Trade-off → Số đo
+
+| Story | Hook cho CellphoneS |
+|---|---|
+| **Bundle 45→28MB** | Perf, startup, user retention trên máy yếu |
+| **OneLoyalty V3 multi-provider** | Map sang Smember, voucher, tier, modular architecture |
+| **Wallet Pass native bridge** | Platform channel / MethodChannel nếu họ hỏi native |
+| **401 + SecureStore token** | Auth e-commerce, session expired giữa checkout |
+| **FlatList + image cache** | List sản phẩm CellphoneS scale lớn |
+| **CodePush hotfix** | Release pressure retail (campaign gấp) |
+| **10+ SDK integration** | Firebase, analytics, third-party — tương tự app retail |
+
+**Format bắt buộc khi chấm:** không chấp nhận chỉ liệt kê stack.
+
+---
+
+## 8. Honest gaps — phải own, không pretend
+
+- **Chưa ship Flutter production** → "RN 4 năm, Flutter em đang học map pattern, kỳ vọng productive tháng 2–3."
+- **Test culture Firegroup không mạnh** → "Em hiểu pyramid, đã dùng Jest/RNTL; em sẽ follow DoD team CellphoneS."
+- **Cao đẳng vs ĐH JD** → "Em bù bằng 4 năm ship OneMobile/OneLoyalty production."
+- **Chưa Reanimated/Gesture sâu** → concept-level, preset OK.
+- **GraphQL** → chưa job thật; REST đủ Firegroup.
+
+---
+
+## 9. Don't say (red flags riêng buổi này)
+
+- ❌ "App các anh xấu / nested Flutter tệ" — đã nói app đẹp, giữ nhất quán.
+- ❌ "Em master Flutter" — chưa production.
+- ❌ Bad-mouth Firegroup — instant red flag.
+- ❌ "App xong rồi nên ít việc" — sai hoàn toàn (xem Mục 3).
+- ❌ Over-claim Senior / lead team / define kiến trúc mới tuần đầu.
+- ❌ Single salary number — luôn nói **range** 22–28M gross + hỏi BHXH base.
+
+---
+
+## 10. Luật mock interview CellphoneS (AI làm theo)
+
+Khi user nói *"mock interview CellphoneS"* hoặc *"bắt đầu phỏng vấn CellphoneS"*:
+
+1. **Setup:** Hỏi *"General mix hay chỉ Tech / chỉ Behavioral / chỉ RN→Flutter?"* — mặc định **General mix, tiếng Việt** (có thể xen 1–2 câu English nếu user muốn luyện).
+2. **Vai:** Tech Lead CellphoneS — Middle/Senior, khó tính nhưng lịch sự. Biết app Flutter mature, biết ứng viên từ RN.
+3. **Cơ cấu 6–7 câu** (phỏng vấn Tech Lead ~45–60 phút):
+   - 1 behavioral: TMAY hoặc why leaving hoặc why CellphoneS
+   - 1 câu **"app mature vẫn tuyển"** hoặc **"3 tháng đầu em làm gì"**
+   - 1 RN → Flutter / mobile fundamentals
+   - 1 performance hoặc list (FlatList ↔ ListView)
+   - 1 e-commerce / loyalty / Smember góc product
+   - 1 tình huống thực chiến (crash campaign, checkout bug, deep link)
+   - 1 closing: salary / weakness / câu hỏi ngược
+4. **Hỏi TỪNG CÂU MỘT.** Sau mỗi câu: **1 follow-up xoáy**. Không gợi ý đáp án lúc đang hỏi.
+5. **Voice record:** hiểu nhầm ASR → không trừ điểm oan (giống context.mdc Mục 4.5).
+6. **Over-claim** → vặn ngay.
+
+### Trigger phrases
+
+| User nói | AI làm |
+|---|---|
+| `đọc CellphoneContext` | Nạp file này, xác nhận sẵn sàng mock hoặc Q&A |
+| `mock interview CellphoneS` | Chạy Mục 10 |
+| `drill RN Flutter` | Chỉ hỏi RN→Flutter + Flutter fundamentals |
+| `drill behavioral CellphoneS` | Chỉ behavioral + salary + why CellphoneS |
+| `câu hỏi ngược CellphoneS` | Liệt kê câu nên hỏi Tech Lead |
+
+---
+
+## 11. Rubric chấm (kế thừa context.mdc — 7 trục)
+
+1. Decision-shape (claim → reason → trade-off → boundary)
+2. Concrete example (Firegroup story + số)
+3. Honesty (gap Flutter, test, học vấn)
+4. Time control (~60s)
+5. Follow-up readiness
+6. Core focus (trả lời trúng câu hỏi CellphoneS, không lan sang RN generic)
+7. Business mindset (campaign, Smember, conversion, maintain app mature)
+
+**Verdict:** PASS ≥ 3.5/5 trung bình 7 trục · FAIL < 3.5
+
+**Cuối buổi bắt buộc:** điểm TB · PASS/FAIL · 2 câu tốt · 2 câu yếu + rewrite 60s · 3 việc luyện tiếp.
+
+---
+
+## 12. Ngân hàng câu hỏi — CellphoneS specific (bốc/biến tấu)
+
+### Behavioral & motivation
+
+- Giới thiệu bản thân 60s cho Middle Mobile tại CellphoneS.
+- Vì sao rời Firegroup sau 4 năm?
+- Vì sao chọn CellphoneS / Diệu Phúc thay vì product khác?
+- Bạn biết gì về Smember và app CellphoneS? (test có cài app không)
+- Điểm yếu kỹ thuật lớn nhất? (expect: Flutter chưa production, test culture)
+- Mức lương mong muốn? Cách trả lời range 22–28M + hỏi BHXH.
+
+### "App mature" & onboarding
+
+- App nhìn đã ổn rồi, bạn vào đóng góp gì?
+- 3 tháng đầu kỳ vọng của bạn là gì?
+- Bạn chưa làm Flutter production, em tin tưởng em chỗ nào?
+
+### RN → Flutter / Mobile
+
+- Khác biệt RN vs Flutter cốt lõi?
+- StatefulWidget + setState map sang cái gì trong RN?
+- FlatList vs ListView.builder — cùng vấn đề gì?
+- Bloc vs Redux — bạn map thế nào?
+- MethodChannel vs Native Module — kinh nghiệm Wallet Pass?
+
+### E-commerce & product (CellphoneS angle)
+
+- Design flow voucher / membership tier — bạn đã làm tương tự ở OneLoyalty thế nào?
+- Campaign banner gấp 2 ngày — bạn ưu tiên gì: speed vs quality?
+- Giá theo khu vực / stock — client state hay server state?
+- Push notification mở product detail — deep link bạn xử lý thế nào?
+
+### Performance & reliability
+
+- List sản phẩm + ảnh giật — debug thứ tự nào?
+- Bundle 45→28MB — làm gì, đo sao? (map sang Flutter: asset, tree shake)
+- Crash tăng sau release campaign — bạn làm gì?
+
+### Tình huống thực chiến
+
+- User báo không apply được voucher lúc checkout — bạn debug?
+- App crash Android 12 chỉ một số máy Samsung — điều tra?
+- Tech Lead bảo "follow Bloc convention", bạn quen Redux — adapt sao?
+
+### Câu hỏi ngược (ứng viên nên hỏi Tech Lead)
+
+- Team mobile đang dùng Bloc, Riverpod hay Provider?
+- App CellphoneS, ĐTV, CareS — codebase chung hay tách?
+- Sprint mobile thường ship feature gì — campaign, loyalty, checkout?
+- Onboarding RN → Flutter ở team anh/chị thường mất bao lâu productive?
+- Middle 3 tháng đầu được giao own module nào?
+- BHXH đóng trên mức nào — full gross hay base cap?
+
+---
+
+## 13. So sánh nhanh — CellphoneS vs Firegroup (nếu bị hỏi)
+
+| | Firegroup | CellphoneS |
+|---|---|---|
+| Loại | SaaS B2B merchant | Retail B2C scale lớn |
+| Mobile stack | RN + TS | Flutter |
+| Domain | Loyalty / commerce merchant | E-commerce + Smember + retail ERP |
+| Quy mô | SME product | 1000+ nhân sự, Top 3 retail |
+| BHXH | Full lương | Có thể cap 6–7.7M — verify |
+| Lý do join | (không nói "Firegroup tệ") | Scale user, product VN lớn, Flutter broaden skill |
+
+---
+
+## 14. Checklist trước phỏng vấn thật (9h sáng)
+
+- [ ] Cài app CellphoneS, mở vài flow: home → product → cart → Smember
+- [ ] Nói trôi TMAY 60s (RN + Firegroup + why CellphoneS)
+- [ ] Nói trôi RN→Flutter 60s + app mature 60s
+- [ ] Chuẩn bị 1 story perf (bundle) + 1 story loyalty (OneLoyalty)
+- [ ] Salary range 22–28M, không single number
+- [ ] 2 câu hỏi ngược cho Tech Lead
+- [ ] Đọc `.cursor/rules/Flutter/day-00` + `day-05` nếu còn thời gian
+
+---
+
+## 15. Tài liệu liên quan trong repo
+
+| File | Dùng khi |
+|---|---|
+| `.cursor/rules/interview/context.mdc` | Rubric chung + storytelling weakness |
+| `.cursor/rules/Flutter/00-flutter-context.mdc` | Roadmap Flutter crash course |
+| `.cursor/rules/Flutter/day-00-giai-phau-cu-phap.mdc` | Đọc code Flutter không lú |
+| `.cursor/rules/Flutter/day-05-native-interview.mdc` | Q&A phỏng vấn Flutter + native bridge |
+| `.cursor/rules/coding/qa-bank.mdc` | Drill RN technical nếu họ hỏi sâu RN |
+
+---
+
+_File context tĩnh cho phỏng vấn CellphoneS. Trigger: `đọc CellphoneContext` → `mock interview CellphoneS` → nhận PASS/FAIL._
