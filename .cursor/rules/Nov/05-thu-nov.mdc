@@ -1,0 +1,258 @@
+---
+description: Thứ Năm 05/11/2026 — Tuần 10 Ngày 4. AI như công cụ làm việc — spec-driven development và review code AI sinh ra.
+alwaysApply: false
+---
+
+# Thứ Năm · 05/11/2026 · Tuần 10 — Ngày 44/61
+
+> Ba ngày qua: **xây tính năng AI cho người dùng**.
+> Hôm nay: **dùng AI để làm việc nhanh hơn** — và quan trọng hơn, biết review code nó sinh ra.
+>
+> Đây là kỹ năng năm 2026 mọi công ty đều hỏi, và đa số ứng viên trả lời rất hời hợt.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Spec-driven development |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Review code AI sinh ra |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — theo dõi đơn cũ |
+| **16:30** | **TIẾNG ANH** — Câu hỏi phỏng vấn |
+| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 3 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Spec-driven development
+
+### 08:30–09:00 · Vấn đề với cách dùng AI thông thường
+
+Cách đa số người làm: gõ *"viết cho tôi màn hình chỉnh sửa bữa ăn"* → nhận 200 dòng → đọc lướt → bấm Accept.
+
+Ba vấn đề:
+1. Bạn không kiểm chứng được thứ mình không định nghĩa rõ
+2. Code chạy được không có nghĩa là code đúng
+3. Sáu tháng sau bạn không nhớ vì sao nó được viết như vậy
+
+**Spec-driven development đảo ngược thứ tự:** viết đặc tả trước, để AI hiện thực theo đặc tả, rồi kiểm chứng bằng chính đặc tả đó.
+
+### 09:00–09:30 · Làm thử với tính năng thật
+
+Tính năng hôm nay: **chỉnh sửa bữa ăn đã lưu**.
+
+Viết `docs/specs/edit-meal.md` **trước khi** gõ dòng code nào:
+
+```markdown
+# Edit meal
+
+## Behaviour
+- Long-press a meal in the list opens the edit screen
+- The form is pre-filled with the current values
+- Save is disabled until at least one field differs from the original
+- Saving updates optimistically; on failure the previous values are restored
+- Cancel with unsaved changes shows a confirmation dialog
+- Works offline: edits queue and replay like creates
+
+## Constraints
+- Reuse `MealForm` — do not duplicate the form
+- Validation goes through the existing `mealSchema`
+- The update must be idempotent (upsert on the client-generated id)
+
+## Out of scope
+- Editing `createdAt`
+- Bulk edit
+
+## Acceptance
+- [ ] Edit and save while offline, then reconnect — server matches
+- [ ] Cancel with changes prompts; cancel without changes doesn't
+- [ ] Save disabled when nothing changed
+- [ ] Server error restores the previous values in the list
+```
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Để AI hiện thực, bạn kiểm chứng
+
+Đưa đặc tả cho AI kèm ngữ cảnh: file `MealForm` hiện có, `mealSchema`, hook mutation.
+
+Sau đó **duyệt từng mục trong phần Acceptance bằng tay**. Không phải đọc code — mà chạy app và thử.
+
+**Điều bạn sẽ nhận ra:** đặc tả rõ ràng thì AI sinh code tốt hơn hẳn. Và quan trọng hơn, **bạn có tiêu chuẩn khách quan để nói code này đúng hay sai** — thay vì cảm giác "nhìn cũng ổn".
+
+```bash
+git checkout -b feat/edit-meal
+git add . && git commit -m "feat: sửa bữa ăn, viết theo đặc tả"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00 — Review code AI sinh ra
+
+### 13:30–14:30 · Danh sách kiểm tra
+
+Đây là tài liệu bạn nên có sẵn để nói khi phỏng vấn. Viết vào `docs/ai-workflow.md`:
+
+```markdown
+# Reviewing AI-generated code
+
+Generated code compiles and usually runs. That's a low bar. These are the
+things I've found it gets wrong most often, in rough order of frequency.
+
+## 1. Silent error handling
+`catch (e) { console.log(e) }` — swallows the error and carries on with bad
+state. Every catch either handles the error meaningfully or rethrows.
+
+## 2. Missing cleanup
+Subscriptions, listeners and timers created in an effect with no teardown.
+The app works until you navigate away and back forty times.
+
+## 3. Stale closures
+A `useCallback` with an incomplete dependency array that captures an old value.
+Usually invisible until a specific sequence of interactions.
+
+## 4. Overly permissive types
+`any`, or a type that says `string` where the value can be `undefined`.
+Compiles fine, crashes in production.
+
+## 5. Unvalidated external data
+Trusts an API response or a storage read. Types are compile-time only — the
+data at runtime can be anything.
+
+## 6. Not following the codebase
+Generates a new pattern instead of using the one already there. Two ways of
+doing the same thing is worse than one imperfect way.
+
+## 7. Plausible but wrong business logic
+The hardest category. The code reads correctly and does the wrong thing —
+off-by-one on date ranges, timezone assumptions, wrong rounding.
+Only tests catch this.
+
+## What I actually do
+- Never accept a diff I haven't read line by line
+- Ask for the smallest useful unit — one function, not one screen
+- Write the test myself, then let it write the implementation
+- Ask "what did you assume?" — the answer is usually where the bug is
+```
+
+### 14:30–15:00 · Thử phá có chủ đích
+
+Lấy chính code AI vừa sinh sáng nay và soi theo 7 mục trên. **Bạn sẽ tìm ra ít nhất một mục.** Ghi lại đúng mục nào — đó là ví dụ cụ thể bạn kể khi phỏng vấn.
+
+Chạy lại bộ test và kiểm tra:
+
+```bash
+npm run verify
+```
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Viết luật cho AI
+
+Nếu bạn dùng Cursor, tạo file luật để AI theo chuẩn của dự án:
+
+```markdown
+# .cursor/rules/project.mdc
+
+- Validate every external input with Zod. Types don't exist at runtime.
+- No `any`. Use `unknown` and narrow it.
+- Every effect that subscribes must return a teardown.
+- Reuse the existing component before creating a new one.
+- Business logic goes in pure functions under `lib/`, not in components.
+- Match the surrounding code's naming and structure.
+```
+
+> **Câu trả lời phỏng vấn về AI workflow:** *"Tôi coi AI như một junior rất nhanh và rất tự tin. Nó sinh code chạy được, nhưng nó không biết ràng buộc của dự án trừ khi tôi viết ra. Nên tôi có file luật cho AI, tôi viết đặc tả trước, và tôi đọc từng dòng diff. Chỗ nó hay sai nhất là logic nghiệp vụ nghe hợp lý nhưng sai — và chỉ test bắt được."*
+
+```bash
+git add . && git commit -m "docs: quy trình làm việc với AI và checklist review"
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Theo dõi đơn cũ
+
+Hôm nay không nộp mới. Hôm nay chăm sóc đơn cũ:
+
+- Đơn nộp trên 7 ngày chưa phản hồi → gửi một tin nhắn theo dõi ngắn
+- Tin nhắn nào chưa trả lời → trả lời trong ngày, đừng để nguội
+- Cập nhật trạng thái trong `docs/job-tracker.md`
+
+**Mẫu theo dõi — 2 câu, không hơn:**
+
+> *Chào anh/chị, em có nộp vị trí [tên] vào ngày [ngày]. Em muốn hỏi thăm xem hồ sơ của em đã được xem chưa ạ. Nếu cần thêm thông tin gì em gửi ngay. Cảm ơn anh/chị.*
+
+**Một lần theo dõi là đủ.** Không có phản hồi sau lần đó thì chuyển sang chỗ khác. Đừng nhắn lần ba.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Năm: Câu hỏi phỏng vấn
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Trả lời có ghi âm
+
+**Câu hỏi tuần này:** *"How do you use AI in your workflow?"*
+
+Câu này gần như chắc chắn được hỏi trong năm 2026, và đa số ứng viên trả lời rất nông — *"tôi dùng Copilot, nó giúp code nhanh hơn."* Đây là cơ hội nổi bật.
+
+> *"I treat it as a very fast, very confident junior. It writes code that compiles, and it doesn't know the constraints of my project unless I tell it.*
+> *So two things changed how I work. First, I write a short spec before I generate anything — behaviour, constraints, what's out of scope, and acceptance criteria. Then the spec is both the input and the thing I check against, instead of eyeballing the output and deciding it looks fine.*
+> *Second, I keep a rules file in the repo so it follows the project's conventions rather than inventing its own.*
+> *On review — I never accept a diff I haven't read line by line. I've got a checklist of what it gets wrong most: swallowed errors, missing effect cleanup, stale closures, and trusting external data because the type says it's a string.*
+> *The category I watch hardest is business logic that reads correctly and is wrong. Off-by-one on a date range, or a timezone assumption. That code passes review because it looks right — only a test catches it. Which is one more reason I write the test myself and let it write the implementation, rather than the other way round."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `eyeball` (v) | nhìn lướt qua áng chừng | *Instead of eyeballing the output.* |
+| `swallow an error` | nuốt lỗi, giấu lỗi | *Swallowed errors are the most common.* |
+| `stale closure` | closure giữ giá trị cũ | *Stale closures are hard to spot.* |
+| `the other way round` | ngược lại | *Rather than the other way round.* |
+| `low bar` | tiêu chuẩn thấp | *It compiles. That's a low bar.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**`qa-bank.mdc` — Topic 3 (Performance).**
+
+Bạn giờ có hai câu chuyện hiệu năng có số đo. Viết lại toàn bộ topic này cho tương xứng.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Đặc tả `edit-meal.md` viết **trước** khi code
+- [ ] Tính năng chạy, duyệt tay đủ 4 mục Acceptance
+- [ ] **`docs/ai-workflow.md` có checklist 7 mục**
+- [ ] Đã soi code AI sinh ra và tìm được ít nhất 1 lỗi — ghi lại là mục nào
+- [ ] File luật cho AI đã có trong repo
+- [ ] `npm run verify` sạch
+- [ ] Đã theo dõi đơn cũ, cập nhật tracker
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-11-05.m4a` — câu AI workflow ≤90 giây
+- [ ] Đã sửa Topic 3 trong `qa-bank.mdc`
+- [ ] 21:30 lên giường

@@ -1,0 +1,217 @@
+---
+description: Thứ Hai 21/09/2026 — Tuần 3 Ngày 1. Vòng 3 — hệ thống theme và dark mode cho MacroZone.
+alwaysApply: false
+---
+
+# Thứ Hai · 21/09/2026 · Tuần 3 — Ngày 11/61
+
+> **Tuần 3 bắt đầu Vòng 3.** Từ hôm nay không còn khóa học nào dắt tay. Bạn thêm những thứ **không có trong video** — đây là chỗ bài tập biến thành portfolio.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Hệ thống theme + dark mode |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Context API + lưu lựa chọn theme |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Daily standup |
+| **17:00** | **ĐỌC SÁCH** — ch.11 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Hệ thống theme
+
+Nếu sáng T6 tuần trước bạn dưới 3/7: dùng 2 tiếng này dựng lại phần còn thiếu của MacroZone trước đã. Không sao cả.
+
+### Việc hôm nay
+
+Mở rộng `constants/theme.ts` thành **hai bảng màu**:
+
+```ts
+const palette = {
+  slate900: '#0f172a', slate800: '#1e293b', slate100: '#f1f5f9',
+  white: '#ffffff', sky400: '#38bdf8', sky600: '#0284c7',
+  red400: '#f87171', green400: '#4ade80',
+} as const;
+
+const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 } as const;
+const radius  = { sm: 8, md: 12, lg: 20 } as const;
+
+export const darkTheme = {
+  mode: 'dark',
+  colors: {
+    background: palette.slate900,
+    card:       palette.slate800,
+    text:       palette.slate100,
+    textMuted:  '#94a3b8',
+    accent:     palette.sky400,
+    danger:     palette.red400,
+    success:    palette.green400,
+    border:     '#334155',
+  },
+  spacing, radius,
+} as const;
+
+export const lightTheme = {
+  mode: 'light',
+  colors: {
+    background: palette.white,
+    card:       palette.slate100,
+    text:       palette.slate900,
+    textMuted:  '#64748b',
+    accent:     palette.sky600,
+    danger:     '#dc2626',
+    success:    '#16a34a',
+    border:     '#e2e8f0',
+  },
+  spacing, radius,
+} as const;
+
+export type AppTheme = typeof darkTheme;
+```
+
+**Điểm mấu chốt về kiểu:** `lightTheme` và `darkTheme` phải có **đúng cùng một hình dạng**. Nếu quên một khóa màu ở bảng sáng, TypeScript sẽ báo lỗi ngay khi bạn gán `lightTheme` vào biến kiểu `AppTheme` — thay vì đến lúc chạy mới thấy màu bị `undefined`.
+
+Giãn cơ 5 phút lúc 09:30.
+
+```bash
+git checkout -b feat/theming
+git add . && git commit -m "feat: định nghĩa bảng màu sáng và tối"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — Context + lưu lựa chọn
+
+### 13:30–14:30 · ThemeContext
+
+**Docs:** https://react.dev/reference/react/createContext
+
+```ts
+// context/ThemeContext.tsx
+type ThemeMode = 'light' | 'dark' | 'system';
+
+type ThemeContextValue = {
+  theme: AppTheme;
+  mode: ThemeMode;
+  setMode: (mode: ThemeMode) => void;
+};
+```
+
+- `useColorScheme()` của React Native để đọc chế độ hệ điều hành
+- Chế độ `'system'` phải **tự đổi theo máy**, không cần khởi động lại app
+- Hook `useTheme()` để component gọi cho gọn
+
+### 14:30–15:00 · Áp theme vào toàn bộ component
+
+Đây là phần tốn công nhất: đổi mọi `styles` tĩnh thành hàm nhận theme.
+
+```ts
+// Trước
+const styles = StyleSheet.create({ card: { backgroundColor: '#1e293b' } });
+
+// Sau
+const createStyles = (t: AppTheme) => StyleSheet.create({
+  card: { backgroundColor: t.colors.card, padding: t.spacing.md },
+});
+
+// Trong component
+const { theme } = useTheme();
+const styles = useMemo(() => createStyles(theme), [theme]);
+```
+
+**Vì sao cần `useMemo`:** không có nó, `StyleSheet.create` chạy lại mỗi lần render, tạo object mới, khiến các component con dùng `React.memo` mất tác dụng. Đây là câu trả lời rất tốt cho câu hỏi phỏng vấn *"khi nào thì memo hóa?"*
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Lưu lựa chọn + màn hình Settings
+
+- Lưu `mode` vào AsyncStorage, đọc lại lúc khởi động
+- Tab Settings mới với 3 lựa chọn: Light / Dark / System
+- Tránh **nhấp nháy màu** lúc mở app: giữ splash screen cho tới khi đọc xong theme đã lưu
+
+```bash
+npx expo install expo-splash-screen
+```
+
+### 16:00–16:30 · Kiểm tra
+
+- Đổi theme trong app → đổi ngay, không cần khởi động lại
+- Tắt app mở lại → giữ đúng lựa chọn cũ
+- Chọn `system`, đổi chế độ tối trong Cài đặt máy → app đổi theo
+- Không còn mã màu viết cứng nào: `rg "#[0-9a-fA-F]{6}" app/ components/` chỉ được ra kết quả trong `theme.ts`
+
+```bash
+git add . && git commit -m "feat: dark mode với context, lưu lựa chọn và theo hệ thống"
+git checkout main && git merge feat/theming
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+
+### 16:30–16:40 · Shadowing
+
+Hôm nay chưa xem video khóa học, nên dùng podcast: mở 2 phút **Syntax.fm** (https://syntax.fm). Nghe → dừng → nhại to. Lặp 3–4 lần.
+
+### 16:40–16:55 · Standup có ghi âm
+
+> *"Morning. Last week I finished MacroZone following a course, and got my first EAS build running on a real device.*
+> *This week I'm going beyond the course. Today I built a proper theming system — light and dark palettes with shared design tokens, a theme context, and persistence so the choice survives a restart. It also follows the system setting if you want it to.*
+> *Tomorrow I'll add a stats screen and swap the list over to FlashList.*
+> *One thing I want to look into is whether I'm re-creating stylesheets too often on re-render — I used useMemo for now but I'd like to profile it properly later."*
+
+**Câu cuối là kỹ thuật cao trong phỏng vấn:** tự nêu một điểm chưa chắc chắn kèm kế hoạch kiểm chứng. Nó cho thấy bạn có tiêu chuẩn, không phải bạn yếu.
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `go beyond` | đi xa hơn | *This week I'm going beyond the course.* |
+| `survive a restart` | còn nguyên sau khởi động lại | *The choice survives a restart.* |
+| `swap X over to Y` | đổi X sang Y | *I'll swap the list over to FlashList.* |
+| `look into` | tìm hiểu kỹ | *I want to look into that.* |
+| `profile` (v) | đo hiệu năng | *I'd like to profile it properly.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 11 *(Design it Twice)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] `lightTheme` và `darkTheme` có cùng hình dạng, TypeScript ép được
+- [ ] Đổi theme trong app có hiệu lực ngay
+- [ ] Lựa chọn còn nguyên sau khi tắt mở app
+- [ ] Chế độ `system` chạy đúng
+- [ ] Không nhấp nháy màu lúc mở app
+- [ ] `rg "#[0-9a-fA-F]{6}" app/ components/` không ra kết quả nào
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-09-21.m4a`
+- [ ] Đọc xong ch.11
+- [ ] 21:30 lên giường

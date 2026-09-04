@@ -1,0 +1,240 @@
+---
+description: Day 41 — PV Culture Lead Marketing CellphoneS. Câu trả lời nói to ≤60s, giọng tự nhiên, dễ hiểu (chưa từng làm với Marketing cũng dùng được).
+alwaysApply: false
+---
+
+# Day 41 — Vòng nói chuyện với Lead Marketing (CellphoneS)
+
+> **Buổi PV:** 09:00 T6 31/07/2026 · Online Lark · đã qua Tech Lead · lương ~25 triệu gross.
+> **Vòng này:** không hỏi code sâu — họ muốn biết bạn **dễ làm việc chung** và **có trách nhiệm** không.
+> **Cách học file:** đọc Mục 1 cho hiểu → tập **nói to** các câu trong Mục 3 (đừng học thuộc từng chữ, nói bằng lời của bạn).
+
+---
+
+## 1. Lead Marketing muốn gì? (nhớ 5 ý)
+
+1. App giúp **khách mua được hàng** — không chỉ “làm đẹp”.
+2. Deadline gấp: bạn **hỏi rõ, làm phần kịp, báo sớm** nếu không kịp.
+3. Có lỗi: **xem phần mình trước**, không đổ ngay sang người khác.
+4. **Nói thật** — chưa Flutter production thì nói thẳng, không giả giỏi.
+5. Làm việc chung êm: **không im**, **có ETA**, nói bằng lời Marketing hiểu được.
+
+---
+
+## 2. Sáu giá trị công ty — hiểu là được, không cần đọc như kinh
+
+| Giá trị | Hiểu đơn giản | Một câu tự nhiên |
+| --- | --- | --- |
+| Tỉnh thức | Hỏi rõ trước khi làm | “Em hỏi kỹ cần kịp lúc nào, khách cần thấy gì.” |
+| Biết ơn | Tôn trọng việc team trước đã làm | “App các anh chạy tốt rồi, em vào học và góp thêm.” |
+| Gốc rễ vấn đề | Lỗi thì xem mình sót gì trước | “Em tự kiểm tra phần app trước, rồi mới nói sang bên khác.” |
+| Trung thực | Nói đúng sức và tiến độ | “Flutter em chưa làm production, em học theo team.” |
+| Tình huynh đệ | Làm việc với nhau, không cãi nghề | “Khác ý thì em nói rõ, chốt hướng chung.” |
+| Làm đúng cam kết | Hứa vừa sức, trễ thì báo sớm | “Em chỉ hứa phần chắc làm kịp.” |
+
+---
+
+## 3. Câu hỏi + câu trả lời nói to (≤60 giây)
+
+> **Cách dùng:** Đọc to 2–3 lần. Được phép đổi chữ — giữ **ý** là đủ.
+
+---
+
+### C1. “Em giới thiệu về mình?”
+
+**60-sec answer:**
+
+> “Dạ em chào anh/chị, em tên Nhân. Em làm app điện thoại được khoảng bốn năm ở Firegroup — chủ yếu React Native. Em làm OneMobile, app giúp shop bán hàng trên điện thoại, và OneLoyalty, app có mã giảm giá, đổi quà, giữ khách quay lại. Phần kỹ thuật em đã trao đổi với anh Tech Lead rồi. Còn với anh/chị Marketing, em mong làm việc rõ ràng: hiểu được cần gì trên app, làm kịp phần quan trọng, và nếu không kịp thì em báo sớm chứ không im đến phút cuối.”
+
+---
+
+### C2. “Vì sao em chọn CellphoneS?”
+
+**60-sec answer:**
+
+> “Em có dùng app CellphoneS — thấy dùng mượt, mua hàng và phần thành viên Smember rõ ràng. Em không nghĩ mình vào để làm lại từ đầu, mà để tiếp tục phát triển app đang chạy — các đợt khuyến mãi, banner, mã giảm giá, đặt hàng. Việc em làm ở OneLoyalty khá giống, nên em tin học nhanh phần nghiệp vụ. Em cũng muốn làm ở chỗ bán lẻ lớn, thấy rõ app phục vụ khách thật mỗi ngày.”
+
+**Đừng nói:** chỗ cũ tệ; chỉ vì lương; app các anh còn kém.
+
+---
+
+### C3. “Làm app giúp Marketing thế nào?”
+
+**60-sec answer:**
+
+> “Em hiểu Marketing lo kéo khách tới — quảng cáo, banner, thông báo. Còn app là chỗ khách cầm máy để xem sản phẩm, dùng ưu đãi và đặt mua. Nếu banner bấm không vào đúng trang, hoặc mã giảm giá lỗi lúc thanh toán, khách bực và mất đơn. Việc của em là làm đúng những gì hai bên đã thống nhất — hiện đúng, bấm vào đúng chỗ — và khi có lỗi thì xử lý sớm, nhất là quanh lúc khách đang mua.”
+
+---
+
+### C4. “Marketing cần gấp một hai ngày — em làm sao?”
+
+**60-sec answer:**
+
+> “Em không nói không làm, cũng không nhận hết rồi im. Em hỏi lại: cần kịp giờ nào, phần nào khách **bắt buộc** phải thấy trước. Thường em đề xuất làm trước phần dùng được — ví dụ banner hiện đúng, bấm vào đúng trang — còn phần làm đẹp thêm để sau nếu thiếu thời gian. Nếu vẫn không khớp lịch, em nói sớm để anh/chị còn đổi kế hoạch quảng cáo. Phần em đã hứa thì em cố làm đúng.”
+
+---
+
+### C5. “Marketing và Tech không cùng ý — em xử lý thế nào?”
+
+**60-sec answer:**
+
+> “Em cố giữ mục tiêu chung: khách dùng được, đợt khuyến mãi chạy đúng giờ. Em giải thích bằng lời dễ hiểu — ví dụ làm quá nhiều hiệu ứng đẹp thì máy yếu dễ bị đứng, còn bản đơn giản hơn thì chắc kịp lên app. Em từng gặp mã giảm giá phải đúng trên nhiều trang; sửa một trang cho nhanh thì trang khác vẫn sai. Em thích chốt một hướng và ngày xong rõ, hơn là cãi để thắng.”
+
+---
+
+### C6. “Em hiểu ‘mình là gốc rễ vấn đề’ thế nào? Cho ví dụ.”
+
+**60-sec answer:**
+
+> “Với em là khi có lỗi, em hỏi trước: phần việc của em còn thiếu gì. Ví dụ ở OneLoyalty: khách đã dùng mã giảm giá lúc thanh toán rồi, nhưng trang danh sách mã và trang chi tiết vẫn hiện như chưa dùng. Nếu em chỉ sửa một trang cho xong việc, khách vẫn thấy loạn. Em nhận là app chưa cập nhật đủ các trang, em sửa cho đồng bộ, và báo rõ nếu mã hết hạn hoặc hết lượt. Xong phần app rồi mới nhờ bên máy chủ kiểm tra tiếp nếu cần.”
+
+---
+
+### C7. “Điểm yếu của em? / Chưa Flutter production thì sao?”
+
+**60-sec answer:**
+
+> “Điểm thẳng là em chưa đưa app Flutter lên store trong công việc trước. Em không nói quá. Em làm React Native nhiều năm, hiểu app chạy thế nào, từng làm mã giảm giá, danh sách dài, và từng viết phần nối sang Android/iOS cho ví điện tử. Flutter em đang học theo code của team. Em nghĩ tháng đầu nên làm việc nhỏ, có người xem lại; dần dần nhận việc lớn hơn. Nói thật giúp anh/chị giao việc đúng, khỏi giao nhầm việc quá lớn quá sớm.”
+
+---
+
+### C8. “Em biết gì về văn hóa CellphoneS?”
+
+**60-sec answer:**
+
+> “Em biết công ty hay nhắc: làm việc tỉnh táo, biết ơn, có vấn đề thì nhìn phần mình trước, nói thật, đối xử tốt với đồng nghiệp, và giữ đúng lời hứa. Em hiểu theo việc làm app: hỏi rõ trước khi làm, không chê việc người đi trước, có lỗi thì tự kiểm tra phần mình, nói thẳng mình chưa giỏi Flutter production, và chỉ hứa những gì làm kịp. Nếu trong team có cách hiểu sâu hơn, em sẵn sàng học khi vào làm.”
+
+---
+
+### C9. “Vì sao nghỉ Firegroup? Có gắn bó lâu không?”
+
+**60-sec answer:**
+
+> “Em làm Firegroup khoảng bốn năm. Em muốn sang môi trường bán lẻ lớn hơn và học Flutter trên app nhiều khách. Em không nghỉ vì cãi nhau hay muốn nói xấu chỗ cũ. Em tìm chỗ ổn định để làm lâu — hiểu dần Smember, đặt hàng, và trở thành người anh/chị gọi được khi cần việc trên app. Em không đổi việc liên tục.”
+
+**Đừng nói:** chỗ cũ toxic; sếp tệ; chỉ vì lương.
+
+---
+
+### C10. “Mức lương đang trao đổi?”
+
+**45-sec answer:**
+
+> “Với anh Tech Lead em đã bàn quanh **25 triệu gross**. Em thấy hợp với kinh nghiệm làm app bán hàng và loyalty của em. Em muốn hỏi thêm bên mình tính bảo hiểm và thưởng thế nào cho rõ thu nhập thực — không phải để đòi lại ngay hôm nay.”
+
+---
+
+### C11. “Ba tháng đầu em làm gì?”
+
+**60-sec answer:**
+
+> “Tháng đầu em làm quen code Flutter của team, hiểu khách đi từ trang chủ tới đặt hàng và phần thành viên, làm việc nhỏ hoặc sửa lỗi có người xem lại — để không làm hỏng đợt khuyến mãi đang chạy. Tháng hai em nhận việc có ngày giao rõ, ví dụ banner hoặc trang theo brief. Tháng ba em tham gia sâu hơn một mảng hay liên quan ưu đãi hoặc thành viên. Với em, thành công là anh/chị thấy gọi em thì có người trả lời rõ và giữ đúng hạn đã hứa.”
+
+---
+
+### C12. Câu hỏi ngược — chọn **1** câu hỏi lại họ
+
+> Nói tự nhiên, như muốn hiểu nhịp làm chung — **không** hỏi hàng loạt như checklist. Chọn **1** câu phù hợp lúc đó.
+
+**Nhịp & hạn (làm việc êm hơn):**
+
+> “Thường khi có đợt khuyến mãi trên app, bên Marketing gửi việc cho mobile trước bao lâu ạ? Em hỏi để biết nhịp làm việc và cam kết cho đúng.”
+
+> “Khi việc cần lên app gấp trong một hai ngày, anh/chị thường cần biết sớm nhất phần nào ạ — ví dụ đã nhận việc, đang làm, hay giờ dự kiến xong? Em hỏi để báo đúng nhịp anh/chị cần.”
+
+> “Nếu giữa đường phải đổi nội dung hoặc đổi trang khách bấm vào, bên mình thường chốt lại bằng cách nào ạ? Em muốn tránh hiểu lệch rồi làm sai.”
+
+**Khi có lỗi / campaign đang chạy:**
+
+> “Khi anh/chị phát hiện lỗi trên app lúc đang chạy khuyến mãi, bên mình thường nhắn qua đâu và cần update lần đầu trong khoảng bao lâu ạ? Em hỏi để phản hồi đúng kỳ vọng.”
+
+> “Sau khi mobile báo đã sửa, anh/chị thường muốn tự kiểm lại trên app, hay cần em gửi ảnh/clip xác nhận ạ?”
+
+**Kỳ vọng người mới (an toàn, luôn dùng được):**
+
+> “Ba tháng đầu, anh/chị kỳ vọng một bạn mobile mới làm tốt điều gì nhất ạ?”
+
+> “Với team Marketing, dấu hiệu một bạn mobile dễ làm việc chung là gì ạ? Em muốn biết để giữ đúng cách làm việc đó.”
+
+**Đừng hỏi kiểu này:** lương thưởng sâu; “Marketing hay gửi trễ không?”; chê quy trình hiện tại; hỏi như đang audit team.
+
+---
+
+### C13. “Marketing báo lỗi trên app / đợt khuyến mãi đang chạy — em làm gì?”
+
+**60-sec answer:**
+
+> “Em không im. Em xác nhận đã nhận tin: anh/chị đang thấy gì, lúc nào, màn hình nào, ảnh hoặc clip nếu có. Em tự kiểm tra phần app trước — reproduce được thì báo sớm: đây là lỗi thật, em đang xử lý, **ETA khoảng bao lâu** — ví dụ 30 phút update lần đầu, hoặc nửa ngày nếu phải chờ phía máy chủ. Nếu chưa rõ nguyên nhân, em vẫn báo: đang kiểm tra, sẽ cập nhật lại giờ X — không để anh/chị phải hỏi lại nhiều lần. Xong thì nói rõ đã lên app chưa, anh/chị kiểm tra lại giúp giúp gì. Mục tiêu là khách mua được, Marketing không bị treo trong im lặng.”
+
+**Đừng nói:** “Để em xem rồi…” rồi mất hút; đổ ngay “lỗi bên server/CMS”; hứa “xong ngay” khi chưa biết scope.
+
+---
+
+### C14. “Marketing bảo app lỗi, nhưng em kiểm tra thấy đúng theo brief — xử lý thế nào?”
+
+**60-sec answer:**
+
+> “Em không nói ‘anh/chị sai’. Em hỏi lại cho khớp: brief lúc chốt là gì, màn anh/chị đang xem, và kỳ vọng đúng ra sao. Có khi brief đã đổi trên chat nhưng app chưa cập nhật, hoặc anh/chị đang nhìn bản cũ chưa tải lại. Em giải thích bằng lời thường: ‘Hiện app đang làm đúng theo bản chốt ngày X; nếu muốn đổi sang Y thì em làm được, cần thêm khoảng Z thời gian.’ Nếu anh/chị cần đổi gấp vì quảng cáo đã chạy, em đề xuất phần tối thiểu kịp giờ — không tranh đúng-sai, mà chốt hướng chung và hạn rõ.”
+
+---
+
+### C15. “Đang làm việc A, Marketing nhảy việc B gấp hơn — em làm sao?”
+
+**60-sec answer:**
+
+> “Em không tự đổi lịch một mình rồi biến mất. Em hỏi: việc B khách bắt buộc thấy lúc nào, nếu chậm thì mất gì. Em nói rõ ảnh hưởng: nếu nhận B ngay thì việc A trễ tới ngày nào. Em đề xuất xếp lại — làm B trước phần quan trọng, A dời hoặc rút scope — rồi **báo Tech Lead / người giao việc** để hai bên cùng biết. Với Marketing em trả lời rõ: nhận phần nào, kịp giờ nào, phần nào chưa làm được trong hạn đó. Không nhận cả hai rồi im đến phút cuối.”
+
+---
+
+### C16. “Khi đang xử lý lỗi hoặc làm gấp, em báo tiến độ với Marketing thế nào?”
+
+**60-sec answer:**
+
+> “Em báo bằng câu ngắn, không thuật ngữ. Ba ý: đang ở bước nào, **ETA lần cập nhật tiếp**, và anh/chị cần chờ hay cần làm gì thêm. Ví dụ: ‘Em đã reproduce được, nghi ở chỗ mã giảm giá lúc thanh toán, 30 phút nữa em báo lại đã sửa chưa.’ Nếu trễ hơn dự kiến, em báo **trước** hạn đã nói — không đợi hết giờ rồi mới nói. Anh/chị Marketing cần biết để còn đổi kế hoạch quảng cáo hoặc thông báo nội bộ, không phải để kiểm soát code của em.”
+
+---
+
+### C17. “Marketing gửi brief muộn / thiếu chi tiết — em làm gì để vẫn êm?”
+
+**60-sec answer:**
+
+> “Em không ngồi chờ rồi đổ lỗi. Em hỏi lại vài điểm chốt: cần kịp giờ nào, khách bấm vào đâu, hiện chữ/ảnh gì, và phần nào bắt buộc trước. Em tóm lại bằng tin nhắn ngắn: ‘Em hiểu cần A, B trước ngày X; C để sau nếu thiếu thời gian — anh/chị xác nhận giúp.’ Có xác nhận thì làm; còn mơ hồ thì không đoán rồi làm sai. Brief muộn thì em vẫn cố phần tối thiểu kịp giờ, và nói sớm phần nào không kịp để Marketing không bất ngờ.”
+
+---
+
+## 4. Đừng nói (dễ bị loại)
+
+- “App xong rồi nên vào đây nhàn.”
+- Nói xấu Firegroup hoặc đồng nghiệp cũ.
+- “Marketing không hiểu gì / lúc nào cũng đòi vô lý.”
+- “Em giỏi Flutter lắm.”
+- “Cái gì cũng được, em nhận hết.”
+- Ngồi đọc sáu giá trị như đọc kinh.
+- Im lặng khi có bug / “để em xem” rồi mất hút cả buổi.
+- Hứa “xong ngay” khi chưa biết mất bao lâu.
+
+---
+
+## 5. Tối trước PV — luyện 15 phút
+
+1. Nói to **C1, C2, C4, C5, C13, C7** — mỗi câu 2 lần (ưu tiên: gấp hạn + bug có ETA).
+2. Nhẩm **25 triệu gross** + một câu hỏi ngược (C12).
+3. Nhẩm 1 câu khung khi có lỗi: *đã nhận → đang kiểm → ETA → báo lại đúng giờ*.
+4. Sáng mai: vào Lark sớm 10 phút, tên **Trương Hữu Nhân**, mic/cam ổn.
+
+---
+
+## 6. Cheatsheet êm Marketing ↔ Dev (nhẩm 30 giây)
+
+| Tình huống | Việc làm ngay | Đừng làm |
+| --- | --- | --- |
+| Deadline gấp 1–2 ngày | Hỏi giờ chốt + phần bắt buộc → làm tối thiểu kịp | Nhận hết / từ chối cứng |
+| Khác ý Marketing–Tech | Mục tiêu chung + lời dễ hiểu + chốt hướng + hạn | Cãi để thắng nghề |
+| Marketing raise bug | Xác nhận đã nhận → tự check app → **ETA** → update đúng giờ | Im / đổ server ngay |
+| “Lỗi” nhưng đúng brief | Hỏi khớp kỳ vọng → giải thích không đổ lỗi → chốt đổi + thời gian | “Anh/chị sai rồi” |
+| Nhảy việc giữa chừng | Nói trade-off A/B → báo lead → cam kết phần kịp | Tự đổi lịch rồi biến mất |
+| Brief muộn / mơ hồ | Hỏi 3–4 điểm chốt + tin xác nhận ngắn | Đoán rồi làm sai |
+
+---
+
+_Drill vòng Lead Marketing. Nói như đang trò chuyện — đúng ý quan trọng hơn đúng từng chữ._

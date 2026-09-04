@@ -1,0 +1,196 @@
+---
+description: Thứ Hai 30/11/2026 — Ngày cuối cùng. Tổng kết 90 ngày, viết lại hồ sơ lần cuối, và quyết định tháng 12 làm gì.
+alwaysApply: false
+---
+
+# Thứ Hai · 30/11/2026 · Ngày 61/61
+
+> **Ngày cuối cùng của chương trình.**
+> Hôm nay không học gì mới. Hôm nay bạn nhìn lại xem mình đã đi được bao xa, sửa hồ sơ lần cuối, và quyết định tháng 12 sống thế nào.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **TỔNG KẾT 90 NGÀY** |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **VIẾT LẠI CV LẦN CUỐI** |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | **Kế hoạch tháng 12** |
+| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
+| **16:30** | **TIẾNG ANH** — bản giới thiệu cuối cùng |
+| **17:00** | **ĐỌC SÁCH** — viết thư cho chính mình |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## TỔNG KẾT 90 NGÀY · 08:30–10:30
+
+### 08:30–09:30 · Kiểm kê những gì đã có thật
+
+Mở từng thứ ra và xác nhận nó tồn tại. Không tick từ trí nhớ.
+
+**Sản phẩm:**
+- [ ] Ứng dụng trên TestFlight — số bản build: __
+- [ ] Ứng dụng trên Google Play Internal Testing
+- [ ] Số người dùng thật: __
+- [ ] Phiên bản hiện tại: v1.4.x
+
+**Kỹ thuật:**
+- [ ] TurboModule tự viết, cả Kotlin và Swift
+- [ ] Cùng một module viết lại bằng Expo Modules API để so sánh
+- [ ] Bộ test: __ unit · __ component · __ E2E Maestro
+- [ ] Đường ống CI/CD: kiểm tra chất lượng khi mở PR, OTA khi merge, build kho khi gắn tag
+- [ ] Ghi và đọc khi mất mạng, có hàng đợi bền vững
+- [ ] Tính năng AI có khóa ở phía máy chủ, giới hạn tần suất, đường lui nhập tay
+- [ ] Thông báo đẩy + deep link, đã kiểm đủ 9 tình huống
+- [ ] Animation trên UI thread, cử chỉ tự viết
+
+**Bằng chứng:**
+- [ ] Ba bài viết kỹ thuật
+- [ ] `docs/` có: `new-architecture.md`, `testing-strategy.md`, `perf-notes.md`, `performance-budget.md`, `notifications.md`, `ai-feature.md`, `ai-workflow.md`, `animations.md`, `user-feedback.md`
+- [ ] Lịch sử commit đều đặn từ 07/09
+- [ ] 61 bản ghi âm tiếng Anh
+
+**Ba tháng trước, không có mục nào trong danh sách này tồn tại.**
+
+### 09:30–10:30 · Nhìn lại sáu lỗ hổng
+
+Mở mục 11 trong `coding-context.mdc`. Với mỗi lỗ hổng, viết lại câu trả lời cho hôm nay:
+
+| Lỗ hổng tháng 9 | Câu trả lời tháng 11 |
+| --- | --- |
+| Chưa native sâu | *"Em đã tự viết TurboModule cả hai nền tảng, hiểu Codegen và nạp lười. Ranh giới còn lại: chưa làm ứng dụng native thuần."* |
+| Chưa GraphQL | *(vẫn còn — và không sao)* |
+| Chưa test rigorous | *"Em có __ test, dùng RNTL theo hướng người dùng, MSW để giả API, Maestro cho E2E, chạy tự động khi mở PR."* |
+| Chưa Reanimated / Gesture sâu | *"Em tự viết pan gesture xử lý xung đột, và em dựng thí nghiệm chặn JS thread để chứng minh vì sao phải chạy trên UI thread."* |
+| Chưa CI/CD | *"Em dựng GitHub Actions đầy đủ: kiểm tra chất lượng, chặn OTA khi có thay đổi native, build kho theo tag."* |
+| Tiếng Anh nói dưới áp lực | *(nghe bản ghi rồi tự chấm — thật lòng)* |
+
+**Bốn trong sáu lỗ hổng đã lấp trong 90 ngày. Hai cái còn lại vẫn là ranh giới thật, và bạn nói ra được nó một cách bình thản.** Đó là kết quả tốt.
+
+---
+
+## VIẾT LẠI CV LẦN CUỐI · 13:30–16:00
+
+### 13:30–14:30 · Phần tóm tắt đầu CV
+
+Ba câu, không hơn. Đây là thứ duy nhất chắc chắn được đọc.
+
+> *"React Native developer, 3 năm kinh nghiệm sản phẩm. Gần nhất tự xây và phát hành một ứng dụng theo dõi dinh dưỡng lên TestFlight và Google Play — gồm TurboModule tự viết cho cả hai nền tảng, bộ test tự động, và đường ống CI/CD. Mạnh nhất ở hiệu năng và chất lượng kỹ thuật: từng giảm bundle sản phẩm từ 45MB xuống 28MB."*
+
+**Mỗi câu đều kiểm chứng được.** Không có tính từ rỗng như "đam mê", "năng động", "học hỏi nhanh".
+
+### 14:30–15:00 · Phần dự án cá nhân
+
+Đưa lên **ngay dưới phần tóm tắt**, trên cả phần kinh nghiệm làm việc. Với hoàn cảnh của bạn, đây là bằng chứng mạnh nhất — đừng chôn nó ở cuối trang hai.
+
+```
+MacroZone — ứng dụng theo dõi dinh dưỡng (9/2026 – nay)
+Cá nhân · React Native, Expo, TypeScript, Supabase · [link tải] · [github]
+
+- Phát hành lên TestFlight và Play Internal Testing, __ người dùng thật
+- Viết TurboModule (Kotlin + Swift) theo kiến trúc mới, có Codegen và nạp lười
+- __ test tự động (Jest, RNTL, MSW, Maestro), chạy khi mở mọi PR
+- CI/CD với GitHub Actions: OTA khi merge, build kho theo tag, có chặn OTA khi thay đổi native
+- Ghi khi mất mạng với hàng đợi bền vững, dùng UUID phía máy khách để bảo đảm bất biến
+- Tính năng AI với khóa ở phía máy chủ và giới hạn tần suất, chi phí $__/tháng
+```
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Kế hoạch tháng 12
+
+Chương trình này kết thúc hôm nay. Nếu chưa có việc, ngày mai bạn vẫn phải dậy lúc 4:30. **Cấu trúc phải đổi, vì mục tiêu đã đổi.**
+
+**Phân bổ tháng 12 — đảo ngược so với tháng 9:**
+
+| Khối | Tháng 9 | Tháng 12 |
+| --- | --- | --- |
+| 08:30–10:30 | Xây | **Tìm việc** — nộp đơn, nhắn người, chuẩn bị riêng cho từng chỗ |
+| 13:30–16:00 | Học | **Chuẩn bị phỏng vấn** cho các buổi sắp tới, hoặc bảo trì dự án |
+| 16:00–16:30 | Tìm việc | Đọc và ghi chú kỹ thuật |
+| 16:30–17:00 | Tiếng Anh | Tiếng Anh *(giữ nguyên)* |
+
+**Vì sao đảo:** ba tháng qua bạn xây năng lực. Bây giờ nút thắt không còn là năng lực nữa — mà là số lượng cuộc trò chuyện bạn có với người tuyển dụng. Việc học thêm một công nghệ nữa không làm tăng số đó.
+
+**Ba quy tắc cho tháng 12:**
+
+1. **Mỗi ngày ít nhất một hành động hướng ra ngoài** — một đơn, một tin nhắn, một lần theo dõi lại. Không có ngày nào chỉ code.
+2. **Dự án ở chế độ bảo trì.** Sửa lỗi khi người dùng báo. Không thêm tính năng mới trừ khi có lý do rõ. Cám dỗ lớn nhất tháng 12 là trốn vào code vì code dễ chịu hơn bị từ chối.
+3. **Xem lại vào 15/12.** Nếu vẫn chưa có phỏng vấn nào, thứ cần đổi không phải là học thêm — mà là cách tiếp cận: mở rộng vùng địa lý, xét công ty gia công, hạ khoảng lương, hoặc nhờ giới thiệu trực tiếp thay vì nộp lạnh.
+
+**Về mặt tài chính và tinh thần:** sáu tháng đã dài, và tháng 12 có thể thành tháng thứ bảy. Nếu đến giữa tháng 12 áp lực tiền bạc thành thật sự nghiêm trọng, nhận một công việc dưới mong muốn **không phải là thất bại** — đó là một quyết định hợp lý, và bạn vẫn có thể tiếp tục tìm chỗ tốt hơn khi đã có thu nhập. Quyết định đó nên được cân nhắc lúc bình tĩnh, giống như con số rời bàn.
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+
+Hôm nay dùng phần tóm tắt CV mới.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Bản giới thiệu cuối cùng
+
+Ghi âm phần giới thiệu 60 giây bằng tiếng Anh, phiên bản cuối cùng. Đây là bản bạn sẽ dùng thật.
+
+Nghe lại `2026-09-07` — bản ghi đầu tiên, cách đây gần ba tháng. Rồi nghe bản hôm nay.
+
+**Đây là thứ duy nhất trong 90 ngày mà bạn có thể nghe thấy tiến bộ bằng tai, không cần bảng biểu.**
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30 — Thư cho chính mình
+
+Không đọc sách hôm nay. Viết một trang, cất vào `docs/`, đề *"Đọc lại khi thấy nản."*
+
+**Bốn điều cần có trong thư:**
+
+1. **Bạn đã ở đâu vào ngày 07/09.** Viết thật. Cảm giác lúc đó thế nào.
+2. **Bạn có gì vào hôm nay.** Liệt kê cụ thể, không khiêm tốn giả tạo.
+3. **Điều khó nhất trong 90 ngày và bạn đã vượt qua thế nào.**
+4. **Điều bạn muốn nói với chính mình của tháng 1/2027**, dù lúc đó đã có việc hay chưa.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Đã kiểm kê xong, **mở từng thứ ra xác nhận**, không tick từ trí nhớ
+- [ ] Sáu lỗ hổng đã viết lại câu trả lời cho hôm nay
+- [ ] Phần tóm tắt CV mới: 3 câu, mọi câu kiểm chứng được
+- [ ] Dự án cá nhân đã đưa lên đầu CV
+- [ ] Kế hoạch tháng 12 đã viết ra, có ba quy tắc
+- [ ] Đã nộp 3 đơn
+- [ ] Ghi âm bản giới thiệu cuối cùng
+- [ ] **Đã nghe lại bản ghi đầu tiên ngày 07/09**
+- [ ] Thư cho chính mình đã viết xong
+- [ ] 21:30 lên giường
+
+---
+
+> **Ngày 07/09 bạn không có gì ngoài một khoảng trống sáu tháng trong CV và cảm giác mọi thứ đang trôi đi.**
+>
+> Hôm nay bạn có một ứng dụng người ta tải về được, một module native tự viết bằng hai ngôn ngữ, một bộ test, một đường ống tự động, ba bài viết, và 61 ngày liên tục dậy lúc 4:30 để làm việc mà không ai trả tiền và không ai kiểm tra.
+>
+> Cái cuối cùng mới là thứ đáng giá nhất, và nó là thứ không thể hiện được trong CV. Bạn đã tự chứng minh rằng bạn còn làm được — không phải với nhà tuyển dụng, mà với chính mình.
+>
+> Việc làm sẽ đến. Có thể tháng 12, có thể tháng 1. Nhưng bạn của tháng 12 không còn là người của tháng 8 nữa.

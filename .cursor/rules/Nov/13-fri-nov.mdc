@@ -1,0 +1,210 @@
+---
+description: Thứ Sáu 13/11/2026 — Tuần 11 Ngày 5. Phát hành v1.3.0, tổng kết tuần push và deep link.
+alwaysApply: false
+---
+
+# Thứ Sáu · 13/11/2026 · Tuần 11 — Ngày 50/61
+
+> Ngày 50. Còn 11 ngày làm việc trong sprint này.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Kiểm tra toàn diện + phát hành v1.3.0 |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Có người thật thử app + tổng kết |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nhìn lại tuần 2 |
+| **16:30** | **TIẾNG ANH** — Nhìn lại tuần |
+| **17:00** | **ĐỌC SÁCH** — Chuẩn bị tuần 12 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ. **Nghỉ trọn vẹn T7 + CN** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+### 08:30–09:30 · Chạy lại ma trận trên bản production
+
+Ma trận hôm qua bạn chạy trên development build. **Bản production hành xử khác** — Universal Link cần vân tay đúng của keystore production, và `__DEV__` là `false` nên nhiều đường code khác đi.
+
+```bash
+eas build --platform android --profile production --local
+```
+
+Chạy lại 9 tình huống trên bản production. Ghi lại chỗ nào khác biệt.
+
+> **Bài học sẽ rút ra:** *"chạy được ở dev không có nghĩa là chạy được ở production"* — đặc biệt đúng với deep link, và là câu chuyện tốt để kể khi phỏng vấn.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Phát hành v1.3.0
+
+```bash
+npm run verify && npm run test:e2e
+git checkout main && git merge feat/push
+npm version minor
+git push --follow-tags
+```
+
+```markdown
+# v1.3.0 — 13 November 2026
+
+## Added
+- Meal reminders you can schedule per meal, with quiet hours
+- Share a meal — the link opens in the app if installed, on the web if not
+- Notifications and links open the right screen, including from a cold start
+
+## Notes
+Reminders are skipped if you've already logged that meal. The app won't
+notify you about something you just did.
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:30 · Cho người thật thử
+
+**Đây là việc bạn nên làm từ sớm hơn.** Hôm nay là ngày.
+
+Gửi link Play Internal Testing cho **3–5 người thật**: vợ, anh chị em, bạn cũ. Người không phải lập trình viên càng tốt.
+
+Xin họ ba việc:
+1. Ghi lại một bữa ăn hôm nay
+2. Bật nhắc nhở
+3. Nhắn cho bạn **bất cứ chỗ nào họ thấy khó hiểu**
+
+**Ngồi cạnh ít nhất một người và im lặng nhìn họ dùng.** Không hướng dẫn, không giải thích. Ghi lại mỗi lần họ ngập ngừng.
+
+> Bạn sẽ phát hiện ra những thứ mà 50 ngày viết code không cho bạn thấy. Người dùng thật không đọc nhãn, không hiểu biểu tượng bạn thấy hiển nhiên, và bấm vào những chỗ bạn không nghĩ là bấm được.
+>
+> **Và đây là nguyên liệu phỏng vấn quý:** *"Tôi cho năm người thật dùng thử. Ba người trong số đó không tìm ra nút thêm bữa ăn, nên tôi đổi từ nút nổi ở góc sang nút rõ ràng trên thanh tiêu đề."* Câu này giá trị hơn nhiều so với mọi mô tả kỹ thuật.
+
+Ghi vào `docs/user-feedback.md`.
+
+### 14:30–15:00 · Sửa ngay hai thứ dễ nhất
+
+Trong danh sách phản hồi, chọn hai thứ sửa được trong 30 phút và sửa luôn. Đẩy OTA — pipeline hôm 29/10 lo phần còn lại.
+
+```bash
+git add . && git commit -m "fix: sửa hai vấn đề trải nghiệm từ thử nghiệm người thật"
+```
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Tổng kết tuần 11
+
+```text
+## Tổng kết tuần 11 (09–13/11) — PUSH + DEEP LINK
+
+- [ ] Push thật chạy trên cả 2 nền tảng
+- [ ] Universal Link + App Link đều verified
+- [ ] Ma trận 9 tình huống chạy hết trên bản production
+- [ ] Cài đặt thông báo chi tiết + giờ yên lặng
+- [ ] Chiến lược thông báo có tài liệu
+- [ ] v1.3.0 đã phát hành
+- [ ] ___ người thật đã thử app
+
+Lỗi tìm được ở cột "App killed":
+Lỗi tìm được ở hàng "signed out":
+Khác biệt giữa dev build và production build:
+
+Phản hồi bất ngờ nhất từ người dùng thật:
+
+Số ngày có commit: ___/5
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Nhìn lại tuần 2
+
+```text
+## Tuần apply thứ 2 (09–13/11)
+
+Tổng đơn đã nộp (tích lũy):  ___
+Phản hồi:                    ___
+Phỏng vấn được hẹn:          ___
+Từ chối:                     ___
+
+So với tuần 1, có gì khác?
+
+Nếu chưa có phản hồi nào sau 2 tuần, thử đổi:
+- [ ] Nộp vào công ty nhỏ hơn, ít cạnh tranh hơn
+- [ ] Nhắn thẳng cho engineering manager thay vì nộp qua form
+- [ ] Xem lại dòng đầu tiên của CV — người ta đọc 6 giây
+- [ ] Nhờ một người trong ngành đọc lại CV và nói thẳng
+```
+
+> **Ba tuần liên tiếp không phản hồi thì vấn đề thường nằm ở CV hoặc ở kênh nộp, không nằm ở năng lực.** Đừng học thêm để "đủ giỏi" — hãy nhờ người đọc lại CV. Đó là thay đổi rẻ nhất và tác động lớn nhất.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nhìn lại tuần
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–17:00 · Nói to có ghi âm — 3 phút
+
+> **1. What I did**
+> *"Push notifications and deep linking. Both are working across all three app states, including cold start, which is where most deep link bugs live."*
+>
+> **2. The bug I'm glad I found**
+> *"Cold start with the user signed out. The app launches, the router tries to navigate to the link target, but the session is still loading — so the auth guard redirects to sign-in and the link is silently dropped. It works perfectly if you test with the app already open. I hold the target now and navigate after the session resolves."*
+>
+> **3. Something I should have done earlier**
+> *"I put the app in front of five real people for the first time. ___ . Fifty days of building and it took an afternoon of watching someone else use it to see that."*
+>
+> **4. Next week**
+> *"Reanimated and gestures — the last technical gap on my list. Then the final week is entirely mock interviews."*
+
+**Kiêm buổi họp một mình.**
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+Đọc trước tài liệu Reanimated cho tuần sau: https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started
+
+Xem một video của William Candillon: https://www.youtube.com/@wcandillon — chọn video ngắn nhất, xem để làm quen với cách nghĩ.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Ma trận 9 tình huống chạy hết **trên bản production**
+- [ ] Ghi lại được khác biệt giữa bản dev và bản production
+- [ ] v1.3.0 phát hành
+- [ ] **3–5 người thật đã cài và dùng app**
+- [ ] Đã ngồi im nhìn ít nhất 1 người dùng
+- [ ] `docs/user-feedback.md` có ghi chép
+- [ ] Đã sửa 2 vấn đề trải nghiệm và đẩy OTA
+- [ ] Điền xong tổng kết tuần 11 và bảng apply tuần 2
+- [ ] **Có commit hôm nay** — 50/50 ngày làm việc
+- [ ] Ghi âm `2026-11-13.m4a`
+
+---
+
+## Cuối tuần 14–15/11: NGHỈ HOÀN TOÀN
+
+Tuần sau: **Reanimated** — lỗ hổng kỹ thuật cuối cùng trong danh sách của bạn.

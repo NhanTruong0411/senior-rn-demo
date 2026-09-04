@@ -1,0 +1,207 @@
+---
+description: Thứ Năm 17/09/2026 — Tuần 2 Ngày 4. MacroZone — Haptics, Share, Clipboard, Notifications và build EAS đầu tiên.
+alwaysApply: false
+---
+
+# Thứ Năm · 17/09/2026 · Tuần 2 — Ngày 9/61
+
+**Video:** MacroZone `1:14:53 → hết (1:35)`
+
+> Hôm nay hoàn thành app và **chạy lệnh build EAS đầu tiên trong đời**. Build mất 10–20 phút trên cloud, nên bấm sớm rồi làm việc khác trong lúc chờ.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Vòng 2: dựng lại lớp storage |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — MacroZone 1:14:53 → hết + build EAS |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Câu hỏi phỏng vấn |
+| **17:00** | **ĐỌC SÁCH** — ch.9 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Vòng 2
+
+```bash
+git checkout -b practice/day-09
+```
+
+Không mở video. Dựng lại **toàn bộ lớp storage** từ trí nhớ:
+
+```ts
+// lib/storage.ts — tự viết lại, không nhìn bài cũ
+export type Meal = {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  createdAt: string;
+};
+
+export async function getMeals(): Promise<Meal[]> { /* ... */ }
+export async function addMeal(meal: Omit<Meal, 'id' | 'createdAt'>): Promise<void> { /* ... */ }
+export async function deleteMeal(id: string): Promise<void> { /* ... */ }
+export async function clearMeals(): Promise<void> { /* ... */ }
+```
+
+**Chú ý kiểu `Omit<Meal, 'id' | 'createdAt'>`** — khi thêm bữa ăn, người dùng không cung cấp `id` và `createdAt`, hàm tự sinh. Đây là utility type của TypeScript mà tuần sau bạn sẽ học kỹ.
+
+Nối lại với giao diện, chạy thử đủ 4 thao tác.
+
+Giãn cơ 5 phút lúc 09:30.
+
+```bash
+git add . && git commit -m "practice: viết lại lớp storage có kiểu chặt chẽ"
+git checkout main && git merge practice/day-09
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–13:50 · `1:14:53 → 1:17:53` All Meals Screen + Clear All
+
+- Màn hình danh sách đầy đủ
+- Nút xóa tất cả có xác nhận
+
+### 13:50–14:30 · `1:17:53 → 1:25:47` Haptics · Share · Clipboard
+
+```bash
+npx expo install expo-haptics expo-clipboard
+```
+
+- `Haptics.impactAsync()` — rung phản hồi khi bấm nút
+- `Share.share()` — API có sẵn của React Native
+- `Clipboard.setStringAsync()`
+
+> Ba API nhỏ này là thứ tạo cảm giác "app xịn". Rất ít dev Việt Nam để tâm tới haptics, nhưng người phỏng vấn dùng iPhone sẽ nhận ra ngay.
+
+### 14:30–15:00 · `1:25:47 → 1:32:05` Expo Notifications
+
+```bash
+npx expo install expo-notifications expo-device
+```
+
+- Xin quyền thông báo
+- Lên lịch thông báo cục bộ (`scheduleNotificationAsync`)
+- Component bật/tắt nhắc nhở
+
+**Phân biệt cho rõ — câu này hay bị hỏi:**
+
+| Loại | Ai gửi | Cần server? |
+| --- | --- | --- |
+| **Local notification** | Chính app, đã lên lịch sẵn trên máy | Không |
+| **Push notification** | Server đẩy qua APNs / FCM | Có |
+
+Hôm nay bạn làm loại thứ nhất. Loại thứ hai sẽ làm ở tháng 11.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · `1:32:05 → hết` **Build EAS đầu tiên**
+
+```bash
+eas build:configure
+```
+
+Tạo `eas.json` với 3 profile: `development`, `preview`, `production`.
+
+**Bấm build ngay đầu giờ** vì phải chờ:
+
+```bash
+# Android trước — nhanh hơn và không cần tài khoản Apple trả phí
+eas build --platform android --profile preview
+```
+
+Trong lúc chờ 10–20 phút, đọc: https://docs.expo.dev/build/introduction/
+
+Khi xong, EAS cho một link tải file `.apk`. Cài lên điện thoại Android thật *(hoặc nhờ người nhà cài)*.
+
+> **Đây là cột mốc thật.** Lần đầu tiên trong 6 tháng qua bạn có một file cài đặt được, chạy trên máy người khác. Không phải Expo Go, không phải simulator — app thật.
+
+```bash
+git add . && git commit -m "feat: haptics, share, clipboard, thông báo cục bộ + cấu hình EAS"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Năm: Câu hỏi phỏng vấn
+
+### 16:30–16:40 · Shadowing
+
+2 phút video MacroZone. Nghe → dừng → nhại to. Lặp 3–4 lần.
+
+### 16:40–16:55 · Trả lời phỏng vấn có ghi âm
+
+**Câu hỏi tuần này:** *"Why did you leave your last job?"*
+
+Đây là câu **bẫy**. Nói xấu công ty cũ là cờ đỏ ngay lập tức. Phải trả lời trung thực nhưng hướng về phía trước.
+
+Khung 45–60 giây:
+
+> *"I was at Firegroup for a bit over three years, and I'm genuinely grateful for it — that's where I learned to ship to production and work across both platforms.*
+> *Towards the end, the product direction changed and my role narrowed down to maintenance work on features I'd already built. I wasn't learning much anymore.*
+> *I'd rather be honest about the gap since then: I've been out of work for a few months, and I've used that time to fill in areas I never got to touch — testing, CI/CD, and the New Architecture. I've been building an app end to end to practise all of it.*
+> *What I want next is a team where I can keep growing on the technical side, not just maintain."*
+
+**Ba luật cho câu này:**
+1. Không một từ tiêu cực nào về công ty cũ
+2. Chủ động nói ra khoảng trống trước khi họ hỏi — chủ động thì là *bối cảnh*, bị hỏi mới nói thì thành *lời bào chữa*
+3. Kết bằng thứ bạn muốn đi tới, không phải thứ bạn chạy khỏi
+
+Ghi âm. Bấm giờ. Nghe lại — có giọng nào nghe như đang than không? Nếu có, nói lại.
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `narrow down` | thu hẹp lại | *My role narrowed down to maintenance.* |
+| `fill in the gaps` | lấp lỗ hổng | *I used the time to fill in the gaps.* |
+| `grateful for` | biết ơn vì | *I'm grateful for that experience.* |
+| `I'd rather be honest` | tôi muốn nói thẳng | *I'd rather be honest about it.* |
+| `keep growing` | tiếp tục phát triển | *A team where I can keep growing.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 9 *(Better Together Or Better Apart?)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Viết lại được `lib/storage.ts` có kiểu chặt chẽ từ trí nhớ
+- [ ] Haptics rung khi bấm nút
+- [ ] Chia sẻ và sao chép chạy được
+- [ ] Thông báo cục bộ hiện đúng giờ đã hẹn
+- [ ] **`eas build --platform android` chạy thành công, có file .apk**
+- [ ] Đã cài `.apk` lên một máy Android thật
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-09-17.m4a` — "Why did you leave?" ≤60 giây, không câu nào tiêu cực
+- [ ] Đọc xong ch.9
+- [ ] 21:30 lên giường

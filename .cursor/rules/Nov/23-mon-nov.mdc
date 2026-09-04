@@ -1,0 +1,185 @@
+---
+description: Thứ Hai 23/11/2026 — Tuần 13 Ngày 1. Phỏng vấn thử số 1 — vòng sàng lọc và giới thiệu bản thân. Xử lý câu hỏi khoảng trống 6 tháng.
+alwaysApply: false
+---
+
+# Thứ Hai · 23/11/2026 · Tuần 13 — Ngày 56/61
+
+> **Tuần cuối. Không viết tính năng mới nữa.**
+> Bạn đã có năng lực. Tuần này bạn luyện cách làm cho người khác thấy được năng lực đó trong 45 phút nói chuyện.
+>
+> **Cấu trúc mỗi ngày tuần này:** buổi sáng phỏng vấn thử có ghi âm → buổi chiều nghe lại và sửa → tối vẫn nộp đơn.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **PHỎNG VẤN THỬ 1** — vòng sàng lọc, 45 phút, ghi âm |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **NGHE LẠI VÀ SỬA** |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Viết lại câu yếu, nói lại 3 lần |
+| **16:00** | **TÌM VIỆC** — viết lại tóm tắt CV + nộp 3 đơn |
+| **16:30** | **TIẾNG ANH** — Bản tiếng Anh của phần giới thiệu |
+| **17:00** | **ĐỌC SÁCH** — hoàn thiện cheatsheet |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## PHỎNG VẤN THỬ 1 · 08:30–10:30
+
+### Cách chạy cho ra kết quả thật
+
+1. **Bật ghi âm trước khi bắt đầu.** Không ghi âm thì không có tiến bộ đo được.
+2. **Mặc áo như đi phỏng vấn thật.** Ngồi bàn, không nằm.
+3. **Không dừng giữa chừng.** Vấp thì đi tiếp. Trong phỏng vấn thật không có nút tạm dừng.
+4. **Bấm giờ từng câu.** Quá 90 giây là dài.
+5. Mở Cursor, gõ `mock interview` để AI đóng vai người phỏng vấn theo `interview/context.mdc`.
+
+### 08:30–09:30 · Vòng 1 — Sàng lọc (45 phút)
+
+Đây là vòng HR / tuyển dụng. Nó không kiểm tra kỹ thuật, nó kiểm tra **bạn có đáng để mời vào vòng sau không**.
+
+**Câu hỏi:**
+
+1. Anh giới thiệu về bản thân được không?
+2. Vì sao anh nghỉ ở công ty cũ?
+3. **Sáu tháng vừa rồi anh làm gì?**
+4. Vì sao anh quan tâm vị trí này?
+5. Mức lương anh mong muốn?
+6. Bao giờ anh có thể bắt đầu?
+7. Anh có câu hỏi gì cho bên em không?
+
+### Câu số 3 là câu quyết định
+
+**Đây là câu bạn sợ nhất, và cũng là câu có lợi thế nhất nếu chuẩn bị kỹ.** Hầu hết ứng viên có khoảng trống sẽ vòng vo, xin lỗi, hoặc nói mơ hồ *"em có tự học thêm"*. Bạn thì có bằng chứng.
+
+**Cấu trúc trả lời — thẳng, cụ thể, rồi tiến lên:**
+
+> *"Em nghỉ tháng 3, ban đầu định nghỉ ngắn rồi tìm việc luôn. Thật sự thì giai đoạn đầu em khá chật vật.*
+> *Từ tháng 9 em đặt cho mình một chương trình ba tháng có kỷ luật, mỗi ngày làm việc như đi làm thật. Kết quả cụ thể là em có một ứng dụng đang chạy trên TestFlight và Google Play, có năm người dùng thật đang dùng hằng ngày.*
+> *Trong đó em tự viết một TurboModule cho cả Android và iOS — trước đây em chỉ hiểu ở mức khái niệm. Em dựng bộ test và đường ống CI/CD từ đầu, cái này ở công ty cũ em chưa từng làm. Và em có ba bài viết kỹ thuật về những phần khó nhất.*
+> *Nói thẳng thì sáu tháng này không phải kế hoạch của em, nhưng ba tháng cuối em học được nhiều hơn cả năm cuối ở chỗ làm cũ — vì em phải tự quyết định mọi thứ chứ không có ai giao việc."*
+
+**Vì sao câu này hiệu quả:**
+- Thừa nhận thật, không tô vẽ *(người phỏng vấn có kinh nghiệm phát hiện được ngay)*
+- Chuyển sang bằng chứng cụ thể trong vòng 15 giây
+- Mọi thứ nói ra đều **kiểm chứng được** — có link, có repo, có app tải về được
+- Kết bằng cái bạn học được, không phải lời xin lỗi
+
+**Ba lỗi phải tránh:**
+- ❌ Nói "em nghỉ để nghỉ ngơi và suy nghĩ lại định hướng" mà không có gì cụ thể
+- ❌ Xin lỗi hoặc tỏ ra ngại — bạn không nợ ai lời xin lỗi
+- ❌ Nói xấu công ty cũ để giải thích lý do nghỉ
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Câu lương và câu hỏi ngược
+
+**Lương — luôn nói khoảng, đừng nói một số:**
+
+> *"Với vị trí Middle và phạm vi công việc như mô tả, em nghĩ khoảng __ đến __ triệu là hợp lý. Nhưng em quan tâm cả gói tổng thể, nên nếu bên mình có con số trong đầu thì em sẵn sàng nghe."*
+
+Ghi **số rời bàn** ra giấy trước khi vào cuộc gọi. Không phải để nói ra, mà để bạn biết khi nào nên dừng.
+
+**Ba câu hỏi ngược — chuẩn bị sẵn, hỏi thật:**
+
+1. *"Người vào vị trí này trong ba tháng đầu sẽ làm gì là chủ yếu?"*
+2. *"Team đang có quy trình review code và test như thế nào ạ?"*
+3. *"Điều gì làm anh/chị thấy khó nhất khi làm ở đây?"*
+
+Câu thứ ba là câu tốt nhất. Nó cho bạn thông tin thật và cho thấy bạn đánh giá công ty chứ không chỉ xin việc.
+
+---
+
+## NGHE LẠI VÀ SỬA · 13:30–16:00
+
+### 13:30–15:00 · Nghe toàn bộ bản ghi
+
+Nghe hết, không tua. **Việc này khó chịu — đó là lý do nó hiệu quả.**
+
+Chấm từng câu theo 5 trục trong `coding-context.mdc` mục 7:
+
+| Câu | Hình dạng quyết định | Ví dụ cụ thể | Trung thực | Kiểm soát thời gian | Sẵn sàng bị hỏi tiếp | Tổng |
+| --- | --- | --- | --- | --- | --- | --- |
+| Giới thiệu | | | | | | /25 |
+| Vì sao nghỉ | | | | | | /25 |
+| **6 tháng qua** | | | | | | /25 |
+| Vì sao vị trí này | | | | | | /25 |
+| Lương | | | | | | /25 |
+
+Dưới 15 điểm là phải viết lại. 15–20 là đạt. Trên 20 là tốt.
+
+**Đếm luôn:**
+- Số lần nói "uhm", "à", "kiểu như":
+- Câu dài nhất: __ giây
+- Số câu có con số cụ thể: __ / 7
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Viết lại và nói lại
+
+Chọn **hai câu điểm thấp nhất**. Viết lại bằng chữ, đúng 150 từ. Nói to 3 lần, lần cuối có ghi âm. So với bản sáng.
+
+---
+
+## TÌM VIỆC · 16:00–16:30
+
+Từ kết quả tổng kết hôm thứ Sáu:
+
+- **Tỉ lệ phản hồi dưới 10%** → dành trọn 30 phút hôm nay viết lại phần tóm tắt đầu CV. Dùng chính đoạn trả lời câu "6 tháng qua" — nó đã cô đọng nhất.
+- **Trên 10%** → nộp 3 đơn như thường lệ.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Phần giới thiệu bằng tiếng Anh
+
+Cùng nội dung phần giới thiệu, nhưng bằng tiếng Anh. Viết ra trước, rồi nói to 3 lần, ghi âm lần cuối.
+
+> *"I'm a React Native developer with three years of production experience, mostly at Firegroup where I worked on two apps — a loyalty product and a super-app. The work I'm proudest of there was cutting our bundle from forty-five megabytes down to twenty-eight.*
+> *I've been out of work since March. For the last three months I've run a structured program on myself — treating it like a job. The output is a nutrition tracking app that's live on TestFlight and Play internal testing with real users on it.*
+> *Along the way I wrote a TurboModule from scratch on both platforms, built a test suite and a CI/CD pipeline — neither of which existed at my old job — and wrote three technical articles about the hard parts.*
+> *I'm looking for a middle-level React Native role where the team cares about engineering quality, not just shipping features."*
+
+**Chú ý cách xử lý khoảng trống trong bản tiếng Anh:** *"I've been out of work since March"* — nói thẳng, một câu, rồi đi tiếp ngay sang bằng chứng. Không vòng vo.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+Hoàn thiện `docs/interview-cheatsheet.md`. Chép vào phần giới thiệu và câu trả lời khoảng trống đã viết lại hôm nay.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Đã chạy hết phỏng vấn thử 45 phút, **không dừng giữa chừng**
+- [ ] Có bản ghi âm đầy đủ
+- [ ] Đã nghe lại toàn bộ và chấm theo 5 trục
+- [ ] **Câu "6 tháng qua" đạt trên 20 điểm** — nếu chưa, viết lại tối nay
+- [ ] Đã viết lại và nói lại 2 câu yếu nhất
+- [ ] Số rời bàn đã ghi ra giấy
+- [ ] 3 câu hỏi ngược đã chuẩn bị
+- [ ] Đã nộp 3 đơn (hoặc viết lại tóm tắt CV)
+- [ ] Ghi âm phần giới thiệu tiếng Anh
+- [ ] Cheatsheet đã có phần giới thiệu + câu khoảng trống
+- [ ] 21:30 lên giường

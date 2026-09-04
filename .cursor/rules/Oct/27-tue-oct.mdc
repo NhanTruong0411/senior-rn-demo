@@ -1,0 +1,224 @@
+---
+description: Thứ Ba 27/10/2026 — Tuần 9 Ngày 2. Hàng đợi ghi khi ngoại tuyến, đồng bộ lại và xử lý xung đột.
+alwaysApply: false
+---
+
+# Thứ Ba · 27/10/2026 · Tuần 9 — Ngày 37/61
+
+> Hôm qua app **đọc** được khi ngoại tuyến. Hôm nay nó **ghi** được — thao tác lúc mất mạng được xếp hàng và tự gửi khi có mạng lại.
+> Đây là bài toán có chiều sâu thật, và là chủ đề tốt để kể khi phỏng vấn.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Hàng đợi mutation |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Xung đột, idempotency, ID sinh ở client |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
+| **17:00** | **ĐỌC SÁCH** — ch.17 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Hàng đợi mutation
+
+### 08:30–09:30 · Mutation tạm dừng
+
+TanStack Query có sẵn cơ chế này — không cần tự viết:
+
+```ts
+export function useAddMeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: ['addMeal'],                  // BẮT BUỘC để khôi phục sau khi khởi động lại
+    mutationFn: addMealToSupabase,
+    networkMode: 'offlineFirst',               // xếp hàng khi ngoại tuyến thay vì báo lỗi
+    onMutate: async (input) => { /* cập nhật lạc quan như đã làm hôm 24/09 */ },
+    onError: (_e, _v, ctx) => qc.setQueryData(['meals'], ctx?.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['meals'] }),
+  });
+}
+```
+
+Khôi phục hàng đợi sau khi app bị đóng:
+
+```ts
+// đăng ký hàm mutation theo key, để khôi phục được từ cache đã lưu
+queryClient.setMutationDefaults(['addMeal'], { mutationFn: addMealToSupabase });
+
+persistQueryClient({ /* ... */ });
+
+// khi có mạng lại
+onlineManager.subscribe((online) => {
+  if (online) queryClient.resumePausedMutations();
+});
+```
+
+**`mutationKey` là chi tiết sống còn.** Hàm không lưu xuống đĩa được — chỉ có key lưu được. Không có `mutationKey` và `setMutationDefaults`, các mutation đang xếp hàng sẽ **biến mất** khi người dùng đóng app, và họ mất dữ liệu vừa nhập mà không biết.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Cho người dùng thấy hàng đợi
+
+```tsx
+const pendingCount = useIsMutating({ mutationKey: ['addMeal'] });
+
+{pendingCount > 0 && (
+  <Text>{pendingCount} thay đổi đang chờ đồng bộ</Text>
+)}
+```
+
+Và đánh dấu từng mục chưa đồng bộ ngay trong danh sách — biểu tượng đồng hồ nhỏ bên cạnh.
+
+> **Nguyên tắc thiết kế đáng nhớ:** người dùng phải luôn biết dữ liệu của họ đang ở đâu. Cập nhật lạc quan không kèm dấu hiệu "đang chờ" là một lời hứa mà app có thể không giữ được.
+
+```bash
+git add . && git commit -m "feat: hàng đợi mutation ngoại tuyến, khôi phục sau khởi động lại"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:15 · ID sinh ở client
+
+**Vấn đề:** thêm bữa ăn khi ngoại tuyến. Server chưa cấp `id`. Bạn dùng gì làm khóa cho FlashList? Sửa nó thế nào trước khi đồng bộ?
+
+**Lời giải: sinh UUID ngay ở client.**
+
+```ts
+import * as Crypto from 'expo-crypto';
+
+const newMeal: Meal = {
+  id: Crypto.randomUUID(),        // sinh ở client, không chờ server
+  ...input,
+  createdAt: new Date().toISOString(),
+  syncState: 'pending',
+};
+```
+
+Bảng `meals` trên Supabase đã dùng `uuid` làm khóa chính — chỉ cần cho phép client gửi `id` lên thay vì để mặc định.
+
+**Ba lợi ích, đáng nhớ để kể:**
+1. Mục có khóa ổn định ngay lập tức — danh sách không nhảy khi server trả về
+2. Sửa và xóa hoạt động được ngay khi còn ngoại tuyến
+3. **Idempotency**: gửi lại cùng một `id` hai lần, server nhận ra là trùng và không tạo bản sao
+
+### 14:15–15:00 · Idempotency — bài toán thật
+
+**Tình huống:** request thêm bữa ăn đã tới server và đã lưu, nhưng phản hồi mất trên đường về. App tưởng thất bại và gửi lại. Kết quả: **hai bữa ăn giống hệt nhau.**
+
+Đây là lỗi rất khó tái hiện và rất khó tìm, nên biết trước là lợi thế lớn.
+
+**Lời giải với `id` sinh ở client** — dùng `upsert` thay vì `insert`:
+
+```ts
+await supabase.from('meals').upsert(meal, { onConflict: 'id' });
+```
+
+Gửi lại bao nhiêu lần cũng chỉ ra một bản ghi.
+
+> **Đây là câu trả lời rất mạnh khi phỏng vấn.** *"Retry mà không có idempotency thì mỗi lần thử lại là một nguy cơ tạo dữ liệu trùng. Tôi sinh ID ở client và dùng upsert, nên thao tác lặp lại bao nhiêu lần cũng an toàn."*
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Xung đột
+
+MacroZone đơn giản nên xung đột hiếm, nhưng **hiểu các chiến lược là câu hỏi phỏng vấn**:
+
+| Chiến lược | Cách làm | Phù hợp khi |
+| --- | --- | --- |
+| **Last write wins** | Ghi đè bằng bản mới nhất theo timestamp | Dữ liệu một người dùng, không quan trọng lắm |
+| **Server wins** | Bỏ thay đổi ở client khi có xung đột | Dữ liệu tài chính, tồn kho |
+| **Client wins** | Ép ghi đè lên server | Ghi chú cá nhân, nháp |
+| **Merge** | Gộp theo từng trường | Tài liệu cộng tác |
+| **Hỏi người dùng** | Hiện hai bản, để họ chọn | Ít xung đột nhưng hậu quả lớn |
+
+Với MacroZone: **last write wins** là đúng. Một người dùng, dữ liệu riêng, xung đột chỉ xảy ra khi họ dùng hai thiết bị cùng lúc. Ghi rõ lựa chọn này và lý do vào tài liệu — **chọn cách đơn giản nhất và giải thích được vì sao** là dấu hiệu của kỹ sư tốt, không phải dấu hiệu của người làm ẩu.
+
+### 16:00–16:30 · Thử toàn bộ
+
+Kịch bản khó nhất:
+1. Bật chế độ máy bay
+2. Thêm 3 bữa ăn → cả 3 hiện ra, có dấu "đang chờ"
+3. Xóa 1 trong 3 → biến mất
+4. **Đóng hẳn app**
+5. Mở lại, vẫn máy bay → 2 bữa còn lại vẫn hiện, vẫn có dấu chờ
+6. Tắt chế độ máy bay
+7. → Tự đồng bộ, dấu chờ biến mất, dữ liệu trên Supabase khớp đúng
+
+**Bước 4–5 là bước hay hỏng nhất.** Nếu mutation biến mất sau khi khởi động lại, kiểm tra lại `mutationKey` và `setMutationDefaults`.
+
+```bash
+git add . && git commit -m "feat: id sinh ở client, upsert idempotent, chiến lược xung đột"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Nói to có ghi âm
+
+**Chủ đề: bạn xử lý ghi dữ liệu khi ngoại tuyến như thế nào.**
+
+> *"Reads offline are the easy half — you persist the cache and serve stale data with a timestamp so the user knows what they're looking at.*
+> *Writes are the interesting part. I queue mutations instead of failing them, and replay them when the connection comes back. Two details make that actually work.*
+> *First, the queue has to survive the app being closed. Functions can't be serialised to disk, only keys, so each mutation needs a key registered with a default handler — otherwise the queue looks fine until the user force-quits, and then their pending changes are silently gone.*
+> *Second, retries need to be idempotent. If a write reaches the server but the response is lost on the way back, the client thinks it failed and sends it again — and now you've got a duplicate. I generate the ID on the client and use an upsert, so replaying the same operation any number of times produces one row.*
+> *For conflicts I went with last-write-wins, because it's a single-user app and the only conflict is the same person on two devices. I wrote that decision down with the reasoning. If it were shared or financial data I'd want server-wins or an explicit merge instead."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `replay` (v) | phát lại, gửi lại | *Replay them when the connection comes back.* |
+| `survive` (v) | sống sót qua | *The queue has to survive a force-quit.* |
+| `silently` (adv) | âm thầm, không báo | *Their changes are silently gone.* |
+| `idempotent` (adj) | lặp lại vẫn cùng kết quả | *Retries need to be idempotent.* |
+| `duplicate` (n) | bản trùng | *Now you've got a duplicate.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 17.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Thêm bữa ăn khi ngoại tuyến được xếp hàng, không báo lỗi
+- [ ] **Hàng đợi sống sót qua việc đóng hẳn app**
+- [ ] Người dùng thấy được số thay đổi đang chờ
+- [ ] ID sinh ở client bằng UUID
+- [ ] Dùng `upsert`, gửi lại không tạo bản trùng
+- [ ] Chiến lược xung đột đã chọn và **ghi rõ lý do**
+- [ ] Chạy được kịch bản 7 bước
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-10-27.m4a`
+- [ ] Đọc xong ch.17
+- [ ] 21:30 lên giường

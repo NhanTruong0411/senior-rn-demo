@@ -1,0 +1,212 @@
+---
+description: Thứ Năm 19/11/2026 — Tuần 12 Ngày 4. Đánh bóng lần cuối — trạng thái rỗng, xử lý lỗi, và đi hết ứng dụng bằng con mắt người lạ.
+alwaysApply: false
+---
+
+# Thứ Năm · 19/11/2026 · Tuần 12 — Ngày 54/61
+
+> Hôm nay không học công nghệ mới. Hôm nay bạn đi hết ứng dụng của mình như một người chưa từng thấy nó, và sửa mọi chỗ gợn.
+> **Đây là ngày biến "app demo" thành "app dùng được."**
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Đi hết ứng dụng, ghi mọi chỗ gợn |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Sửa từ trên xuống |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nộp 2 đơn + theo dõi đơn cũ |
+| **16:30** | **TIẾNG ANH** — Hỏi đáp phỏng vấn |
+| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 7–9 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Đi hết ứng dụng
+
+**Cách làm:** xóa app, cài lại từ bản build production. Bắt đầu từ màn hình đầu tiên như người chưa từng dùng. Mang theo giấy bút, **không sửa gì trong lúc đi** — chỉ ghi.
+
+### Đường đi bắt buộc
+
+1. Mở app lần đầu → đăng ký → xác thực email → vào màn chính
+2. Màn chính khi **chưa có dữ liệu nào**
+3. Thêm bữa ăn đầu tiên bằng tay
+4. Thêm bằng giọng nói / mô tả tự nhiên (tính năng AI)
+5. Sửa một bữa ăn
+6. Vuốt xóa
+7. Xem màn thống kê khi mới có 1 bữa ăn
+8. Bật máy bay → thêm bữa ăn → tắt máy bay → xem có đồng bộ không
+9. Đăng xuất → đăng nhập lại
+10. Nhận thông báo → bấm vào → kiểm tra vào đúng màn
+
+### Với mỗi màn, kiểm tra bốn trạng thái
+
+| Trạng thái | Câu hỏi |
+| --- | --- |
+| **Rỗng** | Có nói cho người dùng biết phải làm gì tiếp không, hay chỉ là màn trắng? |
+| **Đang tải** | Có khung xương hay chỉ có vòng xoay giữa màn hình? |
+| **Lỗi** | Thông báo lỗi có nói được **người dùng nên làm gì**, hay chỉ "Đã xảy ra lỗi"? |
+| **Có dữ liệu** | Với 1 mục thì trông thế nào? Với 500 mục? Với tên bữa ăn dài 200 ký tự? |
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Kiểm tra chỗ dễ bỏ sót
+
+- **Tên dài:** nhập tên bữa ăn 200 ký tự — có tràn layout không?
+- **Số 0 và số âm:** 0 calo? Nhập chữ vào ô số?
+- **Cỡ chữ hệ thống lớn nhất:** bật trong cài đặt điện thoại — layout còn đọc được?
+- **Chế độ tối:** đi lại toàn bộ ở chế độ tối. Có chỗ nào chữ đen trên nền đen?
+- **Máy nhỏ:** iPhone SE. Có nút nào bị cắt?
+- **Bàn phím che:** mở form, bàn phím có che mất nút Lưu không?
+- **Bấm hai lần nhanh:** bấm nút Lưu hai lần liên tiếp — có tạo hai bữa ăn không?
+
+> Chỗ cuối cùng là lỗi thật hay gặp. Nếu app bạn tạo hai bản ghi, hôm nay sửa nó bằng cách vô hiệu hóa nút khi đang gửi.
+
+Ghi tất cả vào một danh sách, đánh dấu mức độ:
+- **Chặn:** người dùng không hoàn thành được việc
+- **Gợn:** làm được nhưng khó chịu
+- **Đẹp thì tốt:** để sau
+
+---
+
+## KHỐI HỌC · 13:30–16:00 — Sửa từ trên xuống
+
+### 13:30–15:00 · Sửa hết mục "Chặn", rồi đến "Gợn"
+
+**Ưu tiên thông báo lỗi.** Đây là chỗ hầu hết app hỏng:
+
+```tsx
+// Tệ
+{error && <Text>Đã xảy ra lỗi</Text>}
+
+// Tốt
+{error && (
+  <ErrorState
+    title={errorTitle(error)}
+    message={errorMessage(error)}
+    action={errorAction(error)}
+  />
+)}
+```
+
+```ts
+function errorMessage(e: AppError): string {
+  switch (e.kind) {
+    case 'offline':
+      return 'Bữa ăn đã lưu trên máy. Sẽ tự đồng bộ khi có mạng.';
+    case 'auth':
+      return 'Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục.';
+    case 'rate_limit':
+      return `Bạn đã dùng hết lượt phân tích hôm nay. Thử lại sau ${e.resetIn}, hoặc nhập tay.`;
+    case 'server':
+      return 'Máy chủ đang gặp sự cố. Dữ liệu của bạn vẫn an toàn trên máy.';
+    default:
+      return 'Không thực hiện được. Thử lại giúp mình nhé.';
+  }
+}
+```
+
+**Ba nguyên tắc cho thông báo lỗi:**
+1. Nói người dùng **nên làm gì**, không chỉ nói cái gì hỏng
+2. Trấn an về dữ liệu nếu có nguy cơ mất
+3. Không đổ lỗi cho người dùng, không dùng mã lỗi kỹ thuật
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Trạng thái rỗng có ích
+
+Màn hình rỗng là cơ hội, không phải chỗ trống:
+
+```tsx
+<EmptyState
+  illustration={<PlateIcon />}
+  title="Chưa có bữa ăn nào hôm nay"
+  body="Thêm bữa đầu tiên để bắt đầu theo dõi macro."
+  primaryAction={{ label: 'Thêm bữa ăn', onPress: openAdd }}
+  secondaryAction={{ label: 'Thử mô tả bằng giọng nói', onPress: openVoice }}
+/>
+```
+
+Trạng thái rỗng tốt **dạy người dùng cách dùng app**. Nó cũng là chỗ tự nhiên nhất để giới thiệu tính năng AI mà không cần onboarding dài dòng.
+
+```bash
+git add . && git commit -m "fix: trạng thái rỗng, thông báo lỗi hành động được, và các lỗi từ đợt rà soát"
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30
+
+Nộp 2 đơn, và **theo dõi lại các đơn đã nộp hơn 7 ngày mà chưa có phản hồi**. Một tin nhắn ngắn, lịch sự:
+
+> *"Chào anh/chị, em có nộp vị trí [X] ngày [ngày]. Em vẫn rất quan tâm và trong hai tuần qua em có thêm [điều mới]. Không biết vị trí còn mở không ạ?"*
+
+Việc theo dõi làm hồ sơ nổi lên lại trong hộp thư. Tỉ lệ phản hồi cao hơn nhiều so với nộp mới.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Năm: Hỏi đáp phỏng vấn
+
+**Ba câu, mỗi câu 60 giây, ghi âm liền mạch không dừng:**
+
+**Q1. "How do you make sure your app works for everyone?"**
+
+> *"Three things I actually do, not aspirations.*
+> *First, I test with the system font size turned all the way up and with dark mode on — those two catch most layout problems.*
+> *Second, I write component tests using accessibility labels as the selector. That's a testing choice, but it forces me to label things properly, so the labels are always there and always correct.*
+> *Third, any hidden gesture has a visible alternative. Swipe to delete is nice, but a screen reader user can't do it, so long press opens a menu that does the same thing."*
+
+**Q2. "What's the difference between a loading state and a skeleton?"**
+
+> *"A spinner tells you the app is busy. A skeleton tells you what's coming and roughly how much of it.*
+> *I use skeletons where the layout is predictable — a list of meal rows, for example — because the screen doesn't jump when the data lands. I use a spinner for things where I genuinely don't know the shape yet, like an AI response.*
+> *The thing I'd avoid is a full-screen spinner over content that's already loaded. If I'm refreshing a list I already have, I keep the list visible and show the refresh indicator at the top."*
+
+**Q3. "Tell me about a bug you found in your own app."**
+
+> *"I did a full walkthrough of the app yesterday from a fresh install, and I found that double-tapping the save button quickly creates two meals.*
+> *The cause is that I only guard against it in the mutation's onSuccess, which runs too late — the second tap fires before the first request resolves. The fix is to disable the button on press using the mutation's pending state.*
+> *What I took from it: I never would have found that in normal use, because I know how the app works and I don't tap twice. The value of walking through as a stranger is that you do the things a stranger does."*
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**`qa-bank.mdc` Topic 7–9** — Testing, Behavioral, Animation. Xong ba topic là bạn đã rà hết bộ trước tuần phỏng vấn thử.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Đã đi hết 10 đường đi từ bản cài mới
+- [ ] Đã kiểm tra cả 4 trạng thái ở mọi màn
+- [ ] Đã thử: tên dài, cỡ chữ lớn, chế độ tối, máy nhỏ, bàn phím che, bấm hai lần
+- [ ] **Sửa hết mục "Chặn"**
+- [ ] Thông báo lỗi nói được người dùng nên làm gì
+- [ ] Trạng thái rỗng có hướng dẫn, không phải màn trắng
+- [ ] Đã nộp 2 đơn + theo dõi các đơn cũ
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-11-19.m4a` (3 câu liền mạch)
+- [ ] Đã rà Topic 7–9 — **hết bộ qa-bank**
+- [ ] 21:30 lên giường

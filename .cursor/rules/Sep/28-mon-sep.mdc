@@ -1,0 +1,256 @@
+---
+description: Thứ Hai 28/09/2026 — Tuần 4 Ngày 1. Chuẩn bị phát hành — icon, splash, version, biến môi trường, build production.
+alwaysApply: false
+---
+
+# Thứ Hai · 28/09/2026 · Tuần 4 — Ngày 16/61
+
+> **Tuần cuối tháng 9.** Ba ngày để đưa app từ máy bạn lên tay người khác.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Icon, splash, metadata |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Cấu hình EAS + build production |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Daily standup |
+| **17:00** | **ĐỌC SÁCH** — ch.16 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Bộ mặt của app
+
+### 08:30–09:15 · Icon và splash
+
+Không cần biết thiết kế. Dùng công cụ miễn phí:
+- Tạo icon 1024×1024: https://www.figma.com (bản free) hoặc https://icon.kitchen
+- Giữ đơn giản: một chữ cái hoặc một hình khối trên nền màu accent của theme
+
+```
+assets/
+  icon.png              1024×1024, không bo góc, không trong suốt
+  adaptive-icon.png     1024×1024, phần quan trọng nằm giữa (Android cắt tròn)
+  splash-icon.png       ~1284×2778 hoặc logo trên nền trong suốt
+  favicon.png           48×48 (cho bản web)
+```
+
+```json
+// app.json
+{
+  "expo": {
+    "name": "MacroZone",
+    "slug": "macrozone",
+    "version": "1.0.0",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
+    "ios": {
+      "bundleIdentifier": "com.truonghuunhan.macrozone",
+      "buildNumber": "1",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.truonghuunhan.macrozone",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f172a"
+      }
+    }
+  }
+}
+```
+
+**`userInterfaceStyle: "automatic"` là bắt buộc** — thiếu nó, dark mode theo hệ thống sẽ không chạy trên bản build thật dù chạy tốt trong Expo Go. Lỗi này rất hay gặp và rất khó đoán.
+
+### 09:15–10:30 · Đánh số phiên bản
+
+Giãn cơ 5 phút lúc 09:30.
+
+Hiểu cho rõ ba con số — câu hỏi phỏng vấn hay gặp:
+
+| Trường | Ai nhìn thấy | Luật |
+| --- | --- | --- |
+| `version` | Người dùng ("1.0.0") | Theo semver, bạn tự quyết |
+| `ios.buildNumber` | Chỉ App Store | **Phải tăng mỗi lần nộp**, kể cả cùng version |
+| `android.versionCode` | Chỉ Play Store | Số nguyên, **phải tăng mỗi lần nộp** |
+
+Nộp trùng số build là lỗi bị từ chối phổ biến nhất khi mới bắt đầu.
+
+```bash
+git checkout -b chore/release-prep
+git add . && git commit -m "chore: icon, splash và metadata phát hành"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — EAS
+
+**Docs:** https://docs.expo.dev/build/eas-json/
+
+### 13:30–14:00 · Ba profile build
+
+```json
+// eas.json
+{
+  "cli": { "version": ">= 12.0.0" },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": { "APP_VARIANT": "development" }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "ios": { "simulator": false },
+      "env": { "APP_VARIANT": "preview" }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": { "APP_VARIANT": "production" }
+    }
+  },
+  "submit": { "production": {} }
+}
+```
+
+| Profile | Dùng khi nào |
+| --- | --- |
+| `development` | Có dev menu, hot reload, dùng khi cần native module mà Expo Go không có |
+| `preview` | Bản build thật để gửi người khác thử. Android ra `.apk` cài trực tiếp |
+| `production` | Bản nộp store. `.aab` cho Android, `.ipa` cho iOS |
+
+**`autoIncrement: true`** tự tăng số build mỗi lần — bật lên để khỏi quên.
+
+### 14:00–14:40 · Bí mật trên EAS
+
+`.env` không được commit, nên EAS không thấy nó. Phải nạp riêng:
+
+```bash
+eas secret:create --scope project --name EXPO_PUBLIC_SUPABASE_URL --value "https://..."
+eas secret:create --scope project --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "eyJ..."
+eas secret:list
+```
+
+> **Ghi vào sổ cho phỏng vấn:** đây là bí mật lúc *build*, không phải bí mật lúc *chạy*. Bất cứ thứ gì có tiền tố `EXPO_PUBLIC_` đều nằm trong bundle và dịch ngược ra được. Khóa thật sự bí mật phải nằm ở server. Nhiều dev nhầm chỗ này và để lộ khóa API trong app.
+
+### 14:40–15:00 · Build production Android
+
+```bash
+eas build --platform android --profile production
+```
+
+Lần đầu EAS sẽ hỏi tạo **keystore** — chọn để EAS quản lý. Sao lưu ngay:
+
+```bash
+eas credentials
+```
+
+> **Mất keystore = không bao giờ cập nhật được app đó trên Play Store nữa.** Phải tạo package name mới và người dùng cũ mất hết dữ liệu. Đây là bài học nhiều team học bằng cách trả giá.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Build production iOS
+
+```bash
+eas build --platform ios --profile production
+```
+
+Cần tài khoản Apple Developer (99 USD/năm). **Nếu chưa mua:** không sao, hôm nay build bản simulator và Thứ Tư chỉ nộp Google Play. Mua tài khoản Apple khi có tín hiệu phỏng vấn thật.
+
+```json
+"preview": { "ios": { "simulator": true } }
+```
+
+### 16:00–16:30 · Kiểm tra bản build thật
+
+Cài `.apk` production lên máy Android và thử **toàn bộ**:
+
+- [ ] Mở app, splash hiện đúng, không nhấp nháy
+- [ ] Icon đúng trên màn hình chính
+- [ ] Thêm / xem / xóa bữa ăn
+- [ ] Dark mode theo hệ thống
+- [ ] Chế độ máy bay: hiện lỗi tử tế, không crash
+- [ ] Thông báo nhắc nhở
+- [ ] Đóng hẳn app mở lại: dữ liệu và cài đặt còn nguyên
+
+**Bản build production hành xử khác bản dev.** Hermes tối ưu khác, `__DEV__` là `false`, thông báo lỗi bị rút gọn. Luôn phải thử trên bản thật.
+
+```bash
+git add . && git commit -m "chore: cấu hình eas với 3 profile và secret"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+
+### 16:30–16:40 · Shadowing
+
+2 phút podcast. Nghe → dừng → nhại to.
+
+### 16:40–16:55 · Standup có ghi âm
+
+> *"Morning. Last week I finished the feature work — theming, stats, a Supabase backend and a feature-based restructure.*
+> *This week is release week. Today I set up the app icon and splash screen, configured three EAS build profiles, moved my environment variables into EAS secrets, and kicked off my first production build for Android.*
+> *Tomorrow I'll set up over-the-air updates with EAS Update, and Wednesday I'm submitting to TestFlight and Play internal testing.*
+> *One thing I had to be careful about is that anything prefixed EXPO_PUBLIC ends up in the bundle, so it's not really a secret. The actual protection is row level security on the database side."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `kick off` | khởi động, bắt đầu chạy | *I kicked off a production build.* |
+| `over-the-air` | cập nhật không qua store | *We push OTA updates.* |
+| `roll out` | triển khai dần | *We rolled it out to ten percent first.* |
+| `end up in` | rốt cuộc nằm trong | *It ends up in the bundle.* |
+| `be careful about` | cẩn thận với | *One thing to be careful about is…* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 16 *(Modifying Existing Code)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Icon và splash hiện đúng trên bản build thật
+- [ ] `userInterfaceStyle: "automatic"` đã đặt
+- [ ] `eas.json` có đủ 3 profile
+- [ ] Secret đã nạp lên EAS, `eas secret:list` xác nhận
+- [ ] Build production Android xong
+- [ ] **Đã sao lưu keystore ra chỗ an toàn**
+- [ ] Thử xong toàn bộ checklist trên bản build thật
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-09-28.m4a`
+- [ ] Đọc xong ch.16
+- [ ] 21:30 lên giường

@@ -1,0 +1,240 @@
+---
+description: Thứ Tư 04/11/2026 — Tuần 10 Ngày 3. Giới hạn tần suất, đệm kết quả, và ranh giới của AI trong sản phẩm.
+alwaysApply: false
+---
+
+# Thứ Tư · 04/11/2026 · Tuần 10 — Ngày 43/61
+
+> Hai ngày qua làm tính năng chạy được. Hôm nay làm nó **chịu được người dùng thật** — và biết chỗ nào **không** nên dùng AI.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Giới hạn tần suất + đệm kết quả |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Ranh giới của AI + test tính năng AI |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
+| **16:30** | **TIẾNG ANH** — Nghe + chép chính tả |
+| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 2 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+### 08:30–09:30 · Giới hạn tần suất thật
+
+Hôm thứ Hai bạn để chỗ trống cho `checkRateLimit`. Hôm nay viết thật:
+
+```sql
+create table ai_usage (
+  user_id    uuid references auth.users(id) on delete cascade,
+  day        date not null default current_date,
+  call_count integer not null default 0,
+  primary key (user_id, day)
+);
+
+alter table ai_usage enable row level security;
+create policy "Chỉ đọc lượt dùng của chính mình"
+  on ai_usage for select using (auth.uid() = user_id);
+```
+
+```ts
+async function checkRateLimit(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('ai_usage')
+    .upsert({ user_id: userId, day: new Date().toISOString().slice(0, 10) },
+            { onConflict: 'user_id,day', ignoreDuplicates: true })
+    .select('call_count').single();
+
+  if ((data?.call_count ?? 0) >= DAILY_LIMIT) return false;
+
+  await supabase.rpc('increment_ai_usage', { p_user_id: userId });
+  return true;
+}
+```
+
+**Vì sao dùng RPC để tăng đếm thay vì đọc rồi ghi:** hai request cùng lúc đọc được cùng một con số rồi cùng ghi giá trị +1 → chỉ tăng 1 thay vì 2. Đây là race condition kinh điển. Hàm SQL `update ... set call_count = call_count + 1` là thao tác nguyên tử, không bị vấn đề này.
+
+> **Đây là câu trả lời phỏng vấn tốt về tính đúng đắn dữ liệu.** Nó cho thấy bạn nghĩ về đồng thời, không chỉ về luồng chạy thuận lợi.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Đệm kết quả
+
+Rất nhiều người gõ *"2 quả trứng"*. Không cần gọi mô hình lần thứ hai cho cùng một câu:
+
+```ts
+const cacheKey = await sha256(normalise(userText));
+
+const { data: cached } = await supabase
+  .from('meal_parse_cache').select('result').eq('key', cacheKey).single();
+
+if (cached) return Response.json(cached.result);       // 0 đồng, ~50ms
+```
+
+Chuẩn hóa trước khi băm: chữ thường, bỏ khoảng trắng thừa, bỏ dấu câu. *"2 quả trứng"*, *"2 Quả Trứng"* và *"2 quả trứng."* phải cho cùng một khóa.
+
+Ghi vào `docs/ai-feature.md`:
+
+```markdown
+## Caching
+
+Parse results are cached by a hash of the normalised input. On my own usage,
+about __% of parses are repeats — the same few meals typed again and again.
+Cached responses cost nothing and return in roughly 50ms instead of 1.5 seconds,
+so the cache improves latency more than it saves money.
+```
+
+```bash
+git add . && git commit -m "feat: giới hạn tần suất nguyên tử và đệm kết quả phân tích"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:30 · Nơi **không** nên dùng AI
+
+**Đây là phần khiến bạn nghe như người có phán đoán, không phải người theo trend.**
+
+Viết vào `docs/ai-feature.md`:
+
+```markdown
+## Where I deliberately didn't use AI
+
+**Calculating daily totals.** Summing calories is arithmetic. A model would be
+slower, cost money, and occasionally be wrong. This is a `reduce`.
+
+**Deciding whether the user hit their goal.** Same reasoning — it's a
+comparison. Non-deterministic tooling for a deterministic problem is a
+downgrade, not a feature.
+
+**Generating meal suggestions.** I prototyped this and cut it. The suggestions
+were generic enough to be useless, and it risks reading as health advice, which
+I'm not qualified to ship.
+
+**Anything on the critical path with no manual fallback.** Every AI feature in
+this app is an accelerator for something the user could already do by hand.
+If the model is down, the app still works.
+
+The rule I settled on: use a model where the input is genuinely unstructured
+human language and the output goes through human confirmation. Everywhere else,
+write the function.
+```
+
+> Đoạn này ngắn nhưng có sức nặng. Trong một thị trường mà mọi CV đều ghi "AI", người **nói được chỗ mình cố tình không dùng AI** sẽ nổi bật.
+
+### 14:30–15:00 · Test tính năng AI
+
+Không test được mô hình, nhưng test được mọi thứ xung quanh:
+
+```ts
+describe('parse-meal endpoint', () => {
+  it('trả 401 khi không có token', async () => { });
+  it('trả 429 khi vượt hạn mức ngày', async () => { });
+  it('trả kết quả đệm mà không gọi mô hình', async () => { });
+  it('trả 422 khi mô hình không sinh được object hợp lệ', async () => { });
+  it('xác thực phản hồi mô hình bằng schema trước khi trả về', async () => { });
+});
+```
+
+Giả lập mô hình bằng MSW — bạn đã dựng sẵn hôm 07/10:
+
+```ts
+server.use(http.post('https://api.openai.com/v1/*', () =>
+  HttpResponse.json({ /* phản hồi cố định */ })));
+```
+
+**Điều đáng nói khi phỏng vấn:** *"Tôi không test đầu ra của mô hình vì nó không tất định. Tôi test hàng rào quanh nó — xác thực, giới hạn tần suất, đệm kết quả, kiểm tra schema, và đường lui khi hỏng. Đó là những phần tôi kiểm soát được."*
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Streaming vs không streaming
+
+Đo và quyết định bằng số:
+
+| | Chat | Phân tích bữa ăn |
+| --- | --- | --- |
+| Streaming | Có | **Không** |
+| Vì sao | Người dùng đọc dần khi chữ chạy ra | Kết quả là một bảng — hiện nửa bảng thì rối hơn là chờ |
+| Thời gian cảm nhận | ~300ms tới chữ đầu | ~1.5 giây, có khung xương |
+
+> **Streaming không phải lúc nào cũng tốt hơn.** Nó tốt khi đầu ra là văn bản đọc tuần tự. Với dữ liệu có cấu trúc, hiện từng phần chỉ làm bố cục nhảy loạn. Nói được điều này cho thấy bạn nghĩ về trải nghiệm chứ không chỉ chạy theo kỹ thuật.
+
+```bash
+git add . && git commit -m "test: hàng rào quanh tính năng ai + tài liệu ranh giới"
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+
+Đây là ngày thứ ba. Kiểm tra bảng theo dõi: đã có 6 đơn và 2 tin nhắn.
+
+**Cách chọn công ty để nộp — theo thứ tự ưu tiên:**
+1. Công ty có người bạn quen *(tỷ lệ phản hồi cao nhất)*
+2. Công ty đăng tin dưới 7 ngày *(tin cũ thường đã tuyển xong)*
+3. Công ty có sản phẩm bạn dùng thật *(có thứ cụ thể để nhắc trong thư)*
+4. Công ty có blog kỹ thuật *(dễ nhắc bài viết cụ thể)*
+
+**Không nộp** cho tin đăng mơ hồ không tên công ty, hoặc tin yêu cầu "5 năm React Native" khi RN mới có 10 năm và họ ghi 5 năm cho vị trí Junior.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Nghe + chép chính tả
+
+### 16:30–16:45 · Chép chính tả
+
+60 giây. Nghe → chép → đối chiếu → khoanh chỗ sai.
+
+### 16:45–16:55 · Đọc to lại 3 lần, ghi âm
+
+### 16:55–17:00 · 5 từ nghe không ra
+
+**Tuần thứ 9 chép chính tả.** Đếm số chỗ sai. So với tuần 1 (09/09) và tuần 5 (07/10). Ba con số này là đường tiến bộ nghe của bạn.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**`qa-bank.mdc` — Topic 2 (State management).**
+
+Câu Redux vs TanStack Query giờ bạn có ví dụ thật từ MacroZone. Sửa lại câu trả lời cũ, thêm ví dụ cụ thể vào.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Giới hạn tần suất chạy, dùng thao tác nguyên tử không bị race condition
+- [ ] Đệm kết quả chạy, đã đo tỷ lệ trùng
+- [ ] **`docs/ai-feature.md` có phần "chỗ tôi cố tình không dùng AI"**
+- [ ] Test phủ đủ hàng rào: 401, 429, cache, 422, kiểm tra schema
+- [ ] Giải thích được vì sao chat thì streaming mà phân tích thì không
+- [ ] Đã nộp 3 đơn, tổng 6 đơn
+- [ ] **Có commit hôm nay**
+- [ ] Chép chính tả + ghi âm `2026-11-04.m4a`
+- [ ] Đã sửa Topic 2 trong `qa-bank.mdc`
+- [ ] 21:30 lên giường

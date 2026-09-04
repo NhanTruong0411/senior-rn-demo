@@ -1,0 +1,211 @@
+---
+description: Thứ Ba 22/09/2026 — Tuần 3 Ngày 2. Vòng 3 — màn hình thống kê, biểu đồ và chuyển sang FlashList.
+alwaysApply: false
+---
+
+# Thứ Ba · 22/09/2026 · Tuần 3 — Ngày 12/61
+
+> Hôm nay thêm màn hình thống kê và đổi `FlatList` sang **FlashList** — kèm **đo số thật trước/sau**. Con số đó sẽ đi thẳng vào CV.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Màn hình thống kê |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — FlashList + đo hiệu năng |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
+| **17:00** | **ĐỌC SÁCH** — ch.12 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Màn hình thống kê
+
+```bash
+git checkout -b feat/stats
+```
+
+### Việc phải làm
+
+Tab mới **Stats** hiển thị:
+1. Tổng calo 7 ngày gần nhất — biểu đồ cột
+2. Tỷ lệ đạm / tinh bột / chất béo — 3 thanh ngang
+3. Trung bình mỗi ngày
+4. Ngày ăn nhiều nhất trong tuần
+
+### Cách làm quan trọng hơn kết quả
+
+**Tách logic tính toán ra khỏi giao diện.** Tạo `lib/stats.ts` chỉ chứa hàm thuần:
+
+```ts
+export function groupByDay(meals: Meal[]): Record<string, Meal[]> { }
+export function totalsForDay(meals: Meal[]): MacroTotals { }
+export function lastNDays(meals: Meal[], n: number): DailyTotal[] { }
+export function averageDaily(meals: Meal[], n: number): MacroTotals { }
+```
+
+Hàm thuần = cùng đầu vào luôn cho cùng đầu ra, không đụng gì bên ngoài.
+
+> **Vì sao bắt tách ra:** tháng 10 bạn sẽ viết test. Hàm thuần test được trong 5 phút; logic nhét trong component thì phải render cả màn hình mới test được. Hôm nay tách ra là món quà cho chính bạn 4 tuần nữa.
+
+### Biểu đồ
+
+Không cài thư viện. Dựng bằng `View` với chiều cao theo tỷ lệ:
+
+```tsx
+<View style={{ height: (value / max) * 120, backgroundColor: theme.colors.accent }} />
+```
+
+Đơn giản, không thêm phụ thuộc, và bạn hiểu từng dòng. Đây là lựa chọn đúng cho biểu đồ đơn giản — và cũng là một câu trả lời tốt khi được hỏi *"khi nào bạn thêm thư viện, khi nào tự viết?"*
+
+Giãn cơ 5 phút lúc 09:30.
+
+```bash
+git add . && git commit -m "feat: màn hình thống kê với logic tính toán tách riêng"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — FlashList + đo hiệu năng
+
+**Docs:** https://shopify.github.io/flash-list/
+
+### 13:30–14:00 · Tạo dữ liệu lớn để đo
+
+Viết một nút chỉ hiện ở chế độ dev, sinh **1000 bữa ăn giả** vào storage. Không có nhiều dữ liệu thì không đo được gì cả.
+
+```ts
+if (__DEV__) { /* nút "Seed 1000 meals" */ }
+```
+
+### 14:00–14:30 · Đo TRƯỚC khi tối ưu
+
+Đây là bước hầu hết dev bỏ qua, và là bước khiến câu chuyện của bạn có sức nặng.
+
+1. Mở màn hình All Meals với 1000 mục bằng `FlatList` hiện tại
+2. Bật **Perf Monitor** (lắc máy → Show Perf Monitor)
+3. Cuộn nhanh, ghi lại: **FPS thấp nhất**, **JS FPS**, mức dùng RAM
+4. Ghi vào file `docs/perf-notes.md`:
+
+```markdown
+## FlatList — 1000 items (before)
+Device: <tên máy>
+UI FPS khi cuộn nhanh: __
+JS FPS: __
+RAM: __ MB
+Thời gian mở màn hình: __ ms
+```
+
+### 14:30–15:00 · Chuyển sang FlashList
+
+```bash
+npx expo install @shopify/flash-list
+```
+
+```tsx
+<FlashList
+  data={meals}
+  renderItem={({ item }) => <MealItem meal={item} />}
+  keyExtractor={(item) => item.id}
+  estimatedItemSize={72}
+/>
+```
+
+**Hiểu cho được cơ chế:** `FlatList` giữ lại các view đã cuộn qua; `FlashList` **tái sử dụng** view (recycling) giống `RecyclerView` bên Android. Đó là lý do RAM không phình theo số lượng mục.
+
+`estimatedItemSize` sai sẽ làm giật lúc cuộn. Đo chiều cao thật của một item rồi điền đúng.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–15:50 · Đo SAU và ghi lại
+
+Đo lại đúng 4 chỉ số trên, ghi vào `docs/perf-notes.md` phần "after". Tính phần trăm cải thiện.
+
+> **Đây chính là nguyên liệu cho CV.** Bạn đã có "bundle 45MB → 28MB" từ Firegroup. Giờ có thêm một con số nữa, tự tay đo, có tài liệu kèm theo, trên dự án công khai mà người phỏng vấn mở lên xem được.
+
+### 15:50–16:30 · Memo hóa item
+
+```tsx
+export const MealItem = React.memo(function MealItem({ meal, onDelete }: Props) { ... });
+```
+
+Nhưng **`React.memo` vô dụng nếu prop `onDelete` là hàm mới mỗi lần render.** Bọc bằng `useCallback` ở component cha.
+
+Đo lại lần ba. Nếu số không đổi → ghi trung thực rằng không đổi. Biết một tối ưu **không** có tác dụng cũng đáng giá ngang biết nó có.
+
+```bash
+git add . && git commit -m "perf: chuyển sang FlashList, kèm số đo trước/sau"
+git checkout main && git merge feat/stats
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
+
+### 16:30–16:40 · Shadowing
+
+2 phút video/podcast kỹ thuật. Nghe → dừng → nhại to.
+
+### 16:40–16:55 · Nói to có ghi âm
+
+**Chủ đề: FlatList khác FlashList chỗ nào, và bạn đã đo được gì.**
+
+> *"FlatList and FlashList both virtualise long lists, but they recycle memory differently.*
+> *FlatList unmounts items that scroll far off screen, but it still keeps a fair amount of view state around, so memory grows with the list. FlashList reuses the actual view instances — the same idea as RecyclerView on Android. So the number of views stays roughly constant no matter how long the list is.*
+> *I measured it on my own app with a thousand items. Before the change, scrolling dropped to around ___ frames per second. After switching, it held at ___. Memory went from ___ to ___.*
+> *The catch is that FlashList needs an accurate estimatedItemSize. If you get that wrong, scrolling gets janky — so it's not a free win, you have to measure your item height first."*
+
+**Điền số thật của bạn vào.** Câu trả lời có số đo thật khác hẳn câu trả lời đọc từ tài liệu, và người phỏng vấn nhận ra khác biệt đó ngay lập tức.
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `recycle` (v) | tái sử dụng (view) | *FlashList recycles view instances.* |
+| `off screen` | ngoài màn hình | *Items that scroll off screen.* |
+| `janky` (adj) | giật, khựng | *Scrolling gets janky.* |
+| `the catch is` | điểm bất lợi là | *The catch is you need an accurate estimate.* |
+| `not a free win` | không phải lợi ích miễn phí | *It's not a free win.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 12 *(Why Write Comments?)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Tab Stats chạy, có biểu đồ 7 ngày
+- [ ] Toàn bộ logic tính toán nằm trong `lib/stats.ts`, đều là hàm thuần
+- [ ] Có nút seed 1000 bữa ăn ở chế độ dev
+- [ ] **`docs/perf-notes.md` có đủ số trước và sau**
+- [ ] FlashList chạy mượt, `estimatedItemSize` đúng
+- [ ] `React.memo` + `useCallback` đã áp dụng đúng cặp
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-09-22.m4a` — có số đo thật trong câu trả lời
+- [ ] Đọc xong ch.12
+- [ ] 21:30 lên giường

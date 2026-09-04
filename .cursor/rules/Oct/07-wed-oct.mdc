@@ -1,0 +1,220 @@
+---
+description: Thứ Tư 07/10/2026 — Tuần 6 Ngày 3. MSW giả lập API, test hook TanStack Query và cập nhật lạc quan.
+alwaysApply: false
+---
+
+# Thứ Tư · 07/10/2026 · Tuần 6 — Ngày 23/61
+
+> Hôm nay học cách test phần **gọi mạng** mà không cần mạng thật. Đây là kỹ năng khiến bộ test chạy nhanh và ổn định — thứ mọi team có CI đều cần.
+
+**Docs:** https://mswjs.io · https://tanstack.com/query/latest/docs/framework/react/guides/testing
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Dựng MSW |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Test hook và cập nhật lạc quan |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nghe + chép chính tả |
+| **17:00** | **ĐỌC SÁCH** — ch.3 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — MSW
+
+```bash
+npm install --save-dev msw
+```
+
+### 08:30–09:00 · Vì sao MSW chứ không `jest.mock`
+
+| Cách | Chặn ở đâu | Vấn đề |
+| --- | --- | --- |
+| `jest.mock('@/lib/supabase')` | Ở tầng module của bạn | Test đậu ngay cả khi bạn gọi sai API. Đang test cái giả, không phải cái thật |
+| **MSW** | Ở tầng **mạng** | Code chạy thật đến tận `fetch`. Chỉ có phản hồi là giả |
+
+> **Câu chốt để nói khi phỏng vấn:** *"MSW chặn ở tầng mạng, nên code của tôi chạy y hệt như thật — chỉ phản hồi là giả. Mock ở tầng module thì tôi đang test chính cái mock của mình."*
+
+### 09:00–09:30 · Định nghĩa handler
+
+```ts
+// src/test/msw/handlers.ts
+import { http, HttpResponse } from 'msw';
+
+const BASE = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/rest/v1`;
+
+export const handlers = [
+  http.get(`${BASE}/meals`, () => HttpResponse.json([
+    { id: '1', name: 'Phở bò', calories: 450, protein: 25, carbs: 55, fat: 12,
+      created_at: '2026-10-07T08:00:00Z', user_id: 'u1' },
+  ])),
+
+  http.post(`${BASE}/meals`, async ({ request }) => {
+    const body = await request.json();
+    return HttpResponse.json([{ id: 'new-id', created_at: new Date().toISOString(), ...body }], { status: 201 });
+  }),
+];
+```
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Nối vào Jest
+
+```ts
+// src/test/msw/server.ts
+export const server = setupServer(...handlers);
+
+// jest.setup.ts
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+```
+
+**`onUnhandledRequest: 'error'` là cài đặt quan trọng nhất ở đây.** Nó khiến test đỏ nếu code gọi một endpoint bạn chưa khai báo. Không có nó, một request đi lạc ra internet thật sẽ làm test chập chờn và bạn mất cả buổi tìm nguyên nhân.
+
+```bash
+git add . && git commit -m "test: dựng msw để giả lập tầng mạng"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — Test hook
+
+### 13:30–14:30 · Test `useMeals`
+
+```tsx
+import { renderHook, waitFor } from '@testing-library/react-native';
+
+describe('useMeals', () => {
+  it('trả về danh sách khi gọi thành công', async () => {
+    const { result } = renderHook(() => useMeals(), { wrapper: createWrapper() });
+
+    expect(result.current.isPending).toBe(true);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toHaveLength(1);
+    expect(result.current.data?.[0]?.name).toBe('Phở bò');
+  });
+
+  it('trả về trạng thái lỗi khi server trả 500', async () => {
+    server.use(http.get(`${BASE}/meals`, () => new HttpResponse(null, { status: 500 })));
+
+    const { result } = renderHook(() => useMeals(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+  });
+
+  it('trả về lỗi khi server trả dữ liệu sai hình dạng', async () => {
+    server.use(http.get(`${BASE}/meals`, () => HttpResponse.json([{ nonsense: true }])));
+
+    const { result } = renderHook(() => useMeals(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isError).toBe(true));   // Zod chặn lại
+  });
+});
+```
+
+**Test thứ ba đáng giá nhất.** Nó chứng minh hàng rào Zod của bạn thật sự hoạt động — nếu backend đổi hình dạng dữ liệu, app báo lỗi tử tế thay vì crash ở một chỗ khó hiểu nào đó sâu trong giao diện.
+
+`server.use(...)` ghi đè handler cho **riêng một test**, tự khôi phục nhờ `resetHandlers()`.
+
+### 14:30–15:00 · Test cập nhật lạc quan
+
+```tsx
+it('hiện ngay bữa ăn mới rồi hoàn tác khi server lỗi', async () => {
+  server.use(http.post(`${BASE}/meals`, () => new HttpResponse(null, { status: 500 })));
+
+  const { result } = renderHook(() => useAddMeal(), { wrapper });
+  act(() => { result.current.mutate({ name: 'Bún bò', calories: 600, protein: 30, carbs: 60, fat: 20 }); });
+
+  // xuất hiện ngay trong cache
+  await waitFor(() => {
+    expect(queryClient.getQueryData<Meal[]>(['meals'])).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'Bún bò' })]),
+    );
+  });
+
+  // rồi bị hoàn tác khi lưu thất bại
+  await waitFor(() => {
+    expect(queryClient.getQueryData<Meal[]>(['meals'])).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'Bún bò' })]),
+    );
+  });
+});
+```
+
+> Đây là loại test khiến người phỏng vấn dừng lại. Nó cho thấy bạn không chỉ *làm được* cập nhật lạc quan, mà còn **kiểm chứng được đường hoàn tác** — nhánh mà đa số người viết xong rồi không bao giờ thử.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Dọn bộ test
+
+```bash
+npm run test:coverage
+```
+
+- Xóa test nào chỉ lặp lại điều test khác đã kiểm
+- Xóa hết snapshot test còn sót (chúng vô dụng)
+- Đảm bảo `npm test` chạy dưới 30 giây — bộ test chậm là bộ test không ai chạy
+- Thêm script `test:ci` chạy một lượt, không watch
+
+```bash
+git add . && git commit -m "test: hook query, mutation và đường hoàn tác lạc quan"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Nghe + chép chính tả
+
+### 16:30–16:45 · Chép chính tả
+
+60 giây từ **React Native Radio** hoặc **Syntax.fm**. Nghe → chép → đối chiếu transcript → khoanh chỗ sai.
+
+### 16:45–16:55 · Đọc to lại 3 lần, ghi âm lần cuối
+
+### 16:55–17:00 · 5 từ nghe không ra
+
+Tra trên https://youglish.com, nghe 3 người bản xứ nói mỗi từ.
+
+**Đây là tuần thứ 5.** So sánh với bản chép đầu tiên ngày 09/09 — số chỗ khoanh tròn giảm chưa? Nếu chưa giảm, đổi cách: chọn đoạn ngắn hơn (30 giây) và nghe nhiều lần hơn.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 3 *(The Basic Tools)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] MSW chặn được request, `onUnhandledRequest: 'error'` đã bật
+- [ ] Test được cả 3 nhánh: thành công, server lỗi, dữ liệu sai hình dạng
+- [ ] Test cập nhật lạc quan kiểm chứng được cả đường hoàn tác
+- [ ] Nói được vì sao MSW tốt hơn `jest.mock`
+- [ ] `npm test` chạy dưới 30 giây
+- [ ] Không còn snapshot test nào
+- [ ] **Có commit hôm nay**
+- [ ] Chép chính tả + ghi âm `2026-10-07.m4a`
+- [ ] Đọc xong ch.3
+- [ ] 21:30 lên giường

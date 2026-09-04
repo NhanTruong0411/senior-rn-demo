@@ -1,0 +1,207 @@
+---
+description: Thứ Tư 30/09/2026 — Tuần 4 Ngày 3. Nộp store (TestFlight + Play Internal Testing) và tổng kết tháng 9.
+alwaysApply: false
+---
+
+# Thứ Tư · 30/09/2026 · Tuần 4 — Ngày 18/61
+
+> **Ngày cuối tháng 9.** Hôm nay app rời khỏi máy bạn.
+> Cách đây 4 tuần bạn chưa có gì. Hôm nay bạn nộp một ứng dụng lên store.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Nộp Google Play Internal Testing |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — TestFlight + hồ sơ portfolio + tổng kết tháng |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nghe + chép chính tả |
+| **17:00** | **ĐỌC SÁCH** — ch.18 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Google Play
+
+### 08:30–09:00 · Tài khoản nhà phát triển
+
+- Phí **25 USD một lần** (trả một lần dùng mãi, khác Apple 99 USD mỗi năm)
+- Đăng ký tại https://play.google.com/console
+- Xác minh danh tính mất 1–2 ngày — nếu chưa xong hôm nay thì không sao, tiếp tục các bước khác và quay lại sau
+
+### 09:00–09:30 · Tạo mục app
+
+Trong Play Console → Create app. Phần khai báo bắt buộc:
+
+- **Privacy policy** — bắt buộc kể cả app nội bộ. Tạo miễn phí tại https://app-privacy-policy-generator.firebaseapp.com rồi đăng lên GitHub Pages
+- **Data safety** — khai đúng: app có thu thập gì không? Có, dữ liệu bữa ăn lưu trên Supabase
+- **Content rating** — điền bảng hỏi, app này sẽ ra "Everyone"
+- **Target audience** — người lớn
+- **App category** — Health & Fitness
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Build và nộp
+
+```bash
+eas build --platform android --profile production   # tạo file .aab
+eas submit --platform android --latest
+```
+
+Trong Play Console → **Testing → Internal testing**:
+1. Tạo danh sách người thử, thêm email của bạn và vài người nhà
+2. Tạo bản phát hành, chọn bản `.aab` vừa nộp
+3. Viết ghi chú phát hành
+4. Bắt đầu triển khai
+
+Sau vài phút bạn nhận được **link mời**. Mở link đó bằng điện thoại Android, cài từ Play Store thật.
+
+> **Cột mốc.** App của bạn giờ được phân phối qua Google Play. Không phải file APK gửi qua Zalo — mà qua đúng kênh chính thức mà mọi app thương mại dùng.
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:15 · TestFlight (nếu có tài khoản Apple)
+
+```bash
+eas build --platform ios --profile production
+eas submit --platform ios --latest
+```
+
+Trong App Store Connect → TestFlight, thêm người thử nội bộ. Apple duyệt bản TestFlight nội bộ thường trong vài giờ.
+
+**Nếu chưa mua tài khoản Apple 99 USD:** bỏ qua phần này, dùng 45 phút để hoàn thiện hồ sơ GitHub bên dưới. Ghi vào lịch: mua tài khoản Apple **khi có buổi phỏng vấn đầu tiên được hẹn**, không phải trước đó.
+
+### 14:15–15:00 · Hồ sơ trên GitHub
+
+Đây là thứ người phỏng vấn thật sự mở ra xem. Chuẩn bị cho tử tế:
+
+**README** phải có, theo thứ tự:
+1. Một câu mô tả app làm gì
+2. **Ảnh chụp màn hình** (3–4 tấm, cả sáng lẫn tối) — thứ đầu tiên người ta nhìn
+3. Link cài thử (Play internal testing / TestFlight)
+4. Danh sách công nghệ
+5. Phần **Architecture** giải thích các quyết định
+6. Phần **Performance** với số đo trước/sau từ `docs/perf-notes.md`
+7. Cách chạy tại máy
+
+**Dọn lịch sử commit:**
+
+```bash
+git log --oneline | head -30
+```
+
+Commit phải đọc được như một câu chuyện: `feat:`, `fix:`, `refactor:`, `perf:`, `chore:`. Không được có `update`, `fix bug`, `asdf`.
+
+Ghim repo lên trang GitHub cá nhân.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Tổng kết tháng 9
+
+Điền vào đây, thành thật:
+
+```text
+## TỔNG KẾT THÁNG 9 (07–30/09) — 18 ngày làm việc
+
+### Kết quả cứng
+- [ ] App có trên Google Play Internal Testing:   có / không
+- [ ] App có trên TestFlight:                     có / không / chưa mua tài khoản
+- [ ] Số ngày có commit:                          ___/18
+- [ ] Số file ghi âm tiếng Anh:                   ___/18
+- [ ] Sách đọc xong:                              ___ chương
+
+### Số đo hiệu năng
+FPS khi cuộn 1000 mục:  trước ___  → sau ___
+RAM:                    trước ___  → sau ___
+
+### Bài kiểm tra Vòng 2
+Tuần 1 (StickerSmash): ___/8
+Tuần 2 (MacroZone):    ___/7
+
+### Ba thứ tôi làm được hôm nay mà 07/09 chưa làm được
+1.
+2.
+3.
+
+### Ba chỗ vẫn còn yếu, mang sang tháng 10
+1.
+2.
+3.
+
+### Nhịp lịch
+Khối 08:30 giữ được mấy ngày/18: ___
+Ngày nào phải bỏ khối nào, vì sao:
+Cần điều chỉnh gì cho tháng 10:
+
+### Câu hỏi thành thật
+Tháng này tôi có tiến bộ thật, hay chỉ bận rộn?
+Bằng chứng cụ thể:
+```
+
+**Nghe lại file ghi âm `2026-09-07.m4a`, rồi nghe `2026-09-29.m4a`.** Ba tuần là ngắn, nhưng bạn sẽ nghe được khác biệt — và đó là bằng chứng khách quan duy nhất bạn có về tiếng Anh của mình.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Nghe + chép chính tả
+
+### 16:30–16:45 · Chép chính tả
+
+60 giây từ React Native Radio hoặc Syntax.fm. Nghe → chép → đối chiếu → khoanh chỗ sai.
+
+### 16:45–16:55 · Đọc to lại + ghi âm
+
+### 16:55–17:00 · Tổng kết từ vựng tháng 9
+
+Mở lại toàn bộ sổ từ vựng tháng này — khoảng **90 từ/cụm**. Đọc to hết một lượt. Khoanh 10 từ vẫn chưa dùng được tự nhiên, mang sang tháng 10 luyện lại.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 18 *(Code Should Be Obvious)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] App có mặt trên Google Play Internal Testing, cài được từ link mời
+- [ ] TestFlight xong *(hoặc đã ghi nhận hoãn lại có lý do)*
+- [ ] README có ảnh chụp màn hình, kiến trúc, số đo hiệu năng
+- [ ] Lịch sử commit đọc được như một câu chuyện
+- [ ] Repo đã ghim trên trang GitHub cá nhân
+- [ ] **Điền xong toàn bộ tổng kết tháng 9**
+- [ ] Đã nghe so sánh ghi âm ngày đầu và ngày cuối tháng
+- [ ] **Có commit hôm nay**
+
+---
+
+## Ngày mai bắt đầu tháng 10
+
+**Tháng 10 = ĐÀO SÂU.** Full-stack với backend thật, testing nghiêm túc, và New Architecture.
+
+Đọc `.cursor/rules/Oct/00-context-oct.mdc` trước khi bắt đầu.
+
+Nhưng tối nay thì đừng. Tối nay hãy ôm con gái và biết rằng: **tháng vừa rồi bạn đã đi từ số 0 đến một ứng dụng có thật trên cửa hàng.** Sáu tháng trước đó không làm được điều này. Tháng này thì có.

@@ -1,0 +1,143 @@
+---
+description: Thứ Tư 09/09/2026 — Tuần 1 Ngày 3. Vòng 2 chương 3–4, học chương 5–6 (modal + gestures).
+alwaysApply: false
+---
+
+# Thứ Tư · 09/09/2026 · Tuần 1 — Ngày 3/61
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Vòng 2: dựng lại chương 3–4 |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Expo Tutorial chương 5–6 |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nghe + chép chính tả |
+| **17:00** | **ĐỌC SÁCH** — ch.3 (Working Code Isn't Enough) |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Vòng 2
+
+Trong `sticker-smash-v2`, dựng lại **không mở tutorial**:
+
+1. Màn hình chính có ảnh mặc định
+2. Component `Button` tái sử dụng, nhận prop `label` và `theme`
+3. Nút "Choose a photo" mở thư viện ảnh
+4. Ảnh chọn được thay thế ảnh mặc định
+5. Xử lý đủ 2 nhánh: người dùng hủy, và người dùng từ chối quyền
+
+### Bài tập mở rộng (nếu xong sớm)
+
+Thêm nút **"Reset"** đưa về ảnh mặc định. Tutorial không có phần này — đây là mầm mống của Vòng 3.
+
+Giãn cơ 5 phút lúc 09:30.
+
+```bash
+git add . && git commit -m "practice: dựng lại image picker từ trí nhớ (vòng 2)"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — Chương 5–6
+
+Quay lại `sticker-smash`.
+
+### 13:30–15:00 · "Create a modal"
+
+**Link:** https://docs.expo.dev/tutorial/create-a-modal/
+
+- Component `Modal` của React Native
+- Prop `visible`, `transparent`, `animationType`
+- Nâng state lên component cha (**lifting state up**) — vì sao cần
+- `FlatList` với `horizontal` để hiện danh sách emoji
+
+**Câu hỏi tự trả lời:** vì sao state `isModalVisible` phải nằm ở component cha chứ không nằm trong `Modal`?
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · "Add gestures"
+
+```bash
+npx expo install react-native-gesture-handler react-native-reanimated
+```
+
+- `GestureHandlerRootView` bọc toàn app — **quên cái này là gesture không chạy**, lỗi rất hay gặp
+- `Gesture.Tap()` và `Gesture.Pan()`
+- `useSharedValue` và `useAnimatedStyle` của Reanimated
+- **Khái niệm quan trọng nhất:** worklet chạy trên **UI thread**, không phải JS thread — đó là lý do animation vẫn mượt khi JS thread bận
+
+> Đây chính là "honest gap" cũ của bạn về Reanimated. Hôm nay bắt đầu lấp nó bằng tay, không phải bằng đọc.
+
+```bash
+git add . && git commit -m "feat: thêm modal chọn emoji và cử chỉ kéo/nhấn đúp"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Nghe + chép chính tả
+
+Hôm nay đổi món: tấn công thẳng kỹ năng **nghe**.
+
+### 16:30–16:45 · Chép chính tả
+
+1. Mở 1 tập **React Native Radio**: https://reactnativeradio.com
+2. Chọn **đúng 60 giây** bất kỳ (nên chọn đoạn giữa tập, khi đã vào chủ đề)
+3. Nghe lần 1: không viết, chỉ nghe hiểu ý chính
+4. Nghe lần 2, 3, 4…: **viết ra giấy từng chữ nghe được**
+5. Mở transcript đối chiếu (đa số podcast có transcript)
+6. Khoanh tròn những chỗ nghe sai
+
+**Chỗ nghe sai chính là bản đồ lỗ hổng của bạn.** Thường sẽ là: âm nối (*want to* → *wanna*), âm cuối bị nuốt, hoặc từ vựng chưa biết.
+
+### 16:45–16:55 · Đọc to lại
+
+Đọc to đoạn transcript đó 3 lần, cố bắt chước đúng tốc độ và chỗ ngắt hơi của người nói. Ghi âm lần cuối.
+
+### 16:55–17:00 · 5 từ mới
+
+Lấy 5 từ/cụm bạn nghe không ra ở bước trên. Ghi vào sổ kèm phiên âm. Tra cách phát âm tại https://youglish.com — nghe ít nhất 3 người bản xứ nói từ đó.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 3 *(Working Code Isn't Enough)*.
+
+Khái niệm cần nhớ: *tactical programming* vs *strategic programming*. Đây là câu trả lời rất tốt khi phỏng vấn hỏi *"bạn nghĩ gì về technical debt?"*
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Dựng lại được image picker từ trí nhớ
+- [ ] Đã thêm nút Reset (bài mở rộng)
+- [ ] Modal chọn emoji chạy được
+- [ ] Kéo và nhấn đúp trên emoji chạy được
+- [ ] Giải thích được worklet chạy ở thread nào và vì sao
+- [ ] **Có commit hôm nay**
+- [ ] Có bản chép chính tả + ghi âm `2026-09-09.m4a`
+- [ ] Đọc xong ch.3
+- [ ] 21:30 lên giường

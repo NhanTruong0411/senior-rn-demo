@@ -1,0 +1,273 @@
+---
+description: Thứ Hai 09/11/2026 — Tuần 11 Ngày 1. Push notification — token, quyền, và gửi thật qua FCM/APNs.
+alwaysApply: false
+---
+
+# Thứ Hai · 09/11/2026 · Tuần 11 — Ngày 46/61
+
+> Hôm 17/09 bạn làm **local notification** — app tự hẹn giờ trên máy. Tuần này làm **push thật** — server chủ động đẩy. Khác nhau hoàn toàn về hạ tầng.
+
+**Docs:** https://docs.expo.dev/push-notifications/overview/
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Đăng ký token + xin quyền |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Gửi từ server, hiểu đường đi của push |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
+| **16:30** | **TIẾNG ANH** — Daily standup |
+| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 5 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Token và quyền
+
+### 08:30–09:00 · Đường đi của một push — vẽ ra giấy
+
+```
+Server của bạn
+    │  POST https://exp.host/--/api/v2/push/send
+    ▼
+Expo Push Service
+    │
+    ├──► APNs  (Apple)   ──► iPhone
+    └──► FCM   (Google)  ──► Android
+```
+
+**Ba điều phải hiểu:**
+
+1. **Bạn không gửi thẳng tới thiết bị.** Luôn phải qua APNs hoặc FCM. Expo Push Service chỉ là lớp bọc để bạn không phải nói chuyện với hai hệ thống khác nhau.
+2. **Không có gì bảo đảm giao được.** Máy tắt nguồn, hết pin, người dùng tắt thông báo — push có thể không tới. **Đừng bao giờ dùng push làm cơ chế đồng bộ dữ liệu.** Đây là sai lầm kiến trúc mà người phỏng vấn hay dò.
+3. **Push token khác user ID.** Một người có thể có 3 thiết bị. Một thiết bị có thể được nhiều người đăng nhập. Bảng lưu token phải phản ánh đúng quan hệ này.
+
+### 09:00–09:30 · Đăng ký và lưu token
+
+```ts
+async function registerForPush(): Promise<string | null> {
+  if (!Device.isDevice) return null;              // simulator không nhận được push
+
+  const { status: existing } = await Notifications.getPermissionsAsync();
+  let status = existing;
+  if (existing !== 'granted') {
+    ({ status } = await Notifications.requestPermissionsAsync());
+  }
+  if (status !== 'granted') return null;
+
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('reminders', {
+      name: 'Nhắc ghi bữa ăn',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      vibrationPattern: [0, 250, 250, 250],
+    });
+  }
+
+  const token = (await Notifications.getExpoPushTokenAsync({
+    projectId: Constants.expoConfig?.extra?.eas?.projectId,
+  })).data;
+
+  return token;
+}
+```
+
+**Kênh thông báo trên Android là bắt buộc từ Android 8.** Không tạo kênh thì thông báo **không hiện** — im lặng, không lỗi. Đây là bẫy rất hay gặp.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Xin quyền đúng lúc
+
+**Đây là chi tiết sản phẩm mà người phỏng vấn giỏi sẽ hỏi.**
+
+Xin quyền thông báo ngay khi mở app lần đầu là cách chắc chắn nhất để bị từ chối — người dùng chưa biết app làm gì thì tại sao phải cho phép?
+
+**Cách đúng — xin sau khi có ngữ cảnh:**
+
+```
+Người dùng bật "Nhắc tôi ghi bữa tối"
+   ↓
+Hiện màn hình giải thích của app: "Để nhắc được, app cần quyền gửi thông báo"
+   ↓
+[Để sau]  [Cho phép]
+   ↓ (chỉ khi bấm Cho phép)
+Hộp thoại quyền của hệ điều hành
+```
+
+> **Vì sao phải có màn hình giải thích riêng trước:** trên iOS, hộp thoại quyền của hệ thống **chỉ hiện được một lần**. Người dùng bấm "Không cho phép" là xong — muốn đổi phải vào Cài đặt hệ thống, và gần như không ai làm. Màn hình giải thích của app thì hiện lại được bao nhiêu lần cũng được.
+
+Lưu token:
+
+```sql
+create table push_tokens (
+  token      text primary key,
+  user_id    uuid references auth.users(id) on delete cascade,
+  platform   text not null,
+  updated_at timestamptz not null default now()
+);
+```
+
+Khóa chính là `token` chứ không phải `user_id` — vì một người có nhiều thiết bị. Xóa token khi đăng xuất.
+
+```bash
+git checkout -b feat/push
+git add . && git commit -m "feat: đăng ký push token, xin quyền có ngữ cảnh"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:30 · Gửi từ server
+
+```ts
+// supabase/functions/send-reminder/index.ts
+const messages = tokens.map((t) => ({
+  to: t.token,
+  sound: 'default',
+  title: 'Bạn chưa ghi bữa tối',
+  body: 'Ghi nhanh trong 10 giây nhé.',
+  data: { type: 'meal-reminder', screen: '/add-meal' },   // dùng cho deep link ngày mai
+}));
+
+const res = await fetch('https://exp.host/--/api/v2/push/send', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(messages),          // gửi theo lô, tối đa 100 mỗi lần
+});
+```
+
+**Phải xử lý phản hồi lỗi, không được bỏ qua:**
+
+| Lỗi | Nghĩa | Việc phải làm |
+| --- | --- | --- |
+| `DeviceNotRegistered` | Người dùng gỡ app hoặc tắt thông báo | **Xóa token khỏi bảng** |
+| `MessageTooBig` | Payload quá 4KB | Cắt ngắn nội dung |
+| `MessageRateExceeded` | Gửi quá nhanh | Chờ rồi thử lại có giãn cách |
+| `InvalidCredentials` | Sai cấu hình FCM/APNs | Sửa credentials |
+
+> **Không dọn token chết là lỗi kinh điển.** Sau vài tháng bảng đầy token không dùng được, mỗi lần gửi tốn thời gian và tiền cho những thiết bị không còn tồn tại. Kể được điều này khi phỏng vấn cho thấy bạn nghĩ về vận hành lâu dài.
+
+### 14:30–15:00 · Lên lịch
+
+Supabase pg_cron chạy hàm mỗi tối:
+
+```sql
+select cron.schedule(
+  'evening-reminder', '0 12 * * *',        -- 19:00 giờ VN
+  $$ select net.http_post(
+       url := 'https://<project>.supabase.co/functions/v1/send-reminder',
+       headers := '{"Authorization": "Bearer <service_key>"}'::jsonb
+     ) $$
+);
+```
+
+**Múi giờ là chỗ dễ sai.** `pg_cron` chạy theo UTC. 19:00 giờ Việt Nam là 12:00 UTC. Và nếu app có người dùng ở nhiều múi giờ, bạn phải lưu múi giờ của từng người rồi gửi theo giờ địa phương của họ — không thì có người nhận thông báo "ghi bữa tối" lúc 3 giờ sáng.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Thử ba trạng thái app
+
+Push hành xử **khác nhau** ở ba trạng thái, phải thử đủ:
+
+| Trạng thái | Hành vi | Xử lý bằng |
+| --- | --- | --- |
+| **Foreground** — app đang mở | Mặc định **không** hiện banner | `setNotificationHandler` để quyết định |
+| **Background** — app ở nền | Hiện banner | `addNotificationResponseReceivedListener` khi bấm |
+| **Killed** — app đã đóng hẳn | Hiện banner, bấm thì app khởi động | `getLastNotificationResponseAsync` |
+
+```ts
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,      // hiện cả khi đang mở app
+    shouldPlaySound: false,
+    shouldSetBadge: true,
+  }),
+});
+```
+
+**Trạng thái thứ ba là trạng thái hay quên nhất và hay hỏng nhất.** Ngày mai bạn sẽ nối nó với deep link, và đó là chỗ mọi thứ dễ vỡ.
+
+```bash
+git add . && git commit -m "feat: gửi push từ server, dọn token chết, lịch nhắc hằng ngày"
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+
+Tuần thứ hai. Tổng mục tiêu tuần này: 6 đơn + 2 tin nhắn.
+
+**Nếu tuần trước chưa có phản hồi nào:** bình thường. Tiếp tục.
+
+**Nếu có phản hồi:** ưu tiên trả lời ngay trong ngày, kể cả khi phải cắt vào khối học. Một buổi phỏng vấn được hẹn giá trị hơn một ngày học.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Standup có ghi âm
+
+> *"Morning. Last week I shipped the AI features and released 1.2.0.*
+> *This week is push notifications and deep linking. Today I set up token registration and server-side sending through Expo's push service, which fans out to APNs and FCM.*
+> *Two things I paid attention to. First, permission timing — I don't ask on launch. I show my own explainer when the user turns on reminders, and only then trigger the system dialog, because on iOS that dialog only ever appears once. Second, I handle DeviceNotRegistered responses and delete dead tokens, otherwise the table fills up with devices that don't exist.*
+> *Tomorrow: deep linking, and wiring notification taps to the right screen."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `fan out to` | phân phối ra nhiều nơi | *It fans out to APNs and FCM.* |
+| `explainer` (n) | màn hình giải thích | *I show my own explainer first.* |
+| `dead token` | token không còn dùng được | *Delete dead tokens.* |
+| `best effort` | cố gắng hết mức, không bảo đảm | *Push delivery is best effort.* |
+| `cold start` | mở app từ trạng thái đã đóng | *Tapping it from a cold start.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**`qa-bank.mdc` — Topic 5 (Auth).**
+
+Bạn đã làm auth thật hôm 01–02/10. Viết lại toàn bộ topic này cho khớp với thứ bạn đã tự tay làm.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] **Vẽ được đường đi của push ra giấy**
+- [ ] Nhận được push thật trên máy Android và iOS thật
+- [ ] Kênh thông báo Android đã tạo
+- [ ] Xin quyền **có ngữ cảnh**, không xin lúc mở app
+- [ ] Token lưu đúng, xóa khi đăng xuất
+- [ ] Xử lý `DeviceNotRegistered`, dọn token chết
+- [ ] Lịch cron chạy đúng giờ Việt Nam
+- [ ] Đã thử đủ 3 trạng thái app
+- [ ] Đã nộp 3 đơn
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-11-09.m4a`
+- [ ] Đã sửa Topic 5 trong `qa-bank.mdc`
+- [ ] 21:30 lên giường

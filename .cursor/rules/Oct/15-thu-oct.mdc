@@ -1,0 +1,274 @@
+---
+description: Thứ Năm 15/10/2026 — Tuần 7 Ngày 4. Expo Modules API — cách viết native gọn hơn, và khi nào chọn cách nào.
+alwaysApply: false
+---
+
+# Thứ Năm · 15/10/2026 · Tuần 7 — Ngày 29/61
+
+> Hai ngày qua bạn làm theo cách "thô" để hiểu cơ chế. Hôm nay làm lại **cùng một module** bằng Expo Modules API — ít code hơn nhiều — rồi so sánh.
+> Biết cả hai cách và giải thích được khi nào chọn cái nào là câu trả lời của một người có kinh nghiệm thật.
+
+**Docs:** https://docs.expo.dev/modules/overview/
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Viết lại bằng Expo Modules API |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — So sánh, config plugin |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Câu hỏi phỏng vấn |
+| **17:00** | **ĐỌC SÁCH** — ch.9 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Expo Modules API
+
+```bash
+npx create-expo-module@latest --local expo-device-stats
+```
+
+Lệnh này tạo thư mục `modules/expo-device-stats/` với sẵn khung cho cả hai nền tảng.
+
+### 08:45–09:30 · Android bằng Kotlin
+
+`modules/expo-device-stats/android/src/main/java/expo/modules/devicestats/ExpoDeviceStatsModule.kt`
+
+```kotlin
+package expo.modules.devicestats
+
+import android.content.Context
+import android.os.BatteryManager
+import android.os.Build
+import android.os.PowerManager
+import expo.modules.kotlin.modules.Module
+import expo.modules.kotlin.modules.ModuleDefinition
+
+class ExpoDeviceStatsModule : Module() {
+  override fun definition() = ModuleDefinition {
+    Name("ExpoDeviceStats")
+
+    Constants(
+      "osVersion" to Build.VERSION.RELEASE,
+      "isEmulator" to Build.FINGERPRINT.contains("generic"),
+    )
+
+    Function("getDeviceModel") {
+      "${Build.MANUFACTURER} ${Build.MODEL}"
+    }
+
+    AsyncFunction("getBatteryLevel") {
+      val bm = appContext.reactContext
+        ?.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+      bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) / 100.0
+    }
+
+    AsyncFunction("isLowPowerMode") {
+      val pm = appContext.reactContext
+        ?.getSystemService(Context.POWER_SERVICE) as PowerManager
+      pm.isPowerSaveMode
+    }
+
+    Events("onBatteryChange")
+  }
+}
+```
+
+**So với thứ Ba: không `TurboReactPackage`, không `ReactModuleInfoProvider`, không đăng ký thủ công vào `MainApplication`.** DSL lo hết.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · iOS bằng Swift — không cần cầu Obj-C++
+
+```swift
+import ExpoModulesCore
+import UIKit
+
+public class ExpoDeviceStatsModule: Module {
+  public func definition() -> ModuleDefinition {
+    Name("ExpoDeviceStats")
+
+    Constants([
+      "osVersion": UIDevice.current.systemVersion,
+      "isEmulator": TARGET_OS_SIMULATOR != 0,
+    ])
+
+    Function("getDeviceModel") { () -> String in
+      UIDevice.current.model
+    }
+
+    AsyncFunction("getBatteryLevel") { () -> Double in
+      UIDevice.current.isBatteryMonitoringEnabled = true
+      let level = UIDevice.current.batteryLevel
+      return level < 0 ? 0 : Double(level)
+    }
+
+    AsyncFunction("isLowPowerMode") { () -> Bool in
+      ProcessInfo.processInfo.isLowPowerModeEnabled
+    }
+
+    Events("onBatteryChange")
+  }
+}
+```
+
+**Đây là khác biệt lớn nhất: Swift thuần, không file `.mm`, không bridging header.** Expo Modules API tự lo phần cầu nối C++ bên dưới.
+
+Nhớ lại cả buổi sáng hôm qua bạn vật lộn với `macrozone-Swift.h`. Hôm nay không tồn tại vấn đề đó.
+
+```bash
+npx expo run:ios
+npx expo run:android
+git add . && git commit -m "feat: viết lại device stats bằng expo modules api"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:30 · Bảng so sánh — phần quan trọng nhất tuần
+
+Viết vào `docs/new-architecture.md`:
+
+```markdown
+## TurboModule vs Expo Modules API
+
+I implemented the same module both ways to understand the trade-off.
+
+| | Raw TurboModule | Expo Modules API |
+|---|---|---|
+| Lines of native code | ~180 across 4 files | ~60 across 2 files |
+| iOS language | Swift + an Obj-C++ bridge | Swift only |
+| Registration | Manual `TurboReactPackage` | Automatic |
+| Codegen | You configure and run it | Handled for you |
+| Type safety | From the TypeScript spec | From the Kotlin/Swift DSL |
+| Works outside Expo | Yes, any RN project | Needs `expo-modules-core` |
+| Control over C++ layer | Full | Abstracted away |
+| Time to first working version | About a day and a half | About two hours |
+
+**When I'd choose which**
+
+Expo Modules API for almost everything. It's less code, no Objective-C++, and
+the DSL is genuinely pleasant. Any project already on Expo — which is most new
+React Native projects in 2026 — should default to it.
+
+Raw TurboModules when the project isn't on Expo and can't adopt
+`expo-modules-core`, when I'm publishing a library that must work in bare React
+Native, or when I need control at the C++/JSI layer that the DSL doesn't expose.
+
+Doing it the hard way first was worth it. The Expo DSL hides real machinery —
+Codegen, the JSI binding, lazy registration — and knowing what it hides is the
+difference between using a tool and understanding it.
+```
+
+### 14:30–15:00 · Config plugin
+
+Module native cần thêm quyền hoặc sửa file cấu hình gốc. Trong workflow quản lý của Expo, bạn không sửa tay `AndroidManifest.xml` — bạn viết **config plugin**:
+
+```js
+// modules/expo-device-stats/plugin/withDeviceStats.js
+const { withAndroidManifest } = require('expo/config-plugins');
+
+module.exports = function withDeviceStats(config) {
+  return withAndroidManifest(config, (cfg) => {
+    const manifest = cfg.modResults.manifest;
+    manifest['uses-permission'] = manifest['uses-permission'] ?? [];
+    manifest['uses-permission'].push({
+      $: { 'android:name': 'android.permission.BATTERY_STATS' },
+    });
+    return cfg;
+  });
+};
+```
+
+> **Câu trả lời phỏng vấn quan trọng:** *"Trong workflow quản lý của Expo, tôi không sửa tay thư mục `android/` và `ios/` vì `prebuild` sẽ ghi đè. Mọi thay đổi native đi qua config plugin, nên nó nằm trong version control và tái tạo được. Đó là khác biệt giữa managed workflow và bare workflow."*
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Thử nghiệm ba nhánh
+
+Kiểm chứng module chạy đúng ở cả ba tình huống:
+1. **Expo Go** — module tự viết **không** chạy được. Hiểu vì sao: Expo Go là app dựng sẵn, không chứa code native của bạn
+2. **Development build** (`npx expo run:ios`) — chạy được
+3. **Production build** (EAS) — chạy được
+
+```bash
+eas build --platform android --profile preview
+```
+
+> **Đây là câu hỏi phỏng vấn hay gặp:** *"Vì sao thư viện này chạy trong development build mà không chạy trong Expo Go?"* Trả lời: Expo Go chứa một tập native module cố định được biên dịch sẵn. Thêm native code của riêng mình thì phải tự build. Đây cũng chính là lúc một dự án cần chuyển từ Expo Go sang development build.
+
+```bash
+git add . && git commit -m "feat: config plugin và kiểm chứng trên 3 loại build"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Năm: Câu hỏi phỏng vấn
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Trả lời có ghi âm
+
+**Câu hỏi tuần này:** *"Explain the React Native New Architecture. Why does it matter?"*
+
+> *"The old architecture had a bridge between JavaScript and native. Everything crossing it had to be serialised to JSON, every call was asynchronous, and all native modules were instantiated at startup.*
+> *The new architecture replaces that with JSI, which lets JavaScript hold a direct reference to C++ objects. No serialisation, and synchronous calls are possible when you need them. On top of JSI you get TurboModules, which load lazily, and Fabric, the new renderer that supports concurrent React.*
+> *The part I find most valuable in practice is Codegen. You write a TypeScript spec, and it generates the native interfaces for both platforms. So a signature mismatch is a compile error rather than a runtime crash. In the old system you wrote all three sides by hand and kept them in sync yourself.*
+> *I built a TurboModule from scratch this week — spec, Codegen, Kotlin on Android, Swift with an Objective-C++ bridge on iOS. Then I rebuilt the same thing with the Expo Modules API, which took about a third of the code. I verified lazy loading myself by logging in the constructor: nothing fires until the screen that uses it opens.*
+> *It's been the default since React Native 0.76, and around eighty-five percent of popular libraries support it now — so the practical question for a team isn't whether to adopt it, it's auditing which of your dependencies are still bridge-only."*
+
+**Câu trả lời này mạnh vì có ba tầng:** khái niệm → điều bạn tự làm → tình hình thực tế của thị trường. Rất ít ứng viên Middle nói được tầng thứ hai.
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `audit` (v) | rà soát | *Audit which dependencies are bridge-only.* |
+| `abstract away` | giấu đi, trừu tượng hóa | *The DSL abstracts away the C++ layer.* |
+| `default to` | mặc định chọn | *New projects should default to it.* |
+| `machinery` (n) | bộ máy bên dưới | *The DSL hides real machinery.* |
+| `worth it` | đáng công | *Doing it the hard way first was worth it.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 9 *(Pragmatic Projects)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Module viết lại bằng Expo Modules API, chạy cả hai nền tảng
+- [ ] iOS **không** cần file `.mm` nào
+- [ ] Bảng so sánh hai cách đã viết, có số dòng code cụ thể
+- [ ] Nói được khi nào chọn cách nào
+- [ ] Config plugin chạy, quyền được thêm sau `prebuild`
+- [ ] Đã kiểm chứng module **không** chạy trong Expo Go và hiểu vì sao
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-10-15.m4a` — câu New Architecture đầy đủ 3 tầng
+- [ ] Đọc xong ch.9
+- [ ] 21:30 lên giường

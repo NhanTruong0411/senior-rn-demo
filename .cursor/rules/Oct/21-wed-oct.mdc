@@ -1,0 +1,245 @@
+---
+description: Thứ Tư 21/10/2026 — Tuần 8 Ngày 3. Bundle size và thời gian khởi động — phân tích, cắt gọt, đo.
+alwaysApply: false
+---
+
+# Thứ Tư · 21/10/2026 · Tuần 8 — Ngày 33/61
+
+> Trong CV bạn đã có "bundle 45MB → 28MB" từ Firegroup. Hôm nay bạn làm lại quy trình đó trên dự án của mình, **có tài liệu công khai** để chỉ tay vào.
+
+**Docs:** https://reactnative.dev/docs/performance · https://reactnative.dev/docs/hermes
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Phân tích bundle |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Cắt gọt + thời gian khởi động |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nghe + chép chính tả |
+| **17:00** | **ĐỌC SÁCH** — ch.13 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Phân tích
+
+### 08:30–09:00 · Đo kích thước hiện tại
+
+```bash
+# Kích thước JS bundle
+npx expo export --platform android
+du -sh dist/
+
+# Kích thước file cài đặt
+ls -lh *.apk *.aab
+```
+
+Ghi vào `docs/perf-notes.md`:
+
+```markdown
+## Bundle baseline — 21/10/2026
+JS bundle (minified):  __ KB
+APK (universal):       __ MB
+AAB:                   __ MB
+```
+
+### 09:00–09:30 · Xem cái gì chiếm chỗ
+
+```bash
+npx react-native-bundle-visualizer
+```
+
+Hoặc dựng sơ đồ treemap:
+
+```bash
+npx expo export --platform android --dump-sourcemap
+npx source-map-explorer dist/_expo/static/js/android/*.js dist/**/*.map
+```
+
+Mở biểu đồ ra và **tìm ba thứ**:
+1. Thư viện lớn bất ngờ — thường là thư viện ngày tháng hoặc icon
+2. Cùng một thư viện xuất hiện hai phiên bản
+3. Thứ bạn đã gỡ khỏi code nhưng vẫn còn trong bundle
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Ba thủ phạm thường gặp
+
+| Thủ phạm | Cách phát hiện | Cách sửa |
+| --- | --- | --- |
+| Bộ icon nạp cả gói | `@expo/vector-icons` kéo hết mọi bộ | Chỉ import bộ đang dùng: `import Ionicons from '@expo/vector-icons/Ionicons'` |
+| Thư viện ngày tháng nặng | `moment` hoặc `date-fns` nhập cả gói | Đổi sang `date-fns` nhập theo hàm, hoặc dùng `Intl` có sẵn |
+| Nhập cả gói lodash | `import _ from 'lodash'` | `import debounce from 'lodash/debounce'` — hoặc tự viết, `debounce` chỉ 10 dòng |
+| Ảnh chưa nén | Xem thư mục `assets/` | Nén qua https://squoosh.app, dùng WebP |
+| Dependency thừa | `npx depcheck` | Gỡ |
+
+```bash
+npx depcheck
+npm ls --depth=0
+```
+
+**Xử lý từng cái một, đo lại sau mỗi lần.** Ghi bảng:
+
+```markdown
+| Change | Bundle before | After | Saved |
+|---|---|---|---|
+| Icon imports narrowed | __ KB | __ KB | __ KB |
+| Removed unused deps | __ KB | __ KB | __ KB |
+| Images to WebP | __ MB | __ MB | __ MB |
+```
+
+```bash
+git checkout -b perf/bundle
+git add . && git commit -m "perf: giảm bundle, có số từng bước"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:15 · Hermes
+
+Hermes bật mặc định, nhưng hiểu **vì sao** nó giúp là câu hỏi phỏng vấn:
+
+| | JSC (cũ) | Hermes |
+| --- | --- | --- |
+| Định dạng | Phân tích cú pháp JavaScript lúc chạy | **Bytecode biên dịch sẵn** lúc build |
+| Thời gian khởi động | Chậm hơn — phải parse toàn bộ bundle | Nhanh hơn nhiều — nạp thẳng bytecode |
+| Bộ nhớ | Cao hơn | Thấp hơn, GC tối ưu cho mobile |
+| Kích thước app | Nhỏ hơn engine | Engine lớn hơn nhưng bundle nhỏ hơn |
+
+Kiểm tra và đo:
+
+```tsx
+const isHermes = () => !!global.HermesInternal;
+```
+
+```bash
+# Xem kích thước bytecode
+ls -lh android/app/build/generated/assets/react/release/index.android.bundle
+```
+
+**Con số nên nhớ:** Hermes thường giảm thời gian khởi động **20–40%** so với JSC, và giảm bộ nhớ đỉnh khoảng **30%**.
+
+### 14:15–15:00 · Chia tách theo route
+
+Expo Router hỗ trợ tách bundle theo màn hình:
+
+```js
+// metro.config.js
+config.transformer.experimentalImportSupport = true;
+```
+
+Với app nhỏ như MacroZone, lợi ích không nhiều. **Điều quan trọng là hiểu khi nào nó đáng làm:** app có màn hình nặng mà đa số người dùng không mở tới — ví dụ màn hình quét mã, trình chỉnh sửa ảnh, biểu đồ phức tạp — thì tách ra giúp khởi động nhanh hơn rõ rệt.
+
+Nhập động cho màn hình nặng:
+
+```tsx
+const HeavyChart = lazy(() => import('@/features/stats/components/HeavyChart'));
+```
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Thời gian khởi động
+
+Đo cho chuẩn:
+
+```bash
+# Android — thời gian khởi động nguội
+adb shell am start -W -n com.truonghuunhan.macrozone/.MainActivity
+# đọc dòng TotalTime
+```
+
+Đo 5 lần, bỏ lần đầu (bộ nhớ đệm chưa ấm), lấy trung bình 4 lần còn lại.
+
+Ba thứ ảnh hưởng thời gian khởi động, xếp theo mức tác động:
+1. **Công việc chạy đồng bộ trước lần render đầu** — đọc storage, khởi tạo SDK
+2. **Kích thước bundle** — bytecode càng lớn càng lâu nạp
+3. **Số native module khởi tạo sớm** — chỗ TurboModules giúp
+
+Soi `app/_layout.tsx`: có gì đang chạy đồng bộ mà có thể hoãn lại sau lần render đầu không? Sentry, phân tích dữ liệu, đọc cài đặt — cái nào thật sự phải chờ?
+
+### 16:00–16:30 · Viết case study
+
+```markdown
+## Performance case study — bundle and startup
+
+**Baseline:** JS bundle __ KB, APK __ MB, cold start __ ms.
+
+**What I changed, one at a time**
+1. Narrowed icon imports to the single set in use — saved __ KB
+2. Removed __ unused dependencies found with depcheck — saved __ KB
+3. Converted PNG assets to WebP — saved __ MB
+4. Deferred Sentry init until after first paint — saved __ ms on startup
+
+**Result:** bundle __ → __ KB (__%), cold start __ → __ ms (__%).
+
+**What didn't help.** Route-level code splitting made no measurable difference
+on an app this size — every screen is small enough that the parsing cost is
+negligible. It would matter on an app with a heavy screen most users never open.
+```
+
+**Phần "cái gì không giúp" là phần đáng giá nhất của case study.** Nó chứng minh bạn đo thật, không viết cho đẹp — và nó mở ra một câu chuyện hay khi phỏng vấn.
+
+```bash
+git add . && git commit -m "docs: case study bundle và thời gian khởi động"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Nghe + chép chính tả
+
+### 16:30–16:45 · Chép chính tả
+
+60 giây. Nghe → chép → đối chiếu → khoanh chỗ sai.
+
+### 16:45–16:55 · Đọc to lại 3 lần, ghi âm
+
+### 16:55–17:00 · 5 từ nghe không ra
+
+**Tuần thứ 7.** Đếm số chỗ khoanh tròn tuần này so với tuần 1 (09/09). Ghi cả hai con số vào sổ — đây là chỉ số tiến bộ nghe duy nhất bạn đo được.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 13.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Đã xem sơ đồ bundle, biết cái gì chiếm chỗ
+- [ ] Icon chỉ nhập bộ đang dùng
+- [ ] `npx depcheck` sạch
+- [ ] Ảnh đã nén / chuyển WebP
+- [ ] Mỗi thay đổi có số trước/sau riêng
+- [ ] Đo được thời gian khởi động nguội, 5 lần lấy trung bình 4
+- [ ] Giải thích được Hermes khác JSC chỗ nào
+- [ ] **Case study có phần "cái gì không giúp"**
+- [ ] **Có commit hôm nay**
+- [ ] Chép chính tả + ghi âm `2026-10-21.m4a`
+- [ ] Đọc xong ch.13
+- [ ] 21:30 lên giường

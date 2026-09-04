@@ -1,0 +1,232 @@
+---
+description: Thứ Sáu 09/10/2026 — Tuần 6 Ngày 5. TDD thực chiến, hoàn thiện bộ test, tổng kết tuần testing.
+alwaysApply: false
+---
+
+# Thứ Sáu · 09/10/2026 · Tuần 6 — Ngày 25/61
+
+> Ngày cuối tuần testing. Sáng nay thử **viết test trước khi viết code** — không phải để theo giáo phái TDD, mà để cảm nhận nó thay đổi cách bạn thiết kế hàm như thế nào.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — TDD: tính năng mới, test viết trước |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Dọn bộ test + tổng kết tuần |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nhìn lại tuần |
+| **17:00** | **ĐỌC SÁCH** — ch.5 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ. **Nghỉ trọn vẹn T7 + CN** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — TDD
+
+### Tính năng cần làm: chuỗi ngày liên tiếp (streak)
+
+Đếm số ngày liên tiếp gần nhất mà người dùng có ghi ít nhất một bữa ăn.
+
+**Luật hôm nay: không được viết một dòng code triển khai nào trước khi có một test đỏ.**
+
+### 08:30–09:00 · Đỏ
+
+```ts
+// src/features/stats/lib/streak.test.ts
+import { currentStreak } from './streak';
+
+describe('currentStreak', () => {
+  it('trả về 0 khi chưa có bữa ăn nào', () => {
+    expect(currentStreak([], new Date('2026-10-09'))).toBe(0);
+  });
+});
+```
+
+```bash
+npm test -- streak
+# đỏ: không tìm thấy module './streak'
+```
+
+Tạo file với hàm rỗng → đỏ vì trả về sai → **giờ mới được viết code cho xanh**.
+
+### 09:00–09:30 · Đỏ → Xanh → Dọn, từng bước một
+
+Thêm **một** test mỗi lần, làm cho xanh, rồi dọn code:
+
+```ts
+it('trả về 1 khi chỉ có bữa ăn hôm nay', () => { ... });
+it('đếm nhiều ngày liên tiếp', () => { ... });
+it('dừng lại khi gặp ngày trống', () => { ... });
+it('vẫn tính khi hôm nay chưa ăn nhưng hôm qua có', () => { ... });   // quyết định sản phẩm
+it('nhóm theo giờ địa phương GMT+7, không phải UTC', () => { ... });
+it('nhiều bữa trong cùng một ngày chỉ tính là một ngày', () => { ... });
+```
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Điều bạn vừa nhận ra
+
+Ghi vào `docs/reading-notes.md`:
+
+> Viết test trước buộc tôi phải quyết định **trước** những câu hỏi mà bình thường tôi sẽ code xong mới nghĩ tới:
+> - Hôm nay chưa ăn thì chuỗi có bị đứt không? *(Đây là quyết định sản phẩm, không phải kỹ thuật.)*
+> - "Ngày" tính theo múi giờ nào?
+> - Hàm này nhận `Date` từ ngoài truyền vào hay tự gọi `new Date()` bên trong?
+
+**Câu thứ ba là bài học kiến trúc lớn nhất của TDD.** Hàm nào tự gọi `new Date()` bên trong thì **không test được** — kết quả đổi theo ngày chạy test. TDD ép bạn truyền thời gian vào như tham số, và tự nhiên hàm trở nên thuần, dễ test, dễ dùng lại.
+
+> **Đây chính là câu trả lời khi phỏng vấn hỏi "TDD có đáng không?"** — không phải vì test, mà vì nó ép bạn thiết kế hàm có ranh giới rõ ràng.
+
+```bash
+git add . && git commit -m "feat: tính chuỗi ngày liên tiếp, viết theo TDD"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:30 · Kiểm toán bộ test
+
+Chạy và soi từng cái:
+
+```bash
+npm run test:coverage
+```
+
+Ba câu hỏi cho mỗi test:
+1. **Nếu tôi cố tình làm hỏng code, test này có đỏ không?** Nếu không → xóa, nó vô dụng.
+2. **Nếu tôi refactor mà không đổi hành vi, test này có đỏ không?** Nếu có → nó đang bám vào chi tiết triển khai, viết lại.
+3. **Đọc tên test có biết nó kiểm cái gì không?** Nếu không → đổi tên.
+
+**Thử phá có chủ đích (mutation testing thủ công):** đổi `>=` thành `>` trong một hàm logic, chạy test. Có đỏ không? Nếu không, bạn thiếu test cho trường hợp biên.
+
+### 14:30–15:00 · Thêm script và pre-commit
+
+```json
+{
+  "scripts": {
+    "test": "jest",
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
+    "test:e2e": "maestro test .maestro/",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run lint && npm run test:ci"
+  }
+}
+```
+
+`npm run verify` là lệnh chạy trước mỗi lần push. Tuần 26–30/10 nó sẽ thành GitHub Actions.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–15:50 · Cập nhật README
+
+```markdown
+## Testing
+
+| Layer | Tool | What it covers |
+|---|---|---|
+| Unit | Jest 30 | Pure business logic — macro totals, weekly grouping, streaks |
+| Component | RNTL | Forms and interactive components, queried the way a user sees them |
+| Network | MSW | Intercepts at the network layer, so app code runs unchanged |
+| E2E | Maestro | Three flows: sign-in, add meal, delete and persist |
+
+`npm run verify` runs typecheck, lint and the full unit suite.
+
+Full rationale, including what is deliberately **not** tested, is in
+[docs/testing-strategy.md](docs/testing-strategy.md).
+```
+
+### 15:50–16:30 · Tổng kết tuần 6
+
+```text
+## Tổng kết tuần 6 (05–09/10) — TESTING
+
+Số test đơn vị:        ___
+Số test component:     ___
+Số luồng E2E:          ___
+Coverage của lib/:     ___%
+Thời gian chạy npm test: ___ giây
+
+Ba thứ tôi hiểu ra tuần này:
+1.
+2.
+3.
+
+Câu hỏi tự trả lời (đây là câu phỏng vấn sẽ hỏi):
+- Tôi test cái gì?
+- Tôi KHÔNG test cái gì, và vì sao?
+- Vì sao chọn Maestro chứ không Detox?
+
+Số ngày có commit: ___/5
+```
+
+> **Nhìn lại:** đầu tuần bạn viết trong hồ sơ rằng *"Firegroup không có culture test mạnh, đây là honest gap."* Cuối tuần bạn có 55+ test, 3 luồng E2E, và một tài liệu chiến lược test. Câu trả lời phỏng vấn của bạn giờ khác hẳn — không còn là lời thú nhận, mà là một câu chuyện có bằng chứng.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nhìn lại tuần
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–17:00 · Nói to có ghi âm — 3 phút
+
+> **1. What I did**
+> *"This week was entirely about testing — the area I've been weakest in. I set up Jest for the pure logic, React Native Testing Library for components, MSW to intercept the network layer, and Maestro for three end-to-end flows."*
+>
+> **2. What changed how I think**
+> *"The most useful day was the last one. I built a streak feature test-first, and it forced me to answer design questions before writing any code. The clearest example: a function that calls new Date internally can't be tested, because the result changes depending on when you run it. Writing the test first pushed me to pass the date in as an argument — which made the function pure almost by accident."*
+>
+> **3. What I'd still like to improve**
+> *"___"*
+>
+> **4. Next week**
+> *"Next week is the New Architecture. I'm writing a TurboModule from scratch — TypeScript spec, codegen, then the native side in Kotlin and Swift."*
+
+**Kiêm buổi họp một mình.** Tự hỏi bằng tiếng Việt: tuần này vai trò nào bị bỏ rơi?
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 5 *(Bend or Break)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Tính năng streak viết hoàn toàn theo TDD, mọi test viết trước code
+- [ ] Đã thử phá code có chủ đích và xác nhận test bắt được
+- [ ] Đã xóa mọi test không bắt được lỗi nào
+- [ ] `npm run verify` chạy sạch
+- [ ] README có bảng Testing
+- [ ] Điền xong tổng kết tuần 6
+- [ ] **Trả lời được 3 câu hỏi phỏng vấn về test**
+- [ ] **Có commit hôm nay** — 25/25 ngày làm việc đều có commit
+- [ ] Ghi âm `2026-10-09.m4a`
+- [ ] Đọc xong ch.5
+
+---
+
+## Cuối tuần 10–11/10: NGHỈ HOÀN TOÀN
+
+Tuần sau khó nhất tháng: **New Architecture**. Bạn sẽ viết code Kotlin và Swift thật.

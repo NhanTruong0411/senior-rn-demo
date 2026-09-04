@@ -1,0 +1,161 @@
+---
+description: Context tháng 9/2026 — Rebuild sprint. Lịch cố định hằng ngày, lộ trình học, toàn bộ link tài nguyên. Đọc file này trước khi mở bất kỳ file ngày nào.
+alwaysApply: false
+---
+
+# Tháng 9/2026 — Tháng 1: SHIP
+
+> **Mục tiêu tháng:** Từ con số 0 đến **một app thật chạy trên TestFlight + Google Play Internal Testing**.
+> **Nhịp:** Thứ 2 → Thứ 6. Thứ 7 và Chủ Nhật nghỉ hoàn toàn.
+> **Bắt đầu:** Thứ Hai 07/09/2026.
+
+---
+
+## 1. Lịch cố định (áp dụng mọi ngày T2–T6)
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, đánh răng rửa mặt. **Không chạm điện thoại** |
+| 04:45 | Gym (gồm 30 phút cardio) |
+| 05:45 | Về nhà, tắm rửa, pha cà phê *(1 ly duy nhất trong ngày)* |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn sáng, uống vitamin D |
+| 07:30 | Cho bé tắm nắng, ngắm trời |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY (2h)** — Điện thoại để phòng khác. Giãn cơ 5 phút lúc 09:30 |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa cho bé |
+| 11:00 | Bà nội cho bé ăn — **thư giãn thật sự**, không lướt điện thoại |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | **Ngủ 30 phút** |
+| **13:30** | **KHỐI HỌC (3h)** — nghỉ 10 phút lúc 15:00 |
+| **16:30** | **TIẾNG ANH (30 phút)** |
+| **17:00** | **ĐỌC SÁCH (30 phút)** — sách tiếng Anh |
+| 17:30 | Trọn vẹn với con gái. Điện thoại chế độ máy bay, cất ngăn kéo |
+| 19:00 | Ăn tối cùng vợ + dọn bếp *(ông bà giữ bé)*. Lắng nghe trước, kể sau |
+| 20:00 | Tắm cho con, ru con ngủ |
+| 20:30 | Thời gian dành cho con |
+| 21:15 | Chuẩn bị đồ gym cho mai. Điện thoại sạc **ở phòng khác** |
+| 21:30 | Ngủ |
+
+**Tổng mỗi ngày:** 5h làm việc tập trung · 30 phút tiếng Anh · 30 phút đọc · 1h gym · 7h ngủ + 30 phút trưa · ~7h gia đình.
+
+---
+
+## 2. Quy tắc 3 vòng (áp dụng cho mọi khóa học)
+
+| Vòng | Làm gì |
+| --- | --- |
+| **Vòng 1 — Chép** | Code theo khóa học, **gõ tay từng dòng**, không copy-paste. Không hiểu dòng nào thì dừng lại tra cho hiểu |
+| **Vòng 2 — Dựng lại** | Làm lại từ đầu **không mở video**, chỉ được mở docs chính thức |
+| **Vòng 3 — Nối thêm** | Thêm tính năng KHÔNG có trong khóa học |
+
+**Phân bổ theo khối:**
+- **Khối XÂY 08:30** (đầu óc sắc nhất) = việc khó: dựng lại từ trí nhớ, debug, thêm tính năng, viết test.
+- **Khối HỌC 13:30** (sau ngủ trưa) = việc dễ hơn: code theo khóa học, gõ tay.
+
+**Luật:** không sang khóa mới khi chưa qua được Vòng 2 của khóa hiện tại.
+
+---
+
+## 3. Lộ trình tháng 9
+
+| Tuần | Ngày | Nội dung | Kết quả phải có |
+| --- | --- | --- | --- |
+| **1** | 07–11/09 | Expo Official Tutorial (StickerSmash) | Dựng lại được app không cần xem hướng dẫn |
+| **2** | 14–18/09 | Traversy — MacroZone (Expo Router, AsyncStorage, Notifications, EAS) | App MacroZone chạy trên máy thật |
+| **3** | 21–25/09 | Vòng 3 MacroZone + TypeScript/Zod/TanStack Query/Zustand | MacroZone có dark mode, thống kê, gọi API thật |
+| **4** | 28–30/09 | EAS Build + EAS Update + nộp store | **App có mặt trên TestFlight + Play Internal Testing** |
+
+---
+
+## 4. Tài nguyên — toàn bộ link
+
+### Khóa học chính
+| Tên | Link |
+| --- | --- |
+| Expo Official Tutorial | https://docs.expo.dev/tutorial/introduction/ |
+| Traversy — MacroZone repo | https://github.com/bradtraversy/macrozone |
+| Traversy — MacroZone STEPS.md | https://github.com/bradtraversy/macrozone/blob/master/STEPS.md |
+
+### Docs chính thức (dùng ở Vòng 2)
+| Tên | Link |
+| --- | --- |
+| Expo Router | https://docs.expo.dev/router/introduction/ |
+| Expo SDK reference | https://docs.expo.dev/versions/latest/ |
+| React Native | https://reactnative.dev/docs/getting-started |
+| TypeScript Handbook | https://www.typescriptlang.org/docs/handbook/intro.html |
+| Zod | https://zod.dev |
+| TanStack Query v5 | https://tanstack.com/query/latest/docs/framework/react/overview |
+| Zustand | https://zustand.docs.pmnd.rs |
+| FlashList | https://shopify.github.io/flash-list/ |
+| EAS Build | https://docs.expo.dev/build/introduction/ |
+| EAS Update | https://docs.expo.dev/eas-update/introduction/ |
+
+### Kênh YouTube theo dài hạn
+- **Simon Grimm / Galaxies.dev** — dạy RN đều đặn nhất, cập nhật theo từng SDK
+- **notJust.dev (Vadim)** — khóa build-along full project
+- **Expo** (kênh chính thức) — SDK mới, EAS, Expo Router
+- **Callstack** — performance + New Architecture chuyên sâu
+- **Code with Beto** — Expo Router, ngắn gọn
+
+---
+
+## 5. Khối Tiếng Anh — cấu trúc cố định 30 phút
+
+| Phút | Việc |
+| --- | --- |
+| 0–10 | **Nhại theo (shadowing).** Mở lại 2 phút video khóa học vừa xem chiều nay. Nghe từng câu → tạm dừng → **nói to nhại lại**, bắt chước cả ngữ điệu. Lặp 3–4 lần |
+| 10–25 | **Nói to có ghi âm.** Chủ đề theo ngày (bảng dưới). Nói 2–3 phút, ghi âm. **Nghe lại.** Nói lần hai tốt hơn |
+| 25–30 | Ghi 5 từ/cụm kỹ thuật mới vào sổ. Đọc to mỗi từ 3 lần |
+
+### Chủ đề nói theo ngày trong tuần
+
+| Ngày | Chủ đề | Mục đích |
+| --- | --- | --- |
+| **Thứ 2** | **Daily standup** — *"Yesterday I… Today I'm going to… I'm blocked on…"* | Câu phải nói mỗi sáng khi đi làm. Phải thành phản xạ |
+| **Thứ 3** | **Giải thích 1 khái niệm kỹ thuật** như đang dạy người khác | Kỹ năng cốt lõi khi phỏng vấn và họp |
+| **Thứ 4** | **Nghe + chép chính tả** — lấy 1 phút podcast/video, chép lại, đối chiếu | Tấn công trực tiếp kỹ năng nghe |
+| **Thứ 5** | **Trả lời 1 câu phỏng vấn** dưới áp lực, ≤60 giây | Chuẩn bị vòng phỏng vấn tiếng Anh |
+| **Thứ 6** | **Nhìn lại tuần bằng tiếng Anh** + kế hoạch tuần sau | Vừa luyện nói vừa thay buổi họp một mình |
+
+### Công cụ miễn phí
+| Công cụ | Link | Dùng để |
+| --- | --- | --- |
+| ELSA Speak (free tier) | https://elsaspeak.com | Sửa phát âm, nhận diện đúng lỗi người Việt |
+| YouGlish | https://youglish.com | Gõ 1 từ → nghe người bản xứ phát âm trong ngữ cảnh thật |
+| Speak & Improve (Cambridge) | https://speakandimprove.com | Nói vào, máy chấm trình độ CEFR. Dùng 1 lần/tháng để đo |
+| Chế độ giọng nói ChatGPT / Gemini | — | Hội thoại thật. Yêu cầu đóng vai người phỏng vấn kỹ thuật |
+| React Native Radio | https://reactnativeradio.com | Podcast — nghe lúc lái xe, rửa bát, gym |
+| Syntax.fm | https://syntax.fm | Podcast web/JS |
+
+**Cách đo tiến bộ:** giữ toàn bộ file ghi âm trong 1 thư mục. Cuối mỗi tháng nghe lại file ngày đầu tháng.
+
+---
+
+## 6. Đọc sách 17:00 — thứ tự
+
+Đọc **bản tiếng Anh** để nhân đôi hiệu quả (bạn đã B2 đọc, không tốn thêm sức).
+
+1. **A Philosophy of Software Design** — John Ousterhout *(mỏng, câu ngắn, dễ đọc nhất để bắt đầu)*
+2. **The Pragmatic Programmer** — Hunt & Thomas
+3. **Deep Work** — Cal Newport
+4. **Atomic Habits** — James Clear
+
+Tốc độ: ~10 trang/ngày × 20 ngày = 200 trang/tháng ≈ 1 cuốn.
+
+---
+
+## 7. Định nghĩa hoàn thành — 30/09
+
+- [ ] Dựng lại được StickerSmash và MacroZone **không cần xem hướng dẫn**
+- [ ] MacroZone có thêm: dark mode, màn hình thống kê, gọi API thật qua TanStack Query
+- [ ] App đã build thành công bằng EAS và **có mặt trên TestFlight + Play Internal Testing**
+- [ ] 20 file ghi âm tiếng Anh, nghe lại thấy tiến bộ so với ngày 07/09
+- [ ] Đọc xong cuốn 1
+- [ ] Biểu đồ GitHub có commit **mỗi ngày làm việc**, không đứt ngày nào
+
+---
+
+_Đọc file này trước khi mở file ngày. File ngày chỉ ghi phần thay đổi theo ngày._

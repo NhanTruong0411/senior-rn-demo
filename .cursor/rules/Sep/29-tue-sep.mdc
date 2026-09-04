@@ -1,0 +1,239 @@
+---
+description: Thứ Ba 29/09/2026 — Tuần 4 Ngày 2. EAS Update (OTA) + Sentry crash reporting.
+alwaysApply: false
+---
+
+# Thứ Ba · 29/09/2026 · Tuần 4 — Ngày 17/61
+
+> Hôm nay hai thứ mọi app production đều có mà bài tập thì không: **cập nhật OTA** và **theo dõi lỗi**. Đây là phần khiến dự án của bạn nghe như sản phẩm thật chứ không phải bài tập.
+
+**Docs:** https://docs.expo.dev/eas-update/introduction/ · https://docs.sentry.io/platforms/react-native/
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — EAS Update (OTA) |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Sentry + error boundary |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
+| **17:00** | **ĐỌC SÁCH** — ch.17 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Cập nhật OTA
+
+### 08:30–09:00 · Cài đặt
+
+```bash
+eas update:configure
+npx expo install expo-updates
+```
+
+```json
+// app.json
+{
+  "expo": {
+    "runtimeVersion": { "policy": "appVersion" },
+    "updates": {
+      "url": "https://u.expo.dev/<project-id>",
+      "fallbackToCacheTimeout": 0
+    }
+  }
+}
+```
+
+### 09:00–09:30 · Hiểu `runtimeVersion` — phần quan trọng nhất
+
+Đây là khái niệm mà rất nhiều dev dùng OTA nhưng không hiểu, và nó gây crash hàng loạt trên production.
+
+**OTA chỉ đẩy được JavaScript. Không đẩy được code native.**
+
+Nếu bạn cài thư viện mới có phần native (ví dụ `expo-camera`) rồi đẩy OTA, JS mới sẽ gọi vào native chưa tồn tại → app crash ngay khi mở, và **người dùng không thể tự sửa**.
+
+`runtimeVersion` là hàng rào chặn điều đó: bản OTA chỉ được giao cho những bản build có cùng runtime version. Đổi thư viện native → **phải tăng runtime version và build lại**, không được đẩy OTA.
+
+| Thay đổi | OTA được không? |
+| --- | --- |
+| Sửa logic JS, sửa giao diện | Được |
+| Đổi màu, đổi chữ | Được |
+| Thêm màn hình mới | Được |
+| Cài thư viện có native module | **Không** — phải build lại |
+| Đổi quyền trong app.json | **Không** |
+| Đổi icon, splash | **Không** |
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Đẩy bản cập nhật thật
+
+```bash
+eas update --branch production --message "Sửa nhãn tổng calo"
+```
+
+Thử nghiệm đầy đủ:
+1. Cài bản `.apk` production hôm qua lên máy
+2. Đổi một dòng chữ trong code
+3. `eas update --branch production`
+4. Đóng hẳn app, mở lại **hai lần** — lần một tải bản mới ngầm, lần hai mới hiện
+
+**Hiểu hành vi mặc định này:** Expo tải bản mới ở nền và áp dụng ở lần mở kế tiếp, để không bắt người dùng ngồi chờ. Muốn ép áp dụng ngay thì phải tự gọi `Updates.fetchUpdateAsync()` và `Updates.reloadAsync()` — kèm giao diện báo cho người dùng biết.
+
+```bash
+git checkout -b feat/ota-and-monitoring
+git add . && git commit -m "feat: cấu hình EAS Update với runtime version theo app version"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — Sentry + Error Boundary
+
+### 13:30–14:15 · Cài Sentry
+
+Tạo tài khoản miễn phí tại https://sentry.io (gói free đủ cho dự án cá nhân).
+
+```bash
+npx expo install @sentry/react-native
+```
+
+```ts
+// app/_layout.tsx
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  enabled: !__DEV__,              // không gửi lỗi lúc đang phát triển
+  tracesSampleRate: 0.2,          // lấy mẫu 20% để không hết quota
+  environment: process.env.APP_VARIANT ?? 'development',
+});
+
+export default Sentry.wrap(RootLayout);
+```
+
+### 14:15–15:00 · Source map — điểm mấu chốt
+
+Không có source map, mọi lỗi từ bản production đều hiện như thế này:
+
+```
+TypeError: undefined is not an object
+  at t (index.android.bundle:1:284719)
+```
+
+Vô dụng hoàn toàn. Có source map thì thành:
+
+```
+TypeError: Cannot read property 'calories' of undefined
+  at MacroGrid (src/features/stats/components/MacroGrid.tsx:42:18)
+```
+
+Bật tải source map tự động trong plugin Sentry của `app.json`. Kiểm chứng bằng cách gây lỗi thật:
+
+```tsx
+{__DEV__ === false && <Button title="Test crash" onPress={() => { throw new Error('Sentry test crash'); }} />}
+```
+
+Build, cài, bấm nút, rồi mở Sentry xem stack trace có ra đúng tên file và số dòng không. **Nếu chỉ thấy `index.bundle:1:xxxxx` thì source map chưa lên** — phải sửa cho được, vì đây chính là toàn bộ giá trị của việc gắn Sentry.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Error Boundary
+
+Sentry ghi nhận lỗi, nhưng người dùng vẫn thấy màn hình trắng. Cần thêm lớp chắn:
+
+```tsx
+// src/shared/ui/ErrorBoundary.tsx
+class ErrorBoundary extends React.Component<Props, State> {
+  static getDerivedStateFromError(error: Error) { return { hasError: true, error }; }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    Sentry.captureException(error, { extra: { componentStack: info.componentStack } });
+  }
+  render() {
+    if (this.state.hasError) return <ErrorFallback onRetry={() => this.setState({ hasError: false })} />;
+    return this.props.children;
+  }
+}
+```
+
+**Ba giới hạn của Error Boundary — câu hỏi phỏng vấn hay gặp.** Nó **không** bắt được:
+1. Lỗi trong hàm bất đồng bộ (`fetch` thất bại, promise bị reject)
+2. Lỗi trong trình xử lý sự kiện (`onPress`)
+3. Lỗi trong chính Error Boundary
+
+Ba loại đó phải xử lý riêng: `try/catch`, `onError` của TanStack Query, và `Sentry.captureException` thủ công.
+
+Đặt boundary ở **hai tầng**: một cái bọc toàn app, và mỗi tab một cái. Như vậy một tab hỏng thì các tab khác vẫn dùng được — thay vì cả app trắng màn.
+
+```bash
+git add . && git commit -m "feat: sentry với source map và error boundary hai tầng"
+git checkout main && git merge feat/ota-and-monitoring
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
+
+### 16:30–16:40 · Shadowing
+
+2 phút. Nghe → dừng → nhại to.
+
+### 16:40–16:55 · Nói to có ghi âm
+
+**Chủ đề: khi nào được dùng OTA, khi nào bắt buộc build lại.**
+
+> *"Over-the-air updates let you ship JavaScript changes without going through the app stores. So bug fixes, copy changes, layout tweaks — all of that can go out in minutes instead of waiting days for review.*
+> *The important limit is that OTA only replaces the JavaScript bundle. It cannot change native code. So if I install a library that has a native module, and I push that as an OTA update, the new JavaScript will call into native code that isn't there, and the app crashes on launch. And the user can't fix that themselves — you'd have to ship a store update.*
+> *Expo handles this with runtime versions. An update is only delivered to builds with a matching runtime version. So when I change anything native, I bump the runtime version and do a real build.*
+> *The rule I follow is simple: if the change touches package dot json in a way that adds native code, or touches app config like permissions or the icon, it needs a store build. Everything else can go OTA."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `ship a fix` | phát hành bản sửa lỗi | *We shipped the fix in ten minutes.* |
+| `bump` (v) | tăng số phiên bản | *I bump the runtime version.* |
+| `call into` | gọi sang (tầng khác) | *JavaScript calls into native code.* |
+| `on launch` | lúc khởi động app | *The app crashes on launch.* |
+| `go through review` | qua khâu duyệt của store | *You don't have to go through review.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 17 *(Consistency)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] EAS Update chạy, đã đẩy được một bản OTA lên máy thật
+- [ ] Giải thích được `runtimeVersion` dùng để làm gì
+- [ ] Kể ra được 3 thay đổi **không** được đẩy OTA
+- [ ] Sentry nhận được lỗi từ bản build production
+- [ ] **Stack trace hiện đúng tên file và số dòng** (source map hoạt động)
+- [ ] Error Boundary ở 2 tầng, có màn hình dự phòng tử tế
+- [ ] Kể ra được 3 loại lỗi Error Boundary **không** bắt được
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-09-29.m4a`
+- [ ] Đọc xong ch.17
+- [ ] 21:30 lên giường

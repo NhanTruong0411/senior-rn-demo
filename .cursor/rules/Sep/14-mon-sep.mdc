@@ -1,0 +1,150 @@
+---
+description: Thứ Hai 14/09/2026 — Tuần 2 Ngày 1. Bắt đầu MacroZone (Traversy) — native components, styling, Expo Router.
+alwaysApply: false
+---
+
+# Thứ Hai · 14/09/2026 · Tuần 2 — Ngày 6/61
+
+> **Khóa mới: MacroZone** — app theo dõi dinh dưỡng của Brad Traversy.
+> Video ~1h35. Chia làm 4 ngày. Có sẵn file `STEPS.md` ghi từng bước.
+
+**Repo:** https://github.com/bradtraversy/macrozone
+**Các bước:** https://github.com/bradtraversy/macrozone/blob/master/STEPS.md
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Ôn chỗ yếu tuần 1 + khởi tạo MacroZone |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — MacroZone 23:59 → 42:24 |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Daily standup |
+| **17:00** | **ĐỌC SÁCH** — ch.6 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+### 08:30–09:30 · Lấp 2 chỗ mơ hồ của tuần 1
+
+Mở lại phần "Tổng kết tuần 1" trong file `fri-11-sep.mdc`. Lấy đúng 2 chỗ bạn ghi là còn mơ hồ và làm cho hiểu hẳn — bằng cách **viết code nhỏ thử nghiệm**, không phải bằng đọc.
+
+Nếu sáng T6 tuần trước bạn được dưới 4/8 mục: dùng cả 2 tiếng sáng nay dựng lại StickerSmash lần nữa. Không sao cả, tuần này vẫn kịp.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Khởi tạo MacroZone
+
+```bash
+cd ~/Dev
+npx create-expo-app@latest macrozone
+cd macrozone
+npm run reset-project
+git init && git add . && git commit -m "chore: khởi tạo macrozone"
+```
+
+Mở https://github.com/bradtraversy/macrozone/blob/master/STEPS.md, đọc lướt toàn bộ để biết đích đến. **Chưa code theo.**
+
+Xem nhanh phần đầu video ở tốc độ 1.5x — **0:00 → 23:59** (Intro, What Is RN, How It Works, What Is Expo, Running In Dev, Expo Account & EAS CLI, Generating An App, Reset Project Script). Phần này bạn đã biết hết rồi, chỉ xem để không sót thao tác nào.
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — MacroZone 23:59 → 42:24
+
+Vòng 1: gõ tay từng dòng.
+
+### 13:30–14:15 · `23:59 → 30:38` Native Components + Styling
+
+- `23:59` Native Components — `View`, `Text`, `ScrollView`, `SafeAreaView`
+- `26:46` Platform & Device Info — `Platform.OS`, `useWindowDimensions`
+- `28:25` Styling In React Native
+
+### 14:15–15:00 · `30:38 → 36:03` Screen Stack + Global Styles
+
+- `30:38` Screen Stack & Header Title — cấu hình `<Stack.Screen options={{ title }} />`
+- `32:00` Global Styles — tách style dùng chung ra file riêng
+- `34:10` Home Header Component
+
+> **So sánh với tuần trước:** Expo Tutorial dùng style rải trong từng file. Traversy tách global styles. Ghi vào sổ: cách nào tốt hơn khi app lớn dần, và vì sao?
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · `36:03 → 42:24` Expo Router + Tabs
+
+- `36:03` Expo Router & Screens
+- `38:05` Navigation Links — `<Link href="/about">`
+- `38:58` Back Button & Hide Headers
+- `40:40` **Add Meal Screen (Challenge)** — Traversy để bạn tự làm. **Dừng video, tự làm trước.** Chỉ xem đáp án sau khi đã thử ít nhất 15 phút
+- `42:24` Tabs — bắt đầu
+
+```bash
+git add . && git commit -m "feat: layout gốc, global styles và điều hướng cơ bản"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+
+### 16:30–16:40 · Shadowing
+
+**Hôm nay dùng luôn video MacroZone.** Chọn 2 phút bất kỳ (Traversy nói rõ, tốc độ vừa — rất hợp để nhại). Nghe → dừng → nói to nhại lại. Lặp 3–4 lần.
+
+### 16:40–16:55 · Standup có ghi âm
+
+> *"Morning. Last week I finished the official Expo tutorial and rebuilt the whole app from scratch to check that I actually understood it.*
+> *This week I'm starting a new project called MacroZone — it's a nutrition tracking app. Today I set the project up, went through the native components and styling, and got the basic navigation working with Expo Router.*
+> *Tomorrow I'll move on to the tab layout and start building the reusable components.*
+> *Nothing blocking me at the moment."*
+
+**Chú ý ngữ pháp thì:** *Last week I **finished*** (quá khứ đơn) · *This week I'm **starting*** (hiện tại tiếp diễn cho kế hoạch) · *Tomorrow I'**ll** move on* (will cho quyết định). Người Việt hay dùng sai chỗ này.
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `move on to` | chuyển sang | *I'll move on to the tab layout.* |
+| `from scratch` | từ đầu, từ con số 0 | *I rebuilt it from scratch.* |
+| `reusable` (adj) | tái sử dụng được | *A reusable button component.* |
+| `wire up` (v) | nối các phần lại với nhau | *I need to wire up the form to storage.* |
+| `nothing blocking me` | không có gì cản trở | *Nothing blocking me at the moment.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 6 *(General-Purpose Modules are Deeper)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Đã lấp 2 chỗ mơ hồ của tuần 1 bằng code thử nghiệm
+- [ ] Dự án `macrozone` khởi tạo xong, chạy được
+- [ ] Xong đoạn video 23:59 → 42:24
+- [ ] Đã **tự làm** thử thách Add Meal Screen trước khi xem đáp án
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-09-14.m4a`
+- [ ] Đọc xong ch.6
+- [ ] 21:30 lên giường

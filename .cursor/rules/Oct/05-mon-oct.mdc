@@ -1,0 +1,251 @@
+---
+description: Thứ Hai 05/10/2026 — Tuần 6 Ngày 1. Jest 30 — test hàm thuần, hiểu test cái gì và KHÔNG test cái gì.
+alwaysApply: false
+---
+
+# Thứ Hai · 05/10/2026 · Tuần 6 — Ngày 21/61
+
+> **Tuần testing.** Đây là lỗ hổng bạn tự nhận từ đầu: *"Firegroup không có culture test mạnh."*
+> Năm ngày này biến câu đó từ lời thú nhận thành câu chuyện: *"đó là lý do tôi tự xây test mindset, và đây là code."*
+
+**Hướng dẫn chính:** https://reactnativerelay.com/article/complete-guide-testing-react-native-apps-2026-unit-tests-e2e-maestro
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Cài Jest 30, test hàm thuần đầu tiên |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Phủ test toàn bộ `lib/stats.ts` |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Daily standup |
+| **17:00** | **ĐỌC SÁCH** — The Pragmatic Programmer, ch.1 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Jest
+
+```bash
+git checkout -b feat/testing
+npx expo install jest-expo jest @types/jest --dev
+```
+
+```json
+// package.json
+{
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "collectCoverageFrom": [
+      "src/**/*.{ts,tsx}",
+      "!src/**/*.d.ts",
+      "!src/**/index.ts"
+    ]
+  }
+}
+```
+
+### 08:45–09:30 · Test đầu tiên
+
+Bắt đầu bằng hàm thuần — hôm 22/09 bạn đã tách chúng ra `lib/stats.ts`. **Hôm nay là ngày món quà đó được mở.**
+
+```ts
+// src/features/stats/lib/stats.test.ts
+import { totalsForDay, lastNDays, averageDaily } from './stats';
+
+const meal = (over: Partial<Meal> = {}): Meal => ({
+  id: '1', userId: 'u1', name: 'Cơm gà',
+  calories: 500, protein: 30, carbs: 60, fat: 15,
+  createdAt: '2026-10-05T08:00:00Z',
+  ...over,
+});
+
+describe('totalsForDay', () => {
+  it('trả về 0 cho mảng rỗng', () => {
+    expect(totalsForDay([])).toEqual({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+  });
+
+  it('cộng dồn nhiều bữa ăn', () => {
+    const result = totalsForDay([meal(), meal({ id: '2', calories: 300, protein: 20 })]);
+    expect(result.calories).toBe(800);
+    expect(result.protein).toBe(50);
+  });
+});
+```
+
+**Ba luật viết test:**
+1. **Tên test là một câu mô tả hành vi.** `it('trả về 0 cho mảng rỗng')` chứ không phải `it('test 1')`. Khi test đỏ, tên nó phải cho biết cái gì hỏng mà không cần đọc code.
+2. **Một test kiểm tra một hành vi.** Nhiều `expect` cũng được, nhưng phải cùng một hành vi.
+3. **Dùng hàm dựng dữ liệu (`meal()`) thay vì viết object đầy đủ mỗi lần.** Test dễ đọc hơn nhiều và chỉ hiện ra thứ đang được kiểm tra.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Test cái gì và KHÔNG test cái gì
+
+**Đây là phần quan trọng nhất tuần này**, vì đây chính là câu hỏi phỏng vấn — và người trả lời được câu *"không test cái gì"* thường gây ấn tượng hơn người liệt kê được nhiều loại test.
+
+| Nên test | Vì sao |
+| --- | --- |
+| Logic nghiệp vụ (tính tổng, nhóm ngày, quy đổi) | Sai là ra số sai cho người dùng |
+| Trường hợp biên: rỗng, null, số âm, quá lớn | Đây là nơi lỗi thật sống |
+| Xác thực dữ liệu (schema Zod) | Là hàng rào bảo vệ |
+| Hàm thuần | Rẻ, nhanh, ổn định |
+| Luồng quan trọng nhất, ở tầng E2E | Đăng nhập, thêm bữa ăn |
+
+| **KHÔNG** nên test | Vì sao |
+| --- | --- |
+| Thư viện bên thứ ba | TanStack Query đã có test của họ |
+| Chi tiết triển khai (`useState` được gọi mấy lần) | Refactor là test đỏ, dù app vẫn đúng |
+| Style, màu sắc, khoảng cách | Đổi thiết kế là hỏng test, chẳng bắt được lỗi nào |
+| Snapshot của cả màn hình lớn | Ai cũng bấm `-u` mà không đọc. Test vô nghĩa |
+| Getter/setter đơn giản | Không có logic thì không có gì để sai |
+
+Viết bảng này vào `docs/testing-strategy.md`. Nó sẽ là câu trả lời của bạn cho câu hỏi ngày 15/10.
+
+```bash
+npm test
+git add . && git commit -m "test: cài jest và test đầu tiên cho hàm thống kê"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — Phủ toàn bộ logic
+
+### 13:30–15:00 · Test đủ `lib/stats.ts`
+
+Với mỗi hàm, viết tối thiểu 4 test:
+1. Trường hợp bình thường
+2. Mảng rỗng
+3. Một phần tử
+4. Trường hợp biên đặc thù (qua nửa đêm, số thập phân, giá trị âm)
+
+```ts
+describe('lastNDays', () => {
+  it('trả về đúng n ngày kể cả ngày không có bữa ăn nào', () => {
+    const result = lastNDays([meal()], 7);
+    expect(result).toHaveLength(7);
+    expect(result.filter((d) => d.total.calories > 0)).toHaveLength(1);
+  });
+
+  it('nhóm các bữa cùng ngày theo giờ địa phương, không phải UTC', () => {
+    // 2026-10-05T23:30 giờ VN = 2026-10-05T16:30 UTC — phải rơi vào ngày 05
+    const late = meal({ createdAt: '2026-10-05T16:30:00Z' });
+    expect(lastNDays([late], 1)[0]?.total.calories).toBe(500);
+  });
+});
+```
+
+> **Test múi giờ ở trên rất đáng viết.** Lỗi ngày lệch do UTC là lỗi kinh điển của app Việt Nam (GMT+7), và kể được rằng bạn đã nghĩ tới nó là điểm cộng thật trong phỏng vấn.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Test schema Zod
+
+```ts
+describe('mealSchema', () => {
+  it('ép chuỗi số từ TextInput thành number', () => {
+    const r = mealSchema.parse({ name: 'Phở', calories: '450', protein: '25', carbs: '50', fat: '10' });
+    expect(r.calories).toBe(450);
+    expect(typeof r.calories).toBe('number');
+  });
+
+  it('từ chối calo âm', () => {
+    expect(mealSchema.safeParse({ ...valid, calories: '-100' }).success).toBe(false);
+  });
+
+  it('từ chối tên rỗng', () => {
+    expect(mealSchema.safeParse({ ...valid, name: '' }).success).toBe(false);
+  });
+});
+```
+
+### 16:00–16:30 · Đọc báo cáo coverage
+
+```bash
+npm run test:coverage
+open coverage/lcov-report/index.html
+```
+
+**Đừng đuổi theo con số 100%.** Cách đọc đúng:
+- Nhìn **các dòng chưa được chạy** trong file logic — đó là nhánh code bạn chưa nghĩ tới
+- Bỏ qua coverage của file giao diện — chúng sẽ được phủ ở tầng E2E
+- Mục tiêu thực tế: **>80% cho `lib/`**, không quan tâm phần còn lại
+
+> **Ghi vào sổ:** coverage là công cụ *tìm chỗ chưa nghĩ tới*, không phải chỉ tiêu để báo cáo. Một dự án 100% coverage vẫn đầy lỗi nếu test toàn kiểm tra chi tiết triển khai.
+
+```bash
+git add . && git commit -m "test: phủ toàn bộ logic thống kê và schema"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+
+### 16:30–16:40 · Shadowing
+
+2 phút podcast. Nghe → dừng → nhại to.
+
+### 16:40–16:55 · Standup có ghi âm
+
+> *"Morning. Last week I finished the auth flow — SecureStore for sessions, protected routes, and I dug into how refresh token queuing works.*
+> *This week is all about testing, which is honestly the area I've been weakest in. Today I set up Jest and covered the stats logic and the Zod schemas. I also wrote down an explicit list of what I do and don't test, because I think knowing what to skip matters as much as knowing what to cover.*
+> *Tomorrow I'll move on to component tests with React Native Testing Library.*
+> *No blockers."*
+
+**Cụm *"honestly the area I've been weakest in"* rất đáng dùng.** Thừa nhận điểm yếu kèm bằng chứng đang khắc phục nghe mạnh hơn nhiều so với giả vờ giỏi mọi thứ.
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `cover` (v) | phủ test | *I covered the stats logic.* |
+| `edge case` (n) | trường hợp biên | *I test the edge cases first.* |
+| `brittle` (adj) | dễ vỡ (test hay hỏng vặt) | *Snapshot tests are brittle.* |
+| `implementation detail` | chi tiết triển khai | *Don't test implementation details.* |
+| `skip` (v) | bỏ qua có chủ đích | *Knowing what to skip matters.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 1 *(A Pragmatic Philosophy)*. Sách mới, bản tiếng Anh.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] `npm test` chạy được, tất cả xanh
+- [ ] Mọi hàm trong `lib/stats.ts` có tối thiểu 4 test
+- [ ] Có test cho trường hợp múi giờ GMT+7
+- [ ] Schema Zod đã được test cả nhánh hợp lệ lẫn không hợp lệ
+- [ ] Coverage của `lib/` trên 80%
+- [ ] **`docs/testing-strategy.md` có bảng "test gì / không test gì"**
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-10-05.m4a`
+- [ ] Đọc xong ch.1 sách mới
+- [ ] 21:30 lên giường

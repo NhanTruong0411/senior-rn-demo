@@ -1,0 +1,212 @@
+---
+description: Thứ Hai 07/09/2026 — Tuần 1 Ngày 1. Dựng môi trường + Expo Official Tutorial chương 1–2.
+alwaysApply: false
+---
+
+# Thứ Hai · 07/09/2026 · Tuần 1 — Ngày 1/61
+
+> **Ngày đầu tiên.** Mục tiêu hôm nay không phải học nhiều, mà là **chạy được app đầu tiên trên máy thật** và đặt commit đầu tiên.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, đánh răng rửa mặt. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm rửa, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, uống vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Dựng môi trường phát triển |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn (không điện thoại) |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Expo Tutorial chương 1–2 |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Daily standup |
+| **17:00** | **ĐỌC SÁCH** — A Philosophy of Software Design, ch.1 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Dựng môi trường
+
+Hôm nay khối này không code, mà lo hạ tầng. Làm sạch sẽ một lần để 60 ngày sau không phải quay lại.
+
+### 08:30–09:00 · Công cụ nền
+
+```bash
+# Kiểm tra Node (cần >= 20)
+node -v
+
+# Nếu chưa có nvm, cài để quản lý nhiều phiên bản Node
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
+nvm install --lts
+nvm use --lts
+
+# Watchman (macOS) — giúp Metro theo dõi file nhanh hơn
+brew install watchman
+
+# Kiểm tra
+node -v && npm -v && watchman -v
+```
+
+### 09:00–09:30 · iOS + Android
+
+```bash
+# Xcode: cài từ App Store (nặng ~10GB, mở song song khi làm việc khác)
+xcode-select --install
+sudo xcodebuild -license accept
+
+# CocoaPods
+sudo gem install cocoapods
+```
+
+**Android Studio:** tải tại https://developer.android.com/studio
+Trong SDK Manager bật: `Android SDK Platform 35`, `Android SDK Build-Tools`, `Android Emulator`, `Android SDK Platform-Tools`.
+
+Thêm vào `~/.zshrc`:
+
+```bash
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export PATH=$PATH:$ANDROID_HOME/emulator
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+```
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:00 · Tài khoản Expo + EAS
+
+```bash
+npm install -g eas-cli
+npx expo login       # tạo tài khoản tại https://expo.dev nếu chưa có
+eas whoami           # xác nhận đã đăng nhập
+```
+
+### 10:00–10:30 · App đầu tiên + Git
+
+```bash
+cd ~/Dev
+npx create-expo-app@latest sticker-smash
+cd sticker-smash
+npm run reset-project     # xóa code mẫu, bắt đầu sạch
+npx expo start
+```
+
+Quét mã QR bằng **Expo Go** trên điện thoại thật. Thấy app chạy → thành công.
+
+```bash
+git init
+git add .
+git commit -m "chore: khởi tạo dự án sticker-smash"
+```
+
+> **Commit đầu tiên của 61 ngày.** Từ hôm nay, mỗi ngày làm việc phải có ít nhất 1 commit.
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — Expo Tutorial chương 1–2
+
+**Link:** https://docs.expo.dev/tutorial/introduction/
+
+Đây là **Vòng 1**: gõ tay từng dòng, không copy-paste. Không hiểu dòng nào thì dừng lại tra.
+
+### 13:30–15:00 · Chương "Create your first app"
+
+Học và làm cho được:
+- Cấu trúc thư mục Expo Router: `app/`, `assets/`, `components/`
+- **File-based routing** — tại sao `app/index.tsx` tự thành route `/`
+- `app/_layout.tsx` là gì, khác `app/index.tsx` chỗ nào
+- Component gốc: `View`, `Text`, `Image`, `Pressable`
+- `StyleSheet.create` — khác CSS web chỗ nào (không cascade, không kế thừa)
+
+**Tự hỏi và trả lời được (viết ra giấy):**
+1. Vì sao Expo Router bỏ được `<Stack.Screen>` thủ công như React Navigation cũ?
+2. `_layout.tsx` chạy trước hay sau `index.tsx`?
+
+### 15:00–15:10 · Nghỉ
+
+Đứng dậy, uống nước, ra ban công. Không mạng xã hội.
+
+### 15:10–16:30 · Chương "Add navigation"
+
+- Tạo tab navigation bằng `expo-router` (thư mục `(tabs)`)
+- Dấu ngoặc đơn `(tabs)` nghĩa là gì — **route group**, không xuất hiện trong URL
+- Màn hình 404 với `+not-found.tsx`
+- Icon cho tab bằng `@expo/vector-icons`
+
+Kết thúc bằng:
+
+```bash
+git add .
+git commit -m "feat: thêm tab navigation và màn hình not-found"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+
+### 16:30–16:40 · Shadowing
+
+Mở lại **2 phút bất kỳ** trong trang Expo Tutorial có video, hoặc dùng video này:
+https://www.youtube.com/results?search_query=expo+router+tutorial+2026
+
+Nghe từng câu → tạm dừng → **nói to nhại lại**, bắt chước ngữ điệu chứ không chỉ từ. Lặp đoạn đó 3–4 lần.
+
+### 16:40–16:55 · Nói to có ghi âm
+
+Bật ghi âm điện thoại. Nói **2–3 phút** theo khung này:
+
+> *"Good morning everyone. Yesterday was my first day setting things up, so I spent most of the time installing Node, Xcode and Android Studio, and getting my Expo account working.*
+> *Today I finished the environment setup and started the official Expo tutorial. I built my first screen and set up tab navigation using Expo Router.*
+> *One thing I'm still figuring out is how the layout file works compared to the index file — I want to read more about that tomorrow.*
+> *No blockers right now."*
+
+**Từ vựng bắt buộc dùng:** *set up · get something working · figure out · blocker · look into*
+
+Nghe lại bản ghi. Nói lần hai, tốt hơn.
+
+### 16:55–17:00 · 5 từ mới
+
+Ghi vào sổ, đọc to mỗi từ 3 lần:
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `set up` (v) | thiết lập | *I set up the dev environment.* |
+| `boilerplate` (n) | code mẫu lặp lại | *The reset script removes the boilerplate.* |
+| `scaffold` (v) | dựng khung dự án | *`create-expo-app` scaffolds the project.* |
+| `nested` (adj) | lồng nhau | *Layouts can be nested.* |
+| `out of the box` | có sẵn không cần cấu hình | *Expo Router works out of the box.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — John Ousterhout, chương 1 *(Introduction)*.
+
+Mục tiêu: ~10 trang. Gạch chân câu nào hay, không cần ghi chép nhiều.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Node, Watchman, Xcode, Android Studio đã cài xong
+- [ ] `eas whoami` trả về đúng tên tài khoản
+- [ ] App chạy được trên điện thoại thật qua Expo Go
+- [ ] Xong chương 1–2 Expo Tutorial
+- [ ] **Có ít nhất 1 commit hôm nay**
+- [ ] Có file ghi âm tiếng Anh `2026-09-07.m4a`
+- [ ] Đọc xong ~10 trang
+- [ ] 21:30 đã lên giường

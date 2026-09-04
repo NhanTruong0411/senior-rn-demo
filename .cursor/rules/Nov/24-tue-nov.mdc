@@ -1,0 +1,185 @@
+---
+description: Thứ Ba 24/11/2026 — Tuần 13 Ngày 2. Phỏng vấn thử số 2 — vòng kỹ thuật. Trả lời khi bị đào sâu và khi không biết câu trả lời.
+alwaysApply: false
+---
+
+# Thứ Ba · 24/11/2026 · Tuần 13 — Ngày 57/61
+
+> Hôm nay là vòng mà bạn mạnh nhất — nhưng cũng là vòng dễ tự bắn vào chân nhất bằng cách nói quá lên.
+> **Mục tiêu hôm nay không phải trả lời đúng mọi câu. Mục tiêu là biết đâu là ranh giới của mình và nói ra được nó một cách bình thản.**
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **PHỎNG VẤN THỬ 2** — vòng kỹ thuật, 60 phút |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **NGHE LẠI VÀ SỬA** |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Luyện chuỗi câu hỏi đào sâu |
+| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
+| **16:30** | **TIẾNG ANH** — Trả lời kỹ thuật bằng tiếng Anh |
+| **17:00** | **ĐỌC SÁCH** — `docs/red-flags.md` |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## PHỎNG VẤN THỬ 2 · 08:30–10:30 — Vòng kỹ thuật
+
+Gõ `mock interview` trong Cursor. Yêu cầu AI hỏi kỹ thuật và **đào sâu ít nhất hai tầng cho mỗi câu**.
+
+### Mười câu hỏi
+
+1. Redux Toolkit và TanStack Query — anh dùng cái nào khi nào?
+2. FlatList chậm với danh sách dài. Anh xử lý thế nào?
+3. `useEffect` chạy hai lần. Vì sao và anh làm gì?
+4. Kể lại cách anh xử lý token hết hạn khi có nhiều request cùng lúc.
+5. Kiến trúc mới của React Native khác kiến trúc cũ ở đâu?
+6. Anh test cái gì và **không** test cái gì?
+7. App bị crash trên máy người dùng mà anh không tái hiện được. Anh làm sao?
+8. Anh làm app chạy được khi mất mạng như thế nào?
+9. Vì sao animation nên chạy trên UI thread?
+10. Trong ba tháng qua anh có quyết định kỹ thuật nào mà sau đó anh thấy sai không?
+
+Giãn cơ 5 phút lúc 09:30.
+
+### Ba luật khi trả lời kỹ thuật
+
+**Luật 1 — Nói quyết định, đừng đọc định nghĩa.**
+
+> ❌ *"Redux là thư viện quản lý state toàn cục, còn TanStack Query là thư viện quản lý server state..."*
+>
+> ✅ *"Em chia theo nguồn dữ liệu. Cái gì máy chủ sở hữu thì em để TanStack Query lo, vì nó có sẵn cache, làm mới, thử lại, và cập nhật lạc quan — viết tay mấy cái đó là tự chuốc lấy bug. Cái gì chỉ tồn tại trên máy — bộ lọc đang chọn, chế độ tối, nháp form — thì em dùng Zustand, nhẹ hơn Redux nhiều. Trong app hiện tại của em không còn Redux nữa, vì sau khi tách hai loại state ra thì phần còn lại quá nhỏ để cần tới nó."*
+
+**Luật 2 — Chuẩn bị cho tầng hỏi thứ hai và thứ ba.**
+
+Người phỏng vấn giỏi luôn đào tiếp. Với mỗi câu trên, tự hỏi *"nếu bị hỏi 'vì sao' thêm hai lần nữa thì tôi nói gì?"*
+
+Ví dụ chuỗi:
+- *"Cập nhật lạc quan là sao?"* → giao diện đổi ngay, chưa chờ máy chủ
+- *"Nếu máy chủ trả lỗi thì sao?"* → `onError` khôi phục lại ảnh chụp cache trước đó
+- *"Ảnh chụp lấy ở đâu ra?"* → `onMutate` trả về, TanStack Query truyền sang `onError` qua tham số context
+
+Nếu bạn đứt ở tầng ba, đó là chỗ bạn chỉ đọc chứ chưa làm.
+
+**Luật 3 — Khi không biết, nói không biết. Có cấu trúc.**
+
+Đây là kỹ năng quan trọng nhất hôm nay:
+
+> *"Cái đó em chưa làm thật. Em hiểu ở mức khái niệm là [nói phần bạn thật sự hiểu]. Nếu phải làm, em sẽ bắt đầu bằng [bước đầu tiên cụ thể] và kiểm chứng bằng [cách đo]. Em không muốn nói chắc về thứ em chưa chạm tới."*
+
+**Ba phần bắt buộc:** thừa nhận thẳng → nói phần bạn thật sự biết → nêu bước đi cụ thể nếu phải làm.
+
+> Người phỏng vấn có kinh nghiệm coi trọng câu này hơn một câu trả lời bịa nghe hay. Vì họ đang tự hỏi: *"người này khi gặp việc không biết ở trong dự án sẽ xử lý ra sao?"*
+
+### Sáu ranh giới của bạn — thuộc lòng
+
+Từ mục 11 trong `coding-context.mdc`, đã cập nhật sau ba tháng:
+
+| Chủ đề | Cách nói |
+| --- | --- |
+| Native sâu | *"Em đã tự viết TurboModule cả Kotlin lẫn Swift, hiểu Codegen và nạp lười. Nhưng em chưa làm ứng dụng native thuần, nên vòng đời Activity hay quản lý bộ nhớ iOS em chỉ ở mức khái niệm."* |
+| GraphQL | *"Chưa dùng trong việc thật. REST đủ cho những gì em làm. Vào team có GraphQL em sẽ bắt đầu với Apollo và codegen."* |
+| Quy mô lớn | *"App của em có năm người dùng, không phải năm triệu. Em hiểu nguyên tắc mở rộng, nhưng em chưa đối mặt vấn đề ở quy mô đó."* |
+| Backend | *"Em dựng được Supabase với RLS và Edge Function. Nhưng em không phải người thiết kế cơ sở dữ liệu — đó là chỗ em cần người giỏi hơn."* |
+| CI/CD nâng cao | *"Em tự dựng GitHub Actions với kiểm tra chất lượng, cập nhật OTA, và build lên kho. Chưa làm triển khai theo tỉ lệ hay nhiều môi trường."* |
+| Dẫn dắt | *"Em chưa quản lý ai. Em có hướng dẫn thực tập sinh và review code, nhưng gọi đó là kinh nghiệm dẫn dắt thì hơi quá."* |
+
+**Nói ranh giới ra ngay khi nó liên quan, đừng chờ bị đào ra.** Chủ động nói thì gọi là tự nhận thức. Bị moi ra mới nói thì gọi là nói quá.
+
+---
+
+## NGHE LẠI VÀ SỬA · 13:30–16:00
+
+### 13:30–15:00 · Chấm bản ghi
+
+| Câu | Có nói quá không? | Đứt ở tầng mấy? | Điểm /25 |
+| --- | --- | --- | --- |
+
+**Hai câu hỏi khó nhất với chính mình:**
+1. Có câu nào tôi nói chắc hơn mức tôi thật sự biết không? Câu nào?
+2. Câu nào tôi đứt ở tầng hai? Đó chính là chỗ tôi mới đọc chứ chưa làm.
+
+Ghi mọi lần nói quá vào `docs/red-flags.md`.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Luyện chuỗi đào sâu
+
+Chọn ba câu bị đứt sâu nhất. Với mỗi câu, viết ra **chuỗi năm tầng**:
+
+```
+Câu hỏi gốc:
+  → vì sao? →
+    → vì sao? →
+      → vì sao? →
+        → "chỗ này em chưa làm thật, em biết đến đây thôi"
+```
+
+**Việc viết ra tầng cuối cùng có giá trị đặc biệt.** Nó cho bạn biết chính xác ranh giới nằm ở đâu, nên trong phỏng vấn thật bạn không hoảng — bạn thấy nó đến từ xa và bước qua nó một cách bình thản.
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Trả lời kỹ thuật bằng tiếng Anh
+
+Chọn **ba câu** trong mười câu sáng nay, trả lời bằng tiếng Anh, mỗi câu 60 giây, ghi âm liền mạch.
+
+Gợi ý câu số 10 — câu về quyết định sai:
+
+> *"Yes. In September I built the whole storage layer on AsyncStorage, and I wrote the UI to call it directly. When I moved to a real backend in late September, that decision cost me most of a day, because the calls were scattered across components.*
+> *What I should have done — and did do the second time — is put a thin interface in front of storage, so the UI asks for meals and doesn't know where they come from. When I switched to Supabase, only the implementation behind that interface changed.*
+> *The lesson wasn't 'always abstract.' Premature abstraction is its own problem. The lesson is that anything crossing a boundary — network, disk, native — is worth one thin layer, because those are the things that get replaced."*
+
+Câu này mạnh vì nó có sai lầm thật, cách sửa cụ thể, **và** một ranh giới nhận thức ở cuối *(không phải lúc nào cũng nên trừu tượng hóa)*.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+Viết `docs/red-flags.md` — danh sách những điều **bạn** có xu hướng nói quá:
+
+```markdown
+# Những câu tôi không nên nói
+
+- ❌ "Em rành hiệu năng" → ✅ "Em đã đo và sửa được ba vấn đề cụ thể, đây là số liệu"
+- ❌ "Em làm được native" → ✅ "Em viết được TurboModule, nhưng chưa làm app native thuần"
+- ❌ "Em có kinh nghiệm CI/CD" → ✅ "Em dựng được pipeline cho dự án cá nhân"
+- ❌ [tự thêm sau khi nghe bản ghi hôm nay]
+```
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Đã chạy hết 10 câu, bị đào sâu ít nhất 2 tầng mỗi câu
+- [ ] Đã dùng câu "em chưa làm thật" **ít nhất một lần** — nếu không lần nào thì bạn đang nói quá
+- [ ] Thuộc 6 ranh giới, nói ra được tự nhiên
+- [ ] Đã chấm bản ghi, tìm ra chỗ đứt tầng hai
+- [ ] Viết chuỗi 5 tầng cho 3 câu yếu nhất
+- [ ] `docs/red-flags.md` đã có ít nhất 5 mục
+- [ ] Đã nộp 3 đơn
+- [ ] Ghi âm 3 câu kỹ thuật bằng tiếng Anh
+- [ ] 21:30 lên giường

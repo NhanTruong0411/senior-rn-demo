@@ -1,0 +1,256 @@
+---
+description: Thứ Sáu 16/10/2026 — Tuần 7 Ngày 5. Tích hợp module vào app, viết bài kỹ thuật, tổng kết tuần New Architecture.
+alwaysApply: false
+---
+
+# Thứ Sáu · 16/10/2026 · Tuần 7 — Ngày 30/61
+
+> **Nửa chặng đường.** Ngày 30 trên 61.
+> Hôm nay biến module vừa viết thành **tính năng thật người dùng thấy được**, và viết lại quá trình thành một bài kỹ thuật — thứ bạn gửi kèm khi apply.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Tính năng thật dùng module |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Viết bài kỹ thuật + tổng kết tuần |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nhìn lại tuần |
+| **17:00** | **ĐỌC SÁCH** — ch.10 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ. **Nghỉ trọn vẹn T7 + CN** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Tính năng thật
+
+Module chỉ có giá trị khi giải quyết một vấn đề thật. Đây là tính năng dùng nó:
+
+### Chế độ tiết kiệm pin
+
+Khi thiết bị vào chế độ tiết kiệm pin hoặc pin dưới 20%, app tự giảm tải:
+
+```ts
+// src/features/settings/hooks/useBatteryAwareMode.ts
+export function useBatteryAwareMode() {
+  const [level, setLevel] = useState(1);
+  const [lowPower, setLowPower] = useState(false);
+
+  useEffect(() => {
+    ExpoDeviceStats.getBatteryLevel().then(setLevel);
+    ExpoDeviceStats.isLowPowerMode().then(setLowPower);
+    const sub = ExpoDeviceStats.addListener('onBatteryChange', (e) => setLevel(e.level));
+    return () => sub.remove();
+  }, []);
+
+  const shouldReduceWork = lowPower || level < 0.2;
+
+  return {
+    level,
+    shouldReduceWork,
+    // ngừng làm mới nền khi pin yếu
+    refetchInterval: shouldReduceWork ? false : 60_000,
+    // tắt hiệu ứng chuyển cảnh
+    animationsEnabled: !shouldReduceWork,
+  } as const;
+}
+```
+
+Nối vào TanStack Query:
+
+```ts
+useQuery({
+  queryKey: ['meals'],
+  queryFn: fetchMeals,
+  refetchInterval: batteryMode.refetchInterval,
+});
+```
+
+Và hiện thông tin thiết bị trong màn hình Settings — người dùng thấy được, và người phỏng vấn mở app lên là thấy ngay.
+
+Giãn cơ 5 phút lúc 09:30.
+
+> **Vì sao tính năng này chọn đúng:** nó là câu trả lời cho *"bạn dùng native module để làm gì?"* — không phải "để học", mà "để giảm tiêu thụ pin, vì thông tin đó JavaScript không tự lấy được."
+
+```bash
+git add . && git commit -m "feat: chế độ tiết kiệm pin dùng native module"
+git checkout main && git merge feat/turbomodule
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:45 · Viết bài kỹ thuật
+
+Tạo `docs/writing-a-turbomodule.md`, viết bằng **tiếng Anh**, khoảng 800–1200 từ. Đây là thứ bạn đính kèm khi apply và là chủ đề nói khi phỏng vấn.
+
+Dàn bài:
+
+```markdown
+# Writing a TurboModule from scratch — and then doing it the easy way
+
+## Why I did this
+Not because the app needed it. Because I wanted to know what the Expo Modules
+API hides, and "I understand the New Architecture conceptually" is a weaker
+sentence than "I've written one."
+
+## The spec is the contract
+[TypeScript spec, why the filename must start with Native, what Codegen produces]
+
+## Android: Kotlin
+[Extending the generated class, sync vs async, why needsEagerInit matters]
+
+## iOS: the extra layer
+[Why Swift can't subclass C++, the .mm bridge, the Swift header trap]
+
+## Proving lazy loading
+[The constructor log experiment — the actual output]
+
+## Then the easy way
+[Expo Modules API, ~60 lines vs ~180, no Objective-C++]
+
+## What I'd pick, and when
+[The decision table]
+
+## What surprised me
+[Be honest. What took longest? What did you get wrong first?]
+```
+
+**Phần cuối là phần đắt nhất.** Người đọc tin một bài viết có kể chỗ tác giả sai. Bài nào cũng trơn tru từ đầu tới cuối thì đọc như quảng cáo.
+
+### 14:45–15:00 · Cập nhật README
+
+```markdown
+## Native module
+
+The app ships a small native module that reads device model, battery level and
+low-power state. When the battery drops below 20% or the OS enters low-power
+mode, background refetching is paused and transitions are disabled.
+
+I implemented it twice — once as a raw TurboModule (TypeScript spec → Codegen →
+Kotlin on Android, Swift behind an Objective-C++ bridge on iOS) and once with
+the Expo Modules API. Write-up: [docs/writing-a-turbomodule.md](docs/writing-a-turbomodule.md)
+```
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–15:50 · Tự kiểm tra — không nhìn tài liệu
+
+Trả lời ra giấy. Nếu câu nào bí, đó là câu cần đọc lại cuối tuần:
+
+1. Ba vấn đề của Bridge cũ là gì?
+2. JSI làm được gì mà Bridge không làm được?
+3. Vì sao TurboModules cải thiện thời gian khởi động?
+4. Codegen sinh ra cái gì, từ cái gì?
+5. Vì sao iOS cần Objective-C++ mà Android không cần?
+6. `needsEagerInit = true` thì mất lợi ích gì?
+7. Hàm đồng bộ chạy trên thread nào? Rủi ro là gì?
+8. Vì sao native module tự viết không chạy trong Expo Go?
+9. Khi nào chọn raw TurboModule thay vì Expo Modules API?
+10. Fabric khác renderer cũ ở điểm nào?
+
+### 15:50–16:30 · Tổng kết tuần 7 và nửa chặng đường
+
+```text
+## Tổng kết tuần 7 (12–16/10) — NEW ARCHITECTURE
+
+- [ ] Viết được TurboModule thô, chạy cả 2 nền tảng
+- [ ] Viết lại bằng Expo Modules API
+- [ ] Kiểm chứng nạp lười bằng thí nghiệm thật
+- [ ] Tích hợp thành tính năng người dùng thấy được
+- [ ] Bài kỹ thuật viết xong
+- [ ] Tự kiểm tra 10 câu: đúng ___/10
+
+Ngày khó nhất tuần:
+Mất bao lâu để qua được:
+
+## NỬA CHẶNG ĐƯỜNG — ngày 30/61
+
+Ngày 07/09 tôi chưa có gì. Hôm nay tôi có:
+- App trên Google Play Internal Testing
+- ___ test đơn vị, ___ luồng E2E
+- 1 native module tự viết, 2 cách
+- ___ file ghi âm tiếng Anh
+- ___ ngày liên tiếp có commit
+
+Điều đã thay đổi trong tôi mà không đo được bằng con số:
+
+Điều tôi vẫn lo:
+```
+
+**Nghe lại `2026-09-07.m4a` rồi nghe `2026-10-15.m4a`.** Sáu tuần. Nghe kỹ.
+
+```bash
+git add . && git commit -m "docs: bài viết về turbomodule và tổng kết nửa chặng"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nhìn lại tuần
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–17:00 · Nói to có ghi âm — 3 phút
+
+> **1. What I did**
+> *"This was the hardest week so far. I wrote a TurboModule from scratch — TypeScript spec, Codegen, Kotlin on Android, and Swift behind an Objective-C++ bridge on iOS. Then I rebuilt the same module with the Expo Modules API in about a third of the code."*
+>
+> **2. What I actually learned**
+> *"The thing I'll remember is proving lazy loading myself rather than reading about it. I put a log in the module constructor, launched the app, and nothing fired until I opened the screen that uses it. That's a much better answer in an interview than repeating a definition."*
+>
+> **3. What was hardest**
+> *"The iOS side. Swift can't subclass the generated C++ class, so you need an Objective-C++ file in between, and I lost most of a morning to the Swift header name. ___"*
+>
+> **4. Next week**
+> *"Next week is performance — profiling, Hermes, bundle size. I want a second measured before-and-after story to go alongside the FlashList numbers."*
+
+**Kiêm buổi họp một mình.** Tự hỏi bằng tiếng Việt: sáu tuần qua, vai trò nào bị bỏ rơi lâu nhất? Cuối tuần này bù lại.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 10.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Chế độ tiết kiệm pin chạy, nối được vào TanStack Query
+- [ ] Thông tin thiết bị hiện trong Settings
+- [ ] **Bài kỹ thuật 800–1200 từ viết xong bằng tiếng Anh**
+- [ ] Bài viết có phần "điều làm tôi bất ngờ" trung thực
+- [ ] README có phần Native module
+- [ ] Tự kiểm tra 10 câu: ghi lại số đúng
+- [ ] Điền xong tổng kết tuần 7 và phần nửa chặng đường
+- [ ] Đã nghe so sánh ghi âm tuần 1 với tuần 6
+- [ ] **Có commit hôm nay** — 30/30 ngày làm việc
+- [ ] Ghi âm `2026-10-16.m4a`
+- [ ] Đọc xong ch.10
+
+---
+
+## Cuối tuần 17–18/10: NGHỈ HOÀN TOÀN
+
+Tuần sau: **performance**. Tuần này bạn xây thứ mới; tuần sau bạn đo và làm nó nhanh hơn.

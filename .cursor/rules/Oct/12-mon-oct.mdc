@@ -1,0 +1,245 @@
+---
+description: Thứ Hai 12/10/2026 — Tuần 7 Ngày 1. New Architecture — JSI, Fabric, TurboModules, Bridgeless. Viết spec và chạy Codegen.
+alwaysApply: false
+---
+
+# Thứ Hai · 12/10/2026 · Tuần 7 — Ngày 26/61
+
+> **Tuần khó nhất tháng.** Đến cuối tuần bạn chuyển từ *"tôi hiểu khái niệm New Architecture"* sang *"tôi đã tự viết một TurboModule chạy trên cả hai nền tảng."*
+> Đó là khác biệt giữa Middle và Strong Middle.
+
+**Tài liệu chính:** https://github.com/reactwg/react-native-new-architecture
+**Series video:** https://www.callstack.com/tutorials/implementing-an-android-turbomodule-with-kotlin
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Hiểu kiến trúc, vẽ sơ đồ |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — TypeScript spec + Codegen |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Daily standup |
+| **17:00** | **ĐỌC SÁCH** — ch.6 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Hiểu kiến trúc
+
+Hôm nay khối này đọc và vẽ, không code. **Vẽ ra giấy** — bạn sẽ phải vẽ lại trên bảng trắng khi phỏng vấn.
+
+### 08:30–09:00 · Kiến trúc cũ và vấn đề của nó
+
+```
+      JS Thread                 BRIDGE                Native Thread
+   ┌─────────────┐        ┌──────────────┐        ┌──────────────┐
+   │  JavaScript │ ─────► │ Nối chuỗi    │ ─────► │  Java/ObjC   │
+   │             │        │ thành JSON   │        │              │
+   │             │ ◄───── │ Bất đồng bộ  │ ◄───── │              │
+   └─────────────┘        │ Hàng đợi     │        └──────────────┘
+                          └──────────────┘
+```
+
+Ba vấn đề cốt lõi của Bridge cũ:
+1. **Mọi thứ phải nối thành chuỗi JSON.** Truyền ảnh lớn hay danh sách dài thì chi phí chuyển đổi rất tốn.
+2. **Luôn bất đồng bộ.** Không thể hỏi native một câu và có đáp ngay. Đó là lý do đo kích thước layout rồi vẽ theo luôn bị trễ một khung hình.
+3. **Nạp mọi module lúc khởi động.** App có 30 native module thì cả 30 cái được khởi tạo dù người dùng chỉ dùng 2.
+
+### 09:00–09:30 · Kiến trúc mới
+
+```
+                        JSI (C++)
+   ┌─────────────┐   truy cập trực tiếp   ┌──────────────┐
+   │  JavaScript │ ◄──────────────────►   │ Kotlin/Swift │
+   └─────────────┘   không nối chuỗi      └──────────────┘
+          │          gọi đồng bộ được
+          │
+    ┌─────┴──────┬──────────────┬─────────────┐
+    │            │              │             │
+ TurboModules  Fabric        Codegen      Bridgeless
+ (nạp khi cần) (renderer mới) (sinh code)  (bỏ hẳn bridge)
+```
+
+| Thành phần | Giải quyết vấn đề gì |
+| --- | --- |
+| **JSI** | Bỏ khâu nối chuỗi. JS giữ tham chiếu trực tiếp tới đối tượng C++. Gọi đồng bộ được |
+| **TurboModules** | Nạp module khi thật sự dùng. Giảm thời gian khởi động 30–70% với app nhiều module |
+| **Fabric** | Renderer mới, hỗ trợ concurrent React, cây view đồng bộ giữa JS và native |
+| **Codegen** | Sinh code C++/Java/ObjC từ spec TypeScript. Sai kiểu là lỗi lúc biên dịch, không phải lúc chạy |
+| **Bridgeless** | Bỏ hẳn bridge cũ. Mặc định từ RN 0.76+ |
+
+**Ba con số nên nhớ để nói khi phỏng vấn:**
+- New Architecture mặc định bật từ **RN 0.76** (10/2024) và **Expo SDK 52**
+- Khoảng **85%** thư viện phổ biến trên npm đã tương thích tính đến 2026
+- App thường cải thiện **10–30%** ở UI thread; app dùng nhiều native module có thể tới **3 lần** ở tốc độ gọi xuyên tầng
+
+### 09:30–10:30 · Kiểm tra app của bạn
+
+Giãn cơ 5 phút trước.
+
+```bash
+npx expo-doctor
+grep -r "newArchEnabled" android/gradle.properties ios/Podfile.properties.json 2>/dev/null
+```
+
+Dự án Expo SDK mới đã bật sẵn. Xác nhận trong app đang chạy:
+
+```tsx
+const isNewArch = global?.nativeFabricUIManager != null;
+console.log('Fabric đang bật:', isNewArch);
+```
+
+Ghi kết quả vào `docs/new-architecture.md` — file này sẽ thành phần trình bày trong README cuối tuần.
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — Spec + Codegen
+
+### 13:30–14:00 · Chọn module để viết
+
+Viết một module đơn giản nhưng đủ để chạm hết các khái niệm: **đọc thông tin thiết bị và pin**.
+
+Đủ nhỏ để làm xong trong tuần, đủ để bao gồm: hàm đồng bộ, hàm bất đồng bộ, hằng số, và phát sự kiện.
+
+### 14:00–15:00 · Viết spec TypeScript
+
+**Luật sống còn: tên file PHẢI bắt đầu bằng `Native`.** Codegen chỉ quét những file khớp mẫu này. Đặt tên `DeviceInfo.ts` là Codegen bỏ qua hoàn toàn và bạn sẽ ngồi tìm lỗi rất lâu.
+
+```ts
+// specs/NativeDeviceStats.ts
+import type { TurboModule } from 'react-native';
+import { TurboModuleRegistry } from 'react-native';
+
+export interface Spec extends TurboModule {
+  // đồng bộ — chỉ New Architecture mới làm được
+  getDeviceModel(): string;
+
+  // bất đồng bộ
+  getBatteryLevel(): Promise<number>;
+  isLowPowerMode(): Promise<boolean>;
+
+  // hằng số
+  getConstants(): { osVersion: string; isEmulator: boolean };
+
+  // sự kiện
+  readonly onBatteryChange: EventEmitter<{ level: number; isCharging: boolean }>;
+}
+
+export default TurboModuleRegistry.getEnforcing<Spec>('NativeDeviceStats');
+```
+
+**`getEnforcing` khác `get`:** `getEnforcing` ném lỗi ngay nếu module native không tồn tại. `get` trả về `null` và bạn sẽ gặp lỗi mơ hồ ở một chỗ khác xa hơn. Luôn dùng `getEnforcing`.
+
+**Kiểu được phép trong spec rất hạn chế** — vì phải ánh xạ được sang C++, Kotlin và Swift:
+
+| Được phép | Không được phép |
+| --- | --- |
+| `string`, `number`, `boolean` | `Date`, `Map`, `Set` |
+| `Array<T>`, object phẳng | Union phức tạp |
+| `Promise<T>`, `void` | Hàm làm tham số (trừ callback) |
+| `?` cho tùy chọn | Generic tự định nghĩa |
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Chạy Codegen và đọc kết quả
+
+```json
+// package.json
+{
+  "codegenConfig": {
+    "name": "AppSpecs",
+    "type": "modules",
+    "jsSrcsDir": "specs",
+    "android": { "javaPackageName": "com.truonghuunhan.macrozone.specs" }
+  }
+}
+```
+
+```bash
+npx expo prebuild --clean          # sinh thư mục android/ và ios/
+cd android && ./gradlew generateCodegenArtifactsFromSchema && cd ..
+```
+
+**Mở và đọc code được sinh ra** — đây là phần học được nhiều nhất hôm nay:
+
+```
+android/app/build/generated/source/codegen/java/com/.../NativeDeviceStatsSpec.java
+ios/build/generated/ios/NativeDeviceStats.h
+```
+
+Bạn sẽ thấy một lớp trừu tượng với đúng các phương thức bạn khai trong spec. Tuần này việc của bạn chỉ là **kế thừa lớp đó và điền phần thân**.
+
+> **Đây là điểm mấu chốt để giải thích khi phỏng vấn:** spec TypeScript là **nguồn sự thật duy nhất**. Codegen bảo đảm ba phía — JS, Android, iOS — không bao giờ lệch nhau. Ở kiến trúc cũ, bạn tự viết cả ba và tự chịu trách nhiệm giữ chúng đồng bộ.
+
+```bash
+git checkout -b feat/turbomodule
+git add . && git commit -m "feat: spec turbomodule và cấu hình codegen"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+
+### 16:30–16:40 · Shadowing
+
+Dùng video Callstack về TurboModule — người nói là kỹ sư Ba Lan, giọng rõ, tốc độ vừa.
+
+### 16:40–16:55 · Standup có ghi âm
+
+> *"Morning. Last week I finished the testing work — unit tests, component tests, and three Maestro end-to-end flows.*
+> *This week I'm going into the New Architecture. Today was mostly reading and setup: I went through how JSI, Fabric and TurboModules fit together, wrote a TypeScript spec for a small device-stats module, and ran Codegen to see what it generates.*
+> *Tomorrow I'll implement the Android side in Kotlin.*
+> *One thing that clicked for me today is that the spec file is the single source of truth — Codegen generates the native interfaces from it, so the three sides can't drift apart. In the old architecture you wrote all three by hand and kept them in sync yourself."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `click` (v, nghĩa bóng) | vỡ ra, hiểu ra | *One thing that clicked for me today…* |
+| `single source of truth` | nguồn sự thật duy nhất | *The spec is the single source of truth.* |
+| `drift apart` | lệch nhau dần | *The three sides can't drift apart.* |
+| `serialise` (v) | nối chuỗi hóa dữ liệu | *The old bridge serialised everything to JSON.* |
+| `under the hood` | bên trong, cơ chế ngầm | *Under the hood it's C++.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 6 *(Concurrency)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] **Vẽ ra giấy** được sơ đồ kiến trúc cũ và mới
+- [ ] Giải thích được 3 vấn đề của Bridge cũ
+- [ ] Nói được JSI, Fabric, TurboModules, Codegen mỗi cái giải quyết gì
+- [ ] Nhớ 3 con số: RN 0.76 / 85% thư viện / 10–30% cải thiện
+- [ ] Xác nhận Fabric đang bật trong app của mình
+- [ ] Spec đặt đúng tên `NativeDeviceStats.ts`
+- [ ] **Codegen chạy xong, đã mở đọc code được sinh ra**
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-10-12.m4a`
+- [ ] Đọc xong ch.6
+- [ ] 21:30 lên giường

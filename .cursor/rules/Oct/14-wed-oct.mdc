@@ -1,0 +1,268 @@
+---
+description: Thứ Tư 14/10/2026 — Tuần 7 Ngày 3. TurboModule phía iOS — Swift qua cầu Objective-C++.
+alwaysApply: false
+---
+
+# Thứ Tư · 14/10/2026 · Tuần 7 — Ngày 28/61
+
+> Hôm nay phía iOS. Khó hơn Android một bậc vì Swift **không nói chuyện trực tiếp được với C++** — phải qua một lớp Objective-C++ ở giữa. Hiểu được chỗ này là hiểu được phần lắt léo nhất của native trong React Native.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Lớp Swift + cầu Obj-C++ |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Build, chạy, so sánh hai nền tảng |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nghe + chép chính tả |
+| **17:00** | **ĐỌC SÁCH** — ch.8 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Swift + cầu nối
+
+### 08:30–08:50 · Vì sao iOS phức tạp hơn
+
+```
+   JavaScript
+       │  JSI (C++)
+       ▼
+   ┌──────────────────┐
+   │  Obj-C++ (.mm)   │  ◄── lớp bắt buộc: hiểu được cả C++ lẫn Obj-C
+   └──────────────────┘
+       │  bridging header
+       ▼
+   ┌──────────────────┐
+   │  Swift (.swift)  │  ◄── nơi bạn viết logic
+   └──────────────────┘
+```
+
+Codegen sinh ra giao diện C++. Swift không kế thừa được lớp C++. Nên phải có một file `.mm` (Objective-C++) đứng giữa: nó kế thừa lớp C++ và gọi xuống Swift.
+
+> Trên Android không có vấn đề này vì Kotlin và Java chạy chung trên JVM, kế thừa trực tiếp lớp Java mà Codegen sinh ra được.
+
+### 08:50–09:30 · Lớp Swift
+
+`ios/DeviceStats/DeviceStatsImpl.swift`
+
+```swift
+import Foundation
+import UIKit
+
+@objc(DeviceStatsImpl)
+public class DeviceStatsImpl: NSObject {
+
+  @objc public static let shared = DeviceStatsImpl()
+
+  @objc public func getDeviceModel() -> String {
+    var systemInfo = utsname()
+    uname(&systemInfo)
+    let identifier = withUnsafePointer(to: &systemInfo.machine) {
+      $0.withMemoryRebound(to: CChar.self, capacity: 1) { String(validatingUTF8: $0) ?? "" }
+    }
+    return identifier.isEmpty ? UIDevice.current.model : identifier
+  }
+
+  @objc public func getBatteryLevel() -> NSNumber {
+    UIDevice.current.isBatteryMonitoringEnabled = true
+    let level = UIDevice.current.batteryLevel
+    // iOS trả -1 khi không đọc được (ví dụ trên simulator)
+    return NSNumber(value: level < 0 ? 0 : Double(level))
+  }
+
+  @objc public func isLowPowerMode() -> Bool {
+    ProcessInfo.processInfo.isLowPowerModeEnabled
+  }
+
+  @objc public func getOSVersion() -> String {
+    UIDevice.current.systemVersion
+  }
+
+  @objc public func isEmulator() -> Bool {
+    #if targetEnvironment(simulator)
+      return true
+    #else
+      return false
+    #endif
+  }
+}
+```
+
+**`@objc` trên mọi thứ cần lộ ra là bắt buộc.** Thiếu nó, lớp Obj-C++ không nhìn thấy hàm và bạn nhận lỗi "unresolved identifier" rất khó hiểu.
+
+**`isBatteryMonitoringEnabled = true` cũng bắt buộc.** Không bật, iOS trả về `-1` mãi mãi. Đây là bẫy iOS kinh điển.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Cầu Objective-C++
+
+`ios/DeviceStats/NativeDeviceStats.mm`
+
+```objc
+#import "NativeDeviceStats.h"
+#import "macrozone-Swift.h"          // header Swift do Xcode tự sinh
+
+@implementation NativeDeviceStats
+
+RCT_EXPORT_MODULE()
+
+- (NSString *)getDeviceModel {
+  return [[DeviceStatsImpl shared] getDeviceModel];
+}
+
+- (void)getBatteryLevel:(RCTPromiseResolveBlock)resolve
+                 reject:(RCTPromiseRejectBlock)reject {
+  @try {
+    resolve([[DeviceStatsImpl shared] getBatteryLevel]);
+  } @catch (NSException *e) {
+    reject(@"BATTERY_ERROR", @"Không đọc được mức pin", nil);
+  }
+}
+
+- (void)isLowPowerMode:(RCTPromiseResolveBlock)resolve
+                reject:(RCTPromiseRejectBlock)reject {
+  resolve(@([[DeviceStatsImpl shared] isLowPowerMode]));
+}
+
+- (facebook::react::ModuleConstants<JS::NativeDeviceStats::Constants>)getConstants {
+  return facebook::react::typedConstants<JS::NativeDeviceStats::Constants>({
+    .osVersion = [[DeviceStatsImpl shared] getOSVersion],
+    .isEmulator = [[DeviceStatsImpl shared] isEmulator],
+  });
+}
+
+- (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
+    (const facebook::react::ObjCTurboModule::InitParams &)params {
+  return std::make_shared<facebook::react::NativeDeviceStatsSpecJSI>(params);
+}
+
+@end
+```
+
+**Tên header Swift là `<TênTargetXcode>-Swift.h`.** Với dự án Expo, target thường trùng tên slug. Sai tên là lỗi "file not found" — kiểm tra trong Xcode → Build Settings → Product Module Name.
+
+```bash
+git add . && git commit -m "feat(ios): turbomodule DeviceStats bằng swift qua cầu obj-c++"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:30 · Build và sửa lỗi
+
+```bash
+cd ios && pod install && cd ..
+npx expo run:ios
+```
+
+**Bảng lỗi thường gặp trên iOS — tra ở đây thay vì tìm mò:**
+
+| Lỗi | Nguyên nhân | Cách sửa |
+| --- | --- | --- |
+| `'macrozone-Swift.h' file not found` | Sai tên module hoặc chưa build lần nào | Build một lần trong Xcode trước, kiểm tra Product Module Name |
+| `Undefined symbol: NativeDeviceStatsSpecJSI` | Codegen chưa chạy cho iOS | `cd ios && pod install` chạy Codegen |
+| `Use of unresolved identifier 'DeviceStatsImpl'` | Thiếu `@objc` hoặc thiếu `public` | Thêm cả hai |
+| Module không thấy lúc chạy | File `.mm` chưa được thêm vào target | Xcode → Build Phases → Compile Sources |
+| Pin luôn bằng 0 | Simulator không có pin | Thử trên máy thật |
+
+**Đừng nản khi mất cả tiếng ở khối này.** Lần đầu ai cũng vậy. Bản thân việc lội qua được những lỗi này chính là kinh nghiệm mà người phỏng vấn muốn nghe — và trong CV bạn đã ghi *"Debugged iOS/Android build issues (Pods, Gradle)"*, hôm nay là bằng chứng mới cho câu đó.
+
+### 14:30–15:00 · Chạy trên cả hai nền tảng
+
+Cùng một màn hình Settings, cùng một đoạn JavaScript, chạy trên iOS và Android — kết quả phải như nhau.
+
+> **Đây là khoảnh khắc đáng dừng lại một chút.** Bạn viết spec một lần bằng TypeScript, Codegen sinh giao diện cho cả hai phía, bạn điền phần thân bằng Kotlin và Swift, và JavaScript gọi y hệt nhau. Đó chính là toàn bộ giá trị của Codegen, và bạn vừa tự tay chứng minh nó.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Bảng so sánh hai nền tảng
+
+Viết vào `docs/new-architecture.md`:
+
+```markdown
+## Implementing the same TurboModule on both platforms
+
+| | Android | iOS |
+|---|---|---|
+| Language | Kotlin | Swift + an Objective-C++ bridge |
+| Why the extra layer | None needed — Kotlin extends the generated Java class directly | Swift can't subclass C++, so a `.mm` file sits in between |
+| Registration | `TurboReactPackage` in `MainApplication` | `RCT_EXPORT_MODULE()` — auto-discovered |
+| Codegen trigger | `./gradlew generateCodegenArtifactsFromSchema` | `pod install` |
+| Cleanup hook | `invalidate()` | `dealloc` / `invalidate` |
+| Hardest part | Getting `needsEagerInit` right | Getting the Swift header name right |
+
+Both sides implement the same TypeScript spec, so the JavaScript call site is
+identical. Codegen is what guarantees the three stay in sync — a signature
+mismatch fails at compile time rather than at runtime.
+```
+
+### Bài tập tự kiểm tra
+
+Không nhìn tài liệu, trả lời ra giấy:
+1. Vì sao iOS cần file `.mm` mà Android không cần?
+2. Nếu tôi đổi kiểu trả về trong spec từ `string` sang `number`, chuyện gì xảy ra ở mỗi nền tảng?
+3. Hàm đồng bộ chạy trên thread nào? Đặt việc nặng ở đó thì sao?
+
+```bash
+git add . && git commit -m "docs: so sánh triển khai turbomodule trên hai nền tảng"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Nghe + chép chính tả
+
+### 16:30–16:45 · Chép chính tả
+
+60 giây từ **React Native Radio**. Chọn tập nói về New Architecture nếu có — vừa luyện nghe vừa nạp từ vựng đúng chủ đề đang học.
+
+Nghe → chép → đối chiếu → khoanh chỗ sai.
+
+### 16:45–16:55 · Đọc to lại 3 lần, ghi âm
+
+### 16:55–17:00 · 5 từ nghe không ra
+
+Tra trên https://youglish.com.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 8 *(Before the Project)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Lớp Swift viết xong, mọi hàm lộ ra đều có `@objc`
+- [ ] Cầu Obj-C++ biên dịch được
+- [ ] App chạy trên iOS, đọc được model và pin
+- [ ] **Cùng một đoạn JavaScript chạy đúng trên cả iOS lẫn Android**
+- [ ] Bảng so sánh hai nền tảng đã viết vào tài liệu
+- [ ] Trả lời được 3 câu tự kiểm tra ra giấy
+- [ ] **Có commit hôm nay**
+- [ ] Chép chính tả + ghi âm `2026-10-14.m4a`
+- [ ] Đọc xong ch.8
+- [ ] 21:30 lên giường

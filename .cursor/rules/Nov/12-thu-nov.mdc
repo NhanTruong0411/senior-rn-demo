@@ -1,0 +1,236 @@
+---
+description: Thứ Năm 12/11/2026 — Tuần 11 Ngày 4. Thông báo có chiến lược — tần suất, cá nhân hóa, và đo hiệu quả.
+alwaysApply: false
+---
+
+# Thứ Năm · 12/11/2026 · Tuần 11 — Ngày 49/61
+
+> Push chạy được rồi. Hôm nay câu hỏi khó hơn: **gửi khi nào, gửi bao nhiêu, và làm sao biết nó có tác dụng.**
+> Đây là chỗ kỹ sư mobile gặp sản phẩm — và là chủ đề tốt để nói khi phỏng vấn ở công ty product.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Cài đặt thông báo cho người dùng |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Đo hiệu quả + analytics |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — theo dõi đơn cũ |
+| **16:30** | **TIẾNG ANH** — Câu hỏi phỏng vấn |
+| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 8 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Quyền kiểm soát cho người dùng
+
+### 08:30–09:30 · Cài đặt chi tiết, không phải một công tắc
+
+Một công tắc bật/tắt tất cả là thiết kế lười. Người dùng muốn nhắc bữa ăn nhưng không muốn "mẹo dinh dưỡng hằng tuần" — cho họ chọn.
+
+```ts
+type NotificationPrefs = {
+  mealReminders: boolean;
+  reminderTimes: { breakfast: string; lunch: string; dinner: string };
+  weeklySummary: boolean;
+  quietHours: { start: string; end: string };
+};
+```
+
+Lưu vào Zustand persist (đã dựng hôm 25/09) **và** đồng bộ lên server — vì server mới là nơi quyết định có gửi hay không.
+
+**Giờ yên lặng là thứ bắt buộc phải có.** Không có nó, một lỗi múi giờ là app của bạn đánh thức người dùng lúc 3 giờ sáng, và họ tắt thông báo vĩnh viễn hoặc gỡ app.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Server tôn trọng cài đặt
+
+```ts
+const { data: users } = await supabase
+  .from('notification_prefs')
+  .select('user_id, reminder_times, quiet_hours, timezone')
+  .eq('meal_reminders', true);
+
+const toSend = users.filter((u) => {
+  const localNow = nowInTimezone(u.timezone);
+  if (isWithinQuietHours(localNow, u.quiet_hours)) return false;
+  if (!isReminderTime(localNow, u.reminder_times)) return false;
+  return true;
+});
+```
+
+Và **đừng nhắc người đã ghi bữa ăn rồi**:
+
+```ts
+const alreadyLogged = await hasLoggedMealToday(u.user_id, mealType);
+if (alreadyLogged) return false;
+```
+
+> **Đây là chi tiết đáng nói khi phỏng vấn.** Thông báo nhắc làm một việc người dùng vừa làm xong là thông báo dạy họ bỏ qua mọi thông báo của bạn. Một khi họ học được thói quen bỏ qua, mọi thông báo sau đó của bạn đều mất giá trị.
+
+```bash
+git add . && git commit -m "feat: cài đặt thông báo chi tiết, giờ yên lặng, không nhắc thừa"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:30 · Đo hiệu quả
+
+Gửi mà không đo là đoán mò. Cần bốn số:
+
+```sql
+create table notification_events (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid references auth.users(id) on delete cascade,
+  type          text not null,           -- 'meal-reminder' | 'weekly-summary'
+  sent_at       timestamptz not null default now(),
+  opened_at     timestamptz,
+  action_at     timestamptz              -- người dùng có thật sự ghi bữa ăn không
+);
+```
+
+| Chỉ số | Công thức | Ngưỡng tham khảo |
+| --- | --- | --- |
+| Tỷ lệ giao được | giao / gửi | > 90% |
+| Tỷ lệ mở | mở / giao | 3–8% là bình thường cho nhắc nhở |
+| **Tỷ lệ hành động** | hành động / giao | Đây mới là số quan trọng |
+| Tỷ lệ tắt | tắt thông báo / giao | **> 1% là dấu hiệu gửi quá nhiều** |
+
+> **Số quan trọng nhất là tỷ lệ tắt, không phải tỷ lệ mở.** Tỷ lệ mở cao mà tỷ lệ tắt cũng cao nghĩa là bạn đang đốt lòng tin để lấy tương tác ngắn hạn. Người dùng tắt thông báo là mất vĩnh viễn — không có cách nào xin lại.
+>
+> Nói được điều này cho thấy bạn nghĩ như người làm sản phẩm, không chỉ như người viết code.
+
+### 14:30–15:00 · Analytics
+
+```bash
+npx expo install expo-firebase-analytics
+# hoặc PostHog nếu muốn tự chủ dữ liệu
+```
+
+Sự kiện cần ghi — **ít mà đúng, không nhiều mà loạn**:
+
+```ts
+logEvent('notification_opened', { type, hours_since_sent });
+logEvent('meal_logged', { source: 'notification' | 'manual' | 'ai_parse' });
+logEvent('notification_disabled', { type });
+```
+
+**Nguyên tắc:** mỗi sự kiện phải trả lời được một câu hỏi bạn thật sự sẽ hỏi. Ghi 50 sự kiện "để đấy phòng khi cần" là cách chắc chắn không ai nhìn tới cái nào.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Viết tài liệu
+
+`docs/notifications.md`:
+
+```markdown
+# Notification strategy
+
+## What I send
+One reminder per meal slot, only if the user hasn't logged that meal, only
+within their configured window, and never during their quiet hours.
+
+## What I deliberately don't send
+- Streak-break warnings. They create guilt, and guilt makes people delete
+  the app rather than open it.
+- "We miss you" re-engagement pushes. If someone stopped using a food diary,
+  a notification isn't what brings them back.
+- Anything marketing-shaped. This app has one job.
+
+## Permission timing
+Never on launch. The system dialog on iOS only appears once, so I show my own
+explainer when the user turns reminders on, and only trigger the OS prompt if
+they say yes. If they decline mine, I can ask again later — if they decline
+the OS one, I can't.
+
+## What I measure
+Delivery rate, open rate, action rate, and opt-out rate. Opt-out is the one I
+watch hardest. A high open rate with a rising opt-out rate means I'm spending
+trust for short-term engagement, and that trade never pays back — once someone
+turns notifications off, there's no way to ask again.
+```
+
+```bash
+git add . && git commit -m "docs: chiến lược thông báo và chỉ số theo dõi"
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Theo dõi đơn cũ
+
+Đơn trên 7 ngày chưa phản hồi → một tin theo dõi. Một lần duy nhất.
+
+Cập nhật `docs/job-tracker.md`. Đếm lại: đã nộp bao nhiêu, phản hồi bao nhiêu.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Năm: Câu hỏi phỏng vấn
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Trả lời có ghi âm
+
+**Câu hỏi tuần này:** *"How do push notifications work end to end?"*
+
+> *"Your server doesn't talk to the device directly. It sends to Expo's push service, which fans out to APNs for iOS and FCM for Android, and those deliver to the device. The device registers and gets a token, which you store server-side and associate with the user — keyed on the token, not the user, because one person can have several devices.*
+> *A few things matter in practice. Delivery is best effort — the phone might be off, or the user might have notifications disabled — so you never use push as a data sync mechanism. It's a nudge, not a transport.*
+> *You have to handle the error responses. DeviceNotRegistered means the user uninstalled or turned notifications off, and if you don't delete those tokens your table slowly fills with devices that don't exist.*
+> *Permission timing is the product side of it. On iOS the system dialog appears exactly once, so asking on launch — before the user knows what the app does — is the fastest way to a permanent no. I show my own explainer when they enable reminders, and only trigger the OS prompt if they agree.*
+> *And I measure opt-out rate more closely than open rate. A high open rate with a climbing opt-out rate means you're burning trust, and there's no way to ask for it back."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `nudge` (n) | cú huých nhẹ | *It's a nudge, not a transport.* |
+| `opt out` | chọn không nhận nữa | *Opt-out rate matters more.* |
+| `burn trust` | đốt lòng tin | *You're burning trust.* |
+| `keyed on` | lấy làm khóa | *Keyed on the token, not the user.* |
+| `a permanent no` | một lời từ chối vĩnh viễn | *The fastest way to a permanent no.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**`qa-bank.mdc` — Topic 8 (Behavioral).**
+
+Topic này bạn chưa động tới suốt hai tháng. Tuần 13 sẽ luyện nặng, nên hôm nay **đọc trước và ghi ra câu nào bạn thấy khó nhất** — sẽ dùng ở tuần sau.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Cài đặt thông báo chi tiết, không phải một công tắc
+- [ ] Giờ yên lặng chạy đúng
+- [ ] Server không nhắc người đã ghi bữa ăn rồi
+- [ ] Bảng sự kiện thông báo ghi đủ 4 chỉ số
+- [ ] Analytics ghi sự kiện ít mà đúng
+- [ ] **`docs/notifications.md` có phần "thứ tôi cố tình không gửi"**
+- [ ] Đã theo dõi đơn cũ
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-11-12.m4a`
+- [ ] Đã đọc Topic 8, ghi ra câu khó nhất
+- [ ] 21:30 lên giường

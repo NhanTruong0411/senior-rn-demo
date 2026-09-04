@@ -1,0 +1,179 @@
+---
+description: Thứ Tư 25/11/2026 — Tuần 13 Ngày 3. Phỏng vấn thử số 3 — thiết kế hệ thống và dẫn người khác đi qua dự án của mình.
+alwaysApply: false
+---
+
+# Thứ Tư · 25/11/2026 · Tuần 13 — Ngày 58/61
+
+> Vòng này ít người chuẩn bị nhất, nên nó là chỗ dễ tạo khác biệt nhất.
+> Bạn có lợi thế hiếm: **bạn có một dự án thật để chỉ tay vào**, không phải nói lý thuyết suông.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **PHỎNG VẤN THỬ 3** — thiết kế hệ thống + dẫn đi qua dự án |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **NGHE LẠI + luyện phần dẫn dự án cho gọn** |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Dựng sơ đồ vẽ tay |
+| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
+| **16:30** | **TIẾNG ANH** — Dẫn dự án bằng tiếng Anh |
+| **17:00** | **ĐỌC SÁCH** — rà cheatsheet |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## PHỎNG VẤN THỬ 3 · 08:30–10:30
+
+### Phần A · 08:30–09:30 — Dẫn người khác đi qua dự án của bạn
+
+**Câu hỏi:** *"Anh kể em nghe về một dự án anh tâm đắc nhất."*
+
+Đây là câu bạn sẽ gặp ở gần như mọi buổi phỏng vấn. Nó dài 5–7 phút nếu kể tốt, và nó là nơi bạn kiểm soát được nội dung nhiều nhất.
+
+**Cấu trúc — bốn phần, tổng 6 phút:**
+
+**1. Bối cảnh (30 giây)**
+> *"Em làm một app theo dõi dinh dưỡng, chạy trên TestFlight và Play internal testing, hiện có năm người dùng thật. Em làm nó vừa để có sản phẩm chạy được, vừa để lấp những chỗ mà công việc cũ không cho em cơ hội chạm tới."*
+
+**2. Ba quyết định kỹ thuật, mỗi cái 90 giây (4 phút 30)**
+
+Chỉ chọn **ba**, không kể hết. Với mỗi cái nói theo: vấn đề → phương án đã cân nhắc → chọn gì và vì sao → cái giá phải trả.
+
+*Quyết định 1 — Ghi khi mất mạng:*
+> *"Bài toán là người dùng ghi bữa ăn ở những chỗ hay mất sóng — thang máy, tầng hầm. Em có ba lựa chọn: chặn không cho ghi khi mất mạng, tự viết hàng đợi, hoặc dùng hàng đợi mutation có sẵn của TanStack Query kèm lưu xuống đĩa.*
+> *Em chọn cái thứ ba, vì tự viết hàng đợi nghĩa là tự lo phần thử lại, phần thứ tự, và phần khôi phục sau khi app bị tắt — ba chỗ dễ sai.*
+> *Chỗ khó nhất không phải hàng đợi mà là tính bất biến. Nếu request được gửi lại thì không được tạo hai bản ghi. Em giải bằng cách sinh UUID ở phía máy khách rồi dùng upsert, nên gửi lại bao nhiêu lần cũng ra một kết quả.*
+> *Cái giá là em phải tự xử lý xung đột. Hiện tại em dùng 'bản ghi sau thắng', và em biết nó không đúng cho mọi trường hợp — chỉ là với dữ liệu bữa ăn cá nhân thì nó chấp nhận được."*
+
+*Quyết định 2 — Tính năng AI có ranh giới* (khóa API ở phía máy chủ, giới hạn tần suất, có đường lui nhập tay, chi phí thực tế)
+
+*Quyết định 3 — TurboModule tự viết* (vì sao chọn viết thay vì dùng thư viện có sẵn, so sánh với Expo Modules API)
+
+**3. Cái sai (45 giây)**
+> *"Chỗ em làm sai là ban đầu để giao diện gọi thẳng xuống lớp lưu trữ. Khi đổi sang Supabase em mất gần một ngày chỉ để đi sửa từng chỗ..."*
+
+**4. Cái làm tiếp nếu có thêm thời gian (15 giây)**
+> *"Nếu làm tiếp em sẽ xử lý xung đột tử tế hơn, và em muốn có số liệu về việc người dùng bỏ giữa chừng ở màn nào."*
+
+> **Vì sao cấu trúc này hiệu quả:** người phỏng vấn không cần biết bạn làm được gì — họ cần biết bạn **suy nghĩ thế nào**. Cấu trúc "vấn đề → phương án → chọn → cái giá" chính là suy nghĩ được nói thành lời.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### Phần B · 09:30–10:30 — Thiết kế hệ thống
+
+**Đề bài:** *"Thiết kế màn hình bảng tin cho một ứng dụng thương mại điện tử. Cuộn vô tận, có ảnh, có thể thích bài, và phải chạy được khi mạng chập chờn."*
+
+**Đừng bắt đầu bằng giải pháp. Bắt đầu bằng câu hỏi.** Dành 5 phút đầu hỏi:
+- Bao nhiêu mục một trang? Người dùng thường cuộn sâu bao nhiêu?
+- Ảnh có nhiều kích cỡ không, hay chỉ một?
+- "Thích" có cần chính xác tuyệt đối hay hiển thị lạc quan là được?
+- Máy yếu nhất cần hỗ trợ là gì?
+
+Người phỏng vấn cho điểm phần hỏi này gần bằng phần thiết kế.
+
+**Rồi đi theo bốn lớp:**
+
+| Lớp | Nội dung |
+| --- | --- |
+| **Dữ liệu** | `useInfiniteQuery` với con trỏ, không dùng số trang *(số trang lệch khi có mục mới chèn vào)* |
+| **Hiển thị** | FlashList, chiều cao ước lượng, `recyclingKey` cho ảnh, `expo-image` với blurhash |
+| **Tương tác** | Thích theo kiểu lạc quan, hoàn tác khi lỗi, gộp nhiều lần bấm liên tiếp |
+| **Chống lỗi** | Cache lưu xuống đĩa, chỉ báo khi ngoại tuyến, khung xương khi tải, thử lại có giãn cách tăng dần |
+
+**Nói ra cái bạn cố tình không làm:**
+> *"Em sẽ không làm cuộn ảo tự viết. FlashList đã giải bài đó tốt hơn em, và phần dễ sai nhất — đo chiều cao động — là chỗ tự viết sẽ tốn hàng tuần."*
+
+**Nói ra cách bạn sẽ đo:**
+> *"Em sẽ đo bằng Flashlight với kịch bản cuộn 30 giây trên máy tầm thấp, và đặt ngưỡng FPS trung bình 58. Nếu tụt dưới thì không cho lên bản phát hành."*
+
+---
+
+## NGHE LẠI · 13:30–16:00
+
+### 13:30–15:00 · Cắt gọn phần dẫn dự án
+
+Nghe lại phần A. Bấm giờ.
+
+| Vấn đề thường gặp | Cách sửa |
+| --- | --- |
+| Dài quá 8 phút | Bỏ bớt một quyết định, giữ ba cái mạnh nhất |
+| Kể tính năng thay vì kể quyết định | Mỗi đoạn phải có chữ "em chọn X thay vì Y vì..." |
+| Không có cái giá phải trả | Mỗi quyết định phải kèm một nhược điểm |
+| Không có con số | Chèn con số vào ít nhất hai chỗ |
+
+Nói lại phần A một lần nữa, ghi âm. Mục tiêu **đúng 6 phút**.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Sơ đồ vẽ tay
+
+Vẽ tay hai sơ đồ trên giấy, chụp lại, để trong `docs/`:
+
+**Sơ đồ 1 — Kiến trúc app của bạn:** màn hình → hook → lớp dữ liệu → Supabase, với hàng đợi ngoại tuyến và Edge Function cho AI vẽ tách ra rõ.
+
+**Sơ đồ 2 — Luồng đăng nhập và làm mới token:** gồm cả hàng đợi khi nhiều request cùng nhận 401.
+
+Vẽ mỗi cái **ba lần cho tới khi vẽ được trong 2 phút mà không cần nghĩ**. Trong phỏng vấn online bạn sẽ phải vẽ trên bảng trắng chung, và việc vừa vẽ vừa nghĩ làm bạn nói ấp úng.
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Dẫn dự án bằng tiếng Anh
+
+Phần A bằng tiếng Anh, nhưng **rút xuống 3 phút**. Giữ bối cảnh + hai quyết định + cái sai.
+
+Mở đầu:
+
+> *"The project is a nutrition tracking app — it's on TestFlight and Play internal testing with a handful of real users. I built it partly to have something shipped, and partly to work on things my previous job never gave me a reason to touch.*
+> *I'll walk you through two decisions and one thing I got wrong.*
+> *The first is offline writes. People log meals in places with bad signal..."*
+
+Ghi âm. Nghe lại và đếm số lần ngập ngừng.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+Rà `docs/interview-cheatsheet.md`. Nó phải vừa **đúng một trang**. Nếu tràn, cắt.
+
+Cheatsheet mà phải cuộn thì vô dụng — bạn không đọc kịp trong lúc phỏng vấn.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Phần dẫn dự án nói được trong **6 phút**, không nhìn ghi chú
+- [ ] Ba quyết định đều có: vấn đề → phương án → chọn → **cái giá**
+- [ ] Có kể một cái sai thật
+- [ ] Phần thiết kế hệ thống: **hỏi trước khi thiết kế**
+- [ ] Đã nói ra cái cố tình không làm và vì sao
+- [ ] Đã nói ra cách đo
+- [ ] Hai sơ đồ vẽ được trong 2 phút không cần nghĩ
+- [ ] Đã nộp 3 đơn
+- [ ] Ghi âm bản tiếng Anh 3 phút
+- [ ] Cheatsheet vừa đúng một trang
+- [ ] 21:30 lên giường

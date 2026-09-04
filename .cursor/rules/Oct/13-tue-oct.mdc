@@ -1,0 +1,297 @@
+---
+description: Thứ Ba 13/10/2026 — Tuần 7 Ngày 2. TurboModule phía Android — viết bằng Kotlin, đăng ký package.
+alwaysApply: false
+---
+
+# Thứ Ba · 13/10/2026 · Tuần 7 — Ngày 27/61
+
+> Hôm nay bạn viết **Kotlin thật**. Trong CV bạn đã ghi "Kotlin (Android) — wallet pass integration" — hôm nay làm dày thêm điều đó bằng một module tự viết từ đầu.
+
+**Hướng dẫn chính:** https://www.callstack.com/tutorials/implementing-an-android-turbomodule-with-kotlin
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Lớp Kotlin kế thừa spec |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Đăng ký package, chạy trên máy thật |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
+| **17:00** | **ĐỌC SÁCH** — ch.7 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Lớp Kotlin
+
+### 08:30–09:30 · Viết module
+
+`android/app/src/main/java/com/truonghuunhan/macrozone/DeviceStatsModule.kt`
+
+```kotlin
+package com.truonghuunhan.macrozone
+
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
+import android.os.Build
+import android.os.PowerManager
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.truonghuunhan.macrozone.specs.NativeDeviceStatsSpec
+
+class DeviceStatsModule(reactContext: ReactApplicationContext) :
+    NativeDeviceStatsSpec(reactContext) {
+
+    override fun getName() = NAME
+
+    // Đồng bộ — chạy trên JS thread, phải trả về ngay
+    override fun getDeviceModel(): String = "${Build.MANUFACTURER} ${Build.MODEL}"
+
+    // Bất đồng bộ — trả về qua Promise
+    override fun getBatteryLevel(promise: Promise) {
+        try {
+            val bm = reactApplicationContext
+                .getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+            val level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            promise.resolve(level / 100.0)
+        } catch (e: Exception) {
+            promise.reject("BATTERY_ERROR", "Không đọc được mức pin", e)
+        }
+    }
+
+    override fun isLowPowerMode(promise: Promise) {
+        val pm = reactApplicationContext
+            .getSystemService(Context.POWER_SERVICE) as PowerManager
+        promise.resolve(pm.isPowerSaveMode)
+    }
+
+    override fun getTypedExportedConstants(): Map<String, Any> = mapOf(
+        "osVersion" to Build.VERSION.RELEASE,
+        "isEmulator" to (Build.FINGERPRINT.contains("generic") ||
+                         Build.MODEL.contains("Emulator")),
+    )
+
+    companion object {
+        const val NAME = "NativeDeviceStats"
+    }
+}
+```
+
+### Ba điều phải hiểu, không chỉ chép
+
+**1. Hàm đồng bộ chặn JS thread.**
+`getDeviceModel()` chạy trên chính JS thread. Đọc một hằng số thì không sao. Nhưng nếu bạn đặt việc đọc file hay gọi mạng ở đây, **giao diện đứng hình**. Luật: đồng bộ chỉ dùng cho thứ trả về tức thì.
+
+**2. `promise.reject` phải có mã lỗi.**
+Ba tham số: mã, thông điệp, exception gốc. Phía JS bắt được `error.code` và xử lý theo từng loại. Nhiều người chỉ truyền thông điệp rồi phía JS phải so khớp chuỗi — rất dễ vỡ.
+
+**3. Đừng giữ tham chiếu tới Activity.**
+Dùng `reactApplicationContext`, không lưu `currentActivity` vào biến thành viên. Activity bị hủy và tạo lại khi xoay màn hình; giữ tham chiếu cũ gây rò rỉ bộ nhớ và crash. Đây là câu hỏi phỏng vấn Android kinh điển.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Phát sự kiện
+
+```kotlin
+private var batteryReceiver: BroadcastReceiver? = null
+
+override fun initialize() {
+    super.initialize()
+    batteryReceiver = object : BroadcastReceiver() {
+        override fun onReceive(ctx: Context?, intent: Intent?) {
+            val level = intent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: return
+            val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100)
+            val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+            emitOnBatteryChange(mapOf(
+                "level" to level.toDouble() / scale,
+                "isCharging" to (status == BatteryManager.BATTERY_STATUS_CHARGING),
+            ))
+        }
+    }
+    reactApplicationContext.registerReceiver(
+        batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+    )
+}
+
+override fun invalidate() {
+    batteryReceiver?.let { reactApplicationContext.unregisterReceiver(it) }
+    batteryReceiver = null
+    super.invalidate()
+}
+```
+
+**`invalidate()` là chỗ dọn dẹp.** Từ RN 0.76, hàm `emitOnXxx` được Codegen sinh sẵn cho mỗi `EventEmitter` bạn khai trong spec — an toàn kiểu, không phải tự gọi `DeviceEventEmitter` như trước.
+
+Quên `unregisterReceiver` là rò rỉ receiver, và Android sẽ ném cảnh báo khi app bị hủy. Người phỏng vấn kỹ tính sẽ hỏi đúng chỗ này.
+
+```bash
+git add . && git commit -m "feat(android): turbomodule DeviceStats bằng kotlin"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — Đăng ký và chạy thật
+
+### 13:30–14:15 · TurboReactPackage
+
+`android/app/src/main/java/com/truonghuunhan/macrozone/AppPackage.kt`
+
+```kotlin
+class AppPackage : TurboReactPackage() {
+
+    override fun getModule(name: String, ctx: ReactApplicationContext): NativeModule? =
+        if (name == DeviceStatsModule.NAME) DeviceStatsModule(ctx) else null
+
+    override fun getReactModuleInfoProvider() = ReactModuleInfoProvider {
+        mapOf(
+            DeviceStatsModule.NAME to ReactModuleInfo(
+                DeviceStatsModule.NAME,
+                DeviceStatsModule.NAME,
+                false,  // canOverrideExistingModule
+                false,  // needsEagerInit
+                false,  // isCxxModule
+                true,   // isTurboModule
+            )
+        )
+    }
+}
+```
+
+**`needsEagerInit = false` chính là điểm cốt lõi của TurboModules.** Module chỉ được khởi tạo ở lần đầu JavaScript gọi tới. Đặt `true` là bạn tự tay vứt bỏ lợi ích lớn nhất của kiến trúc mới.
+
+Đăng ký trong `MainApplication.kt`:
+
+```kotlin
+override fun getPackages(): List<ReactPackage> =
+    PackageList(this).packages.apply { add(AppPackage()) }
+```
+
+### 14:15–15:00 · Build và chạy
+
+```bash
+npx expo run:android
+```
+
+**Ba lỗi hay gặp nhất và cách sửa:**
+
+| Lỗi | Nguyên nhân | Cách sửa |
+| --- | --- | --- |
+| `NativeDeviceStatsSpec` không tìm thấy | Codegen chưa chạy | `cd android && ./gradlew clean generateCodegenArtifactsFromSchema` |
+| `Module NativeDeviceStats not found` | Chưa thêm package vào `MainApplication` | Kiểm tra `getPackages()` |
+| Sai kiểu lúc biên dịch | Spec và Kotlin lệch nhau | Sửa spec rồi chạy lại Codegen — **luôn sửa từ spec, không sửa code sinh ra** |
+
+Màn hình thử nghiệm:
+
+```tsx
+// app/(app)/(tabs)/settings.tsx — mục Debug
+const model = NativeDeviceStats.getDeviceModel();          // đồng bộ
+const { osVersion, isEmulator } = NativeDeviceStats.getConstants();
+const [battery, setBattery] = useState<number | null>(null);
+
+useEffect(() => {
+  NativeDeviceStats.getBatteryLevel().then(setBattery);
+  const sub = NativeDeviceStats.onBatteryChange((e) => setBattery(e.level));
+  return () => sub.remove();
+}, []);
+```
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Kiểm chứng nạp lười
+
+Đây là phần chứng minh bạn thật sự hiểu, không chỉ làm theo:
+
+1. Thêm log vào hàm khởi tạo của `DeviceStatsModule`
+2. Mở app, ở màn hình Home — **log không được xuất hiện**
+3. Vào tab Settings gọi module — **giờ log mới xuất hiện**
+
+> Bạn vừa tự tay chứng minh cơ chế nạp lười. Kể được thí nghiệm này khi phỏng vấn mạnh hơn nhiều so với đọc lại định nghĩa.
+
+Ghi vào `docs/new-architecture.md`:
+
+```markdown
+## Lazy initialisation, verified
+
+Added a log line to the module constructor. On app launch with the Home tab
+active, nothing is logged. Navigating to Settings — which is the first screen
+that calls into the module — triggers the constructor.
+
+Under the old architecture every native module was instantiated during startup,
+whether the app used it or not.
+```
+
+```bash
+git add . && git commit -m "feat(android): đăng ký package và kiểm chứng nạp lười"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
+
+### 16:30–16:40 · Shadowing
+
+2 phút video Callstack. Nghe → dừng → nhại to.
+
+### 16:40–16:55 · Nói to có ghi âm
+
+**Chủ đề: TurboModules khác native module cũ chỗ nào.**
+
+> *"There are two differences that actually matter in practice.*
+> *The first is lazy loading. Under the old system, every native module was instantiated when the app started, whether you used it or not. So an app with thirty modules paid the startup cost for all thirty. TurboModules are only created the first time JavaScript reaches for them. I verified this in my own app — I put a log in the constructor, launched the app, and nothing fired until I opened the screen that uses the module.*
+> *The second is type safety. You write a TypeScript spec, and Codegen generates the native interfaces from it. So if the Kotlin signature doesn't match the spec, it fails at compile time. In the old architecture you wrote the JavaScript side and the native side separately and kept them in sync by hand — mismatches showed up as runtime crashes.*
+> *The trade-off is that synchronous calls are now possible, which is genuinely useful for things like reading a layout measurement. But they run on the JavaScript thread, so anything slow in a synchronous method freezes the UI. It's a sharper tool."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `reach for` | với tới, gọi tới | *The first time JavaScript reaches for it.* |
+| `fire` (v) | được kích hoạt | *Nothing fired until I opened that screen.* |
+| `mismatch` (n) | sự lệch nhau | *Mismatches showed up as runtime crashes.* |
+| `freeze` (v) | đứng hình | *A slow sync method freezes the UI.* |
+| `a sharper tool` | công cụ sắc hơn (mạnh nhưng dễ đứt tay) | *It's a sharper tool.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 7 *(While You Are Coding)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] `DeviceStatsModule.kt` viết xong, biên dịch được
+- [ ] Đã đăng ký qua `TurboReactPackage` với `needsEagerInit = false`
+- [ ] App chạy trên máy Android thật, đọc được model và mức pin
+- [ ] Sự kiện thay đổi pin bắn về JS được
+- [ ] `invalidate()` có hủy đăng ký receiver
+- [ ] **Đã kiểm chứng nạp lười bằng log và ghi vào tài liệu**
+- [ ] Không giữ tham chiếu tới Activity ở biến thành viên
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-10-13.m4a`
+- [ ] Đọc xong ch.7
+- [ ] 21:30 lên giường

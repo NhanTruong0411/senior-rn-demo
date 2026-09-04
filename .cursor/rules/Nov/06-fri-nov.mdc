@@ -1,0 +1,247 @@
+---
+description: Thứ Sáu 06/11/2026 — Tuần 10 Ngày 5. Hoàn thiện tính năng AI, phát hành v1.2.0, tổng kết tuần.
+alwaysApply: false
+---
+
+# Thứ Sáu · 06/11/2026 · Tuần 10 — Ngày 45/61
+
+> Khép lại tuần AI. Phát hành, viết lại, và **nhìn lại tuần đầu tiên vừa học vừa apply**.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Hoàn thiện và phát hành v1.2.0 |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Viết bài + tổng kết tuần |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nhìn lại tuần đầu apply |
+| **16:30** | **TIẾNG ANH** — Nhìn lại tuần |
+| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 4 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ. **Nghỉ trọn vẹn T7 + CN** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Hoàn thiện và phát hành
+
+### 08:30–09:30 · Kiểm tra tính năng AI trên bản build thật
+
+Danh sách phải chạy đúng hết:
+
+- [ ] Chat streaming trên máy thật, cả iOS lẫn Android
+- [ ] Phân tích bữa ăn từ câu tiếng Việt, có bước xem trước
+- [ ] Nhập bằng giọng nói
+- [ ] Vượt hạn mức ngày → thông báo tử tế, không phải lỗi thô
+- [ ] Mất mạng khi đang chat → báo lỗi, không mất tin nhắn đã gõ
+- [ ] Mô hình trả sai → đường lui thủ công vẫn dùng được
+- [ ] Không có `sk-` nào trong file APK
+- [ ] Không có crash mới trong Sentry
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Phát hành
+
+```bash
+npm run verify && npm run test:e2e
+git checkout main && git merge feat/ai-assistant feat/edit-meal
+npm version minor          # 1.1.0 → 1.2.0
+git push --follow-tags
+```
+
+Ghi chú phát hành:
+
+```markdown
+# v1.2.0 — 6 November 2026
+
+## Added
+- Natural language meal entry — describe what you ate and confirm the breakdown
+- Voice input
+- Nutrition assistant chat
+- Edit saved meals, works offline
+
+## Notes
+The model key never reaches the device. All model calls go through an
+authenticated Edge Function with per-user daily rate limiting.
+```
+
+Pipeline dựng hôm 29/10 lo phần còn lại.
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:45 · Viết bài kỹ thuật thứ hai
+
+`docs/shipping-an-ai-feature.md`, tiếng Anh, 800–1200 từ.
+
+Dàn bài:
+
+```markdown
+# Shipping an AI feature in a React Native app
+
+## The obvious mistake I didn't make
+[Key on the server. Why every client-side option fails. The APK grep.]
+
+## Structured output beats free text
+[Zod schema, .describe(), the confidence field]
+
+## The design decision that matters most
+[Nothing saves automatically. Preview and confirm. Graceful degradation.]
+
+## What it costs
+[Token counts, the model comparison, why the cheaper model won]
+
+## Where I deliberately didn't use a model
+[Arithmetic, comparisons, the suggestions feature I cut]
+
+## What I'd do differently
+[Be honest]
+```
+
+**Phần "chỗ tôi cố tình không dùng AI" là phần khiến bài này khác mọi bài AI khác trên mạng.** Đưa nó lên đủ cao trong bài để người đọc lướt cũng thấy.
+
+### 14:45–15:00 · Cập nhật README và CV
+
+README:
+
+```markdown
+## AI features
+
+Natural language meal entry and a nutrition assistant, backed by an
+authenticated Supabase Edge Function — the model key never reaches the device,
+verified by inspecting the built APK.
+
+Parses use structured output validated against the same Zod schema as the
+manual form, and always produce a preview the user confirms rather than
+writing directly. Cost analysis and the reasoning for what is deliberately
+**not** AI-powered: [docs/ai-feature.md](docs/ai-feature.md)
+```
+
+CV — thêm một dòng:
+
+```
+• Shipped AI-assisted meal entry: structured output validated with Zod,
+  server-side key handling, per-user rate limiting, and a documented
+  cost/model trade-off. Every result passes through user confirmation.
+```
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Tổng kết tuần 10
+
+```text
+## Tổng kết tuần 10 (02–06/11) — AI
+
+- [ ] Edge Function proxy, key an toàn, đã kiểm chứng bằng cách grep APK
+- [ ] Chat streaming chạy trên cả 2 nền tảng
+- [ ] Phân tích ngôn ngữ tự nhiên có xem trước và sửa được
+- [ ] Giới hạn tần suất + đệm kết quả
+- [ ] Tài liệu "chỗ tôi không dùng AI"
+- [ ] Quy trình làm việc với AI + checklist review
+- [ ] v1.2.0 đã phát hành
+- [ ] Bài kỹ thuật thứ hai viết xong
+
+Câu hỏi tự trả lời:
+- Tôi giải thích được vì sao không để key trong app không? __
+- Tôi kể được chỗ tôi cố tình KHÔNG dùng AI không? __
+- Tôi nói được chi phí mỗi lần gọi không? __
+
+Số ngày có commit: ___/5
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Nhìn lại tuần đầu
+
+```text
+## Tuần apply thứ 1 (02–06/11)
+
+Đơn đã nộp:              ___  (mục tiêu 6)
+Người đã nhắn:           ___  (mục tiêu 2)
+Phản hồi nhận được:      ___
+Phỏng vấn được hẹn:      ___
+Tỷ lệ phản hồi:          ___%
+
+Thư ứng tuyển nào tôi thấy tự tin nhất? Vì sao?
+
+Có công ty nào tôi ngại nộp vì "chưa đủ giỏi" không?
+→ Nộp tuần sau. Không có ngày "đủ giỏi".
+
+Cần đổi gì tuần sau:
+```
+
+> **Về tỷ lệ phản hồi.** Tỷ lệ 5–10% là bình thường ở thị trường này, kể cả với ứng viên mạnh. Nộp 6 đơn mà không ai trả lời trong tuần đầu **không nói lên điều gì về bạn** — nó chỉ là cỡ mẫu quá nhỏ.
+>
+> Sáu tháng qua bạn nộp 100 đơn với một CV không có gì để chỉ vào. Bây giờ bạn có một app trên hai cửa hàng, một native module tự viết, một pipeline CI/CD, và ba bài viết kỹ thuật. Nguyên liệu đã khác hẳn. Cứ giữ nhịp.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nhìn lại tuần
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–17:00 · Nói to có ghi âm — 3 phút
+
+> **1. What I did**
+> *"AI week. I built natural language meal entry and an assistant chat, both behind an authenticated Edge Function so the model key never reaches the device."*
+>
+> **2. The decision I'd defend hardest**
+> *"Nothing saves automatically. The parse produces a preview the user confirms. The model is guessing at portion sizes and the user actually knows — and it means if the model fails, they just use the form, which is what they did before. The feature is an accelerator, not a dependency."*
+>
+> **3. What I chose not to do**
+> *"I deliberately didn't use a model for anything deterministic. Summing calories is arithmetic. Using a non-deterministic, paid, slower tool for that would be a downgrade. I wrote that down, because I think knowing where not to use something is part of knowing how to use it."*
+>
+> **4. Next week**
+> *"Push notifications and deep linking. Real push through FCM and APNs, and links that open the right screen even from a cold start."*
+
+**Kiêm buổi họp một mình.** Tuần này thêm một câu hỏi: việc bắt đầu apply có làm tôi lo lắng nhiều hơn không? Nếu có, đó là bình thường — nhưng đừng để nó ăn vào giờ ngủ.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**`qa-bank.mdc` — Topic 4 (Navigation).**
+
+Tuần sau bạn làm deep linking, nên đọc trước topic này rồi tuần sau quay lại sửa cho khớp thực tế.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Toàn bộ tính năng AI chạy đúng trên bản build thật
+- [ ] v1.2.0 phát hành qua pipeline
+- [ ] Bài kỹ thuật thứ hai viết xong
+- [ ] README và CV đã cập nhật
+- [ ] Điền xong tổng kết tuần 10
+- [ ] **Điền xong bảng nhìn lại tuần apply đầu tiên**
+- [ ] **Có commit hôm nay** — 45/45 ngày làm việc
+- [ ] Ghi âm `2026-11-06.m4a`
+- [ ] Đã đọc Topic 4 trong `qa-bank.mdc`
+
+---
+
+## Cuối tuần 07–08/11: NGHỈ HOÀN TOÀN
+
+Không mở email tuyển dụng. Không kiểm tra LinkedIn. Nhà thờ, gia đình, ngủ.
+
+**Đây là điều khó nhất của tháng 11:** khi đang chờ phản hồi, rất khó không kiểm tra điện thoại mỗi 20 phút. Nhưng kiểm tra không làm email đến nhanh hơn — nó chỉ lấy mất ngày cuối tuần của bạn và của con gái bạn.

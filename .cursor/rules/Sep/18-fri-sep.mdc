@@ -1,0 +1,217 @@
+---
+description: Thứ Sáu 18/09/2026 — Tuần 2 Ngày 5. Dựng lại toàn bộ MacroZone từ số 0, tổng kết tuần 2.
+alwaysApply: false
+---
+
+# Thứ Sáu · 18/09/2026 · Tuần 2 — Ngày 10/61
+
+> **Ngày kiểm tra tuần 2.** MacroZone lớn hơn StickerSmash nhiều — hôm nay không đòi dựng lại 100%, mà dựng được bộ xương hoàn chỉnh.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Dựng lại MacroZone từ số 0 |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Build iOS + dọn code + tổng kết tuần |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nhìn lại tuần |
+| **17:00** | **ĐỌC SÁCH** — ch.10 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ. **Nghỉ trọn vẹn T7 + CN** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Bài kiểm tra Vòng 2
+
+```bash
+cd ~/Dev
+npx create-expo-app@latest macrozone-test
+cd macrozone-test && npm run reset-project
+```
+
+**Bấm giờ 2 tiếng.** Không mở video, không mở dự án cũ. Chỉ docs chính thức.
+
+Dựng cho được:
+
+- [ ] Tab navigation 2 tab có icon
+- [ ] `constants/theme.ts` với design token
+- [ ] `lib/storage.ts` — 4 hàm CRUD có kiểu đầy đủ
+- [ ] Màn hình Home: `MacroGrid` hiển thị tổng từ dữ liệu thật
+- [ ] Màn hình Add Meal: form nhập, lưu được
+- [ ] Danh sách bữa ăn gần đây, xóa được
+- [ ] Dữ liệu còn nguyên sau khi tắt mở lại app
+
+### Tự chấm lúc 10:30
+
+| Kết quả | Nghĩa | Làm gì |
+| --- | --- | --- |
+| ≥ 5/7 | **Đạt** | Tuần 3 sang Vòng 3 như kế hoạch |
+| 3–4/7 | Tạm | Vẫn sang tuần 3, nhưng sáng T2 dành 2 tiếng dựng lại phần thiếu |
+| < 3/7 | Chưa đạt | Lùi tuần 3 lại 2 ngày để làm lại MacroZone. Cứ lùi, không sao |
+
+**Điều cần nhớ:** dựng lại chậm hơn lần đầu là bình thường. Chỉ số quan trọng không phải tốc độ, mà là **bạn có bị kẹt ở chỗ hoàn toàn không biết bắt đầu từ đâu hay không**.
+
+```bash
+git init && git add . && git commit -m "milestone: dựng lại MacroZone từ số 0"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:00 · Build iOS
+
+Quay lại dự án `macrozone` chính.
+
+```bash
+eas build --platform ios --profile preview
+```
+
+**Nếu chưa có tài khoản Apple Developer (99 USD/năm):** chưa cần mua bây giờ. Dùng lệnh này để build chạy trên simulator, miễn phí:
+
+```bash
+eas build --platform ios --profile preview --local
+# hoặc tạo profile simulator trong eas.json:
+# "preview": { "ios": { "simulator": true } }
+```
+
+Trong lúc chờ, đọc https://docs.expo.dev/build/eas-json/ để hiểu 3 profile khác nhau chỗ nào.
+
+### 14:00–15:00 · Dọn dẹp mã nguồn
+
+Đây là thói quen mọi công ty đánh giá cao và là thứ người phỏng vấn nhìn đầu tiên khi mở GitHub của bạn:
+
+```bash
+npx tsc --noEmit          # không được còn lỗi nào
+npx expo lint             # sửa hết cảnh báo
+```
+
+- Xóa toàn bộ `console.log`
+- Không còn `any` nào trong dự án
+- Tách file nào dài quá ~200 dòng
+- Đặt tên biến rõ nghĩa: `d` → `meal`, `handleClick2` → `handleDeleteMeal`
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–15:50 · Viết README
+
+Đây là thứ người phỏng vấn đọc trước khi đọc code. Viết bằng **tiếng Anh**:
+
+```markdown
+# MacroZone
+
+A nutrition tracking app built with Expo and React Native.
+
+## Features
+- Log meals with calorie and macronutrient breakdown
+- Daily macro progress against targets
+- Local persistence, works fully offline
+- Local reminder notifications
+- Haptic feedback, native share and clipboard
+
+## Tech
+Expo SDK 5x · Expo Router (file-based routing) · TypeScript (strict)
+· AsyncStorage · expo-notifications · EAS Build
+
+## Architecture notes
+Storage is isolated behind `lib/storage.ts` so the persistence layer
+can be swapped without touching any component.
+
+## Running locally
+...
+```
+
+### 15:50–16:30 · Tổng kết tuần 2 (điền vào đây)
+
+```text
+## Tổng kết tuần 2 (14–18/09)
+
+Bài kiểm tra sáng T6: ___/7 mục
+Build Android thành công:  có / không
+Build iOS thành công:      có / không
+3 thứ mới học được tuần này:
+1.
+2.
+3.
+2 chỗ còn mơ hồ:
+1.
+2.
+Số ngày có commit: ___/5
+Nhịp lịch tuần này (quá nặng / vừa / còn dư sức):
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nhìn lại tuần
+
+### 16:30–16:40 · Shadowing
+
+2 phút như thường lệ.
+
+### 16:40–17:00 · Nói to có ghi âm — 3 phút
+
+Hoàn toàn bằng tiếng Anh, 4 phần:
+
+> **1. What I did**
+> *"This week I built a nutrition tracking app called MacroZone. It has tab navigation, local persistence with AsyncStorage, local notifications, and haptic feedback. The biggest milestone was running my first EAS build and installing a real APK on a physical device."*
+>
+> **2. What I learned that mattered most**
+> *"The most useful thing wasn't an API — it was the idea of isolating the storage layer. My components don't know where the data comes from, so next week I can swap AsyncStorage for a real API without touching them."*
+>
+> **3. What I struggled with**
+> *"I struggled with ___."*
+>
+> **4. Next week**
+> *"Next week I'm extending the app — dark mode, a stats screen, and replacing local storage with a real API using TanStack Query."*
+
+**Kiêm luôn buổi họp một mình.** Ghi âm xong, tự hỏi bằng tiếng Việt: tuần này trong 5 vai trò *(người cha · người chồng · người con · người thợ · chính mình)*, vai nào bị bỏ rơi?
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 10 *(Define Errors Out Of Existence)*.
+
+Chương này rất hợp với cái bạn làm hôm thứ Tư: thay vì bắt component xử lý lỗi `JSON.parse`, lớp storage tự trả về mảng rỗng — lỗi bị "định nghĩa cho biến mất".
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Bài kiểm tra 2 tiếng: ___/7
+- [ ] `npx tsc --noEmit` sạch, `npx expo lint` sạch
+- [ ] Không còn `any` và `console.log` nào
+- [ ] README tiếng Anh đã viết xong
+- [ ] Build iOS đã chạy (thật hoặc simulator)
+- [ ] Điền xong tổng kết tuần 2
+- [ ] **Có commit hôm nay** — 5/5 ngày trong tuần
+- [ ] Ghi âm `2026-09-18.m4a`
+- [ ] Đọc xong ch.10
+
+---
+
+## Cuối tuần 19–20/09: NGHỈ HOÀN TOÀN
+
+Không code. Không học. Không mở laptop. Nhà thờ, gia đình, ngủ bù.
+
+Tuần sau: biến MacroZone từ **bài tập theo khóa học** thành **sản phẩm của riêng bạn**.

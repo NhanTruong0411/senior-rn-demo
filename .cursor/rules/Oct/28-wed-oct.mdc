@@ -1,0 +1,266 @@
+---
+description: Thứ Tư 28/10/2026 — Tuần 9 Ngày 3. GitHub Actions — CI chạy lint, typecheck, test trên mỗi pull request.
+alwaysApply: false
+---
+
+# Thứ Tư · 28/10/2026 · Tuần 9 — Ngày 38/61
+
+> Lỗ hổng cuối cùng trong danh sách của bạn: *"CI/CD ngoài EAS basic — GitHub Actions cho RN tôi đọc, chưa setup."*
+> Hai ngày này bịt nó.
+
+**Docs:** https://docs.github.com/en/actions/quickstart · https://github.com/expo/expo-github-action
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Workflow CI đầu tiên |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Cache, chạy song song, bảo vệ nhánh |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nghe + chép chính tả |
+| **17:00** | **ĐỌC SÁCH** — ch.18 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Workflow đầu tiên
+
+### 08:30–09:30 · Kiểm tra chất lượng
+
+`.github/workflows/ci.yml`
+
+```yaml
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true        # hủy lượt cũ khi push mới lên cùng PR
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci                # ci, không phải install
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test:ci
+
+      - name: Upload coverage
+        if: always()               # tải lên kể cả khi test hỏng
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+```
+
+**Bốn chi tiết, bốn lý do:**
+
+| Chi tiết | Vì sao |
+| --- | --- |
+| `npm ci` chứ không `npm install` | Cài đúng theo `package-lock.json`, không tự nâng phiên bản. CI phải tái lập được |
+| `concurrency` với `cancel-in-progress` | Push liên tiếp lên cùng PR chỉ chạy lượt mới nhất. Tiết kiệm phút chạy miễn phí |
+| `cache: npm` | Không cache thì mỗi lượt tốn 1–2 phút chỉ để tải dependency |
+| `if: always()` | Coverage của lượt **hỏng** mới là thứ cần xem nhất |
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Chạy thật
+
+```bash
+git checkout -b ci/github-actions
+git add . && git commit -m "ci: workflow chạy typecheck, lint và test"
+git push -u origin ci/github-actions
+gh pr create --title "Add CI workflow" --body "Runs typecheck, lint and tests on every PR."
+```
+
+Mở tab Actions trên GitHub, xem nó chạy. **Cố tình làm hỏng để kiểm chứng:**
+
+```ts
+const x: string = 123;   // lỗi kiểu cố ý
+```
+
+Push lên. CI phải đỏ. Sửa lại, push, CI phải xanh.
+
+> **CI không bao giờ đỏ là CI không kiểm gì cả.** Luôn phải thử phá một lần để biết nó thật sự hoạt động.
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:15 · Chạy song song
+
+Ba việc chạy tuần tự mất khoảng 4 phút. Chạy song song còn khoảng 90 giây:
+
+```yaml
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps: [ ...checkout, setup, npm ci, npm run typecheck ]
+
+  lint:
+    runs-on: ubuntu-latest
+    steps: [ ...checkout, setup, npm ci, npm run lint ]
+
+  test:
+    runs-on: ubuntu-latest
+    steps: [ ...checkout, setup, npm ci, npm run test:ci ]
+
+  bundle-size:
+    runs-on: ubuntu-latest
+    steps: [ ...checkout, setup, npm ci, npm run check:size ]
+```
+
+**`bundle-size` chính là script bạn viết hôm 23/10.** Giờ nó chạy tự động ở mỗi PR — ngân sách hiệu năng từ một tài liệu trở thành một hàng rào thật.
+
+Gom lại thành một cổng kiểm tra:
+
+```yaml
+  all-checks:
+    needs: [typecheck, lint, test, bundle-size]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Tất cả kiểm tra đã qua"
+```
+
+### 14:15–15:00 · Bảo vệ nhánh
+
+GitHub → Settings → Branches → Add rule cho `main`:
+
+- [x] Require a pull request before merging
+- [x] Require status checks to pass — chọn `all-checks`
+- [x] Require branches to be up to date before merging
+- [x] Do not allow bypassing the above settings
+
+> **Câu trả lời phỏng vấn về quy trình:** *"Nhánh main được bảo vệ. Không ai push thẳng lên được, kể cả tôi. Mọi thay đổi đi qua PR và phải qua typecheck, lint, test, kiểm tra kích thước bundle. Có kỷ luật này thì làm việc một mình hay làm việc trong team đều cùng một quy trình."*
+>
+> Với một người đang tìm việc, việc **tự áp kỷ luật này lên dự án cá nhân của mình** là tín hiệu rất mạnh.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · E2E trong CI
+
+Maestro trong CI cần emulator, tốn thời gian, nên **không chạy ở mọi PR**:
+
+```yaml
+name: E2E
+
+on:
+  schedule:
+    - cron: '0 18 * * *'        # 1 giờ sáng giờ VN mỗi ngày
+  workflow_dispatch:             # chạy tay khi cần
+
+jobs:
+  maestro:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - name: Run E2E on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          script: |
+            curl -fsSL "https://get.maestro.mobile.dev" | bash
+            export PATH="$PATH":"$HOME/.maestro/bin"
+            maestro test .maestro/
+```
+
+**Nguyên tắc chọn tần suất:** kiểm tra nhanh chạy ở mọi PR; kiểm tra chậm chạy theo lịch ban đêm. CI mất 20 phút mỗi PR là CI mà người ta bắt đầu tìm cách bỏ qua.
+
+### 16:00–16:30 · Huy hiệu và tài liệu
+
+```markdown
+# MacroZone
+
+![CI](https://github.com/<user>/macrozone/actions/workflows/ci.yml/badge.svg)
+
+## Development workflow
+
+`main` is protected. Every change goes through a pull request, and four checks
+run in parallel: typecheck, lint, unit tests, and a bundle size gate against the
+budget in [docs/performance-budget.md](docs/performance-budget.md).
+
+End-to-end tests run nightly on an emulator rather than per-PR, so pull request
+feedback stays under two minutes.
+```
+
+**Huy hiệu xanh trên README là thứ người phỏng vấn nhìn thấy trong hai giây đầu tiên.**
+
+```bash
+git add . && git commit -m "ci: chạy song song, cổng kích thước bundle, e2e theo lịch"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Nghe + chép chính tả
+
+### 16:30–16:45 · Chép chính tả
+
+60 giây. Nghe → chép → đối chiếu → khoanh chỗ sai.
+
+### 16:45–16:55 · Đọc to lại 3 lần, ghi âm
+
+### 16:55–17:00 · 5 từ nghe không ra
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 18.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] CI chạy ở mỗi pull request
+- [ ] **Đã cố tình làm hỏng và xác nhận CI đỏ**
+- [ ] Bốn kiểm tra chạy song song, tổng dưới 2 phút
+- [ ] Cổng kích thước bundle nối với ngân sách hiệu năng
+- [ ] Nhánh `main` được bảo vệ, không push thẳng được
+- [ ] E2E chạy theo lịch ban đêm, không chạy mỗi PR
+- [ ] Huy hiệu CI trên README
+- [ ] **Có commit hôm nay**
+- [ ] Chép chính tả + ghi âm `2026-10-28.m4a`
+- [ ] Đọc xong ch.18
+- [ ] 21:30 lên giường

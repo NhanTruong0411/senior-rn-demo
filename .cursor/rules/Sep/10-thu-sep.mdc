@@ -1,0 +1,150 @@
+---
+description: Thứ Năm 10/09/2026 — Tuần 1 Ngày 4. Vòng 2 chương 5–6, học chương 7–8 (screenshot + platform differences).
+alwaysApply: false
+---
+
+# Thứ Năm · 10/09/2026 · Tuần 1 — Ngày 4/61
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Vòng 2: dựng lại modal + gestures |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Expo Tutorial chương 7–8 |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Câu hỏi phỏng vấn |
+| **17:00** | **ĐỌC SÁCH** — ch.4 (Modules Should Be Deep) |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Vòng 2
+
+Trong `sticker-smash-v2`, không mở tutorial, dựng lại:
+
+1. Modal chọn emoji có `FlatList` ngang
+2. Emoji chọn xong hiện đè lên ảnh
+3. Kéo được emoji bằng `Gesture.Pan()`
+4. Nhấn đúp phóng to emoji bằng `Gesture.Tap().numberOfTaps(2)`
+
+**Chỗ dễ quên khi làm lại:** `GestureHandlerRootView` phải bọc ở `_layout.tsx` gốc với `style={{ flex: 1 }}`. Nếu quên `flex: 1`, màn hình trắng — và lỗi này không có thông báo gì cả.
+
+Giãn cơ 5 phút lúc 09:30.
+
+```bash
+git add . && git commit -m "practice: dựng lại modal + gesture từ trí nhớ (vòng 2)"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — Chương 7–8
+
+### 13:30–15:00 · "Take a screenshot"
+
+```bash
+npx expo install react-native-view-shot expo-media-library
+```
+
+- `captureRef` để chụp một vùng `View` thành ảnh
+- Xin quyền `expo-media-library` và lưu ảnh vào thư viện máy
+- **Xử lý lỗi đầy đủ:** người dùng từ chối quyền thì hiện gì?
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · "Handle platform differences"
+
+**Link:** https://docs.expo.dev/tutorial/platform-differences/
+
+- `Platform.select()` và `Platform.OS`
+- Vì sao web không dùng được `react-native-view-shot`, phải thay bằng `dom-to-image`
+- Đây là bài học lớn hơn API: **một số thư viện native không có bản web** — và bạn phải biết trước khi hứa với khách hàng
+
+**Ghi vào sổ mẫu câu trả lời phỏng vấn:**
+
+> *"Khi làm cross-platform, tôi không giả định mọi thư viện chạy được cả 3 nền tảng. Tôi kiểm tra khả năng tương thích trước, và tách phần khác biệt ra sau `Platform.select` hoặc file `.web.tsx` riêng thay vì rải `if` khắp code."*
+
+```bash
+git add . && git commit -m "feat: chụp và lưu ảnh, xử lý khác biệt nền tảng"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Năm: Câu hỏi phỏng vấn
+
+### 16:30–16:40 · Shadowing
+
+2 phút video kỹ thuật bất kỳ. Nghe → dừng → nhại to. Lặp 3–4 lần.
+
+### 16:40–16:55 · Trả lời phỏng vấn có ghi âm
+
+**Câu hỏi tuần này:** *"Tell me about yourself."*
+
+Đây là câu **100% buổi phỏng vấn nào cũng hỏi**. Phải thuộc như phản xạ, nhưng nghe tự nhiên chứ không như đọc thuộc lòng.
+
+Khung 60 giây — **hiện tại → quá khứ → tương lai**:
+
+> *"I'm a React Native developer with a bit over three years of production experience. Most of that was at Firegroup, where I worked on OneMobile, a commerce and loyalty app with tens of thousands of monthly active users.*
+> *My day-to-day was shipping features on both iOS and Android — things like the loyalty point system, Shopify authentication, and Apple and Google Wallet passes, which needed some native work in Kotlin and Swift. One thing I'm proud of is bringing the app bundle down from forty-five megabytes to twenty-eight.*
+> *Right now I'm deepening the areas I didn't get to touch much at Firegroup — testing, CI/CD, and the New Architecture — and I'm building a small app end to end to practice all of that.*
+> *What I'm looking for next is a team where mobile quality actually matters, not just shipping fast."*
+
+**Luật:** ≤60 giây. Bấm giờ. Nếu quá, cắt bớt chứ đừng nói nhanh hơn.
+
+Ghi âm. Nghe lại. Tự chấm 3 câu:
+1. Có bị vấp quá 3 lần không?
+2. Có nói được con số cụ thể nào không?
+3. Nghe có giống người thật đang kể chuyện, hay giống đang đọc?
+
+Nói lần hai.
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `day-to-day` (n/adj) | công việc thường ngày | *My day-to-day was shipping features.* |
+| `end to end` | từ đầu đến cuối | *I built it end to end.* |
+| `ship` (v) | đưa tính năng lên production | *We shipped every two weeks.* |
+| `deepen` (v) | đào sâu | *I'm deepening my testing skills.* |
+| `hands-on` (adj) | trực tiếp làm | *I want hands-on native experience.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 4 *(Modules Should Be Deep)*.
+
+Đây là chương quan trọng nhất cuốn sách. Khái niệm *deep module* (giao diện hẹp, chức năng sâu) vs *shallow module* sẽ giúp bạn trả lời rất tốt câu hỏi về kiến trúc.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Dựng lại được modal + gesture từ trí nhớ
+- [ ] Chụp được ảnh và lưu vào thư viện máy
+- [ ] Xử lý được khi người dùng từ chối quyền
+- [ ] Hiểu vì sao cần `Platform.select`
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-09-10.m4a` — "Tell me about yourself" ≤60 giây
+- [ ] Đọc xong ch.4
+- [ ] 21:30 lên giường

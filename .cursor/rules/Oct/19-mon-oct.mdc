@@ -1,0 +1,213 @@
+---
+description: Thứ Hai 19/10/2026 — Tuần 8 Ngày 1. Đo trước khi tối ưu — React DevTools Profiler và Flashlight.
+alwaysApply: false
+---
+
+# Thứ Hai · 19/10/2026 · Tuần 8 — Ngày 31/61
+
+> **Tuần hiệu năng.** Luật của tuần này: **không sửa một dòng nào trước khi có số đo.**
+> Tối ưu không có số đo là mê tín, và người phỏng vấn phân biệt được ngay hai loại người này.
+
+**Docs:** https://reactnative.dev/docs/performance · https://flashlight.dev
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Dựng bộ đo, chụp số nền |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — React DevTools Profiler |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Daily standup |
+| **17:00** | **ĐỌC SÁCH** — ch.11 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Số nền
+
+```bash
+git checkout -b perf/measure
+```
+
+### 08:30–09:15 · Flashlight
+
+```bash
+curl https://get.flashlight.dev | bash
+```
+
+Flashlight chấm điểm hiệu năng 0–100 cho app Android **mà không cần sửa gì trong code** — nó đo từ bên ngoài qua ADB.
+
+```bash
+eas build --platform android --profile preview --local   # hoặc dùng .apk đã có
+flashlight measure --bundleId com.truonghuunhan.macrozone
+```
+
+Ghi vào `docs/perf-notes.md`:
+
+```markdown
+## Baseline — 19/10/2026
+Device: <tên máy> · Android <phiên bản> · build production
+
+| Metric | Value |
+|---|---|
+| Flashlight score | __ /100 |
+| Average FPS | __ |
+| CPU usage | __ % |
+| RAM | __ MB |
+| Time to interactive | __ ms |
+```
+
+**Quan trọng: đo trên bản production, không đo bản dev.** Bản dev có dev menu, không tối ưu Hermes, còn `__DEV__` là `true`. Số đo trên bản dev vô nghĩa.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:15–10:30 · Ba kịch bản đo
+
+Đo mỗi kịch bản **3 lần** rồi lấy trung bình. Một lần đo là nhiễu, không phải dữ liệu.
+
+| Kịch bản | Đo cái gì |
+| --- | --- |
+| Khởi động nguội | Từ lúc chạm icon tới lúc thấy nội dung. Đóng hẳn app trước |
+| Cuộn danh sách 1000 mục | FPS thấp nhất khi cuộn nhanh |
+| Chuyển tab liên tục | Có khựng khi đổi tab không |
+
+```bash
+flashlight test --bundleId com.truonghuunhan.macrozone \
+  --testCommand "maestro test .maestro/02-add-meal.yaml" \
+  --duration 20000 --iterationCount 3
+```
+
+**Đây là lúc bộ test Maestro tuần trước trả cổ tức lần thứ hai:** Flashlight chạy chính luồng Maestro đó và đo trong lúc chạy. Kịch bản đo tự động, lặp lại được, không phụ thuộc tay người.
+
+```bash
+git add . && git commit -m "perf: số đo nền bằng flashlight"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — React DevTools Profiler
+
+### 13:30–14:15 · Dựng profiler
+
+```bash
+npx react-devtools
+```
+
+Mở app ở development build, tab **Profiler**, bấm ghi, thao tác, bấm dừng.
+
+Ba biểu đồ, đọc như sau:
+
+| Biểu đồ | Cho biết gì |
+| --- | --- |
+| **Flamegraph** | Cây component ở một lần commit. Thanh càng rộng càng tốn thời gian |
+| **Ranked** | Xếp hạng component theo thời gian render. **Nhìn cái này trước** |
+| **Timeline** | Các lần commit theo thời gian. Nhiều commit liên tiếp = render thừa |
+
+Bật **"Record why each component rendered"** trong Settings. Đây là tùy chọn có giá trị nhất — nó cho biết chính xác prop nào đổi khiến component render lại.
+
+### 14:15–15:00 · Tìm render thừa
+
+Thao tác cụ thể để soi:
+
+1. **Gõ một ký tự vào form thêm bữa ăn.** Chỉ ô input đó được render lại, hay cả màn hình?
+2. **Cuộn danh sách.** Có `MealItem` nào render lại dù dữ liệu không đổi không?
+3. **Đổi theme.** Cả cây render lại là đúng — nhưng có render **hai lần** không?
+
+Ghi lại từng phát hiện vào `docs/perf-notes.md` kèm ảnh chụp:
+
+```markdown
+### Finding 1 — the whole form re-renders on every keystroke
+Ranked chart shows `MealForm` at __ms per render, firing on every character.
+Cause: `<Controller>` value lifted to parent state instead of staying local.
+```
+
+**Chưa sửa gì hôm nay.** Hôm nay chỉ đo và ghi. Sửa vào ngày mai.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Perf Monitor và cái bẫy của nó
+
+Lắc máy → Show Perf Monitor. Hai con số FPS:
+
+| Con số | Nghĩa | Khi nào tụt |
+| --- | --- | --- |
+| **UI FPS** | Thread native vẽ hình | Layout phức tạp, quá nhiều view lồng nhau |
+| **JS FPS** | Thread JavaScript | Tính toán nặng, render thừa, xử lý dữ liệu lớn |
+
+> **Đây là chỗ phân biệt người hiểu và người đoán.** UI FPS tụt mà JS FPS vẫn 60 → vấn đề ở tầng render native, memo hóa không giúp gì. JS FPS tụt mà UI FPS vẫn 60 → vấn đề ở JavaScript, đây mới là lúc `memo` và `useCallback` có tác dụng.
+>
+> Rất nhiều người thấy app giật là rải `React.memo` khắp nơi. Nếu vấn đề nằm ở UI thread thì làm vậy chỉ tốn thêm bộ nhớ và không cải thiện gì.
+
+Ghi cả hai con số cho từng kịch bản. Ngày mai bạn sẽ dùng chúng để chọn đúng chỗ mà sửa.
+
+```bash
+git add . && git commit -m "perf: ghi nhận phát hiện từ profiler"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Standup có ghi âm
+
+> *"Morning. Last week I finished the New Architecture work — a TurboModule written both the hard way and with the Expo Modules API.*
+> *This week is performance. Today was purely measurement — I'm not changing any code until I have numbers. I set up Flashlight for automated scoring, ran it against a Maestro flow so the scenario is repeatable, and used the React DevTools Profiler to find where re-renders are happening.*
+> *I found two things worth fixing: the meal form re-renders entirely on every keystroke, and list items re-render on scroll even when their data hasn't changed.*
+> *Tomorrow I'll fix those and re-measure.*
+> *One thing I'm being careful about is separating UI thread problems from JavaScript thread problems. Memoisation only helps with the second kind, and it's easy to waste a day optimising the wrong layer."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `baseline` (n) | số đo nền, mốc so sánh | *I captured a baseline first.* |
+| `repeatable` (adj) | lặp lại được | *The scenario is repeatable.* |
+| `re-render` (n/v) | render lại | *Where re-renders are happening.* |
+| `keystroke` (n) | mỗi lần gõ phím | *It re-renders on every keystroke.* |
+| `waste a day on` | phí một ngày vào | *Easy to waste a day optimising the wrong layer.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 11.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Flashlight cài xong, có điểm số nền
+- [ ] Đo trên **bản production**, không phải bản dev
+- [ ] Ba kịch bản đều đo 3 lần, lấy trung bình
+- [ ] Flashlight chạy được cùng luồng Maestro
+- [ ] React DevTools Profiler dùng được, đã bật "why did this render"
+- [ ] Ghi được tối thiểu 2 phát hiện cụ thể kèm số
+- [ ] Phân biệt được UI FPS và JS FPS
+- [ ] **Chưa sửa một dòng code tối ưu nào** — hôm nay chỉ đo
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-10-19.m4a`
+- [ ] Đọc xong ch.11
+- [ ] 21:30 lên giường

@@ -1,0 +1,237 @@
+---
+description: Thứ Năm 22/10/2026 — Tuần 8 Ngày 4. Ảnh, danh sách, animation — tối ưu phần người dùng cảm nhận được.
+alwaysApply: false
+---
+
+# Thứ Năm · 22/10/2026 · Tuần 8 — Ngày 34/61
+
+> Hai ngày qua tối ưu thứ đo được. Hôm nay tối ưu thứ **cảm nhận được** — hiệu năng nhận thức. App có thể chậm như cũ nhưng vẫn thấy nhanh hơn hẳn.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Ảnh và khung xương tải |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — JS thread vs UI thread, InteractionManager |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Câu hỏi phỏng vấn |
+| **17:00** | **ĐỌC SÁCH** — ch.14 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Ảnh và khung xương
+
+### 08:30–09:15 · `expo-image`
+
+```bash
+npx expo install expo-image
+```
+
+`expo-image` hơn hẳn `Image` gốc ở ba điểm:
+
+```tsx
+<Image
+  source={{ uri: meal.photoUrl }}
+  placeholder={{ blurhash }}          // hiện ngay, không phải ô xám
+  contentFit="cover"
+  transition={200}                    // mờ dần vào, không giật cục
+  cachePolicy="memory-disk"           // đệm cả RAM lẫn đĩa
+  recyclingKey={meal.id}              // quan trọng cho danh sách tái sử dụng view
+/>
+```
+
+**`recyclingKey` là thứ hay bị bỏ sót.** Trong FlashList, view được tái sử dụng — không có `recyclingKey`, người dùng thấy ảnh của mục cũ nhấp nháy trước khi ảnh mới tải xong. Lỗi này rất dễ nhận ra khi có người thử app và rất khó tìm nếu không biết trước.
+
+**Blurhash:** một chuỗi ~30 ký tự mã hóa hình ảnh mờ. Hiện ngay lập tức, người dùng thấy hình dạng và màu sắc trước khi ảnh thật về. Kỹ thuật này là thứ Instagram và Unsplash dùng.
+
+### 09:15–10:30 · Khung xương tải, không dùng spinner
+
+Giãn cơ 5 phút lúc 09:30.
+
+**Đây là thay đổi tạo cảm giác khác biệt lớn nhất trong ngày.**
+
+| | Spinner | Khung xương |
+| --- | --- | --- |
+| Người dùng thấy | Vòng quay ở giữa màn trắng | Bố cục sắp hiện ra |
+| Cảm giác | Đang chờ | Đang tải xong |
+| Khi dữ liệu về | Bố cục nhảy đột ngột | Nội dung điền vào chỗ đã có |
+
+```tsx
+function MealListSkeleton() {
+  return (
+    <View>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <View key={i} style={styles.skeletonRow}>
+          <Animated.View style={[styles.shimmer, animatedStyle]} />
+        </View>
+      ))}
+    </View>
+  );
+}
+```
+
+**Luật quan trọng: khung xương phải có đúng kích thước của nội dung thật.** Sai kích thước thì bố cục vẫn nhảy khi dữ liệu về, và bạn mất hết lợi ích.
+
+```bash
+git add . && git commit -m "perf: expo-image với blurhash và khung xương tải"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:30 · JS thread và UI thread
+
+**Đây là mô hình tư duy quan trọng nhất về hiệu năng React Native.**
+
+```
+JS Thread                      UI Thread (main)
+─────────                      ────────────────
+Logic React                    Đo và vẽ layout
+Xử lý dữ liệu                  Xử lý chạm
+Gọi mạng (callback)            Chạy animation native
+setState                       Vẽ view
+
+Nghẽn ở đây →                  Nghẽn ở đây →
+  chạm không phản hồi,           mọi thứ đứng hình,
+  nhưng cuộn vẫn mượt            kể cả cuộn
+  (nếu là cuộn native)
+```
+
+**Chẩn đoán theo triệu chứng:**
+
+| Triệu chứng | Thread nào nghẽn | Cách sửa |
+| --- | --- | --- |
+| Cuộn mượt nhưng bấm nút không phản hồi | JS | Chia nhỏ việc, `InteractionManager`, giảm render |
+| Cuộn giật | Thường là UI | Đơn giản hóa layout, bớt view lồng nhau, dùng FlashList |
+| Animation giật khi đang tải dữ liệu | JS đang chặn animation | Chuyển animation sang Reanimated (chạy trên UI thread) |
+| Cả hai đều tụt | Có thể do ảnh quá lớn hoặc bố cục quá nặng | Nén ảnh, làm phẳng cây view |
+
+### 14:30–15:00 · `InteractionManager`
+
+Hoãn việc nặng cho tới khi animation chạy xong:
+
+```tsx
+useEffect(() => {
+  const task = InteractionManager.runAfterInteractions(() => {
+    computeWeeklyStats();       // việc nặng, không cần ngay lập tức
+  });
+  return () => task.cancel();
+}, []);
+```
+
+Áp dụng cụ thể: khi chuyển sang tab Stats, để animation chuyển tab chạy xong rồi mới tính toán. Người dùng thấy chuyển cảnh mượt thay vì khựng một nhịp.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Đo lần cuối trong tuần
+
+```bash
+flashlight measure --bundleId com.truonghuunhan.macrozone
+```
+
+Hoàn thiện bảng tổng trong `docs/perf-notes.md`:
+
+```markdown
+## Week 8 summary — 19/10 to 22/10
+
+| Metric | Baseline | Final | Change |
+|---|---|---|---|
+| Flashlight score | __ | __ | __ |
+| Average FPS while scrolling 1000 items | __ | __ | __ |
+| Cold start | __ ms | __ ms | __ |
+| JS bundle | __ KB | __ KB | __ |
+| APK size | __ MB | __ MB | __ |
+| Form render per keystroke | __ ms | __ ms | __ |
+
+### What moved the needle
+1.
+2.
+
+### What didn't
+1.
+2.
+
+### What I'd do next with more time
+1.
+```
+
+**Cả ba mục đều phải điền.** Mục thứ hai và thứ ba là thứ làm bạn khác với người chỉ khoe con số đẹp.
+
+```bash
+git add . && git commit -m "perf: bảng tổng kết tuần hiệu năng"
+git checkout main && git merge perf/bundle
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Năm: Câu hỏi phỏng vấn
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Trả lời có ghi âm
+
+**Câu hỏi tuần này:** *"Tell me about a performance problem you solved."*
+
+Đây là câu bạn **đã có sẵn hai câu chuyện** — một từ Firegroup, một từ tuần này. Dùng câu chuyện Firegroup làm chính vì nó ở môi trường production thật, rồi nhắc câu chuyện thứ hai làm bằng chứng thói quen.
+
+> *"The one I'd pick is a bundle size problem at Firegroup. Our app was around forty-five megabytes and install conversion was suffering, especially on cheaper Android devices where storage is tight.*
+> *First thing I did was measure rather than guess. I ran a bundle analysis and found three things: we were pulling in an entire icon library for about six icons, several PNG assets had never been compressed, and there were dependencies still bundled that nobody had imported in months.*
+> *I fixed them one at a time and measured after each change, so I knew what actually helped. We ended up at twenty-eight megabytes — about a thirty-seven percent reduction.*
+> *The interesting part was what didn't work. I'd assumed code splitting would be a big win, and it barely moved the number, because our screens were all small. That taught me to measure before committing to an approach.*
+> *I've kept that habit. On my current project I've got a document with before-and-after numbers for every optimisation, including the ones that made no difference."*
+
+**Cấu trúc:** vấn đề → đo trước → sửa từng cái → kết quả có số → **cái không hiệu quả** → thói quen còn giữ. Câu áp chót là câu làm nên khác biệt.
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `move the needle` | tạo khác biệt thật sự | *What actually moved the needle was…* |
+| `barely` (adv) | hầu như không | *It barely moved the number.* |
+| `storage is tight` | bộ nhớ chật | *On devices where storage is tight.* |
+| `one at a time` | từng cái một | *I fixed them one at a time.* |
+| `commit to an approach` | dốc sức theo một hướng | *Measure before committing to an approach.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 14.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] `expo-image` với blurhash, transition và `recyclingKey`
+- [ ] Khung xương tải thay spinner, **đúng kích thước nội dung thật**
+- [ ] Bố cục không nhảy khi dữ liệu về
+- [ ] Phân biệt được triệu chứng nghẽn JS thread và UI thread
+- [ ] `InteractionManager` áp dụng cho tính toán nặng
+- [ ] Bảng tổng kết tuần điền đủ **cả ba mục**, kể cả mục "không hiệu quả"
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-10-22.m4a` — câu chuyện hiệu năng ≤90 giây
+- [ ] Đọc xong ch.14
+- [ ] 21:30 lên giường

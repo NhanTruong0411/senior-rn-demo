@@ -1,0 +1,224 @@
+---
+description: Thứ Sáu 23/10/2026 — Tuần 8 Ngày 5. Ngân sách hiệu năng, chống thoái lui, tổng kết tuần.
+alwaysApply: false
+---
+
+# Thứ Sáu · 23/10/2026 · Tuần 8 — Ngày 35/61
+
+> Tối ưu xong rồi thì giữ được bao lâu? Hôm nay dựng **hàng rào chống thoái lui** — để ba tháng sau app không âm thầm chậm lại.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Ngân sách hiệu năng |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Kiểm chứng trên máy yếu + tổng kết |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nhìn lại tuần |
+| **17:00** | **ĐỌC SÁCH** — ch.15 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ. **Nghỉ trọn vẹn T7 + CN** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Ngân sách hiệu năng
+
+### 08:30–09:15 · Đặt ngưỡng
+
+Tối ưu không có ngưỡng thì tháng sau lại chậm như cũ. Viết ra con số cụ thể:
+
+```markdown
+# docs/performance-budget.md
+
+## Budget
+
+| Metric | Budget | Current | Headroom |
+|---|---|---|---|
+| Cold start (mid-range Android) | < 2000 ms | __ ms | __ |
+| JS bundle (Android, minified) | < 2.5 MB | __ MB | __ |
+| APK (universal) | < 30 MB | __ MB | __ |
+| FPS while scrolling 1000 items | > 55 | __ | __ |
+| Flashlight score | > 80 | __ | __ |
+
+## Rules
+- A pull request that pushes any metric past budget needs a written reason
+  in the PR description.
+- Adding a dependency over 100 KB needs a note on why nothing smaller works.
+- Re-measure at the end of every sprint, not just when something feels slow.
+```
+
+> **Ý tưởng "ngân sách hiệu năng" là ngôn ngữ của team có kỷ luật kỹ thuật.** Nói được cụm này khi phỏng vấn cho thấy bạn nghĩ ở tầm quy trình, không chỉ tầm sửa lỗi lẻ.
+
+### 09:15–10:30 · Kiểm tra kích thước tự động
+
+Giãn cơ 5 phút lúc 09:30.
+
+Script chặn bundle phình mà không ai để ý:
+
+```js
+// scripts/check-bundle-size.js
+const MAX_BUNDLE_BYTES = 2.5 * 1024 * 1024;
+
+const size = getBundleSize();
+if (size > MAX_BUNDLE_BYTES) {
+  console.error(`Bundle ${(size / 1e6).toFixed(2)} MB vượt ngân sách 2.5 MB`);
+  process.exit(1);
+}
+console.log(`Bundle ${(size / 1e6).toFixed(2)} MB — trong ngân sách`);
+```
+
+```json
+{ "scripts": { "check:size": "expo export --platform android && node scripts/check-bundle-size.js" } }
+```
+
+Tuần sau script này sẽ chạy trong GitHub Actions ở mỗi pull request.
+
+```bash
+git add . && git commit -m "chore: ngân sách hiệu năng và kiểm tra kích thước tự động"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:30 · Thử trên máy yếu
+
+**Đây là bước quan trọng nhất với thị trường Việt Nam.** Rất nhiều người dùng ở Việt Nam đang dùng máy Android tầm 3–5 triệu đồng. App chạy mượt trên iPhone của bạn không nói lên điều gì.
+
+Ba cách, chọn cái nào làm được:
+
+1. **Máy thật cũ** — mượn của người nhà. Tốt nhất.
+2. **Emulator bị bóp tài nguyên** — Android Studio, tạo AVD với 2GB RAM, 2 nhân CPU
+3. **Bật giới hạn dành cho nhà phát triển** — Developer Options → "Background process limit: 2 processes", và bật "Don't keep activities"
+
+Đo lại toàn bộ trên cấu hình yếu:
+
+```markdown
+## Low-end device — 23/10/2026
+Device: __ · Android __ · 2GB RAM
+
+| Metric | Flagship | Low-end | Gap |
+|---|---|---|---|
+| Cold start | __ ms | __ ms | __x |
+| FPS scrolling | __ | __ | __ |
+| Time to first meal visible | __ ms | __ ms | __ |
+```
+
+> **Câu nói rất mạnh khi phỏng vấn ở Việt Nam:** *"Tôi đo trên cả máy cao cấp lẫn máy 2GB RAM, vì phần lớn người dùng Việt Nam không dùng flagship. Khoảng cách là bao nhiêu lần, và tôi tối ưu theo con số của máy yếu."*
+>
+> Rất ít ứng viên Middle nghĩ tới điều này, và nó cho thấy bạn hiểu người dùng thật của thị trường mình đang làm.
+
+### 14:30–15:00 · Thử "Don't keep activities"
+
+Bật tùy chọn này trong Developer Options rồi:
+1. Mở app, vào giữa một luồng (đang điền form thêm bữa ăn)
+2. Chuyển sang app khác
+3. Quay lại
+
+App phải khôi phục đúng trạng thái, không crash, không mất dữ liệu đang nhập.
+
+**Đây là loại lỗi chỉ xuất hiện trên máy RAM thấp trong thực tế** — Android hủy activity ở nền để lấy lại bộ nhớ. Bạn không bao giờ gặp trên máy 12GB RAM, nhưng người dùng máy 2GB thì gặp hằng ngày.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Tổng kết tuần 8
+
+```text
+## Tổng kết tuần 8 (19–23/10) — PERFORMANCE
+
+Số đo cuối cùng:
+| Chỉ số | Trước | Sau | Thay đổi |
+| Flashlight score | __ | __ | __ |
+| Cold start | __ ms | __ ms | __% |
+| JS bundle | __ KB | __ KB | __% |
+| APK | __ MB | __ MB | __% |
+| FPS cuộn 1000 mục | __ | __ | __ |
+
+Trên máy yếu:
+| Cold start | __ ms | so với flagship: __x |
+
+Ba thứ tạo khác biệt thật:
+1.
+2.
+3.
+
+Ba thứ tôi tưởng sẽ giúp nhưng không:
+1.
+2.
+3.
+
+Câu chuyện hiệu năng thứ hai của tôi (ngoài Firegroup 45→28MB):
+"___"
+
+Số ngày có commit: ___/5
+```
+
+**Mục "ba thứ tưởng sẽ giúp nhưng không" là mục đáng giá nhất.** Nó là bằng chứng bạn đo thật.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nhìn lại tuần
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–17:00 · Nói to có ghi âm — 3 phút
+
+> **1. What I did**
+> *"Performance week. I started by measuring everything and refusing to change any code until I had a baseline. Then I fixed re-renders, cut the bundle, and improved perceived performance with skeletons and image placeholders."*
+>
+> **2. The most useful thing**
+> *"Testing on a low-end device. Everything felt fine on a flagship, but cold start on a two-gigabyte Android was ___ times slower. Most users in Vietnam aren't on flagships, so that's the number that actually matters."*
+>
+> **3. What surprised me**
+> *"___ didn't help at all, even though I expected it to. I've written that down alongside the wins, because knowing what doesn't work is worth just as much."*
+>
+> **4. Next week**
+> *"Offline-first and CI/CD. I want the app usable with no network, and GitHub Actions running lint, typecheck and tests on every pull request."*
+
+**Kiêm buổi họp một mình.** Tự hỏi bằng tiếng Việt: tuần này vai trò nào bị bỏ rơi?
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 15.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] `docs/performance-budget.md` có ngưỡng cụ thể cho từng chỉ số
+- [ ] Script kiểm tra kích thước bundle chạy được, thoát mã lỗi khi vượt
+- [ ] **Đã đo trên máy yếu hoặc emulator bị bóp tài nguyên**
+- [ ] Đã thử "Don't keep activities", app không mất dữ liệu
+- [ ] Điền xong tổng kết tuần 8, **kể cả mục "không hiệu quả"**
+- [ ] Có câu chuyện hiệu năng thứ hai, kể được trong 90 giây
+- [ ] **Có commit hôm nay** — 35/35 ngày làm việc
+- [ ] Ghi âm `2026-10-23.m4a`
+- [ ] Đọc xong ch.15
+
+---
+
+## Cuối tuần 24–25/10: NGHỈ HOÀN TOÀN
+
+Tuần sau khép lại tháng 10: **offline-first và CI/CD** — hai lỗ hổng cuối cùng trong danh sách của bạn.

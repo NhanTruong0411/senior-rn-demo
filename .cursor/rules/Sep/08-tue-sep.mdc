@@ -1,0 +1,179 @@
+---
+description: Thứ Ba 08/09/2026 — Tuần 1 Ngày 2. Vòng 2 chương 1–2, học tiếp chương 3–4 (build screen + image picker).
+alwaysApply: false
+---
+
+# Thứ Ba · 08/09/2026 · Tuần 1 — Ngày 2/61
+
+> **Hôm nay bắt đầu nhịp thật:** sáng dựng lại cái hôm qua từ trí nhớ, chiều học cái mới.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Vòng 2: dựng lại chương 1–2 từ trí nhớ |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Expo Tutorial chương 3–4 |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm kỹ thuật |
+| **17:00** | **ĐỌC SÁCH** — ch.2 (The Nature of Complexity) |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Vòng 2 (dựng lại)
+
+**Luật Vòng 2: KHÔNG mở lại trang tutorial.** Chỉ được mở docs chính thức khi bí:
+- https://docs.expo.dev/router/introduction/
+- https://reactnative.dev/docs/view
+
+### Việc phải làm
+
+Tạo dự án mới hoàn toàn:
+
+```bash
+cd ~/Dev
+npx create-expo-app@latest sticker-smash-v2
+cd sticker-smash-v2
+npm run reset-project
+```
+
+Dựng lại **từ trí nhớ**:
+1. `app/_layout.tsx` với Stack
+2. Thư mục `app/(tabs)/` có `_layout.tsx` dùng `Tabs`
+3. Hai tab: Home và About, mỗi tab có icon
+4. `app/+not-found.tsx`
+5. Style bằng `StyleSheet.create`, nền tối
+
+**Nếu bí quá 10 phút một chỗ:** mở docs chính thức, KHÔNG mở tutorial. Ghi lại chỗ nào bí — đó chính là chỗ hôm qua bạn chỉ gõ theo mà chưa hiểu.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 10:15–10:30 · Đối chiếu
+
+Mở lại tutorial, so với bản mình vừa dựng. Ghi ra giấy 3 chỗ khác biệt.
+
+```bash
+git add . && git commit -m "practice: dựng lại navigation từ trí nhớ (vòng 2)"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — Chương 3–4
+
+**Link:** https://docs.expo.dev/tutorial/build-a-screen/
+
+Quay lại dự án gốc `sticker-smash`. Vòng 1: gõ tay từng dòng.
+
+### 13:30–15:00 · "Build a screen"
+
+- Component `Image` và cách load ảnh local bằng `require()`
+- Tạo component tái sử dụng `Button` với prop `label` và `theme`
+- `Pressable` khác `TouchableOpacity` chỗ nào
+- Bố cục bằng flexbox: `flex: 1`, `alignItems`, `justifyContent`
+
+**Hiểu cho được — flexbox trong RN khác web:**
+
+| Thuộc tính | Web mặc định | React Native mặc định |
+| --- | --- | --- |
+| `display` | `block` | luôn là `flex` |
+| `flexDirection` | `row` | **`column`** |
+| `alignContent` | `stretch` | `flex-start` |
+
+Đây là câu hỏi phỏng vấn rất hay gặp.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · "Use an image picker"
+
+```bash
+npx expo install expo-image-picker
+```
+
+- `ImagePicker.launchImageLibraryAsync()` — API bất đồng bộ
+- Xử lý khi người dùng **từ chối quyền** hoặc **bấm hủy**
+- `useState` giữ URI ảnh đã chọn
+- Hiển thị ảnh chọn được thay cho ảnh mặc định
+
+**Chú ý điểm dễ sai:** kết quả trả về có `result.canceled` (một chữ `l`, không phải `cancelled`). Rất nhiều người mất 20 phút vì lỗi này.
+
+```bash
+git add . && git commit -m "feat: chọn ảnh từ thư viện bằng expo-image-picker"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
+
+### 16:30–16:40 · Shadowing
+
+Mở 2 phút bất kỳ trong video Expo/RN bạn xem chiều nay. Nghe → dừng → nhại to. Lặp 3–4 lần.
+
+### 16:40–16:55 · Nói to có ghi âm
+
+**Chủ đề hôm nay: giải thích file-based routing cho một người chưa biết.**
+
+Khung gợi ý:
+
+> *"Let me explain how file-based routing works in Expo Router.*
+> *In the old approach with React Navigation, you had to register every screen manually in a navigator component. With Expo Router, the file system is the router. If you create a file called `app/about.tsx`, you automatically get a route at slash-about. You don't register anything.*
+> *There's also a concept called route groups. If you wrap a folder in parentheses, like `(tabs)`, the folder name is used for organizing your layout but it doesn't show up in the URL.*
+> *The main benefit is that the structure of your project tells you the structure of your navigation. The trade-off is that you have less control when you need something unusual."*
+
+**Cấu trúc bắt buộc — mọi câu trả lời kỹ thuật đều theo 3 nhịp này:**
+1. *Claim* — nó là gì
+2. *Evidence* — ví dụ cụ thể
+3. *Boundary* — đánh đổi / giới hạn
+
+Ghi âm. Nghe lại. Nói lần hai.
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `under the hood` | bên trong, cơ chế ngầm | *Under the hood, it uses React Navigation.* |
+| `trade-off` (n) | sự đánh đổi | *The trade-off is less flexibility.* |
+| `register` (v) | đăng ký (màn hình, module) | *You don't register screens manually.* |
+| `convention over configuration` | quy ước thay vì cấu hình | *Expo Router follows convention over configuration.* |
+| `edge case` (n) | trường hợp biên | *Handle the edge case where the user cancels.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 2 *(The Nature of Complexity)*.
+
+Chú ý 3 khái niệm: *change amplification · cognitive load · unknown unknowns*. Bạn sẽ dùng lại trong phỏng vấn.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Dựng lại được navigation từ trí nhớ (Vòng 2)
+- [ ] Ghi ra giấy 3 chỗ bị bí lúc dựng lại
+- [ ] Xong chương 3–4, chọn được ảnh từ thư viện
+- [ ] Xử lý được cả trường hợp người dùng bấm hủy
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-09-08.m4a`
+- [ ] Đọc xong ch.2
+- [ ] 21:30 lên giường

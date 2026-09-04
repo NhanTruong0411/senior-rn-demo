@@ -1,0 +1,183 @@
+---
+description: Thứ Sáu 11/09/2026 — Tuần 1 Ngày 5. Dựng lại toàn bộ StickerSmash từ đầu, hoàn thiện chương 9–10, tổng kết tuần.
+alwaysApply: false
+---
+
+# Thứ Sáu · 11/09/2026 · Tuần 1 — Ngày 5/61
+
+> **Ngày kiểm tra.** Hôm nay trả lời một câu duy nhất: sau 4 ngày, bạn thực sự *biết làm* hay chỉ *đã xem*?
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Dựng lại TOÀN BỘ StickerSmash từ số 0 |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Chương 9–10 + hoàn thiện + tổng kết tuần |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nhìn lại tuần bằng tiếng Anh |
+| **17:00** | **ĐỌC SÁCH** — ch.5 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ. **Nghỉ trọn vẹn T7 + CN** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Bài kiểm tra Vòng 2 toàn phần
+
+```bash
+cd ~/Dev
+npx create-expo-app@latest sticker-smash-final
+cd sticker-smash-final && npm run reset-project
+```
+
+**Bấm giờ 2 tiếng.** Không mở tutorial, không mở 2 dự án cũ. Chỉ được mở docs chính thức.
+
+Dựng lại đủ:
+
+- [ ] Tab navigation với 2 tab có icon
+- [ ] Màn hình chính có ảnh mặc định
+- [ ] Component `Button` tái sử dụng (2 theme)
+- [ ] Chọn ảnh từ thư viện, xử lý cả hủy lẫn từ chối quyền
+- [ ] Modal chọn emoji có danh sách ngang
+- [ ] Emoji kéo được và nhấn đúp phóng to
+- [ ] Chụp màn hình lưu vào thư viện máy
+- [ ] `+not-found.tsx`
+
+### Tự chấm lúc 10:30
+
+| Kết quả | Nghĩa là | Làm gì |
+| --- | --- | --- |
+| Xong ≥ 6/8 mục | **Đạt.** Kiến thức đã vào tay | Tuần sau sang MacroZone |
+| Xong 4–5 mục | Tạm được | Tuần sau vẫn sang MacroZone, nhưng ôn lại mục thiếu vào sáng T2 |
+| Xong < 4 mục | **Chưa đạt** | Tuần sau lùi 2 ngày làm lại Expo Tutorial. Không tự trách — cứ lùi. Đi chậm mà chắc còn hơn xây nhà trên cát |
+
+```bash
+git init && git add . && git commit -m "milestone: dựng lại StickerSmash từ số 0 trong 2 giờ"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:30 · Chương 9–10 — Cấu hình app
+
+**Link:** https://docs.expo.dev/tutorial/configuration/
+
+- App icon và splash screen trong `app.json`
+- `StatusBar` style
+- `expo-splash-screen`
+- Chạy `npx expo-doctor` để kiểm tra cấu hình sai
+
+### 14:30–15:00 · Đưa app lên web
+
+```bash
+npx expo export --platform web
+npx expo start --web
+```
+
+Trải nghiệm luôn cái đã học hôm qua: chỗ nào vỡ trên web vì thư viện native không hỗ trợ?
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Dọn dẹp mã nguồn
+
+Đây là lúc rèn thói quen mà công ty nào cũng đánh giá cao:
+
+- Tách component ra file riêng trong `components/`
+- Đặt lại tên biến cho rõ nghĩa
+- Xóa mọi `console.log`
+- Thêm kiểu TypeScript cho props từng component (không dùng `any`)
+
+```bash
+npx tsc --noEmit    # phải không còn lỗi nào
+```
+
+### 16:00–16:30 · Tổng kết tuần (viết vào file này)
+
+```text
+## Tổng kết tuần 1 (07–11/09)
+
+Bài kiểm tra sáng T6: xong ___/8 mục
+3 khái niệm nắm chắc nhất:
+1.
+2.
+3.
+2 chỗ còn mơ hồ, phải tra thêm:
+1.
+2.
+Số ngày có commit: ___/5
+Cảm nhận về nhịp lịch (quá nặng / vừa / còn dư sức):
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nhìn lại tuần
+
+Hôm nay khối tiếng Anh **kiêm luôn buổi họp một mình** — vì cuối tuần nghỉ hoàn toàn.
+
+### 16:30–16:40 · Shadowing
+
+2 phút như thường lệ.
+
+### 16:40–17:00 · Nói to có ghi âm — 3 phút
+
+Nói **hoàn toàn bằng tiếng Anh**, theo 4 phần:
+
+> **1. What I did this week**
+> *"This week I went through the official Expo tutorial. I set up my whole environment from scratch, learned file-based routing with Expo Router, and built a small photo editing app with an image picker, a modal, and gesture handling."*
+>
+> **2. What I learned that surprised me**
+> *"The thing that surprised me most was ___."*
+>
+> **3. What I struggled with**
+> *"I struggled with ___. Next time I'll ___."*
+>
+> **4. What I'm doing next week**
+> *"Next week I'm moving on to a full crash course where I'll build an app with tabs, local storage, notifications, and an actual EAS build."*
+
+**Đây là bài tập kép:** vừa luyện nói, vừa là buổi tự đánh giá theo 5 vai trò (người cha · người chồng · người con · người thợ · chính mình). Sau khi ghi âm xong, tự hỏi thêm bằng tiếng Việt: *tuần này vai trò nào bị bỏ rơi?*
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 5 *(Information Hiding and Leakage)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Hoàn thành bài kiểm tra 2 tiếng, đã ghi điểm ___/8
+- [ ] `npx tsc --noEmit` không còn lỗi
+- [ ] App chạy được cả trên web
+- [ ] Điền xong phần tổng kết tuần ở trên
+- [ ] **Có commit hôm nay** — 5/5 ngày trong tuần đều có commit
+- [ ] Ghi âm `2026-09-11.m4a` — 3 phút review tuần bằng tiếng Anh
+- [ ] Đọc xong ch.5
+
+---
+
+## Cuối tuần 12–13/09: NGHỈ HOÀN TOÀN
+
+Không code. Không học. Không apply. Không mở laptop.
+
+Nhà thờ, gia đình, đưa con đi chơi, ngủ bù. Tuần sau bắt đầu lúc 08:30 Thứ Hai với **MacroZone**.

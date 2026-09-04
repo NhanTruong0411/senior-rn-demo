@@ -1,0 +1,257 @@
+---
+description: Thứ Năm 24/09/2026 — Tuần 3 Ngày 4. Supabase + TanStack Query v5 — thay AsyncStorage bằng API thật.
+alwaysApply: false
+---
+
+# Thứ Năm · 24/09/2026 · Tuần 3 — Ngày 14/61
+
+> Hôm nay app có **backend thật**. Và bạn sẽ thấy phần thưởng của việc tách lớp storage hôm 16/09: đổi cả nguồn dữ liệu mà **không sửa một component nào**.
+
+**Docs:** https://supabase.com/docs · https://tanstack.com/query/latest/docs/framework/react/overview
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Dựng Supabase + bảng dữ liệu |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — TanStack Query v5 |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Câu hỏi phỏng vấn |
+| **17:00** | **ĐỌC SÁCH** — ch.14 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Supabase
+
+### 08:30–09:00 · Tạo dự án
+
+1. Đăng ký https://supabase.com — gói free đủ dùng, không cần thẻ
+2. Tạo project mới, chọn region **Singapore** (gần Việt Nam nhất)
+3. Lưu `Project URL` và `anon public key`
+
+### 09:00–09:30 · Bảng dữ liệu
+
+Trong SQL Editor:
+
+```sql
+create table meals (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid references auth.users(id) on delete cascade,
+  name       text not null,
+  calories   integer not null check (calories >= 0),
+  protein    numeric not null default 0,
+  carbs      numeric not null default 0,
+  fat        numeric not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table meals enable row level security;
+
+create policy "Người dùng chỉ thấy bữa ăn của mình"
+  on meals for select using (auth.uid() = user_id);
+
+create policy "Người dùng chỉ thêm bữa ăn cho mình"
+  on meals for insert with check (auth.uid() = user_id);
+
+create policy "Người dùng chỉ xóa bữa ăn của mình"
+  on meals for delete using (auth.uid() = user_id);
+```
+
+> **Row Level Security là điểm nhấn phỏng vấn.** Không có RLS, `anon key` nằm trong app cho phép bất kỳ ai đọc toàn bộ dữ liệu của mọi người. Bạn phải giải thích được điều này — nó cho thấy bạn nghĩ về bảo mật, không chỉ về tính năng.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Client + biến môi trường
+
+```bash
+npx expo install @supabase/supabase-js @react-native-async-storage/async-storage react-native-url-polyfill
+```
+
+`.env` *(nhớ thêm vào `.gitignore`)*:
+
+```
+EXPO_PUBLIC_SUPABASE_URL=...
+EXPO_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+**Điều bắt buộc phải hiểu:** tiền tố `EXPO_PUBLIC_` nghĩa là biến này **được nhúng vào bundle và ai cũng đọc được**. Chỉ đặt `anon key` ở đây, **tuyệt đối không đặt `service_role key`**. Bảo mật thật nằm ở RLS phía server, không nằm ở việc giấu key.
+
+Đăng nhập ẩn danh cho nhanh (bật Anonymous Sign-in trong Supabase Auth settings):
+
+```ts
+await supabase.auth.signInAnonymously();
+```
+
+```bash
+git checkout -b feat/supabase
+git add . && git commit -m "feat: kết nối supabase với RLS"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — TanStack Query v5
+
+```bash
+npm install @tanstack/react-query
+```
+
+### 13:30–14:00 · Provider + query đầu tiên
+
+```tsx
+// app/_layout.tsx
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 30_000, retry: 2 },
+  },
+});
+```
+
+```ts
+// hooks/useMeals.ts
+export function useMeals() {
+  return useQuery({
+    queryKey: ['meals'],
+    queryFn: async (): Promise<Meal[]> => {
+      const { data, error } = await supabase
+        .from('meals').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return z.array(storedMealSchema).parse(data);   // vẫn kiểm tra bằng Zod
+    },
+  });
+}
+```
+
+**Phần thưởng của kiến trúc:** component chỉ đổi từ `getMeals()` sang `useMeals()`. Toàn bộ giao diện giữ nguyên. Đây chính là điều bạn nói ở buổi standup hôm 16/09 — và giờ nó thành sự thật, có thể chỉ tay vào code khi phỏng vấn.
+
+### 14:00–14:40 · Mutation + làm mới cache
+
+```ts
+export function useAddMeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: MealInput) => { /* insert */ },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['meals'] }),
+  });
+}
+```
+
+Hiểu cho rõ 4 khái niệm — **đây là câu hỏi gần như 100% buổi phỏng vấn nào cũng có**:
+
+| Khái niệm | Nghĩa |
+| --- | --- |
+| `staleTime` | Bao lâu thì dữ liệu bị coi là cũ. Còn tươi thì không gọi lại mạng |
+| `gcTime` | Bao lâu thì cache bị dọn khỏi bộ nhớ sau khi không còn ai dùng |
+| `invalidateQueries` | Đánh dấu cũ và gọi lại |
+| `setQueryData` | Ghi thẳng vào cache, không gọi mạng |
+
+### 14:40–15:00 · Cập nhật lạc quan (optimistic update)
+
+```ts
+onMutate: async (newMeal) => {
+  await qc.cancelQueries({ queryKey: ['meals'] });
+  const previous = qc.getQueryData<Meal[]>(['meals']);
+  qc.setQueryData<Meal[]>(['meals'], (old = []) => [optimistic, ...old]);
+  return { previous };
+},
+onError: (_err, _new, context) => {
+  qc.setQueryData(['meals'], context?.previous);   // hoàn tác
+},
+onSettled: () => qc.invalidateQueries({ queryKey: ['meals'] }),
+```
+
+**Thử thật:** bật chế độ máy bay, thêm một bữa ăn. Nó phải hiện ngay rồi biến mất khi lưu thất bại. Nếu không hoàn tác được thì phần `onError` sai.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Ba trạng thái + thử offline
+
+- `isPending` → khung xương (skeleton), **không** dùng spinner giữa màn hình
+- `isError` → thông báo lỗi + nút Thử lại gọi `refetch()`
+- Danh sách rỗng → trạng thái trống có hướng dẫn, không để màn trắng
+
+Kiểm tra đủ 4 tình huống:
+1. Mạng bình thường
+2. Chế độ máy bay khi mở app
+3. Mất mạng giữa chừng khi đang lưu
+4. Có mạng lại → dữ liệu tự đồng bộ
+
+```bash
+git add . && git commit -m "feat: TanStack Query với cập nhật lạc quan và đủ 3 trạng thái"
+git checkout main && git merge feat/supabase
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Năm: Câu hỏi phỏng vấn
+
+### 16:30–16:40 · Shadowing
+
+2 phút. Nghe → dừng → nhại to.
+
+### 16:40–16:55 · Trả lời phỏng vấn có ghi âm
+
+**Câu hỏi tuần này:** *"When would you use Redux versus TanStack Query?"*
+
+Câu này xuất hiện ở **gần 100% buổi phỏng vấn React Native tại Việt Nam.** Phải trả lời được trong 60 giây, không vấp.
+
+> *"For me the split is server state versus client state.*
+> *Anything that lives on a server and I only hold a copy of — a list of meals, a user profile, search results — that's server state, and TanStack Query is built for it. It gives me caching, background refetch, retries and loading states for free. Writing that by hand in Redux is a few hundred lines I'd have to maintain myself.*
+> *Client state is different — things that only exist in the app and no server knows about. Theme choice, a multi-step form, which filters are open. That's where Redux or Zustand makes sense.*
+> *At Firegroup we had both. What I've seen go wrong is people putting API responses in Redux and then hand-writing cache invalidation. It works, but you end up rebuilding a worse version of Query.*
+> *These days for a new project I'd start with Query plus Zustand and only reach for Redux Toolkit if the client state gets genuinely complex."*
+
+Bấm giờ. Ghi âm. Nghe lại. Nói lần hai chỉ nhìn 4 từ khóa: *server state · client state · what goes wrong · what I'd choose now*.
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `for free` | có sẵn không tốn công | *You get retries for free.* |
+| `by hand` | làm thủ công | *Writing that by hand is painful.* |
+| `reach for` | chọn dùng (công cụ) | *I'd only reach for Redux if…* |
+| `end up doing` | rốt cuộc lại làm | *You end up rebuilding Query.* |
+| `go wrong` | đi sai hướng | *What I've seen go wrong is…* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 14 *(Choosing Names)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Supabase chạy, bảng `meals` có RLS đầy đủ 3 policy
+- [ ] `.env` nằm trong `.gitignore`, **không có key nào bị commit**
+- [ ] Giải thích được vì sao `anon key` lộ ra vẫn an toàn khi có RLS
+- [ ] Component **không phải sửa** khi đổi từ AsyncStorage sang Supabase
+- [ ] Cập nhật lạc quan hoàn tác đúng khi mất mạng
+- [ ] Đủ 3 trạng thái: khung xương, lỗi có nút thử lại, danh sách rỗng
+- [ ] Nói được `staleTime` khác `gcTime` chỗ nào
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-09-24.m4a` — Redux vs Query ≤60 giây
+- [ ] Đọc xong ch.14
+- [ ] 21:30 lên giường

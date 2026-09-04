@@ -1,0 +1,226 @@
+---
+description: Thứ Ba 20/10/2026 — Tuần 8 Ngày 2. Sửa render thừa — memo hóa đúng chỗ, đo lại sau mỗi lần sửa.
+alwaysApply: false
+---
+
+# Thứ Ba · 20/10/2026 · Tuần 8 — Ngày 32/61
+
+> Hôm qua đo. Hôm nay sửa — **mỗi lần một thay đổi, đo lại sau mỗi lần**. Sửa 5 thứ cùng lúc rồi thấy nhanh hơn thì bạn không biết thứ nào có tác dụng.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Sửa form render thừa |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Memo hóa danh sách + cái giá của memo |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
+| **17:00** | **ĐỌC SÁCH** — ch.12 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Form
+
+### Phát hiện 1: form render lại toàn bộ mỗi lần gõ
+
+**Nguyên nhân thường gặp:** state của input được nâng lên component cha, nên mỗi ký tự làm cả cây render lại.
+
+**Ba cách sửa, thử theo thứ tự:**
+
+**1. Giữ state trong React Hook Form, đừng nâng lên.** RHF dùng ref chứ không dùng state cho ô nhập — chính vì lý do này. Nếu bạn đang `watch()` toàn bộ form rồi truyền xuống, đó là chỗ hỏng:
+
+```tsx
+// Sai — mọi ký tự làm cả form render lại
+const values = watch();
+
+// Đúng — chỉ theo dõi trường thật sự cần
+const calories = useWatch({ control, name: 'calories' });
+```
+
+**2. Tách phần hiển thị động ra component riêng.** Nếu chỉ ô "tổng calo" cần cập nhật theo từng ký tự, đưa `useWatch` **vào bên trong** chính component đó. Chỉ nó render lại.
+
+**3. Memo hóa component con nhận prop ổn định.**
+
+Sau mỗi cách, mở Profiler đo lại. Ghi số vào `docs/perf-notes.md`:
+
+```markdown
+### Fix 1 — form re-render on keystroke
+| Step | Render time per keystroke |
+|---|---|
+| Before | __ ms |
+| After moving to useWatch on one field | __ ms |
+| After extracting the live total | __ ms |
+```
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Phát hiện 2: danh sách render thừa khi cuộn
+
+```tsx
+// Component cha — vấn đề nằm ở đây, không nằm ở MealItem
+const handleDelete = (id: string) => deleteMeal(id);        // hàm mới mỗi lần render
+<FlashList renderItem={({ item }) => <MealItem meal={item} onDelete={handleDelete} />} />
+```
+
+`React.memo` trên `MealItem` **hoàn toàn vô dụng** ở đây vì `onDelete` là một hàm mới sau mỗi lần render cha, nên phép so sánh nông luôn báo "prop đã đổi".
+
+```tsx
+const handleDelete = useCallback((id: string) => deleteMeal(id), [deleteMeal]);
+
+const renderItem = useCallback(
+  ({ item }: { item: Meal }) => <MealItem meal={item} onDelete={handleDelete} />,
+  [handleDelete],
+);
+```
+
+**Nhớ memo hóa cả `renderItem`.** Nhiều người bọc `useCallback` cho handler nhưng để `renderItem` là hàm inline — và mất trắng lợi ích.
+
+```bash
+git add . && git commit -m "perf: sửa render thừa ở form và danh sách, có số đo"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:30 · Cái giá của memo hóa
+
+**Đây là phần khiến câu trả lời phỏng vấn của bạn nghe khác đám đông.** Đa số nói "memo giúp tăng hiệu năng". Người hiểu thì biết memo **không miễn phí**.
+
+Mỗi `React.memo` phải trả:
+- So sánh nông toàn bộ prop ở **mỗi lần** render cha
+- Giữ kết quả cũ trong bộ nhớ
+- Mỗi `useCallback` / `useMemo` phải so sánh mảng phụ thuộc
+
+Với component render nhanh và prop nhiều, **chi phí so sánh có thể lớn hơn chi phí render lại**.
+
+**Thí nghiệm cần làm:** memo hóa một component nhỏ, đơn giản (ví dụ `MacroCard`), đo. Rồi bỏ memo đi, đo lại.
+
+```markdown
+### Experiment — is memo always worth it?
+`MacroCard` renders in ~0.3ms and takes 6 props.
+
+| | Render time on parent update |
+|---|---|
+| With React.memo | __ ms |
+| Without | __ ms |
+
+Result: ___
+```
+
+> Nếu kết quả là "không khác gì" hoặc "memo còn chậm hơn" — **hãy ghi lại đúng như vậy**. Một ứng viên kể được rằng mình đã đo và phát hiện memo không giúp gì ở chỗ đó gây ấn tượng mạnh hơn nhiều so với người rải memo khắp nơi vì "nghe nói nó nhanh hơn".
+
+**Nguyên tắc rút ra:** chỉ memo hóa khi (a) component render tốn kém, hoặc (b) nó nằm trong danh sách dài, hoặc (c) bạn đã đo và thấy có lợi. Không memo hóa vì thói quen.
+
+### 14:30–15:00 · React Compiler
+
+**Docs:** https://react.dev/learn/react-compiler
+
+React Compiler tự động memo hóa lúc biên dịch, và nó ổn định từ React 19.
+
+```bash
+npm install --save-dev babel-plugin-react-compiler
+```
+
+```js
+// babel.config.js
+plugins: [['babel-plugin-react-compiler', { target: '19' }]]
+```
+
+Bật lên, gỡ bớt `useCallback`/`useMemo` thủ công, đo lại. Nếu số tương đương hoặc tốt hơn — bạn vừa xóa được một đống code nhiễu.
+
+> **Câu trả lời cho câu hỏi phỏng vấn "React Compiler có thay thế useMemo không?"**: nó xử lý được phần lớn trường hợp memo hóa thường ngày, nên code sạch hơn. Nhưng nó chỉ tối ưu trong phạm vi component; những thứ như `staleTime` của query hay chiến lược virtualization của danh sách vẫn là quyết định của bạn.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Đo lại toàn bộ
+
+```bash
+flashlight measure --bundleId com.truonghuunhan.macrozone
+```
+
+```markdown
+## After render optimisation — 20/10/2026
+
+| Metric | Baseline (19/10) | Now | Change |
+|---|---|---|---|
+| Flashlight score | __ | __ | __ |
+| Average FPS | __ | __ | __ |
+| Form render per keystroke | __ ms | __ ms | __ |
+| List item re-renders per scroll | __ | __ | __ |
+```
+
+**Nếu con số không cải thiện đáng kể, ghi đúng như vậy.** Có thể app của bạn vốn đã không bị nghẽn ở render — và đó cũng là một kết luận có giá trị, chứng minh bạn đo thật chứ không viết cho đẹp.
+
+```bash
+git add . && git commit -m "perf: bật react compiler và đo lại"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Nói to có ghi âm
+
+**Chủ đề: khi nào nên memo hóa, và khi nào không.**
+
+> *"Memoisation isn't free, and I think that's the part people skip.*
+> *Every React.memo does a shallow comparison of all props on every parent render, and holds the previous result in memory. For a component that renders in a fraction of a millisecond and takes half a dozen props, the comparison can cost more than just re-rendering it.*
+> *So my rule is: measure first. I memoise when the component is genuinely expensive to render, or when it's inside a long list where the same work repeats hundreds of times. Otherwise I leave it alone.*
+> *There's also a trap where memo looks applied but does nothing. If the parent passes an inline arrow function as a prop, that's a new reference every render, so the shallow comparison always says "changed" and memo never kicks in. You have to wrap the handler in useCallback as well — and for a list, the renderItem function too.*
+> *These days React Compiler handles most of this automatically at build time, so a lot of the manual useCallback noise can go away. But it optimises within a component. Things like cache timing or list virtualisation are still design decisions I have to make."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `shallow comparison` | so sánh nông | *A shallow comparison of all props.* |
+| `kick in` | bắt đầu có tác dụng | *Memo never kicks in.* |
+| `leave it alone` | để yên, không đụng vào | *Otherwise I leave it alone.* |
+| `a fraction of` | một phần nhỏ của | *A fraction of a millisecond.* |
+| `noise` (n) | code thừa gây nhiễu | *A lot of the manual noise can go away.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 12.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Form không còn render lại toàn bộ mỗi lần gõ
+- [ ] Danh sách có `useCallback` cho cả handler **lẫn** `renderItem`
+- [ ] **Đã làm thí nghiệm memo có/không và ghi kết quả thật**
+- [ ] React Compiler đã thử, đã đo
+- [ ] Mỗi thay đổi đều có số trước/sau riêng
+- [ ] Nói được vì sao memo không miễn phí
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-10-20.m4a`
+- [ ] Đọc xong ch.12
+- [ ] 21:30 lên giường

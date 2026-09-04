@@ -1,0 +1,256 @@
+---
+description: Thứ Năm 08/10/2026 — Tuần 6 Ngày 4. Maestro — test E2E bằng YAML trên máy thật.
+alwaysApply: false
+---
+
+# Thứ Năm · 08/10/2026 · Tuần 6 — Ngày 24/61
+
+> Hôm nay tầng cao nhất của kim tự tháp test: **chạy app thật trên máy thật, bấm như người dùng**.
+> Maestro cài trong 1 lệnh và có test đầu tiên trong 15 phút — khác hẳn Detox cần 1–3 ngày cấu hình.
+
+**Docs:** https://maestro.mobile.dev
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Cài Maestro, luồng E2E đầu tiên |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — 3 luồng E2E quan trọng nhất |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Câu hỏi phỏng vấn |
+| **17:00** | **ĐỌC SÁCH** — ch.4 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Maestro
+
+### 08:30–08:45 · Cài đặt
+
+```bash
+curl -fsSL "https://get.maestro.mobile.dev" | bash
+maestro --version
+```
+
+Không sửa gì trong app, không thêm thư viện, không đổi cấu hình build. Maestro điều khiển app từ bên ngoài.
+
+### 08:45–09:30 · Luồng đầu tiên
+
+```yaml
+# .maestro/01-sign-in.yaml
+appId: com.truonghuunhan.macrozone
+---
+- launchApp:
+    clearState: true          # luôn bắt đầu từ trạng thái sạch
+- assertVisible: "Sign in"
+- tapOn:
+    id: "email-input"
+- inputText: "test@example.com"
+- tapOn:
+    id: "password-input"
+- inputText: "Test1234!"
+- tapOn: "Sign in"
+- assertVisible:
+    text: "Today"
+    timeout: 10000            # chờ mạng, tối đa 10 giây
+```
+
+Chạy:
+
+```bash
+maestro test .maestro/01-sign-in.yaml
+```
+
+**`clearState: true` là dòng quan trọng nhất.** Không có nó, test lần hai bắt đầu ở trạng thái đã đăng nhập rồi hỏng — và bạn sẽ mất 30 phút tưởng là lỗi code.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Maestro Studio
+
+```bash
+maestro studio
+```
+
+Giao diện web cho phép bấm vào phần tử trên màn hình và **tự sinh ra YAML**. Dùng nó để dò `testID` thay vì đoán mò.
+
+Thêm `testID` cho các phần tử then chốt trong app:
+
+```tsx
+<TextInput testID="email-input" accessibilityLabel="Email" />
+```
+
+> `testID` chỉ dùng cho E2E. Trong test đơn vị ở RNTL, vẫn ưu tiên `getByLabelText` như hôm qua. Hai tầng test, hai cách tìm phần tử khác nhau — và bạn nên nói rõ điều này khi phỏng vấn.
+
+```bash
+git add . && git commit -m "test: cài maestro và luồng e2e đăng nhập"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — Ba luồng quan trọng nhất
+
+**Nguyên tắc chọn luồng E2E:** chỉ viết cho **đường đi mà nếu hỏng thì app coi như vô dụng**. E2E chậm và tốn công bảo trì, nên phải chọn lọc gắt.
+
+Với MacroZone, ba luồng đó là:
+
+### 13:30–14:15 · Luồng 2 — Thêm bữa ăn
+
+```yaml
+# .maestro/02-add-meal.yaml
+appId: com.truonghuunhan.macrozone
+---
+- launchApp:
+    clearState: true
+- runFlow: sub/sign-in.yaml        # tái sử dụng luồng con
+- tapOn:
+    id: "add-meal-fab"
+- tapOn:
+    id: "meal-name-input"
+- inputText: "Phở bò"
+- tapOn:
+    id: "calories-input"
+- inputText: "450"
+- tapOn: "Save"
+- assertVisible: "Phở bò"
+- assertVisible: "450 kcal"
+```
+
+Tách phần đăng nhập ra `.maestro/sub/sign-in.yaml` và gọi bằng `runFlow` — mọi luồng khác dùng lại được.
+
+### 14:15–15:00 · Luồng 3 — Xóa bữa ăn và dữ liệu bền vững
+
+```yaml
+# .maestro/03-delete-and-persist.yaml
+appId: com.truonghuunhan.macrozone
+---
+- launchApp:
+    clearState: true
+- runFlow: sub/sign-in.yaml
+- runFlow: sub/add-meal.yaml
+- longPressOn: "Phở bò"
+- tapOn: "Delete"
+- tapOn: "Confirm"
+- assertNotVisible: "Phở bò"
+
+# kiểm chứng dữ liệu thật sự mất, không chỉ mất trên giao diện
+- stopApp
+- launchApp                        # KHÔNG clearState — phải giữ phiên đăng nhập
+- assertNotVisible: "Phở bò"
+```
+
+**Đoạn `stopApp` rồi `launchApp` không có `clearState` rất giá trị.** Nó bắt được lớp lỗi mà test đơn vị không bao giờ thấy: giao diện cập nhật đúng nhưng chưa ghi xuống server, hoặc ngược lại.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Chạy cả bộ + xuất báo cáo
+
+```bash
+maestro test .maestro/ --format junit --output maestro-results.xml
+```
+
+Định dạng JUnit để tuần 26–30/10 nối vào GitHub Actions.
+
+### 16:00–16:30 · Viết `docs/testing-strategy.md` cho hoàn chỉnh
+
+```markdown
+# Testing strategy
+
+## The shape
+Most of the value sits in fast unit tests over pure functions. Component tests
+cover the parts with real interaction — mainly forms. End-to-end tests are
+deliberately few: three flows that would make the app useless if they broke.
+
+| Layer | Tool | Count | Runtime |
+|---|---|---|---|
+| Unit — pure logic | Jest | ~40 | < 5s |
+| Component | Jest + RNTL | ~15 | ~15s |
+| Network layer | MSW | included above | — |
+| End-to-end | Maestro | 3 flows | ~2 min |
+
+## What I don't test, and why
+- Third-party libraries — they have their own suites
+- Implementation details — refactors would go red without a real bug
+- Styling and colours — brittle, catches nothing
+- Full-screen snapshots — everyone updates them without reading the diff
+
+## Why Maestro over Detox
+Maestro needs one CLI install and no changes to the app. Detox needs native
+build configuration and a separate test target — one to three days of setup.
+For a project this size, Maestro gives the same confidence for far less
+maintenance. Detox is the better call when you need deep synchronisation with
+native module timing, which this app doesn't have.
+```
+
+```bash
+git add . && git commit -m "test: 3 luồng e2e maestro và tài liệu chiến lược test"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Năm: Câu hỏi phỏng vấn
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Trả lời có ghi âm
+
+**Câu hỏi tuần này:** *"How do you handle authentication and token refresh in a mobile app?"*
+
+> *"Tokens go in SecureStore — the Keychain on iOS, the Keystore on Android — never in AsyncStorage, because that's just an unencrypted file in the app sandbox.*
+> *Access tokens are short-lived, so the interesting part is what happens when one expires. If five requests are in flight and they all get a 401, and each one fires its own refresh call, most backends rotate the refresh token — so the first refresh succeeds and the other four are now using a revoked token. The user gets signed out even though they did nothing wrong.*
+> *So I gate it. The first 401 starts a refresh and stores the promise. Any other request that hits a 401 while that's in flight awaits the same promise instead of starting its own. When it resolves, all of them retry with the new token. If the refresh itself fails, I clear the session and send the user to the login screen — and I also clear the query cache so no data leaks to the next account.*
+> *I built exactly this in my current project and verified it by dropping the JWT lifetime to sixty seconds and leaving the app idle."*
+
+**Câu cuối là câu mạnh nhất.** Nó chuyển bạn từ *"tôi biết lý thuyết"* sang *"tôi đã làm và đã kiểm chứng"*.
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `in flight` | đang trên đường (request) | *Five requests are in flight.* |
+| `gate` (v) | chặn / kiểm soát lối vào | *So I gate the refresh.* |
+| `rotate` (v) | xoay vòng, cấp mới thu cũ | *The backend rotates refresh tokens.* |
+| `revoked` (adj) | đã bị thu hồi | *They're using a revoked token.* |
+| `leak` (v) | rò rỉ | *So no data leaks to the next account.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 4 *(Pragmatic Paranoia)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Maestro cài xong, `maestro --version` chạy
+- [ ] Ba luồng E2E đều xanh
+- [ ] Mọi luồng có `clearState: true` ở `launchApp` đầu tiên
+- [ ] Có luồng con dùng lại được qua `runFlow`
+- [ ] Có kiểm chứng dữ liệu bền vững qua `stopApp` → `launchApp`
+- [ ] Xuất được báo cáo JUnit
+- [ ] `docs/testing-strategy.md` hoàn chỉnh, có phần "vì sao Maestro chứ không Detox"
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-10-08.m4a`
+- [ ] Đọc xong ch.4
+- [ ] 21:30 lên giường

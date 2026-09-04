@@ -1,0 +1,220 @@
+---
+description: Thứ Hai 26/10/2026 — Tuần 9 Ngày 1. Offline-first — lưu cache xuống đĩa, phát hiện mạng, giao diện trung thực.
+alwaysApply: false
+---
+
+# Thứ Hai · 26/10/2026 · Tuần 9 — Ngày 36/61
+
+> **Tuần cuối tháng 10.** Offline-first không phải tính năng phụ — ở Việt Nam, mạng 4G chập chờn trong thang máy, hầm gửi xe, hay vùng ngoại ô là chuyện hằng ngày.
+
+**Docs:** https://tanstack.com/query/latest/docs/framework/react/plugins/persistQueryClient
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Lưu cache query xuống đĩa |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Phát hiện mạng + giao diện trung thực |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Daily standup |
+| **17:00** | **ĐỌC SÁCH** — ch.16 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Cache bền vững
+
+```bash
+git checkout -b feat/offline
+npm install @tanstack/react-query-persist-client @tanstack/query-async-storage-persister
+```
+
+### 08:30–09:30 · Nối persister
+
+```ts
+const persister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  throttleTime: 1000,          // không ghi đĩa quá 1 lần/giây
+});
+
+<PersistQueryClientProvider
+  client={queryClient}
+  persistOptions={{
+    persister,
+    maxAge: 1000 * 60 * 60 * 24,        // giữ cache 24 giờ
+    buster: appVersion,                  // đổi version → bỏ cache cũ
+    dehydrateOptions: {
+      shouldDehydrateQuery: (q) => q.state.status === 'success',
+    },
+  }}
+>
+```
+
+**Ba tùy chọn, ba lý do:**
+
+| Tùy chọn | Vì sao cần |
+| --- | --- |
+| `throttleTime` | Không có nó, mỗi lần cache đổi là một lần ghi đĩa. Trên máy yếu điều này làm giật thấy rõ |
+| `buster` | Đổi hình dạng dữ liệu ở phiên bản mới mà cache cũ còn nguyên → crash. `buster` là app version thì cache tự bỏ khi cập nhật |
+| `shouldDehydrateQuery` | Chỉ lưu query thành công. Lưu cả query lỗi thì mở app lại thấy ngay màn hình lỗi |
+
+**`buster` là chi tiết mà rất ít người nghĩ tới, và nó gây crash thật trên production.** Nhớ để kể khi phỏng vấn.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Kiểm chứng
+
+1. Mở app có mạng, để dữ liệu tải xong
+2. Đóng hẳn app
+3. **Bật chế độ máy bay**
+4. Mở lại app
+
+Phải thấy: danh sách bữa ăn hiện ra bình thường, kèm dấu hiệu cho biết dữ liệu là bản lưu. **Không được** thấy màn hình lỗi hay danh sách rỗng.
+
+```bash
+git add . && git commit -m "feat: lưu cache query xuống đĩa với buster theo phiên bản"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:15 · Phát hiện trạng thái mạng
+
+```bash
+npx expo install @react-native-community/netinfo
+```
+
+```ts
+import NetInfo from '@react-native-community/netinfo';
+import { onlineManager } from '@tanstack/react-query';
+
+onlineManager.setEventListener((setOnline) =>
+  NetInfo.addEventListener((state) => {
+    setOnline(!!state.isConnected && state.isInternetReachable !== false);
+  }),
+);
+```
+
+**`isConnected` khác `isInternetReachable` — phân biệt cho rõ:**
+
+| | Nghĩa |
+| --- | --- |
+| `isConnected` | Có kết nối Wi-Fi hoặc di động |
+| `isInternetReachable` | Kết nối đó **thật sự ra được internet** |
+
+Trường hợp kinh điển: nối vào Wi-Fi quán cà phê nhưng chưa đăng nhập cổng — `isConnected` là `true`, `isInternetReachable` là `false`. Chỉ kiểm tra cái đầu là app tưởng có mạng và mọi request treo cho tới khi hết giờ.
+
+### 14:15–15:00 · Giao diện trung thực
+
+**Nguyên tắc: đừng giả vờ.** Nếu dữ liệu là bản lưu, hãy nói rõ.
+
+```tsx
+{!isOnline && (
+  <View style={styles.offlineBanner}>
+    <Text>Đang ngoại tuyến · dữ liệu lúc {formatRelative(dataUpdatedAt)}</Text>
+  </View>
+)}
+```
+
+Ba trạng thái cần phân biệt cho người dùng:
+
+| Trạng thái | Hiển thị |
+| --- | --- |
+| Trực tuyến, dữ liệu mới | Bình thường |
+| Ngoại tuyến, có dữ liệu lưu | Thanh báo + thời điểm dữ liệu |
+| Ngoại tuyến, chưa có dữ liệu nào | Màn hình trống có giải thích, không phải màn hình lỗi |
+
+TanStack Query cho sẵn `dataUpdatedAt` — dùng nó để hiện "cập nhật 12 phút trước".
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Vô hiệu hóa đúng chỗ
+
+Khi ngoại tuyến, những thao tác không làm được phải bị chặn **trước khi** người dùng bấm, không phải báo lỗi sau khi bấm:
+
+```tsx
+<Button
+  title="Thêm bữa ăn"
+  disabled={!isOnline && !supportsOfflineQueue}
+  onPress={...}
+/>
+```
+
+Nhưng ngày mai bạn sẽ làm hàng đợi đồng bộ, nên đa số thao tác **sẽ** làm được khi ngoại tuyến. Hôm nay chỉ cần đảm bảo app không hứa điều nó không làm được.
+
+**Thử đủ 5 tình huống:**
+1. Mở app khi đang ngoại tuyến, đã có cache → hiện dữ liệu lưu + thanh báo
+2. Mở app khi ngoại tuyến, chưa có cache → màn hình trống có giải thích
+3. Đang dùng thì mất mạng → thanh báo xuất hiện, dữ liệu vẫn còn
+4. Có mạng lại → tự làm mới, thanh báo biến mất
+5. Wi-Fi có nhưng không ra internet → phải nhận ra là ngoại tuyến
+
+```bash
+git add . && git commit -m "feat: phát hiện mạng và giao diện trạng thái ngoại tuyến"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Standup có ghi âm
+
+> *"Morning. Last week was performance — I've got before and after numbers documented for everything, including the changes that made no difference.*
+> *This week is offline support and CI. Today I persisted the query cache to disk so the app opens with data even in airplane mode, and wired up network detection.*
+> *One detail I hadn't thought about before: there's a difference between being connected and actually reaching the internet. Captive portals — hotel or café wifi where you haven't logged in yet — report as connected, so if you only check that flag, every request hangs until it times out.*
+> *Tomorrow I'll add a mutation queue so writes made offline sync when the connection comes back."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `captive portal` | cổng đăng nhập Wi-Fi công cộng | *Captive portals report as connected.* |
+| `hang` (v) | treo, không phản hồi | *Every request hangs.* |
+| `time out` | hết thời gian chờ | *…until it times out.* |
+| `stale data` | dữ liệu cũ | *We show stale data with a timestamp.* |
+| `come back` (mạng) | có lại | *…when the connection comes back.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 16.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Cache query lưu xuống đĩa, mở app ngoại tuyến vẫn thấy dữ liệu
+- [ ] `buster` gắn với app version
+- [ ] Chỉ lưu query thành công, không lưu query lỗi
+- [ ] Phân biệt được `isConnected` và `isInternetReachable`
+- [ ] Thanh báo ngoại tuyến có hiện thời điểm dữ liệu
+- [ ] Thử đủ 5 tình huống mạng
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-10-26.m4a`
+- [ ] Đọc xong ch.16
+- [ ] 21:30 lên giường

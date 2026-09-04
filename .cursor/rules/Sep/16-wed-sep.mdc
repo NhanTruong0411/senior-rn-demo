@@ -1,0 +1,159 @@
+---
+description: Thứ Tư 16/09/2026 — Tuần 2 Ngày 3. MacroZone — AsyncStorage, lớp lưu trữ, CRUD đầy đủ.
+alwaysApply: false
+---
+
+# Thứ Tư · 16/09/2026 · Tuần 2 — Ngày 8/61
+
+**Video:** MacroZone `56:12 → 1:14:53`
+
+> Hôm nay là ngày quan trọng nhất tuần: học cách **tách lớp lưu trữ ra khỏi giao diện**. Đây là kỹ năng kiến trúc, không phải kỹ năng API.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Vòng 2: dựng lại tabs + components |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — MacroZone 56:12 → 1:14:53 |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nghe + chép chính tả |
+| **17:00** | **ĐỌC SÁCH** — ch.8 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Vòng 2
+
+```bash
+git checkout -b practice/day-08
+```
+
+Không mở video. Dựng lại:
+
+1. Tab layout với 2–3 tab có icon
+2. `MacroCard` nhận props `label`, `current`, `target`, `unit`
+3. `MacroGrid` xếp các card thành lưới
+4. `MealItem` và danh sách `RecentMeals`
+5. Form thêm bữa ăn với các ô nhập số
+
+**Bắt buộc:** dùng `theme.ts` bạn tạo hôm qua thay cho mọi giá trị màu/khoảng cách viết cứng. Nếu còn thấy `'#1e293b'` hay `padding: 16` rải rác trong file component thì chưa đạt.
+
+Giãn cơ 5 phút lúc 09:30.
+
+```bash
+git add . && git commit -m "practice: dựng lại tabs và component từ trí nhớ"
+git checkout main && git merge practice/day-08
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — MacroZone 56:12 → 1:14:53
+
+### 13:30–14:15 · `56:12 → 1:02:17` AsyncStorage + Storage Handler
+
+```bash
+npx expo install @react-native-async-storage/async-storage
+```
+
+- AsyncStorage là **key–value, chỉ lưu chuỗi** → phải `JSON.stringify` / `JSON.parse`
+- Traversy tách toàn bộ logic lưu trữ ra một file riêng (`lib/storage.ts`)
+
+**Đây là điểm cần dừng lại suy nghĩ.** Vì sao tách ra file riêng thay vì gọi thẳng AsyncStorage trong component?
+
+Câu trả lời — ghi vào sổ vì sẽ dùng trong phỏng vấn:
+
+> *Component chỉ nên biết "tôi cần danh sách bữa ăn", không nên biết dữ liệu nằm ở AsyncStorage hay SQLite hay API. Tách lớp lưu trữ ra giúp tuần sau tôi thay AsyncStorage bằng TanStack Query mà không phải sửa một dòng nào trong component.*
+
+Đây chính là *information hiding* trong chương 5 sách bạn đọc tuần trước. Lý thuyết và thực hành gặp nhau ở đây.
+
+### 14:15–15:00 · `1:02:17 → 1:08:56` Nối form với storage + đọc dữ liệu
+
+- Lưu bữa ăn khi bấm nút
+- `useEffect` đọc dữ liệu lúc màn hình mở
+- Cập nhật `MacroGrid` theo dữ liệu thật
+
+**Bẫy hay gặp:** `useEffect` không có dependency array chạy lại sau mỗi lần render → vòng lặp vô tận. Kiểm tra kỹ.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · `1:08:56 → 1:14:53` Xóa bữa ăn
+
+- Xóa một mục khỏi danh sách và ghi lại storage
+- Hộp thoại xác nhận bằng `Alert.alert`
+- Cập nhật lại grid sau khi xóa
+
+### Bài mở rộng nếu xong sớm
+
+Thêm xử lý lỗi cho toàn bộ lớp storage: nếu `JSON.parse` gặp dữ liệu hỏng thì sao? Bọc `try/catch` và trả về mảng rỗng thay vì để app crash. Traversy bỏ qua phần này — nhưng production thì không được bỏ qua.
+
+```bash
+git add . && git commit -m "feat: lớp lưu trữ AsyncStorage với CRUD đầy đủ"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Nghe + chép chính tả
+
+### 16:30–16:45 · Chép chính tả
+
+Mở **React Native Radio**: https://reactnativeradio.com — chọn tập mới nhất.
+
+1. Chọn đúng **60 giây** ở giữa tập
+2. Nghe lần 1: chỉ nghe, không viết
+3. Nghe lần 2, 3, 4…: viết ra giấy từng chữ
+4. Mở transcript đối chiếu
+5. Khoanh tròn chỗ nghe sai
+
+### 16:45–16:55 · Đọc to lại
+
+Đọc to transcript 3 lần, bắt chước tốc độ và chỗ ngắt hơi. Ghi âm lần cuối.
+
+### 16:55–17:00 · 5 từ nghe không ra
+
+Ghi vào sổ. Tra từng từ trên https://youglish.com, nghe ít nhất 3 người bản xứ phát âm.
+
+**Sau 2 tuần chép chính tả, xem lại danh sách từ nghe sai — bạn sẽ thấy chúng lặp lại theo một vài kiểu.** Đó là lỗ hổng phát âm cụ thể của bạn, và biết được nó đáng giá hơn học thêm 100 từ mới.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 8 *(Pull Complexity Downwards)*.
+
+Chương này nói đúng cái bạn vừa làm sáng nay: lớp storage nuốt hết phần phức tạp để component ở trên đơn giản đi.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Dựng lại được tabs + components từ trí nhớ
+- [ ] Không còn giá trị màu/khoảng cách viết cứng trong component
+- [ ] Thêm, đọc, xóa bữa ăn đều chạy
+- [ ] Dữ liệu còn nguyên sau khi tắt và mở lại app
+- [ ] Lớp storage có `try/catch`, dữ liệu hỏng không làm crash app
+- [ ] Giải thích được vì sao tách lớp storage ra file riêng
+- [ ] **Có commit hôm nay**
+- [ ] Có bản chép chính tả + ghi âm `2026-09-16.m4a`
+- [ ] Đọc xong ch.8
+- [ ] 21:30 lên giường

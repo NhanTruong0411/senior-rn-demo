@@ -1,0 +1,159 @@
+---
+description: Context tháng 10/2026 — Tháng ĐÀO SÂU. Auth, Testing, New Architecture, Performance, CI/CD. Đọc trước khi mở file ngày.
+alwaysApply: false
+---
+
+# Tháng 10/2026 — Tháng 2: ĐÀO SÂU
+
+> **Mục tiêu tháng:** Biến MacroZone từ "app chạy được" thành **app có chất lượng kỹ sư**.
+> Đây là tháng tạo khác biệt: 5 chủ đề dưới đây chính là 5 lỗ hổng bạn tự nhận, và cũng là 5 thứ người phỏng vấn đào sâu nhất.
+> **22 ngày làm việc** · Thứ 2 → Thứ 6 · T7 + CN nghỉ hoàn toàn.
+
+---
+
+## 1. Lịch cố định (giống tháng 9, không đổi)
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY (2h)** — việc khó. Giãn cơ 5 phút lúc 09:30 |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC (3h)** — nghỉ 10 phút lúc 15:00 |
+| **16:30** | **TIẾNG ANH (30 phút)** |
+| **17:00** | **ĐỌC SÁCH (30 phút)** |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## 2. Lộ trình tháng 10
+
+| Tuần | Ngày | Chủ đề | Kết quả phải có |
+| --- | --- | --- | --- |
+| **5** | 01–02/10 | **Auth thật** — Supabase Auth, protected route, refresh token | Đăng ký/đăng nhập/đăng xuất chạy, 401 tự refresh |
+| **6** | 05–09/10 | **Testing** — Jest 30, RNTL, Maestro | Test cho toàn bộ logic + 3 luồng E2E |
+| **7** | 12–16/10 | **New Architecture** — TurboModule Kotlin + Swift | 1 TurboModule tự viết end-to-end, chạy cả 2 nền tảng |
+| **8** | 19–23/10 | **Performance** — profiling, Hermes, bundle | Case study có số, bundle giảm được % đo được |
+| **9** | 26–30/10 | **Offline-first + CI/CD** | App dùng được khi mất mạng · GitHub Actions chạy test tự động |
+
+---
+
+## 3. Vì sao đúng 5 chủ đề này
+
+| Chủ đề | Tần suất bị hỏi khi phỏng vấn RN ở VN | Tình trạng của bạn |
+| --- | --- | --- |
+| Auth + xử lý 401 | ~80% | Đã làm ở Firegroup, cần nói mạch lạc hơn |
+| Testing | ~60% hỏi, ít đào sâu | **Lỗ hổng tự nhận.** Tháng này bịt hẳn |
+| New Architecture | ~50%, là điểm cộng | Mới ở mức khái niệm. Tháng này thành "đã tự làm" |
+| Performance | ~90% | Đã có 45MB→28MB. Tháng này thêm số thứ hai |
+| CI/CD | ~40% | **Lỗ hổng tự nhận.** Chỉ mới chạm EAS |
+
+---
+
+## 4. Tài nguyên tháng 10
+
+### Auth
+| Tên | Link |
+| --- | --- |
+| Supabase Auth (React Native) | https://supabase.com/docs/guides/auth/quickstarts/react-native |
+| Expo SecureStore | https://docs.expo.dev/versions/latest/sdk/securestore/ |
+| Expo Router — protected routes | https://docs.expo.dev/router/reference/authentication/ |
+
+### Testing
+| Tên | Link |
+| --- | --- |
+| Hướng dẫn đầy đủ 2026 (Jest 30 + RNTL + Maestro) | https://reactnativerelay.com/article/complete-guide-testing-react-native-apps-2026-unit-tests-e2e-maestro |
+| React Native Testing Library | https://callstack.github.io/react-native-testing-library/ |
+| Maestro | https://maestro.mobile.dev |
+| MSW (giả lập API) | https://mswjs.io |
+| Jest | https://jestjs.io/docs/getting-started |
+
+### New Architecture
+| Tên | Link |
+| --- | --- |
+| **Callstack — TurboModule Android với Kotlin** | https://www.callstack.com/tutorials/implementing-an-android-turbomodule-with-kotlin |
+| Working group — tài liệu chính thức | https://github.com/reactwg/react-native-new-architecture |
+| Turbo Native Modules | https://github.com/reactwg/react-native-new-architecture/blob/main/docs/turbo-modules.md |
+| Expo Modules API | https://docs.expo.dev/modules/overview/ |
+
+### Performance
+| Tên | Link |
+| --- | --- |
+| Flashlight (chấm điểm hiệu năng) | https://flashlight.dev |
+| RN — Performance overview | https://reactnative.dev/docs/performance |
+| Hermes | https://reactnative.dev/docs/hermes |
+| React DevTools Profiler | https://react.dev/learn/react-developer-tools |
+
+### CI/CD
+| Tên | Link |
+| --- | --- |
+| GitHub Actions | https://docs.github.com/en/actions/quickstart |
+| EAS Build với GitHub Actions | https://docs.expo.dev/build/building-on-ci/ |
+| expo-github-action | https://github.com/expo/expo-github-action |
+
+---
+
+## 5. Khối Tiếng Anh — cấu trúc không đổi
+
+| Phút | Việc |
+| --- | --- |
+| 0–10 | Shadowing — 2 phút video/podcast, nghe → dừng → nhại to, lặp 3–4 lần |
+| 10–25 | Nói to có ghi âm theo chủ đề của ngày. Nghe lại. Nói lần hai |
+| 25–30 | 5 từ/cụm mới vào sổ, đọc to mỗi từ 3 lần |
+
+| Ngày | Chủ đề |
+| --- | --- |
+| Thứ 2 | Daily standup |
+| Thứ 3 | Giải thích 1 khái niệm kỹ thuật |
+| Thứ 4 | Nghe + chép chính tả |
+| Thứ 5 | Trả lời 1 câu phỏng vấn ≤60 giây |
+| Thứ 6 | Nhìn lại tuần bằng tiếng Anh + kế hoạch tuần sau |
+
+### Bộ câu hỏi phỏng vấn tháng 10 (Thứ Năm hằng tuần)
+
+| Ngày | Câu hỏi |
+| --- | --- |
+| 08/10 | *"How do you handle authentication and token refresh in a mobile app?"* |
+| 15/10 | *"What's your testing strategy? What do you NOT test?"* |
+| 22/10 | *"Explain the React Native New Architecture. Why does it matter?"* |
+| 29/10 | *"Tell me about a performance problem you solved."* |
+
+---
+
+## 6. Đọc sách tháng 10
+
+Xong *A Philosophy of Software Design* trong tuần đầu, rồi sang:
+
+**The Pragmatic Programmer** — Hunt & Thomas. Bản tiếng Anh. ~10 trang/ngày.
+
+---
+
+## 7. Định nghĩa hoàn thành — 30/10
+
+- [ ] Đăng nhập/đăng xuất thật, token lưu trong SecureStore, 401 tự refresh
+- [ ] Test phủ toàn bộ logic nghiệp vụ + 3 luồng E2E chạy bằng Maestro
+- [ ] **1 TurboModule tự viết**, chạy được cả Android (Kotlin) lẫn iOS (Swift)
+- [ ] `docs/perf-notes.md` có đủ số liệu, kèm ảnh chụp
+- [ ] App dùng được ở chế độ máy bay, đồng bộ lại khi có mạng
+- [ ] GitHub Actions tự chạy lint + typecheck + test trên mỗi pull request
+- [ ] 22 file ghi âm tiếng Anh
+- [ ] Commit đủ 22/22 ngày
+
+---
+
+_Đọc file này trước khi mở file ngày._

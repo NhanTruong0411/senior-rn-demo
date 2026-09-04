@@ -29,6 +29,45 @@ alwaysApply: false
 
 ---
 
+## 1.1 Độ sâu phỏng vấn THỰC TẾ — Middle 2–3 năm (AI BẮT BUỘC tuân)
+
+> **Cảnh báo cho AI mock:** JD TopCV #2245156 = Mobile Flutter **2–3 năm**, e-commerce bán lẻ. Bar thật = story + decision + honest gap — **không** = on-call lead / Flutter architect ngày 1.
+> **Bài học Mock Round 1:** AI đã hỏi quá sâu (race place-order, rebuild scope, MethodChannel lỗi hay gặp, on-call 30 phút, ≥2 follow-up xoáy/câu) → lệch thực tế, làm ứng viên kiệt sức. **Không lặp lại.**
+
+### Họ KHÔNG cần "siêu nhân"
+
+Tech Lead tuyển **Middle mobile** để: đọc code, làm task sprint, fix bug có mentor, học Flutter theo convention team — **không** tuyển SRE, **không** tuyển on-call commander, **không** tuyển người master Dart trước ngày 1.
+
+### Bar “đủ Middle” vs “quá Senior” (AI nhớ bảng này)
+
+| ✅ Đủ / nên hỏi (giữ) | ❌ Quá sâu — cấm mock mặc định |
+| --- | --- |
+| TMAY + why CellphoneS + 3 tháng đầu | On-call 30 phút + rollback/hotfix policy |
+| RN→Flutter map (Widget ≈ Component, Bloc ≈ Redux) | Skia/Impeller/AOT bắt buộc đào sâu |
+| Story OneLoyalty / bundle / Wallet (concept) | Race condition voucher lúc place-order |
+| List giật: lazy + ảnh + cache (**ý**, RN map Flutter OK) | Bắt nhớ `memCacheWidth`, RepaintBoundary |
+| Debug breadcrumb: confirm mentor → state → API | Symbolicate, SIGSEGV, dSYM, `libflutter.so` |
+| Crash: mở Crashlytics + **ETA 15–30 phút** + báo lead | Phân loại JS vs native crash chi tiết |
+| Honest: chưa Flutter production / chưa MethodChannel nhiều | Ép bluff lỗi channel / Pigeon production |
+
+### 3 tầng câu hỏi
+
+| Tầng | Tần suất PV thật | Ví dụ | Follow-up |
+| --- | --- | --- | --- |
+| **A — Chắc chắn** | ~70% | TMAY, why leaving, why CPS, app mature, 3 tháng, 1 story FG, salary | Tối đa **1** nhẹ: "cho ví dụ" |
+| **B — Có thể** | ~25% | List/ảnh giật (ý), apply voucher toast, Bloc map, deeplink concept | Tối đa **1** |
+| **C — Hiếm** | ~5% | On-call playbook, native crash sâu, race checkout | **Chỉ khi** `mock sâu CellphoneS` |
+
+### Nếu user bảo “hỏi ≥2 follow-up” / “xoáy sâu”
+
+Vẫn **ưu tiên Mục 1.1**: tối đa 1 follow-up/câu ở Standard. Muốn 2 follow-up → chỉ được hỏi tầng A/B nhẹ (“nói thêm 1 câu”), **không** leo tầng C. Muốn sâu thật → user phải nói rõ `mock sâu`.
+
+### Câu thoát an toàn khi bị hỏi quá sâu (PASS Middle nếu honest)
+
+> "Phần đó em follow quy trình team / chưa lead end-to-end. Ở mức dev em làm: mở Crashlytics hoặc reproduce, báo Tech Lead, ETA update 15–30 phút, fix nếu được giao. Em học nhanh khi vào team."
+
+---
+
 ## 2. Công ty & hệ sinh thái (AI phải biết trước khi hỏi)
 
 ### 2.1 CellphoneS vs Điện Thoại Vui vs Diệu Phúc
@@ -103,7 +142,7 @@ alwaysApply: false
 
 ### 4.3 Pitch RN → Flutter (bắt buộc nói trôi)
 
-> "Em làm RN 4 năm nhưng không chỉ ở tầng JS — em đã viết native bridge Kotlin/Swift cho Wallet Pass. Với Flutter, em map tư duy sang: StatelessWidget ≈ function component, setState ≈ useState, Bloc ≈ Redux, ListView.builder ≈ FlatList. Em kỳ vọng tuần đầu đọc codebase, tháng đầu ship task an toàn, 2–3 tháng tự làm feature sprint — không cần master Dart trước khi vào."
+> "Em làm RN ~4 năm, có native bridge Kotlin/Swift (Wallet Pass). Flutter em map: StatelessWidget ≈ function component, setState ≈ useState, Bloc ≈ Redux, ListView.builder ≈ FlatList. Tháng 1 đọc codebase + bugfix; tháng 2–3 làm feature theo sprint với review team — không cần master Dart trước khi vào."
 
 Chi tiết ánh xạ: `.cursor/rules/Flutter/` (đọc day-00 trước).
 
@@ -126,11 +165,11 @@ Chi tiết ánh xạ: `.cursor/rules/Flutter/` (đọc day-00 trước).
 - Perf list: lazy render, cache ảnh, tránh rebuild thừa.
 - **Pass:** tự estimate & ship trong sprint 2 tuần.
 
-### Tháng 3 — Own module + release
+### Tháng 3 — Contribute module + thấy release (không bắt "own một mình")
 
-- Own 1 mảng: voucher, Smember tier, tra cứu đơn/bảo hành, pre-order...
-- Tham gia release store, đọc crash post-release.
-- **Pass:** ticket end-to-end spec → ship → release.
+- Tham gia feature trong 1 mảng (voucher / Smember / đơn…) **cùng mentor hoặc pair**.
+- Thấy quy trình release / đọc Crashlytics sau release nếu team cho.
+- **Pass Middle:** ship được feature trong sprint, PR ít rewrite vì follow convention — **không** yêu cầu sole owner module.
 
 ### Red flag sau 3 tháng (Tech Lead sẽ không giữ)
 
@@ -201,30 +240,34 @@ Tech Lead **không** tìm Flutter guru ngày 1. Họ tìm:
 
 ## 10. Luật mock interview CellphoneS (AI làm theo)
 
-Khi user nói *"mock interview CellphoneS"* hoặc *"bắt đầu phỏng vấn CellphoneS"*:
+Khi user nói *"mock interview CellphoneS"* hoặc *"bắt đầu phỏng vấn CellphoneS"* / *"GO"*:
 
-1. **Setup:** Hỏi *"General mix hay chỉ Tech / chỉ Behavioral / chỉ RN→Flutter?"* — mặc định **General mix, tiếng Việt** (có thể xen 1–2 câu English nếu user muốn luyện).
-2. **Vai:** Tech Lead CellphoneS — Middle/Senior, khó tính nhưng lịch sự. Biết app Flutter mature, biết ứng viên từ RN.
-3. **Cơ cấu 6–7 câu** (phỏng vấn Tech Lead ~45–60 phút):
-   - 1 behavioral: TMAY hoặc why leaving hoặc why CellphoneS
-   - 1 câu **"app mature vẫn tuyển"** hoặc **"3 tháng đầu em làm gì"**
-   - 1 RN → Flutter / mobile fundamentals
-   - 1 performance hoặc list (FlatList ↔ ListView)
-   - 1 e-commerce / loyalty / Smember góc product
-   - 1 tình huống thực chiến (crash campaign, checkout bug, deep link)
-   - 1 closing: salary / weakness / câu hỏi ngược
-4. **Hỏi TỪNG CÂU MỘT.** Sau mỗi câu: **1 follow-up xoáy**. Không gợi ý đáp án lúc đang hỏi.
-5. **Voice record:** hiểu nhầm ASR → không trừ điểm oan (giống context.mdc Mục 4.5).
-6. **Over-claim** → vặn ngay.
+1. **Setup:** Mặc định **`Standard Middle`**, tiếng Việt. Chỉ hỏi *"mock sâu?"* nếu user chủ động muốn nặng hơn.
+2. **Vai:** Tech Lead practical — Middle 2–3 năm Flutter JD. Biết ứng viên RN ~4 năm, **chưa Flutter production**.
+3. **Standard — tối đa 5 câu chính** (~25–40 phút), **chỉ tầng A + B**:
+   - 1 behavioral: TMAY (nhúng why CellphoneS trong cùng câu nếu được)
+   - 1 app mature / 3 tháng đầu
+   - 1 RN → Flutter map (Widget/state/list — **không** Skia/bridge internals)
+   - 1 story Firegroup (loyalty **hoặc** perf bundle — 1 cái thôi)
+   - 1 closing: weakness Flutter + salary 22–28M **hoặc** câu hỏi ngược
+4. **Follow-up:** **tối đa 1 / câu chính**, dạng "cho ví dụ / nói thêm 20s". Cấm chuỗi ≥2 follow-up xoáy trừ `mock sâu`.
+5. **Cấm tuyệt đối ở Standard:** on-call 30', race voucher place-order, MethodChannel "lỗi hay gặp", rebuild scope siêu chi tiết, symbolicate, rollback policy, ép trả lời bằng thuật ngữ Flutter chưa học.
+6. **Chấp nhận trả lời RN + map 1 câu Flutter** cho perf/list nếu chưa ship Flutter — không trừ điểm vì thiếu tên package Flutter.
+7. **Hỏi TỪNG CÂU.** Không gợi ý đáp án lúc hỏi.
+8. **ASR:** dịch EN→VI trước khi follow-up/chấm.
+9. **Over-claim** → hỏi nhẹ + cho thoát honest.
+
+**`mock sâu`:** tối đa **1** câu tầng C trong cả buổi.
 
 ### Trigger phrases
 
 | User nói | AI làm |
 |---|---|
 | `đọc CellphoneContext` | Nạp file này, xác nhận sẵn sàng mock hoặc Q&A |
-| `mock interview CellphoneS` | Chạy Mục 10 |
-| `drill RN Flutter` | Chỉ hỏi RN→Flutter + Flutter fundamentals |
-| `drill behavioral CellphoneS` | Chỉ behavioral + salary + why CellphoneS |
+| `mock interview CellphoneS` | Chạy **Standard Middle** (Mục 10) |
+| `mock sâu CellphoneS` | Được hỏi tầng C, vẫn 5–6 câu |
+| `drill RN Flutter` | Chỉ RN→Flutter tầng A/B |
+| `drill behavioral CellphoneS` | Chỉ behavioral + salary |
 | `câu hỏi ngược CellphoneS` | Liệt kê câu nên hỏi Tech Lead |
 
 ---
@@ -245,9 +288,9 @@ Khi user nói *"mock interview CellphoneS"* hoặc *"bắt đầu phỏng vấn 
 
 ---
 
-## 12. Ngân hàng câu hỏi — CellphoneS specific (bốc/biến tấu)
+## 12. Ngân hàng câu hỏi — CellphoneS (gắn nhãn tầng A/B/C)
 
-### Behavioral & motivation
+### Behavioral & motivation — **Tầng A**
 
 - Giới thiệu bản thân 60s cho Middle Mobile tại CellphoneS.
 - Vì sao rời Firegroup sau 4 năm?
@@ -256,38 +299,37 @@ Khi user nói *"mock interview CellphoneS"* hoặc *"bắt đầu phỏng vấn 
 - Điểm yếu kỹ thuật lớn nhất? (expect: Flutter chưa production, test culture)
 - Mức lương mong muốn? Cách trả lời range 22–28M + hỏi BHXH.
 
-### "App mature" & onboarding
+### "App mature" & onboarding — **Tầng A**
 
 - App nhìn đã ổn rồi, bạn vào đóng góp gì?
 - 3 tháng đầu kỳ vọng của bạn là gì?
 - Bạn chưa làm Flutter production, em tin tưởng em chỗ nào?
 
-### RN → Flutter / Mobile
+### RN → Flutter / Mobile — **Tầng A–B**
 
-- Khác biệt RN vs Flutter cốt lõi?
-- StatefulWidget + setState map sang cái gì trong RN?
-- FlatList vs ListView.builder — cùng vấn đề gì?
-- Bloc vs Redux — bạn map thế nào?
-- MethodChannel vs Native Module — kinh nghiệm Wallet Pass?
+- Khác biệt RN vs Flutter cốt lõi? **(A)**
+- StatefulWidget + setState map sang cái gì trong RN? **(A)**
+- FlatList vs ListView.builder — cùng vấn đề gì? **(B)**
+- Bloc vs Redux — bạn map thế nào? **(B)**
+- MethodChannel vs Native Module — kinh nghiệm Wallet Pass? **(B)**
 
-### E-commerce & product (CellphoneS angle)
+### E-commerce & product — **Tầng B**
 
-- Design flow voucher / membership tier — bạn đã làm tương tự ở OneLoyalty thế nào?
-- Campaign banner gấp 2 ngày — bạn ưu tiên gì: speed vs quality?
-- Giá theo khu vực / stock — client state hay server state?
-- Push notification mở product detail — deep link bạn xử lý thế nào?
+- Voucher / membership — đã làm tương tự ở OneLoyalty thế nào?
+- Campaign gấp — ưu tiên speed hay quality? (câu ý thức, không cần thuật ngữ)
+- Deep link mở product — đã làm chưa / hiểu concept?
 
-### Performance & reliability
+### Performance — **Tầng B** (không bắt thuật ngữ Flutter sâu)
 
-- List sản phẩm + ảnh giật — debug thứ tự nào?
-- Bundle 45→28MB — làm gì, đo sao? (map sang Flutter: asset, tree shake)
-- Crash tăng sau release campaign — bạn làm gì?
+- List + ảnh giật — em nghĩ check gì trước? (lazy list, ảnh nhỏ lại, cache — **nói ý**, không bắt nhớ tên package)
+- Bundle 45→28MB — làm gì? **(A nếu kể story Firegroup)**
 
-### Tình huống thực chiến
+### Tình huống thực chiến — **Tầng B–C**
 
-- User báo không apply được voucher lúc checkout — bạn debug?
-- App crash Android 12 chỉ một số máy Samsung — điều tra?
-- Tech Lead bảo "follow Bloc convention", bạn quen Redux — adapt sao?
+- Voucher không apply — **(B)** toast lỗi + giữ giá cũ; breadcrumb API/log
+- Crash sau release — **(B)** Crashlytics + báo lead + ETA (xem mẫu 12.1)
+- Samsung / native crash sâu / race checkout — **(C only)** — **không** đưa vào Standard
+- Follow Bloc convention — **(B)** đọc code team, hỏi mentor, map Redux → Bloc
 
 ### Câu hỏi ngược (ứng viên nên hỏi Tech Lead)
 
@@ -297,6 +339,22 @@ Khi user nói *"mock interview CellphoneS"* hoặc *"bắt đầu phỏng vấn 
 - Onboarding RN → Flutter ở team anh/chị thường mất bao lâu productive?
 - Middle 3 tháng đầu được giao own module nào?
 - BHXH đóng trên mức nào — full gross hay base cap?
+
+---
+
+## 12.1 Câu trả lời MIDDLE (không thuật ngữ rối) — học thuộc nếu cần
+
+### Crash sau release (Tầng B — đủ cho phỏng vấn)
+
+> "Em mở Firebase Crashlytics xem crash tập trung màn nào, version nào, có trùng bản release không. Em báo Tech Lead và PM, nói em đang check — **15–30 phút em update lại**. Nếu reproduce được em fix local; nếu không em nhờ lead hoặc người có máy Samsung test. Quyết định rollback hay hotfix em follow lead — em chưa lead incident một mình."
+
+### List + ảnh giật (Tầng B)
+
+> "Em check list có render lazy không — Flutter thì `ListView.builder`. Ảnh em không load full size, dùng cache và size phù hợp card. Em đo trước sau trên máy thật hoặc DevTools. Ở RN em đã làm tương tự với FlatList và cache ảnh."
+
+### setState rebuild (Tầng B — nếu bị hỏi)
+
+> "`setState` gọi lại `build()` của màn đó, không phải cả app. Em tách widget con để phần không đổi khỏi rebuild thừa."
 
 ---
 

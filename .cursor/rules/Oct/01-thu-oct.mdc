@@ -1,0 +1,238 @@
+---
+description: Thứ Năm 01/10/2026 — Tuần 5 Ngày 1. Supabase Auth thật — đăng ký, đăng nhập, SecureStore.
+alwaysApply: false
+---
+
+# Thứ Năm · 01/10/2026 · Tuần 5 — Ngày 19/61
+
+> Tháng 10 bắt đầu. Chủ đề đầu tiên: **auth thật**. Đây là câu hỏi xuất hiện ở ~80% buổi phỏng vấn RN, và bạn đã làm ở Firegroup — tháng này làm lại để nói được mạch lạc và chỉ tay vào code.
+
+**Docs:** https://supabase.com/docs/guides/auth/quickstarts/react-native · https://docs.expo.dev/versions/latest/sdk/securestore/
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Màn hình đăng nhập / đăng ký |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — SecureStore + phiên đăng nhập |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Câu hỏi phỏng vấn |
+| **17:00** | **ĐỌC SÁCH** — ch.19 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Màn hình auth
+
+```bash
+git checkout -b feat/auth
+```
+
+### 08:30–09:00 · Bật email auth trên Supabase
+
+Dashboard → Authentication → Providers → bật **Email**.
+Tắt "Confirm email" trong lúc phát triển cho nhanh, nhớ bật lại sau.
+
+Đổi bảng `meals`: bỏ đăng nhập ẩn danh, dùng `user_id` thật. Các policy RLS viết hôm 24/09 giữ nguyên — chúng đã đúng sẵn.
+
+### 09:00–09:30 · Feature auth
+
+```
+src/features/auth/
+  components/   AuthForm.tsx
+  hooks/        useSignIn.ts  useSignUp.ts  useSignOut.ts  useSession.ts
+  lib/          schemas.ts
+```
+
+Schema Zod cho form:
+
+```ts
+export const credentialsSchema = z.object({
+  email: z.string().email('Email không hợp lệ'),
+  password: z.string().min(8, 'Mật khẩu tối thiểu 8 ký tự'),
+});
+```
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Màn hình đăng nhập và đăng ký
+
+```
+app/(auth)/sign-in.tsx
+app/(auth)/sign-up.tsx
+app/(auth)/_layout.tsx
+```
+
+Yêu cầu bắt buộc:
+- Dùng lại `AuthForm` cho cả hai màn, chỉ khác nhãn nút
+- `secureTextEntry` cho ô mật khẩu, có nút hiện/ẩn
+- `autoCapitalize="none"` và `keyboardType="email-address"` cho ô email — thiếu cái đầu là người dùng iOS gõ email thành `Nhan@...` và đăng nhập thất bại mà không hiểu vì sao
+- Nút bị vô hiệu hóa + hiện spinner khi đang gửi
+- Thông báo lỗi **dễ hiểu**, không đổ nguyên lỗi thô của Supabase ra màn hình
+
+```ts
+function toFriendlyMessage(error: AuthError): string {
+  if (error.message.includes('Invalid login credentials'))
+    return 'Email hoặc mật khẩu không đúng.';
+  if (error.message.includes('User already registered'))
+    return 'Email này đã được đăng ký.';
+  return 'Có lỗi xảy ra. Vui lòng thử lại.';
+}
+```
+
+> Ánh xạ lỗi kỹ thuật sang lỗi người dùng đọc được là chi tiết nhỏ nhưng người phỏng vấn để ý. Nó cho thấy bạn nghĩ cho người dùng, không chỉ cho trình biên dịch.
+
+```bash
+git add . && git commit -m "feat: màn hình đăng nhập và đăng ký với xác thực zod"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — SecureStore + phiên
+
+### 13:30–14:15 · Vì sao SecureStore chứ không AsyncStorage
+
+```bash
+npx expo install expo-secure-store
+```
+
+**Đây là câu hỏi phỏng vấn — nắm cho chắc:**
+
+| | AsyncStorage | SecureStore |
+| --- | --- | --- |
+| Lưu ở đâu | File thường trong sandbox app | **Keychain** (iOS) / **Keystore** (Android) |
+| Mã hóa | Không | Có, ở tầng hệ điều hành |
+| Máy đã root/jailbreak | Đọc được dễ dàng | Vẫn khó hơn nhiều |
+| Giới hạn kích thước | Lớn | ~2KB mỗi khóa |
+| Dùng cho | Cache, cài đặt, dữ liệu không nhạy cảm | **Token, khóa bí mật** |
+
+Cắm SecureStore làm nơi lưu phiên của Supabase:
+
+```ts
+const SecureStoreAdapter = {
+  getItem: (key: string) => SecureStore.getItemAsync(key),
+  setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
+  removeItem: (key: string) => SecureStore.deleteItemAsync(key),
+};
+
+export const supabase = createClient(url, anonKey, {
+  auth: {
+    storage: SecureStoreAdapter,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,   // false cho React Native
+  },
+});
+```
+
+**Cảnh báo giới hạn 2KB:** JWT của Supabase kèm refresh token có thể vượt 2KB trên iOS và ném lỗi. Cách xử lý là chia nhỏ chuỗi thành nhiều khóa. Biết trước điều này tiết kiệm cho bạn nửa ngày debug.
+
+### 14:15–15:00 · Hook phiên đăng nhập
+
+```ts
+export function useSession() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  return { session, isLoading };
+}
+```
+
+**Đừng quên `unsubscribe`.** Rò rỉ listener là lỗi kinh điển, và người phỏng vấn kỹ tính sẽ hỏi *"bạn dọn dẹp effect đó thế nào?"*
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Thử nghiệm đầy đủ
+
+- [ ] Đăng ký tài khoản mới → tự đăng nhập luôn
+- [ ] Đăng xuất → phiên bị xóa khỏi SecureStore
+- [ ] Đăng nhập lại → vào được
+- [ ] Đóng hẳn app, mở lại → **vẫn đang đăng nhập**
+- [ ] Sai mật khẩu → thông báo dễ hiểu, không phải lỗi thô
+- [ ] Chế độ máy bay khi đăng nhập → báo lỗi mạng tử tế
+
+**Kiểm chứng token thật nằm trong Keychain:** trên máy Android đã root hoặc emulator, thử đọc file AsyncStorage — không được thấy token ở đó.
+
+```bash
+git add . && git commit -m "feat: lưu phiên trong SecureStore, tự khôi phục khi mở app"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Năm: Câu hỏi phỏng vấn
+
+### 16:30–16:40 · Shadowing
+
+2 phút podcast. Nghe → dừng → nhại to.
+
+### 16:40–16:55 · Trả lời có ghi âm
+
+**Câu hỏi tuần này:** *"Where do you store auth tokens in a mobile app, and why?"*
+
+> *"Access tokens and refresh tokens go in SecureStore, which maps to the Keychain on iOS and the Keystore on Android. They're encrypted at the OS level, so even on a rooted device they're much harder to pull out than a plain file.*
+> *I don't use AsyncStorage for anything sensitive. It's just a file inside the app sandbox — no encryption at all. It's fine for cache and user preferences, not for credentials.*
+> *One practical gotcha is that SecureStore has a size limit of about two kilobytes per key on iOS, and a JWT with a refresh token can exceed that. So you either chunk the value across keys or store only the refresh token securely.*
+> *And I'd say the bigger point is that client-side storage is only one layer. Short token lifetimes and proper checks on the server matter more — if someone gets a token off a device, the real protection is that it expires quickly."*
+
+**Ba nhịp:** *claim → evidence → boundary*. Câu cuối là boundary, và nó là câu khiến người phỏng vấn nâng đánh giá của bạn lên.
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `at rest` | dữ liệu lúc lưu trữ | *Encrypted at rest.* |
+| `gotcha` (n) | cái bẫy nhỏ hay dính | *One practical gotcha is…* |
+| `chunk` (v) | chia nhỏ ra | *You chunk the value across keys.* |
+| `pull out` | lấy ra, trích ra | *Hard to pull out of the Keychain.* |
+| `short-lived` (adj) | có thời hạn ngắn | *Access tokens are short-lived.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 19 *(Software Trends)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Đăng ký, đăng nhập, đăng xuất đều chạy
+- [ ] Phiên còn nguyên sau khi tắt hẳn app
+- [ ] Token nằm trong SecureStore, **không** nằm trong AsyncStorage
+- [ ] Lỗi hiện ra là câu dễ hiểu, không phải lỗi thô
+- [ ] Listener `onAuthStateChange` có dọn dẹp
+- [ ] Nói được SecureStore khác AsyncStorage ở 4 điểm
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-10-01.m4a`
+- [ ] Đọc xong ch.19
+- [ ] 21:30 lên giường

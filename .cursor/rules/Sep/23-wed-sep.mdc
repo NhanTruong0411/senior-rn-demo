@@ -1,0 +1,242 @@
+---
+description: Thứ Tư 23/09/2026 — Tuần 3 Ngày 3. TypeScript nâng cao + Zod validation cho form.
+alwaysApply: false
+---
+
+# Thứ Tư · 23/09/2026 · Tuần 3 — Ngày 13/61
+
+> Hôm nay không thêm tính năng, mà **siết chặt kiểu dữ liệu**. Đây là thứ phân biệt code Middle với code Junior khi người phỏng vấn mở GitHub của bạn.
+
+**Docs:** https://www.typescriptlang.org/docs/handbook/utility-types.html · https://zod.dev
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — TypeScript nâng cao trong dự án |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Zod + React Hook Form |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nghe + chép chính tả |
+| **17:00** | **ĐỌC SÁCH** — ch.13 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Siết kiểu
+
+```bash
+git checkout -b chore/strict-types
+```
+
+### 08:30–08:45 · Bật chế độ nghiêm ngặt
+
+`tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true
+  }
+}
+```
+
+```bash
+npx tsc --noEmit
+```
+
+Sẽ ra một loạt lỗi. **Đó là mục đích.** Mỗi lỗi là một chỗ code bạn đang giả định điều chưa chắc đúng.
+
+`noUncheckedIndexedAccess` là cờ đáng giá nhất: nó buộc `arr[0]` có kiểu `Meal | undefined` thay vì `Meal` — vì mảng có thể rỗng. Rất nhiều lỗi runtime sinh ra từ chính giả định này.
+
+### 08:45–09:30 · Sửa hết lỗi
+
+Sửa cho đúng, **không** dùng `!` hay `as` để bịt miệng trình biên dịch.
+
+```ts
+// Sai — chỉ giấu vấn đề
+const first = meals[0]!;
+
+// Đúng — xử lý thật
+const first = meals[0];
+if (!first) return null;
+```
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Utility type trong thực tế
+
+Áp vào chính code của bạn, không phải bài tập giả:
+
+| Kiểu | Dùng ở đâu trong MacroZone |
+| --- | --- |
+| `Omit<T, K>` | `type NewMeal = Omit<Meal, 'id' \| 'createdAt'>` |
+| `Pick<T, K>` | `type MealSummary = Pick<Meal, 'id' \| 'name' \| 'calories'>` |
+| `Partial<T>` | `updateMeal(id: string, patch: Partial<NewMeal>)` |
+| `Record<K, V>` | `Record<string, Meal[]>` cho hàm nhóm theo ngày |
+| `as const` | bảng theme, để suy ra kiểu literal thay vì `string` |
+| Union phân biệt | `type LoadState = { status: 'loading' } \| { status: 'error'; error: string } \| { status: 'ready'; meals: Meal[] }` |
+
+**Union phân biệt (discriminated union) là thứ đáng học nhất hôm nay.** Nó thay được bộ ba `isLoading / error / data` rời rạc:
+
+```ts
+// Trước — 8 tổ hợp trạng thái, trong đó vài cái vô nghĩa
+const [isLoading, setLoading] = useState(false);
+const [error, setError] = useState<string | null>(null);
+const [meals, setMeals] = useState<Meal[]>([]);
+
+// Sau — chỉ 3 trạng thái hợp lệ, TypeScript ép bạn xử lý đủ
+const [state, setState] = useState<LoadState>({ status: 'loading' });
+```
+
+Đây là *"define errors out of existence"* của chương 10 bạn đọc tuần trước, áp dụng vào hệ thống kiểu.
+
+```bash
+git add . && git commit -m "chore: bật strict mode và dùng utility type đúng chỗ"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — Zod + React Hook Form
+
+### 13:30–14:15 · Zod cơ bản
+
+```bash
+npm install zod react-hook-form @hookform/resolvers
+```
+
+```ts
+// lib/schemas.ts
+import { z } from 'zod';
+
+export const mealSchema = z.object({
+  name: z.string().min(1, 'Tên món không được để trống').max(60),
+  calories: z.coerce.number().int().min(0).max(10000),
+  protein:  z.coerce.number().min(0).max(1000),
+  carbs:    z.coerce.number().min(0).max(1000),
+  fat:      z.coerce.number().min(0).max(1000),
+});
+
+export type MealInput = z.infer<typeof mealSchema>;
+```
+
+**Hai điểm quan trọng:**
+
+1. `z.coerce.number()` — `TextInput` luôn trả về **chuỗi**, kể cả khi `keyboardType="numeric"`. Không ép kiểu là bạn lưu `"250"` thay vì `250`, và phép cộng sẽ thành nối chuỗi.
+2. `z.infer<typeof mealSchema>` — **kiểu được suy ra từ schema**, không khai báo hai lần. Sửa schema thì kiểu tự đổi theo, không bao giờ lệch nhau.
+
+### 14:15–15:00 · Nối vào form
+
+```tsx
+const { control, handleSubmit, formState: { errors } } = useForm<MealInput>({
+  resolver: zodResolver(mealSchema),
+});
+```
+
+- Dùng `<Controller>` cho `TextInput` của React Native
+- Hiện lỗi ngay dưới từng ô nhập
+- Nút Save bị vô hiệu hóa khi form chưa hợp lệ
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Kiểm tra ở biên
+
+Đây là điểm mà đa số dev bỏ sót. Dữ liệu đọc từ AsyncStorage cũng **không đáng tin** — có thể là dữ liệu của phiên bản app cũ, hoặc bị hỏng.
+
+```ts
+// lib/storage.ts
+const storedMealSchema = mealSchema.extend({
+  id: z.string(),
+  createdAt: z.string().datetime(),
+});
+
+export async function getMeals(): Promise<Meal[]> {
+  const raw = await AsyncStorage.getItem(KEY);
+  if (!raw) return [];
+  const parsed = z.array(storedMealSchema).safeParse(JSON.parse(raw));
+  if (!parsed.success) {
+    console.warn('Dữ liệu hỏng, bỏ qua:', parsed.error.issues);
+    return [];
+  }
+  return parsed.data;
+}
+```
+
+> **Nguyên tắc đáng nhớ cho phỏng vấn:** kiểu TypeScript **biến mất lúc chạy**. Mọi dữ liệu đến từ bên ngoài — API, storage, deep link, tham số điều hướng — đều phải kiểm tra lúc chạy. Zod là chỗ kiểu tĩnh và kiểm tra động gặp nhau.
+
+### 16:00–16:30 · Thử phá
+
+- Nhập chữ vào ô số → phải báo lỗi, không lưu
+- Sửa tay dữ liệu trong storage cho hỏng → app không crash, trả về danh sách rỗng
+- Nhập số âm → bị chặn
+
+```bash
+git add . && git commit -m "feat: kiểm tra dữ liệu bằng Zod ở cả form và lớp storage"
+git checkout main && git merge chore/strict-types
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Nghe + chép chính tả
+
+### 16:30–16:45 · Chép chính tả
+
+**React Native Radio** (https://reactnativeradio.com) hoặc **Syntax.fm** (https://syntax.fm).
+
+60 giây · nghe lần 1 không viết · nghe lại nhiều lần và chép · đối chiếu transcript · khoanh chỗ sai.
+
+### 16:45–16:55 · Đọc to lại
+
+3 lần, bắt chước tốc độ và chỗ ngắt hơi. Ghi âm lần cuối.
+
+### 16:55–17:00 · 5 từ nghe không ra
+
+Tra trên https://youglish.com, nghe 3 người bản xứ nói mỗi từ.
+
+**Tuần này là tuần thứ 3 chép chính tả.** Mở lại danh sách từ nghe sai của 2 tuần trước — có từ nào lặp lại không? Nếu có, đó là lỗ hổng phát âm thật sự, cần luyện riêng.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 13 *(Comments Should Describe Things That Aren't Obvious)*.
+
+Đối chiếu ngay với code hôm nay: bạn có viết comment nào chỉ lặp lại điều code đã nói không? Xóa đi.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] `strict: true` + `noUncheckedIndexedAccess` đã bật
+- [ ] `npx tsc --noEmit` sạch, **không dùng `!` hay `as` để bịt lỗi**
+- [ ] Đã dùng thật `Omit`, `Pick`, `Partial`, `Record` trong dự án
+- [ ] Có ít nhất 1 discriminated union thay cho bộ isLoading/error/data
+- [ ] Form dùng Zod + React Hook Form, hiện lỗi từng ô
+- [ ] Dữ liệu storage hỏng không làm crash app
+- [ ] **Có commit hôm nay**
+- [ ] Chép chính tả + ghi âm `2026-09-23.m4a`
+- [ ] Đọc xong ch.13
+- [ ] 21:30 lên giường

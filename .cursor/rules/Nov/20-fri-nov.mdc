@@ -1,0 +1,217 @@
+---
+description: Thứ Sáu 20/11/2026 — Tuần 12 Ngày 5. Phát hành v1.4.0, viết bài về animation, tổng kết tuần cuối cùng của giai đoạn xây.
+alwaysApply: false
+---
+
+# Thứ Sáu · 20/11/2026 · Tuần 12 — Ngày 55/61
+
+> **Hôm nay là ngày cuối cùng bạn viết tính năng mới.** Từ thứ Hai tuần sau, mọi thứ đều hướng về phỏng vấn.
+> Sản phẩm dừng ở đây. Nó đã đủ tốt. Đừng để việc "thêm một tính năng nữa" thành cái cớ để trì hoãn việc nộp đơn.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Phát hành v1.4.0 |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Viết bài + chuẩn bị tuần phỏng vấn |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tổng kết tuần |
+| **16:00** | **TÌM VIỆC** — tổng kết 3 tuần nộp đơn |
+| **16:30** | **TIẾNG ANH** — Nghe lại 5 bản ghi trong tuần |
+| **17:00** | **ĐỌC SÁCH** — Chuẩn bị `interview-cheatsheet.md` |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Phát hành v1.4.0
+
+### 08:30–09:00 · Kiểm tra trước phát hành
+
+```bash
+npm run verify        # typecheck + lint + test
+npm run test:e2e      # Maestro
+node scripts/check-bundle-size.js
+```
+
+Nếu FPS sau khi thêm animation tụt dưới ngân sách đã đặt hôm 23/10 thì **không phát hành**. Ngân sách bạn tự đặt mà tự phá thì nó vô nghĩa.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:00–10:30 · Phát hành
+
+```bash
+git checkout main && git merge --no-ff feat/animations
+npm version minor            # 1.3.x → 1.4.0
+git push --follow-tags
+```
+
+Đường ống CI/CD dựng hôm 29/10 lo phần còn lại. Xem GitHub Actions chạy, kiểm tra EAS Build ra bản đúng.
+
+**Ghi chú phát hành v1.4.0:**
+
+```markdown
+## 1.4.0
+
+- Vuốt để xóa bữa ăn, kèm phản hồi rung
+- Thanh macro chạy mượt khi số liệu thay đổi
+- Chuyển màn có chia sẻ phần tử giữa danh sách và chi tiết
+- Tôn trọng cài đặt "giảm chuyển động" của hệ thống
+- Thông báo lỗi rõ ràng hơn ở mọi màn hình
+- Sửa lỗi bấm nhanh hai lần tạo trùng bữa ăn
+```
+
+Gửi bản mới cho 3–5 người đã thử app hôm 13/11. Hỏi một câu duy nhất: *"Có gì khác so với lần trước không?"*
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:30 · Viết `docs/animation-that-earns-its-place.md`
+
+Bài viết kỹ thuật thứ ba của bạn (sau bài TurboModule hôm 16/10 và bài AI hôm 06/11).
+
+**Dàn bài:**
+
+1. **Thí nghiệm** — hai bản animation, chặn JS thread 2 giây, kết quả *(gắn video)*
+2. **Vì sao worklet giải quyết được** — 3 đoạn, không sao chép tài liệu
+3. **Bảng kiểm toán** — mọi animation và câu hỏi nó trả lời cho người dùng
+4. **Những gì tôi đã xóa và vì sao**
+5. **Giảm chuyển động** — không phải tùy chọn thẩm mỹ
+6. **Chi phí** — FPS trước/sau với 1000 mục
+
+Bài này khác hai bài trước ở chỗ nó có **một quyết định xóa bỏ**. Đó là điểm mạnh của nó.
+
+### 14:30–15:00 · Chuẩn bị tuần phỏng vấn thử
+
+Tuần sau có cấu trúc khác hẳn. Chuẩn bị trước hôm nay:
+
+- [ ] Danh sách 8 topic trong `qa-bank.mdc` — đã rà hết trong tuần
+- [ ] Ứng dụng cài sẵn trên máy để mở ra chỉ khi được hỏi
+- [ ] Kho câu chuyện: liệt kê **8 câu chuyện cụ thể** với con số, mỗi cái dùng được cho nhiều câu hỏi
+
+| Câu chuyện | Con số | Dùng cho câu hỏi nào |
+| --- | --- | --- |
+| Giảm bundle 45→28MB (Firegroup) | 38% | Hiệu năng, đo lường, tác động |
+| TurboModule tự viết cả hai nền tảng | — | Kiến trúc mới, native, tự học |
+| Thí nghiệm chặn JS thread | 2 giây | Animation, threading, cách xác minh |
+| Xóa animation trang trí | 4 cái | Đánh giá, đổi ý, kỷ luật |
+| Bộ test từ 0 lên đủ dùng | __% | Testing, chất lượng |
+| Đường ống CI/CD tự dựng | __ phút | Tự động hóa, quy trình |
+| Tính năng AI có chặn tần suất | $__/tháng | Chi phí, bảo mật, ranh giới |
+| Đưa app cho 5 người thật dùng | 5 người | Sản phẩm, phản hồi, khiêm tốn |
+
+Điền hết cột "Con số" hôm nay. **Câu trả lời không có con số nghe như lý thuyết.**
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Tổng kết Tuần 12
+
+**Tự chấm 1–5:**
+
+| Mục | Điểm | Ghi chú |
+| --- | --- | --- |
+| Giải thích được worklet và UI thread mà không nhìn ghi chú | | |
+| Tự viết pan gesture, xử lý được xung đột | | |
+| Biết khi nào **không** nên animate | | |
+| Ứng dụng dùng được với cỡ chữ lớn + chế độ tối | | |
+| Thông báo lỗi hành động được | | |
+| Đã phát hành v1.4.0 | | |
+
+**Ba câu tự trả lời:**
+1. Lỗ hổng "chưa Reanimated / Gesture sâu" trong hồ sơ — giờ tôi viết lại câu đó thế nào?
+2. Việc đi hết ứng dụng bằng con mắt người lạ tìm ra bao nhiêu lỗi tôi chưa từng thấy?
+3. Tôi có đang trì hoãn việc nộp đơn bằng cách làm thêm tính năng không?
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Tổng kết 3 tuần
+
+| Chỉ số | Số |
+| --- | --- |
+| Tổng đơn đã nộp | |
+| Người đã nhắn | |
+| Có phản hồi | |
+| Đã phỏng vấn | |
+| Tỉ lệ phản hồi | __% |
+
+**Nếu tỉ lệ phản hồi dưới 10%,** vấn đề nằm ở hồ sơ hoặc ở cách chọn vị trí, không phải ở năng lực. Tuần sau dành 30 phút thứ Hai viết lại hoàn toàn phần tóm tắt đầu CV.
+
+**Nếu trên 20%,** hồ sơ ổn. Vấn đề chuyển sang vòng phỏng vấn — và đó chính là việc của tuần sau.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Nghe lại 5 bản ghi
+
+Nghe `2026-11-16` đến `2026-11-20`. So với bản ghi đầu tháng 9.
+
+Ghi ba điều:
+1. Điều tôi nói trôi chảy hơn hẳn so với tháng 9:
+2. Thói quen còn sót (nói "uhm", ngập ngừng, lặp từ):
+3. Một câu tôi sẽ dùng nguyên văn trong phỏng vấn thật:
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+Bắt đầu `docs/interview-cheatsheet.md` — **một trang, không hơn**:
+
+```markdown
+# Cheatsheet
+
+## Giới thiệu 60 giây
+[viết ra, đúng 150 từ]
+
+## Mức lương
+Khoảng: __ – __ triệu · Số rời bàn: __ triệu
+
+## Vì sao nghỉ việc cũ
+[2 câu, không chê ai]
+
+## Khoảng trống 6 tháng — trả lời thẳng
+[3 câu: tôi đã làm gì, kết quả cụ thể, vì sao nó làm tôi khá hơn]
+
+## 3 câu chuyện mạnh nhất
+1. 2. 3.
+
+## 3 câu hỏi tôi hỏi ngược
+1. 2. 3.
+```
+
+---
+
+## Checklist cuối ngày
+
+- [ ] v1.4.0 đã lên TestFlight và Play Internal
+- [ ] Đã gửi bản mới cho 3–5 người thử
+- [ ] Bài `animation-that-earns-its-place.md` viết xong
+- [ ] **Bảng 8 câu chuyện đã điền đủ con số**
+- [ ] Tổng kết Tuần 12 xong
+- [ ] Tổng kết 3 tuần nộp đơn, biết tỉ lệ phản hồi
+- [ ] Đã nghe lại 5 bản ghi trong tuần
+- [ ] Đã bắt đầu `interview-cheatsheet.md`
+- [ ] 21:30 lên giường
+
+---
+
+> **Hết giai đoạn xây.** Ba tháng trước bạn không có gì. Bây giờ bạn có một ứng dụng trên hai kho, một module native tự viết, một bộ test, một đường ống CI/CD, ba bài viết kỹ thuật, và năm người thật đang dùng.
+> Tuần sau bạn học cách **kể lại nó** cho người khác nghe.

@@ -1,0 +1,250 @@
+---
+description: Thứ Ba 03/11/2026 — Tuần 10 Ngày 2. Structured output — nhập bữa ăn bằng câu nói tự nhiên, ép LLM trả JSON đúng schema.
+alwaysApply: false
+---
+
+# Thứ Ba · 03/11/2026 · Tuần 10 — Ngày 42/61
+
+> Hôm qua làm chat. Chat thì ai cũng làm được. Hôm nay làm thứ **thật sự hữu ích**: gõ *"sáng ăn hai quả trứng với bánh mì"* và app tự điền form.
+> Đây là điểm khác biệt giữa "gắn AI vào cho có" và "dùng AI giải quyết một việc cụ thể".
+
+**Docs:** https://sdk.vercel.ai/docs/ai-sdk-core/generating-structured-data
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — `generateObject` với schema Zod |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Giao diện nhập nhanh + xử lý mô hình sai |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nhắn 2 người trong ngành |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
+| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 1 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Structured output
+
+### 08:30–09:30 · `generateObject`
+
+```ts
+// supabase/functions/parse-meal/index.ts
+import { generateObject } from 'npm:ai';
+import { z } from 'npm:zod';
+
+const parsedMealSchema = z.object({
+  meals: z.array(z.object({
+    name: z.string().describe('Tên món bằng tiếng Việt'),
+    calories: z.number().int().min(0).max(5000),
+    protein: z.number().min(0).max(500).describe('gam'),
+    carbs: z.number().min(0).max(500).describe('gam'),
+    fat: z.number().min(0).max(500).describe('gam'),
+    confidence: z.enum(['high', 'medium', 'low'])
+      .describe('low nếu phải đoán khẩu phần'),
+  })),
+  note: z.string().optional().describe('Ghi chú nếu dữ liệu mơ hồ'),
+});
+
+const result = await generateObject({
+  model: openai('gpt-4o-mini'),
+  schema: parsedMealSchema,
+  system: `Bạn phân tích mô tả bữa ăn thành số liệu dinh dưỡng.
+Dùng khẩu phần chuẩn của món Việt Nam.
+Nếu khẩu phần không rõ, giả định một suất trung bình và đặt confidence là low.
+Không bịa món không được nhắc tới.`,
+  prompt: userText,
+});
+```
+
+**Ba thiết kế đáng chú ý:**
+
+1. **`.describe()` trên từng trường** — mô tả này được gửi cho mô hình như một phần schema. Nó cải thiện độ chính xác rõ rệt và rẻ hơn nhiều so với viết dài trong system prompt.
+
+2. **Trường `confidence`** — buộc mô hình tự đánh giá độ chắc chắn. Giao diện dùng nó để cảnh báo người dùng kiểm tra lại. Đây là cách xử lý bản chất không chắc chắn của LLM một cách trung thực.
+
+3. **Cùng một thư viện Zod dùng ở cả hai đầu.** Schema bạn viết hôm 23/09 cho form giờ dùng lại cho AI. Kiểu dữ liệu không thể lệch nhau.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Xử lý khi mô hình trả sai
+
+**LLM có thể trả về thứ không khớp schema.** AI SDK tự thử lại vài lần, nhưng bạn vẫn phải xử lý trường hợp thất bại hẳn:
+
+```ts
+try {
+  const { object } = await generateObject({ /* ... */ });
+  return Response.json(object);
+} catch (err) {
+  if (err instanceof NoObjectGeneratedError) {
+    return Response.json(
+      { error: 'PARSE_FAILED', message: 'Không hiểu mô tả. Bạn thử nhập tay nhé?' },
+      { status: 422 },
+    );
+  }
+  throw err;
+}
+```
+
+> **Nguyên tắc thiết kế quan trọng, và là câu trả lời phỏng vấn tốt:** tính năng AI phải luôn có **đường lui thủ công**. Nếu mô hình hỏng và người dùng không làm gì được nữa thì bạn vừa thay một form hoạt động ổn định bằng một form thỉnh thoảng hoạt động.
+
+```bash
+git add . && git commit -m "feat: phân tích bữa ăn từ ngôn ngữ tự nhiên, có đường lui thủ công"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:30 · Giao diện nhập nhanh
+
+Luồng người dùng:
+
+```
+Gõ "sáng ăn 2 quả trứng ốp la với 1 lát bánh mì"
+   ↓ (đang xử lý — khung xương, không phải spinner)
+Hiện bảng xem trước, sửa được:
+   Trứng ốp la (2 quả)    140 kcal · 12g đạm · 1g tinh bột · 10g béo   [chắc chắn]
+   Bánh mì (1 lát)         80 kcal ·  3g đạm · 15g tinh bột ·  1g béo   [ước lượng]
+   ↓
+[Sửa]  [Lưu cả hai]
+```
+
+**Luật bắt buộc: không bao giờ lưu thẳng, luôn cho xem trước và sửa.**
+
+Mô hình đoán khẩu phần. Người dùng biết họ ăn bao nhiêu. Bước xem trước biến AI từ *"cái máy đoán bừa"* thành *"cái đỡ cho tôi phải gõ"* — và đó là khác biệt giữa tính năng người ta dùng và tính năng người ta tắt.
+
+Mục có `confidence: 'low'` hiện màu khác kèm nhãn "ước lượng".
+
+### 14:30–15:00 · Nhập bằng giọng nói
+
+```bash
+npx expo install expo-speech-recognition
+```
+
+Nói *"trưa ăn cơm sườn"* còn nhanh hơn gõ. Với một app ghi chép dinh dưỡng dùng nhiều lần mỗi ngày, đây là khác biệt lớn về trải nghiệm.
+
+Nhớ xử lý đủ: xin quyền, trạng thái đang nghe, không nhận ra được, và **thiết bị không hỗ trợ**.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Đo chi phí
+
+Ghi vào `docs/ai-feature.md`:
+
+```markdown
+## Cost per parse
+
+Model: gpt-4o-mini
+Average input:  ~180 tokens (system prompt + schema + user text)
+Average output: ~120 tokens
+Cost per parse: ~$0.00008
+
+At 10 parses per user per day, 1000 users: ~$24/month.
+
+**Why gpt-4o-mini and not a larger model.** I tested both on twenty Vietnamese
+meal descriptions. The larger model was slightly better on ambiguous portions,
+but roughly fifteen times the cost. Since every result goes through a user
+confirmation step anyway, the extra accuracy doesn't change the outcome — the
+user corrects it either way.
+```
+
+> **Đây là một trong những đoạn giá trị nhất trong toàn bộ hồ sơ của bạn.** Rất nhiều dev gắn được API AI. Rất ít người **đo chi phí và giải thích được lựa chọn mô hình bằng lý do kinh tế**. Đó là suy nghĩ của kỹ sư, không phải người nghịch công nghệ.
+
+```bash
+git add . && git commit -m "feat: nhập nhanh có xem trước, giọng nói, và phân tích chi phí"
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Nhắn 2 người trong ngành
+
+Hôm nay không nộp đơn, hôm nay **nhắn người thật**. Giới thiệu nội bộ có tỷ lệ phản hồi cao hơn nộp đơn nguội nhiều lần.
+
+**Nhắn ai:**
+- Đồng nghiệp cũ ở Firegroup giờ đã sang công ty khác
+- Người viết bài kỹ thuật về React Native ở Việt Nam
+- Người tổ chức hoặc nói ở meetup RN
+- Người vừa đăng tin tuyển dụng RN trong nhóm cộng đồng
+
+**Mẫu tin nhắn — ngắn, cụ thể, không xin xỏ:**
+
+> *Chào anh/chị [tên], em là Nhân, làm React Native được 3 năm ở Firegroup. Em có đọc bài anh viết về [chủ đề cụ thể] và thấy đúng vấn đề em gặp khi làm [tình huống cụ thể của bạn].*
+>
+> *Em đang tìm vị trí Middle RN. Mấy tháng qua em làm một app end-to-end có CI/CD, test và một native module tự viết: [link]. Nếu bên anh/chị có tuyển hoặc anh/chị biết chỗ nào đang tìm người, anh/chị nhắn em một tiếng nhé. Cảm ơn anh/chị.*
+
+**Ba luật:** nhắc một thứ cụ thể họ đã làm · có link để họ kiểm chứng · nói rõ bạn cần gì. Không dài dòng, không kể lể hoàn cảnh.
+
+Ghi vào `docs/job-tracker.md`.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Nói to có ghi âm
+
+**Chủ đề: bạn thiết kế một tính năng AI như thế nào.**
+
+> *"The feature is natural language meal entry — you type what you ate and it fills in the nutrition breakdown.*
+> *Three design decisions shaped it. First, the key stays on the server. The app calls my own Edge Function, which authenticates the user, applies a rate limit, and then calls the model. I verified the key isn't in the bundle by unzipping the APK and grepping for it.*
+> *Second, structured output rather than free text. I define a Zod schema and the model has to fill it, so I get typed data instead of a paragraph I'd have to parse. The schema includes a confidence field, so the model tells me when it's guessing at a portion size, and the UI flags those differently.*
+> *Third — and I think this is the one people skip — nothing is saved automatically. The parse produces a preview the user can edit before confirming. The model is guessing at portions; the user actually knows. And it means the feature degrades gracefully: if the model fails, they just fill the form in manually, which is exactly what they did before.*
+> *On cost, I benchmarked a smaller and a larger model on twenty Vietnamese meal descriptions. The larger one was marginally better on ambiguous cases and about fifteen times the price. Since everything goes through a confirmation step anyway, that extra accuracy doesn't change the outcome."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `degrade gracefully` | hỏng có kiểm soát | *The feature degrades gracefully.* |
+| `flag` (v) | đánh dấu để chú ý | *The UI flags those differently.* |
+| `benchmark` (v) | đo so sánh | *I benchmarked both models.* |
+| `marginally` (adv) | nhỉnh hơn không đáng kể | *Marginally better on ambiguous cases.* |
+| `shape` (v) | định hình | *Three decisions shaped it.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+Đổi sang đọc lại **`qa-bank.mdc` của chính bạn — Topic 1 (RN fundamentals)**.
+
+Đọc từng câu trả lời cũ và tự hỏi: sau hai tháng vừa qua, câu này có còn đúng không? Có thêm ví dụ cụ thể nào từ MacroZone không? **Sửa trực tiếp vào file.**
+
+---
+
+## Checklist cuối ngày
+
+- [ ] `generateObject` trả về đúng schema Zod
+- [ ] Mọi trường đều có `.describe()`
+- [ ] Có trường `confidence`, giao diện hiển thị khác nhau
+- [ ] Mô hình trả sai → có thông báo tử tế + đường lui thủ công
+- [ ] **Không bao giờ lưu thẳng — luôn có bước xem trước sửa được**
+- [ ] Nhập bằng giọng nói chạy, xử lý đủ trường hợp
+- [ ] **`docs/ai-feature.md` có phân tích chi phí và lý do chọn mô hình**
+- [ ] Đã nhắn 2 người, ghi vào tracker
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-11-03.m4a`
+- [ ] Đã sửa lại Topic 1 trong `qa-bank.mdc`
+- [ ] 21:30 lên giường

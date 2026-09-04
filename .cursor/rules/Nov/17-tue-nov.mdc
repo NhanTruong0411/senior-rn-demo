@@ -1,0 +1,257 @@
+---
+description: Thứ Ba 17/11/2026 — Tuần 12 Ngày 2. Gesture Handler — vuốt để xóa, kéo thả, và xử lý xung đột cử chỉ.
+alwaysApply: false
+---
+
+# Thứ Ba · 17/11/2026 · Tuần 12 — Ngày 52/61
+
+> Hôm nay đúng thứ bạn ghi là chưa làm được: *"chưa custom panGesture phức tạp."*
+> Cuối ngày bạn sẽ có một cử chỉ vuốt tự viết, xử lý được xung đột với cuộn danh sách.
+
+**Docs:** https://docs.swmansion.com/react-native-gesture-handler/
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Vuốt để xóa |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Xung đột cử chỉ + haptics |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nhắn 2 người |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
+| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` rà lại Topic 1–3 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Vuốt để xóa
+
+### 08:30–09:30 · Pan gesture tự viết
+
+```tsx
+function SwipeableMealItem({ meal, onDelete }: Props) {
+  const translateX = useSharedValue(0);
+  const itemHeight = useSharedValue(ITEM_HEIGHT);
+
+  const pan = Gesture.Pan()
+    .activeOffsetX([-15, 15])          // chỉ kích hoạt khi vuốt ngang rõ ràng
+    .failOffsetY([-10, 10])            // nhường cho cuộn dọc nếu vuốt lệch dọc
+    .onUpdate((e) => {
+      translateX.value = Math.min(0, e.translationX);   // chỉ cho vuốt trái
+    })
+    .onEnd((e) => {
+      const shouldDelete =
+        translateX.value < -SCREEN_WIDTH * 0.35 || e.velocityX < -800;
+
+      if (shouldDelete) {
+        translateX.value = withTiming(-SCREEN_WIDTH);
+        itemHeight.value = withTiming(0, { duration: 200 }, (done) => {
+          if (done) runOnJS(onDelete)(meal.id);
+        });
+      } else {
+        translateX.value = withSpring(0);               // bật về chỗ cũ
+      }
+    });
+
+  // ...
+}
+```
+
+**Bốn quyết định thiết kế, mỗi cái đều đáng giải thích khi phỏng vấn:**
+
+| Quyết định | Lý do |
+| --- | --- |
+| `activeOffsetX([-15, 15])` | Không kích hoạt ngay khi chạm — người dùng phải vuốt ngang rõ ràng |
+| `failOffsetY([-10, 10])` | Vuốt lệch dọc thì nhường cho cuộn danh sách |
+| Xét cả **vận tốc** ngoài khoảng cách | Vuốt nhanh và ngắn cũng nên xóa được. Chỉ xét khoảng cách thì cảm giác nặng nề |
+| Thu chiều cao về 0 khi xóa | Các mục dưới trượt lên mượt thay vì nhảy cóc |
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Đường lui và khả năng tiếp cận
+
+**Vuốt để xóa không được là cách duy nhất để xóa.** Ba lý do:
+
+1. Người dùng không biết cử chỉ ẩn tồn tại nếu không có gợi ý
+2. Trình đọc màn hình không dùng được cử chỉ vuốt
+3. Người có vấn đề vận động tay khó thực hiện chính xác
+
+Giữ nguyên nhấn giữ → menu → Xóa. Và thêm:
+
+```tsx
+<Animated.View
+  accessible
+  accessibilityLabel={`${meal.name}, ${meal.calories} kcal`}
+  accessibilityActions={[{ name: 'delete', label: 'Xóa bữa ăn' }]}
+  onAccessibilityAction={(e) => {
+    if (e.nativeEvent.actionName === 'delete') onDelete(meal.id);
+  }}
+>
+```
+
+> **Nhắc lại điều bạn học hôm 06/10:** ưu tiên `getByLabelText` trong test đã buộc bạn thêm nhãn tiếp cận. Giờ những nhãn đó trả cổ tức lần thứ hai — chúng làm cử chỉ này dùng được với trình đọc màn hình.
+>
+> Rất ít ứng viên Middle ở Việt Nam nhắc tới khả năng tiếp cận. Nhắc tới nó một cách tự nhiên, có ví dụ cụ thể, là một điểm khác biệt thật.
+
+```bash
+git add . && git commit -m "feat: vuốt để xóa với xử lý vận tốc và đường lui tiếp cận"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:30 · Xung đột cử chỉ
+
+**Đây là phần khó nhất và là chỗ phân biệt "dùng được preset" với "hiểu cử chỉ".**
+
+Trong danh sách có thể cuộn, ba cử chỉ tranh nhau:
+1. Cuộn dọc của FlashList
+2. Vuốt ngang để xóa
+3. Chạm để mở chi tiết
+
+Gesture Handler cung cấp ba cách phối hợp:
+
+| Cách | Nghĩa | Dùng khi |
+| --- | --- | --- |
+| `Gesture.Simultaneous(a, b)` | Cả hai chạy cùng lúc | Kéo và phóng to đồng thời |
+| `Gesture.Exclusive(a, b)` | `a` được ưu tiên, `b` chỉ chạy nếu `a` trượt | Nhấn giữ và chạm |
+| `Gesture.Race(a, b)` | Cái nào kích hoạt trước thì thắng | Vuốt và cuộn |
+
+Với danh sách của bạn:
+
+```tsx
+const tap = Gesture.Tap().onEnd(() => runOnJS(openDetail)(meal.id));
+const composed = Gesture.Exclusive(pan, tap);   // vuốt thắng chạm
+```
+
+Và `activeOffsetX` / `failOffsetY` ở trên chính là thứ giải quyết xung đột với cuộn dọc — chúng nói cho hệ thống biết cử chỉ nào "sở hữu" hướng nào.
+
+**Thử kỹ:** vuốt chéo 45 độ thì sao? Vuốt ngang rồi đổi hướng thành dọc giữa chừng thì sao? Đây là những chỗ cử chỉ viết ẩu bộc lộ ra.
+
+### 14:30–15:00 · Haptics đúng lúc
+
+Bạn đã cài `expo-haptics` từ 17/09. Giờ dùng cho đúng chỗ:
+
+```ts
+.onUpdate((e) => {
+  translateX.value = Math.min(0, e.translationX);
+
+  // rung một lần khi vượt ngưỡng xóa
+  if (translateX.value < -THRESHOLD && !hasVibrated.value) {
+    hasVibrated.value = true;
+    runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
+  }
+  if (translateX.value > -THRESHOLD) hasVibrated.value = false;
+})
+```
+
+**Rung khi vượt ngưỡng, không rung lúc bắt đầu vuốt.** Nó nói cho ngón tay biết *"buông ra là xóa"* — người dùng không cần nhìn màn hình. Đây là chi tiết mà iOS làm rất tốt và rất ít app Việt Nam làm.
+
+`hasVibrated` phải là `useSharedValue`, không phải `useState` — nó được đọc ghi trên UI thread.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Đo hiệu năng
+
+Animation phải giữ 60fps kể cả khi danh sách dài:
+
+```bash
+flashlight measure --bundleId com.truonghuunhan.macrozone
+```
+
+Kịch bản: seed 1000 bữa ăn, cuộn nhanh, vuốt xóa vài mục, cuộn tiếp.
+
+```markdown
+## Animation performance — 17/11
+| Scenario | FPS |
+|---|---|
+| Scroll only | __ |
+| Scroll + swipe gestures | __ |
+| Layout animations on add/remove | __ |
+```
+
+Nếu FPS tụt khi có layout animation, đó là chỗ đánh đổi — ghi lại và quyết định. Có thể chỉ bật layout animation khi danh sách dưới 50 mục.
+
+```bash
+git add . && git commit -m "feat: xử lý xung đột cử chỉ, haptic ở ngưỡng, đo fps"
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Nhắn 2 người
+
+Tuần này thử nhắn **người ở công ty bạn thật sự muốn vào**, kể cả khi họ không đăng tuyển. Nhiều vị trí không bao giờ được đăng công khai.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Nói to có ghi âm
+
+**Chủ đề: bạn xử lý xung đột cử chỉ như thế nào.**
+
+> *"The hard part of gestures isn't the gesture — it's deciding who wins when two of them want the same touch.*
+> *In my list, three things compete: the list scrolling vertically, a horizontal swipe to delete, and a tap to open the detail screen.*
+> *For scroll versus swipe, I use activation thresholds. The pan gesture only activates after fifteen points of horizontal movement, and it fails outright if there's more than ten points of vertical movement first. So an ambiguous diagonal drag resolves to scrolling, which is what people expect — scrolling is the primary interaction and the swipe is secondary.*
+> *For swipe versus tap, I compose them as exclusive with the pan first, so a tap only fires if the pan never activated.*
+> *One thing I'd call out on the design side: I also decide on velocity, not just distance. A short fast flick should delete. If you only check how far they dragged, the interaction feels heavy.*
+> *And the swipe isn't the only way to delete. It's a hidden gesture — screen reader users can't perform it, and people don't discover it on their own. Long press still opens a menu, and there's an accessibility action registered on the row."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `compete for` | tranh giành | *Three things compete for the same touch.* |
+| `activation threshold` | ngưỡng kích hoạt | *I use activation thresholds.* |
+| `resolve to` | ngã ngũ thành | *An ambiguous drag resolves to scrolling.* |
+| `flick` (n) | cú vẩy nhanh | *A short fast flick should delete.* |
+| `call out` (v) | nhấn mạnh, nêu rõ | *One thing I'd call out.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**`qa-bank.mdc` — rà lại Topic 1–3** đã sửa hai tuần trước. Đọc to từng câu, bấm giờ. Câu nào quá 60 giây thì cắt bớt.
+
+Tuần sau là tuần phỏng vấn thử. Từ hôm nay, mỗi ngày rà 3 topic.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Vuốt để xóa chạy mượt, có bật về khi vuốt chưa đủ
+- [ ] Xét cả vận tốc, không chỉ khoảng cách
+- [ ] `activeOffsetX` và `failOffsetY` xử lý đúng xung đột với cuộn
+- [ ] Thử vuốt chéo và đổi hướng giữa chừng — không lỗi
+- [ ] Haptic rung **một lần** ở ngưỡng, không rung liên tục
+- [ ] Có đường lui: nhấn giữ + accessibility action
+- [ ] Đo FPS với 1000 mục, ghi lại
+- [ ] Đã nhắn 2 người
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-11-17.m4a`
+- [ ] Đã rà Topic 1–3, mỗi câu ≤60 giây
+- [ ] 21:30 lên giường

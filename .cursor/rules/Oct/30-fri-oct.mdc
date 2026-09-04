@@ -1,0 +1,240 @@
+---
+description: Thứ Sáu 30/10/2026 — Tuần 9 Ngày 5. Phát hành v1.1.0, tổng kết tháng 10, chuẩn bị tháng 11.
+alwaysApply: false
+---
+
+# Thứ Sáu · 30/10/2026 · Tuần 9 — Ngày 40/61
+
+> **Ngày cuối tháng 10.** Hôm nay chạy pipeline vừa dựng từ đầu tới cuối, rồi nhìn lại hai tháng.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Phát hành v1.1.0 qua pipeline |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Tổng kết tháng 10 + hồ sơ |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nhìn lại tuần và tháng |
+| **17:00** | **ĐỌC SÁCH** — ch.20 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ. **Nghỉ trọn vẹn T7 + CN** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Phát hành v1.1.0
+
+### 08:30–09:00 · Kiểm tra trước khi phát hành
+
+```bash
+npm run verify          # typecheck + lint + test
+npm run test:e2e        # 3 luồng maestro
+npm run check:size      # ngân sách bundle
+```
+
+Kiểm tra thủ công trên bản build production:
+- [ ] Đăng nhập, đăng xuất
+- [ ] Thêm, xem, xóa bữa ăn
+- [ ] Chế độ máy bay: đọc được dữ liệu lưu, ghi được vào hàng đợi
+- [ ] Có mạng lại: hàng đợi tự đồng bộ
+- [ ] Dark mode theo hệ thống
+- [ ] Native module đọc được pin
+- [ ] Không crash nào trong Sentry sau khi thao tác đủ 15 phút
+
+### 09:00–09:30 · Gắn tag và phát hành
+
+```bash
+git checkout main && git pull
+npm version minor       # 1.0.0 → 1.1.0
+git push --follow-tags
+```
+
+Ngồi xem pipeline chạy trên tab Actions. Build xong tự nộp lên TestFlight và Play Internal Testing.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Ghi chú phát hành
+
+```markdown
+# v1.1.0 — 30 October 2026
+
+## Added
+- Email and password authentication with sessions in SecureStore
+- Offline support: cached data is readable with no connection, and writes are
+  queued and replayed when it comes back
+- Device-aware battery saving: background refetching pauses below 20%
+- Stats screen with a seven-day breakdown
+
+## Changed
+- List rendering moved to FlashList — scrolling 1000 items went from __ to __ FPS
+- JS bundle reduced from __ KB to __ KB
+- Cold start improved from __ ms to __ ms
+
+## Under the hood
+- Unit, component and end-to-end test coverage
+- CI on every pull request; OTA updates on merge to main
+- A custom native module written both as a raw TurboModule and with the
+  Expo Modules API
+```
+
+**Ghi chú phát hành cũng là một tài liệu người phỏng vấn đọc.** Nó cho thấy bạn nghĩ về người dùng, không chỉ về code.
+
+```bash
+git add . && git commit -m "docs: ghi chú phát hành v1.1.0"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:30 · Cập nhật CV
+
+Tháng 10 cho bạn nguyên liệu mới. Thêm vào CV — **mỗi dòng phải có số hoặc có thứ chỉ tay vào được**:
+
+```
+Self-directed project — MacroZone (Sep–Oct 2026)
+React Native · Expo SDK 5x · TypeScript · Supabase · TanStack Query
+
+• Shipped to Google Play Internal Testing and TestFlight, with CI running
+  typecheck, lint, tests and a bundle-size gate on every pull request
+• Wrote a TurboModule from scratch — TypeScript spec, Codegen, Kotlin on
+  Android and Swift behind an Objective-C++ bridge on iOS — then rebuilt it
+  with the Expo Modules API and documented the trade-off
+• Cut JS bundle __% and cold start __% by measuring first, changing one
+  thing at a time, and recording what didn't help as well as what did
+• Offline-first: cached reads plus a durable mutation queue with
+  client-generated IDs and idempotent upserts
+• __ unit and component tests plus 3 Maestro end-to-end flows
+
+github.com/<user>/macrozone
+```
+
+**Bỏ khỏi CV mọi thứ bạn không kể được trong 60 giây.** Dòng nào không defend được là dòng gây hại.
+
+### 14:30–15:00 · Dọn hồ sơ GitHub
+
+- README có ảnh chụp màn hình, huy hiệu CI, phần kiến trúc, số hiệu năng
+- Thư mục `docs/` gọn gàng: `testing-strategy.md`, `perf-notes.md`, `performance-budget.md`, `new-architecture.md`, `writing-a-turbomodule.md`, `ci-cd.md`
+- Lịch sử commit đọc được, có tiền tố nhất quán
+- Repo đã ghim trên trang cá nhân
+
+> **Thư mục `docs/` là vũ khí bí mật của bạn.** Rất nhiều ứng viên có repo code. Rất ít người có tài liệu giải thích **vì sao** họ chọn như vậy — và đó chính xác là thứ người phỏng vấn muốn biết.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Tổng kết tháng 10
+
+```text
+## TỔNG KẾT THÁNG 10 (01–30/10) — 22 ngày làm việc
+
+### Định nghĩa hoàn thành
+- [ ] Auth thật, token trong SecureStore, hiểu hàng đợi refresh
+- [ ] ___ test đơn vị + ___ component + 3 luồng E2E
+- [ ] TurboModule tự viết, chạy cả 2 nền tảng, 2 cách triển khai
+- [ ] Case study hiệu năng có số đo đầy đủ
+- [ ] Offline-first: đọc và ghi đều được
+- [ ] CI/CD tự động, main được bảo vệ
+- [ ] ___/22 file ghi âm tiếng Anh
+- [ ] ___/22 ngày có commit
+
+### Bốn câu hỏi phỏng vấn tháng này — tự chấm 1–5
+| Câu | Điểm | Chỗ còn yếu |
+| Auth + token refresh | __ | |
+| Testing strategy | __ | |
+| New Architecture | __ | |
+| Performance story | __ | |
+
+### Nhìn lại danh sách "honest gaps" đầu tháng
+| Lỗ hổng | Tình trạng cuối tháng 10 |
+| Chưa native sâu | |
+| Chưa test rigorous | |
+| Chưa CI/CD | |
+| Chưa Reanimated sâu | ← vẫn còn, tháng 11 xử lý |
+| Chưa GraphQL | ← vẫn còn, chấp nhận |
+| English under pressure | |
+
+### Câu hỏi thành thật
+Nếu ngày mai có buổi phỏng vấn Middle RN, tôi tự tin bao nhiêu phần trăm?
+Điều gì khiến tôi chưa tự tin hơn?
+```
+
+**Nghe lại `2026-09-07.m4a` rồi `2026-10-29.m4a`.** Tám tuần.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nhìn lại tuần và tháng
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–17:00 · Nói to có ghi âm — 4 phút
+
+Hôm nay dài hơn thường lệ vì tổng kết cả tháng:
+
+> **1. This week**
+> *"Offline support and CI. The app now reads from a persisted cache with no network, queues writes, and replays them when the connection comes back. On the CI side, every pull request runs four checks in parallel and merging to main ships an OTA update automatically — with a guard that refuses to do that if the commit touched anything native."*
+>
+> **2. This month, in one sentence**
+> *"October was about depth rather than features — authentication, testing, the New Architecture, performance, and delivery."*
+>
+> **3. The thing I'm proudest of**
+> *"___"*
+>
+> **4. What I'd tell an interviewer about my biggest gap now**
+> *"Two months ago I'd have said testing, honestly. I'd never worked somewhere with a strong testing culture. Now I've got unit, component and end-to-end coverage on a real project, plus a written document on what I deliberately don't test and why. It's still the area where I have the least production experience — but it's no longer an area I avoid talking about."*
+>
+> **5. Next month**
+> *"November is AI features, push notifications, animation, and then interview preparation. I'm giving the last week entirely to mock interviews."*
+
+**Phần 4 là phần đáng luyện nhất.** Đó là cách chuyển một điểm yếu thành bằng chứng về tính cách — và người phỏng vấn có kinh nghiệm nhận ra ngay sự khác biệt giữa câu này và một lời bào chữa.
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 20.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] v1.1.0 phát hành thành công qua pipeline, không phải làm tay bước nào
+- [ ] Có mặt trên cả TestFlight lẫn Play Internal Testing
+- [ ] Ghi chú phát hành viết xong
+- [ ] CV cập nhật, **mọi dòng đều defend được trong 60 giây**
+- [ ] Hồ sơ GitHub gọn gàng, `docs/` đầy đủ
+- [ ] Điền xong tổng kết tháng 10, kể cả 4 câu tự chấm
+- [ ] Đã đối chiếu lại danh sách "honest gaps"
+- [ ] **Có commit hôm nay** — 40/40 ngày làm việc
+- [ ] Ghi âm `2026-10-30.m4a`
+- [ ] Đọc xong ch.20
+
+---
+
+## Ngày 40/61 — hai phần ba chặng đường
+
+Hai tháng trước bạn có 6 tháng thất nghiệp và không có gì để chỉ vào.
+
+Bây giờ bạn có: một app trên hai cửa hàng, một bộ test thật, một native module tự viết, một pipeline CI/CD, sáu tài liệu kỹ thuật, 40 ngày commit liên tiếp, và 40 bản ghi âm tiếng Anh.
+
+**Tháng 11 là tháng đi tìm việc thật.** Đọc `.cursor/rules/Nov/00-context-nov.mdc` trước khi bắt đầu.
+
+Nhưng cuối tuần này thì nghỉ. Trọn vẹn.

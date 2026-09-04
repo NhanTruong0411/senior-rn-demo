@@ -1,0 +1,176 @@
+---
+description: Context tháng 11/2026 — Tháng CHO NGƯỜI KHÁC THẤY. AI features, push notification, animation, và 5 ngày phỏng vấn thử. Đọc trước khi mở file ngày.
+alwaysApply: false
+---
+
+# Tháng 11/2026 — Tháng 3: CHO NGƯỜI KHÁC THẤY
+
+> **Mục tiêu tháng:** Hai tháng qua bạn xây năng lực. Tháng này bạn **biến nó thành offer**.
+> **21 ngày làm việc** · Thứ 2 → Thứ 6 · T7 + CN nghỉ hoàn toàn.
+> **Khác biệt lớn nhất so với tháng 9 và 10:** từ tuần 11 trở đi, bạn **vừa học vừa apply**. Không chờ "đủ giỏi" rồi mới nộp — không bao giờ có ngày đó.
+
+---
+
+## 1. Lịch cố định (không đổi)
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY (2h)** — giãn cơ 5 phút lúc 09:30 |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC (3h)** — nghỉ 10 phút lúc 15:00 |
+| **16:30** | **TIẾNG ANH (30 phút)** |
+| **17:00** | **ĐỌC SÁCH (30 phút)** |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## 2. Lộ trình tháng 11
+
+| Tuần | Ngày | Chủ đề | Kết quả phải có |
+| --- | --- | --- | --- |
+| **10** | 02–06/11 | **AI features** — Vercel AI SDK, streaming vào RN | Trợ lý dinh dưỡng chạy được, key không nằm trong app |
+| **11** | 09–13/11 | **Push notification + deep link** | Push thật qua FCM/APNs · deep link mở đúng màn hình |
+| **12** | 16–20/11 | **Reanimated + Gesture** | Lỗ hổng cuối cùng. Animation chạy trên UI thread |
+| **13** | 23–27/11 | **Phỏng vấn thử + apply** | 5 buổi mock có ghi âm · 30+ đơn đã nộp |
+| **14** | 30/11 | **Tổng kết 3 tháng** | Nhìn lại toàn bộ · kế hoạch tháng 12 |
+
+---
+
+## 3. Thay đổi quan trọng: apply song song với học
+
+Từ **02/11**, mỗi ngày dành **30 phút trong khối chiều** cho việc tìm việc. Không phải khối riêng — cắt từ khối học.
+
+| Ngày | Việc tìm việc (30 phút) |
+| --- | --- |
+| Thứ 2 | Nộp 3 đơn có thư ứng tuyển viết riêng |
+| Thứ 3 | Nhắn 2 người trong ngành trên LinkedIn hoặc cộng đồng |
+| Thứ 4 | Nộp 3 đơn |
+| Thứ 5 | Theo dõi đơn cũ · trả lời tin nhắn |
+| Thứ 6 | Xem lại tuần: nộp mấy đơn, phản hồi mấy, học được gì |
+
+**Mục tiêu tháng: 40+ đơn.** Đọc lại số cũ — bạn đã nộp 100 đơn trong 6 tháng mà chưa có kết quả. Tháng này khác ở ba điểm:
+1. Bạn có **dự án thật để chỉ vào**, không chỉ có CV
+2. Thư ứng tuyển viết riêng cho từng công ty, nhắc đúng một thứ cụ thể về họ
+3. Bạn nhắn người thật, không chỉ bấm nút nộp
+
+### Nơi nộp
+
+| Loại | Nơi |
+| --- | --- |
+| Product VN | Tiki, Momo, ZaloPay, VNG, Be, ELSA, Coolmate, Sky Mavis, FE Credit, MB Bank |
+| Outsourcing tốt | KMS Technology, NashTech, FPT Software, Axon Active, Saigon Technology, TMA, KIE |
+| Văn phòng nước ngoài | Shopee VN, Lazada VN, Grab VN, Lalamove, Got It |
+| Nền tảng | ITviec, TopDev, LinkedIn, VietnamWorks |
+| Remote quốc tế | WeWorkRemotely, RemoteOK, Wellfound |
+
+---
+
+## 4. Tài nguyên tháng 11
+
+### AI
+| Tên | Link |
+| --- | --- |
+| Vercel AI SDK | https://sdk.vercel.ai/docs |
+| AI SDK — React Native | https://sdk.vercel.ai/docs/getting-started/expo |
+| Supabase Edge Functions | https://supabase.com/docs/guides/functions |
+| OpenAI API | https://platform.openai.com/docs |
+
+### Push + deep link
+| Tên | Link |
+| --- | --- |
+| Expo Notifications | https://docs.expo.dev/push-notifications/overview/ |
+| Expo Router — linking | https://docs.expo.dev/router/advanced/native-intent/ |
+| Firebase Cloud Messaging | https://firebase.google.com/docs/cloud-messaging |
+
+### Animation
+| Tên | Link |
+| --- | --- |
+| Reanimated 4 | https://docs.swmansion.com/react-native-reanimated/ |
+| Gesture Handler | https://docs.swmansion.com/react-native-gesture-handler/ |
+| William Candillon — "Can it be done in React Native?" | https://www.youtube.com/@wcandillon |
+
+### Phỏng vấn
+| Tên | Link |
+| --- | --- |
+| Q&A bank của chính bạn | `.cursor/rules/coding/qa-bank.mdc` |
+| Context phỏng vấn | `.cursor/rules/interview/context.mdc` |
+
+---
+
+## 5. Khối Tiếng Anh — đổi trọng tâm từ tuần 13
+
+Tuần 10–12 giữ nguyên cấu trúc cũ. **Tuần 13 (23–27/11) chuyển hoàn toàn sang mô phỏng phỏng vấn** — 30 phút mỗi ngày trả lời câu hỏi thật, bấm giờ, ghi âm, nghe lại.
+
+| Ngày (tuần 10–12) | Chủ đề |
+| --- | --- |
+| Thứ 2 | Daily standup |
+| Thứ 3 | Giải thích 1 khái niệm kỹ thuật |
+| Thứ 4 | Nghe + chép chính tả |
+| Thứ 5 | Trả lời 1 câu phỏng vấn ≤60 giây |
+| Thứ 6 | Nhìn lại tuần |
+
+### Câu hỏi Thứ Năm tháng 11
+
+| Ngày | Câu hỏi |
+| --- | --- |
+| 05/11 | *"How would you add an AI feature to a mobile app without exposing your API key?"* |
+| 12/11 | *"How do push notifications work end to end?"* |
+| 19/11 | *"Why do animations run on the UI thread in Reanimated?"* |
+| 26/11 | *"Tell me about yourself."* — câu quan trọng nhất, cả tuần luyện |
+
+---
+
+## 6. Đọc sách tháng 11
+
+Xong *The Pragmatic Programmer* trong tuần đầu. Sau đó chuyển sang đọc **ngắn hơn và hướng phỏng vấn**:
+
+- Tuần 11–12: đọc lại `qa-bank.mdc` của chính bạn, mỗi ngày 30 phút, sửa câu trả lời cũ theo những gì đã học 2 tháng qua
+- Tuần 13–14: *Cracking the Coding Interview* — chỉ phần behavioral, bỏ phần thuật toán
+
+---
+
+## 7. Định nghĩa hoàn thành — 30/11
+
+- [ ] Tính năng AI chạy, **API key không nằm trong app**
+- [ ] Push notification thật, mở app đúng màn hình khi bấm
+- [ ] Deep link chạy cả từ trạng thái app đã đóng
+- [ ] 2 animation dùng Reanimated chạy trên UI thread
+- [ ] **40+ đơn đã nộp**, có bảng theo dõi
+- [ ] **5 buổi phỏng vấn thử có ghi âm**, đã nghe lại và ghi cải thiện
+- [ ] `docs/interview-cheatsheet.md` — 1 trang
+- [ ] Con số lương tối thiểu viết ra giấy
+- [ ] 21 file ghi âm tiếng Anh
+- [ ] Commit đủ 21/21 ngày
+
+---
+
+## 8. Điều cần nhớ suốt tháng này
+
+Tháng 9 và 10 bạn kiểm soát được kết quả: viết code thì code chạy.
+
+**Tháng 11 thì không.** Bạn nộp 40 đơn và có thể chỉ 3 nơi trả lời. Đó không phải thước đo năng lực của bạn — đó là cách thị trường tuyển dụng vận hành, và nó luôn như vậy với mọi người.
+
+Thứ bạn kiểm soát được: nộp đủ số đơn, viết thư ứng tuyển tử tế, luyện nói cho trôi, giữ được nhịp ngủ và giờ với con.
+
+Làm đủ những thứ đó mỗi ngày. Kết quả là chuyện của xác suất và thời gian.
+
+---
+
+_Đọc file này trước khi mở file ngày._

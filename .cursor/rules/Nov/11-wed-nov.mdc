@@ -1,0 +1,228 @@
+---
+description: Thứ Tư 11/11/2026 — Tuần 11 Ngày 3. Nối push với deep link, chia sẻ link, và ma trận thử nghiệm đầy đủ.
+alwaysApply: false
+---
+
+# Thứ Tư · 11/11/2026 · Tuần 11 — Ngày 48/61
+
+> Hai ngày qua làm push và deep link riêng lẻ. Hôm nay nối chúng lại — và đây là chỗ **ma trận trạng thái** nhân lên thành 9 tình huống phải thử.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Bấm thông báo → mở đúng màn hình |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Chia sẻ link + ma trận thử nghiệm |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
+| **16:30** | **TIẾNG ANH** — Nghe + chép chính tả |
+| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 7 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Nối hai thứ lại
+
+### 08:30–09:30 · Bấm thông báo mở đúng màn hình
+
+Payload push hôm thứ Hai đã có sẵn `data.screen`. Giờ dùng nó:
+
+```ts
+function useNotificationNavigation() {
+  const router = useRouter();
+  const { session, isLoading } = useSession();
+  const pending = useRef<string | null>(null);
+
+  // App đang mở hoặc ở nền
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const screen = response.notification.request.content.data?.screen;
+      if (typeof screen === 'string') handle(screen);
+    });
+    return () => sub.remove();
+  }, [session, isLoading]);
+
+  // App đã đóng hẳn — thông báo đã khởi động app
+  useEffect(() => {
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      const screen = response?.notification.request.content.data?.screen;
+      if (typeof screen === 'string') handle(screen);
+    });
+  }, []);
+
+  function handle(screen: string) {
+    if (isLoading) { pending.current = screen; return; }   // giữ lại chờ auth
+    if (!session) { pending.current = screen; return; }    // giữ lại chờ đăng nhập
+    router.push(screen);
+  }
+
+  // xử lý link đang chờ khi có phiên
+  useEffect(() => {
+    if (session && pending.current) {
+      router.push(pending.current);
+      pending.current = null;
+    }
+  }, [session]);
+}
+```
+
+**Cùng một cơ chế "giữ lại chờ" như deep link hôm qua.** Nếu bạn thấy mình viết logic này lần thứ hai, đó là dấu hiệu nên gom vào một chỗ:
+
+```ts
+// src/shared/lib/pendingNavigation.ts — dùng chung cho cả push và deep link
+```
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Ba nguồn điều hướng, một đường xử lý
+
+App giờ có ba nguồn có thể điều hướng từ bên ngoài:
+1. Deep link (`macrozone://meal/123`)
+2. Universal Link (`https://macrozone.app/meal/123`)
+3. Bấm push notification
+
+**Cả ba phải đi qua cùng một hàm xử lý.** Ba đường riêng là ba chỗ để lỗi ẩn nấp, và bạn sẽ chỉ sửa được một chỗ khi phát hiện bug.
+
+```bash
+git add . && git commit -m "feat: gom điều hướng từ push và deep link về một đường"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:15 · Chia sẻ link
+
+Cho người dùng chia sẻ một bữa ăn:
+
+```ts
+await Share.share({
+  message: `Tôi vừa ghi ${meal.name} — ${meal.calories} kcal`,
+  url: `https://macrozone.app/meal/${meal.id}`,     // Universal Link
+});
+```
+
+**Vì sao chia sẻ phải dùng `https://` chứ không `macrozone://`:** người nhận có thể chưa cài app. Link `https://` mở web và ở đó bạn mời họ cài. Link `macrozone://` gửi cho người chưa cài app là một link chết hoàn toàn — họ bấm và không có gì xảy ra.
+
+Trang web cần một trang tối thiểu tại `/meal/:id`:
+- Nếu bữa ăn công khai: hiện thông tin cơ bản
+- Nút "Mở trong app" và nút tải app
+- Thẻ Open Graph để link hiện đẹp khi dán vào Zalo/Messenger
+
+### 14:15–15:00 · Ma trận thử nghiệm
+
+**Đây là phần quan trọng nhất hôm nay.** Ba trạng thái app × ba nguồn = 9 tình huống, cộng thêm trạng thái đăng nhập.
+
+Viết vào `docs/deep-linking.md`:
+
+```markdown
+## Test matrix
+
+| Source | App open | App backgrounded | App killed |
+|---|---|---|---|
+| Custom scheme | ☐ | ☐ | ☐ |
+| Universal Link | ☐ | ☐ | ☐ |
+| Push tap | ☐ | ☐ | ☐ |
+
+Each of the nine, twice: signed in, and signed out.
+Signed out must hold the target and navigate there after sign-in —
+not drop it and land on the home screen.
+
+| Edge case | Expected |
+|---|---|
+| Malformed id | Error screen, no crash |
+| Someone else's meal id | "Not found" — RLS blocks the read |
+| Unknown route | In-app 404 |
+| Link tapped while offline | Screen opens from cache, or a clear offline message |
+```
+
+**Đi hết ma trận này bằng tay.** Mất khoảng 40 phút. Bạn sẽ tìm ra ít nhất hai lỗi — gần như chắc chắn ở cột "App killed" và ở hàng "signed out".
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Tự động hóa phần chính
+
+Không tự động hóa được cả 9, nhưng ba cái quan trọng nhất thì được — thêm vào Maestro:
+
+```yaml
+# .maestro/04-deep-link-cold-start.yaml
+appId: com.truonghuunhan.macrozone
+---
+- stopApp
+- openLink: "macrozone://meal/${MEAL_ID}"
+- assertVisible:
+    text: "Phở bò"
+    timeout: 15000
+```
+
+Ba luồng E2E của bạn giờ thành sáu. Chúng chạy hằng đêm qua GitHub Actions đã dựng hôm 28/10.
+
+```bash
+git add . && git commit -m "feat: chia sẻ universal link + e2e cho deep link"
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+
+Tổng đến giờ: khoảng 12 đơn.
+
+**Nếu đã có buổi phỏng vấn được hẹn:** dành 30 phút này để chuẩn bị cho buổi đó thay vì nộp thêm. Đọc kỹ về công ty, chuẩn bị 3 câu hỏi để hỏi ngược lại họ.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Nghe + chép chính tả
+
+### 16:30–16:45 · Chép chính tả
+
+60 giây. Nghe → chép → đối chiếu → khoanh chỗ sai.
+
+### 16:45–16:55 · Đọc to lại 3 lần, ghi âm
+
+### 16:55–17:00 · 5 từ nghe không ra
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**`qa-bank.mdc` — Topic 7 (Testing).**
+
+Đây là topic thay đổi nhiều nhất. Câu trả lời cũ của bạn là *"Firegroup không có culture test mạnh, đây là honest gap."* Giờ bạn có 55+ test, 6 luồng E2E, và một tài liệu chiến lược. **Viết lại hoàn toàn topic này.**
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Bấm push mở đúng màn hình ở cả 3 trạng thái app
+- [ ] Ba nguồn điều hướng đi qua **một** hàm xử lý chung
+- [ ] Chia sẻ dùng `https://`, không dùng custom scheme
+- [ ] **Đã đi hết ma trận 9 tình huống bằng tay**
+- [ ] Trạng thái chưa đăng nhập: giữ được đích đến, không rơi mất
+- [ ] Ghi lại các lỗi tìm được và đã sửa
+- [ ] Thêm 3 luồng E2E cho deep link
+- [ ] Đã nộp 3 đơn
+- [ ] **Có commit hôm nay**
+- [ ] Chép chính tả + ghi âm `2026-11-11.m4a`
+- [ ] **Đã viết lại hoàn toàn Topic 7 trong `qa-bank.mdc`**
+- [ ] 21:30 lên giường

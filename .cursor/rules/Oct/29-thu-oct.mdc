@@ -1,0 +1,290 @@
+---
+description: Thứ Năm 29/10/2026 — Tuần 9 Ngày 4. CD — EAS Build và EAS Update tự động từ GitHub Actions.
+alwaysApply: false
+---
+
+# Thứ Năm · 29/10/2026 · Tuần 9 — Ngày 39/61
+
+> Hôm qua CI kiểm tra code. Hôm nay CD **phát hành** code. Xong hôm nay, merge một PR vào `main` là app tự lên tay người thử.
+
+**Docs:** https://docs.expo.dev/build/building-on-ci/ · https://github.com/expo/expo-github-action
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — EAS Update tự động |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Build tự động + bản xem trước cho PR |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Câu hỏi phỏng vấn |
+| **17:00** | **ĐỌC SÁCH** — ch.19 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — EAS Update tự động
+
+### 08:30–09:00 · Token cho CI
+
+```bash
+eas login
+# tạo token tại https://expo.dev/settings/access-tokens
+```
+
+Thêm vào GitHub → Settings → Secrets and variables → Actions:
+- `EXPO_TOKEN`
+
+**Token này có toàn quyền trên tài khoản Expo của bạn.** Đừng bao giờ in nó ra log, đừng dùng nó trong workflow chạy từ fork của người lạ.
+
+### 09:00–09:30 · Workflow phát hành
+
+`.github/workflows/release.yml`
+
+```yaml
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: npm ci
+
+      - name: Publish OTA update
+        run: eas update --branch production --message "${{ github.event.head_commit.message }}"
+```
+
+Thông điệp cập nhật lấy từ commit message — nên commit message tử tế giờ có giá trị thật, không chỉ để đẹp lịch sử.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Hàng rào an toàn
+
+**Đẩy OTA tự động cho mọi commit vào `main` là nguy hiểm.** Nhớ lại hôm 29/09: OTA không đẩy được thay đổi native, và nếu đẩy nhầm thì app crash khi mở, người dùng không tự sửa được.
+
+Thêm hai lớp bảo vệ:
+
+```yaml
+      - name: Chặn nếu có thay đổi native
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -qE '^(package\.json|app\.json|app\.config\.[jt]s)$'; then
+            echo "::error::Có thay đổi cấu hình hoặc dependency — cần build store, không đẩy OTA"
+            exit 1
+          fi
+```
+
+Và chỉ chạy khi CI đã xanh:
+
+```yaml
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  update:
+    if: github.event.workflow_run.conclusion == 'success'
+```
+
+> **Đây là điểm đáng nói khi phỏng vấn:** *"Tôi tự động hóa việc phát hành, nhưng có chốt chặn. Pipeline từ chối đẩy OTA nếu commit chạm vào dependency hoặc cấu hình app, vì OTA không thể đẩy thay đổi native — đẩy nhầm là app crash lúc khởi động và người dùng không tự thoát ra được."*
+
+```bash
+git add . && git commit -m "ci: tự động đẩy OTA kèm chốt chặn thay đổi native"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:30 · Bản xem trước cho mỗi PR
+
+Đây là thứ làm việc review PR thay đổi hẳn — người review quét mã QR và **mở thử app trên máy mình**:
+
+```yaml
+name: PR Preview
+
+on: pull_request
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+
+      - uses: expo/expo-github-action/preview@v8
+        with:
+          command: eas update --auto --branch pr-${{ github.event.number }}
+```
+
+Action này tự bình luận vào PR một mã QR. Ai có development build đều quét và chạy thử được đúng nhánh đó.
+
+> **Nói được điều này khi phỏng vấn cho thấy bạn hiểu quy trình team:** *"Mỗi PR có một bản xem trước quét QR chạy được. Người review không phải checkout nhánh và build tại máy — họ mở thử trong 30 giây. Nó rút ngắn vòng phản hồi rất nhiều, đặc biệt với người review không phải kỹ sư."*
+
+### 14:30–15:00 · Build store tự động
+
+Build tốn thời gian và có hạn mức miễn phí, nên **chỉ build khi gắn tag**:
+
+```yaml
+name: Store Build
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # ...setup...
+      - run: eas build --platform all --profile production --non-interactive --no-wait
+      - run: eas submit --platform all --latest --non-interactive
+```
+
+Quy trình phát hành giờ là:
+
+```bash
+npm version minor          # 1.0.0 → 1.1.0
+git push --follow-tags     # kích hoạt build + nộp store
+```
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Sơ đồ toàn bộ pipeline
+
+Vẽ vào `docs/ci-cd.md` — **bạn sẽ vẽ lại sơ đồ này trên bảng trắng khi phỏng vấn**:
+
+```
+Push lên nhánh feature
+   └─► CI: typecheck │ lint │ test │ bundle-size   (song song, ~90 giây)
+   └─► PR Preview: eas update --branch pr-N → bình luận mã QR vào PR
+
+Merge vào main (chặn nếu CI đỏ)
+   └─► Release: kiểm tra không có thay đổi native
+                └─► eas update --branch production   (OTA, vài phút)
+
+Gắn tag v*
+   └─► Store Build: eas build --profile production
+                    └─► eas submit → TestFlight + Play Internal
+
+Hằng đêm 01:00 giờ VN
+   └─► E2E: Maestro trên emulator
+```
+
+Ghi rõ **quyết định và lý do**:
+
+```markdown
+## Decisions
+
+**Fast checks per PR, slow checks nightly.** Typecheck, lint and unit tests run
+on every pull request and finish in about ninety seconds. Maestro needs an
+emulator and takes several minutes, so it runs on a nightly schedule instead.
+A CI that takes twenty minutes per PR is a CI people start working around.
+
+**OTA is automatic, store builds are not.** Merging to main ships a JavaScript
+update within minutes. Store builds require an explicit version tag, because
+they cost build minutes, go through review, and can't be rolled back the same way.
+
+**The pipeline refuses to OTA native changes.** If a commit touches package.json
+or app config, the release job fails with a message telling you to cut a build
+instead. OTA can't ship native code, and shipping JavaScript that calls into
+missing native code crashes the app on launch with no user-side recovery.
+```
+
+```bash
+git add . && git commit -m "ci: bản xem trước cho PR, build store theo tag, tài liệu pipeline"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Năm: Câu hỏi phỏng vấn
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Trả lời có ghi âm
+
+**Câu hỏi tuần này:** *"Walk me through your release process."*
+
+> *"There are three lanes, and which one a change takes depends on what it touches.*
+> *Every pull request runs typecheck, lint, unit tests and a bundle size check against a written budget — four jobs in parallel, about ninety seconds. It also publishes a preview build and comments a QR code on the PR, so a reviewer can open the actual change on their phone instead of checking out the branch.*
+> *Merging to main publishes an over-the-air update automatically. But the job refuses to run if the commit touched package.json or the app config, because OTA can only replace JavaScript. If you ship JavaScript that calls into native code that isn't in the installed binary, the app crashes on launch and the user can't fix it themselves.*
+> *Store builds are deliberately manual — they're triggered by pushing a version tag. They cost build minutes, they go through review, and you can't roll them back the way you can roll back an update.*
+> *End-to-end tests run nightly rather than per-PR. Maestro needs an emulator and takes several minutes, and a CI that takes twenty minutes per pull request is one people start working around.*
+> *Main is protected, so none of this can be bypassed — including by me."*
+
+**Câu cuối là câu hay nhất.** Nó nói rằng bạn hiểu quy trình tồn tại để bảo vệ cả người viết ra nó.
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `lane` (n) | luồng, làn phát hành | *There are three lanes.* |
+| `cut a build` | tạo một bản build | *Cut a build instead.* |
+| `roll back` | quay lui phiên bản | *You can't roll them back easily.* |
+| `work around` (v) | lách, đi vòng | *A CI people start working around.* |
+| `bypass` (v) | bỏ qua quy trình | *None of this can be bypassed.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 19.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] `EXPO_TOKEN` nằm trong GitHub Secrets, không lộ trong log
+- [ ] Merge vào `main` tự đẩy OTA
+- [ ] **Pipeline chặn OTA khi commit chạm native — đã thử và xác nhận**
+- [ ] PR có bình luận mã QR bản xem trước
+- [ ] Build store chỉ chạy khi gắn tag
+- [ ] Sơ đồ pipeline vẽ xong trong `docs/ci-cd.md`
+- [ ] Có phần Decisions giải thích lý do từng lựa chọn
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-10-29.m4a` — quy trình phát hành ≤90 giây
+- [ ] Đọc xong ch.19
+- [ ] 21:30 lên giường

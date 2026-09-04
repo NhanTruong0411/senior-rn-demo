@@ -1,0 +1,259 @@
+---
+description: Thứ Sáu 25/09/2026 — Tuần 3 Ngày 5. Zustand cho client state, dọn kiến trúc, tổng kết tuần 3.
+alwaysApply: false
+---
+
+# Thứ Sáu · 25/09/2026 · Tuần 3 — Ngày 15/61
+
+> Hôm nay khép lại phần state: **Query lo dữ liệu server, Zustand lo dữ liệu client.** Xong hôm nay bạn có câu trả lời hoàn chỉnh cho câu hỏi được hỏi nhiều nhất trong phỏng vấn RN ở Việt Nam.
+
+**Docs:** https://zustand.docs.pmnd.rs
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Zustand cho client state |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Dọn kiến trúc theo feature + tổng kết tuần |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Nhìn lại tuần |
+| **17:00** | **ĐỌC SÁCH** — ch.15 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ. **Nghỉ trọn vẹn T7 + CN** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Zustand
+
+```bash
+npm install zustand
+git checkout -b feat/zustand
+```
+
+### 08:30–09:30 · Chuyển theme từ Context sang Zustand
+
+```ts
+// store/useSettingsStore.ts
+type SettingsState = {
+  themeMode: 'light' | 'dark' | 'system';
+  dailyGoal: { calories: number; protein: number; carbs: number; fat: number };
+  setThemeMode: (mode: SettingsState['themeMode']) => void;
+  setDailyGoal: (goal: Partial<SettingsState['dailyGoal']>) => void;
+};
+
+export const useSettingsStore = create<SettingsState>()(
+  persist(
+    (set) => ({
+      themeMode: 'system',
+      dailyGoal: { calories: 2000, protein: 150, carbs: 200, fat: 65 },
+      setThemeMode: (themeMode) => set({ themeMode }),
+      setDailyGoal: (goal) =>
+        set((s) => ({ dailyGoal: { ...s.dailyGoal, ...goal } })),
+    }),
+    { name: 'settings', storage: createJSONStorage(() => AsyncStorage) },
+  ),
+);
+```
+
+**So sánh trực tiếp với Context bạn viết hôm thứ Hai — ghi vào sổ:**
+
+| | Context | Zustand |
+| --- | --- | --- |
+| Cần Provider bọc | Có | Không |
+| Component không dùng có re-render? | Có, nếu value đổi | Không, nhờ selector |
+| Lưu xuống đĩa | Tự viết | Có sẵn middleware `persist` |
+| Đọc ngoài React | Không | Được (`useStore.getState()`) |
+
+> Bạn vừa tự tay viết cả hai cách cho **cùng một bài toán**. Đó là loại kinh nghiệm mà người phỏng vấn phân biệt được ngay với người chỉ đọc bài so sánh trên mạng.
+
+### 09:30–10:30 · Selector và tránh re-render thừa
+
+Giãn cơ 5 phút lúc 09:30 trước đã.
+
+```ts
+// Sai — component render lại khi BẤT KỲ phần nào của store đổi
+const { themeMode } = useSettingsStore();
+
+// Đúng — chỉ render lại khi themeMode đổi
+const themeMode = useSettingsStore((s) => s.themeMode);
+```
+
+Thêm mục tiêu dinh dưỡng chỉnh được vào màn hình Settings, `MacroGrid` đọc mục tiêu từ store.
+
+```bash
+git add . && git commit -m "feat: chuyển client state sang zustand có persist"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30
+
+### 13:30–14:40 · Sắp xếp lại theo feature
+
+Hiện tại code đang gom theo **loại file** (`components/`, `hooks/`, `lib/`). Cách này vỡ khi dự án lớn. Chuyển sang gom theo **tính năng**:
+
+```
+src/
+  features/
+    meals/
+      components/   MealItem.tsx  MealForm.tsx
+      hooks/        useMeals.ts   useAddMeal.ts  useDeleteMeal.ts
+      lib/          schemas.ts    api.ts
+      types.ts
+    stats/
+      components/   MacroGrid.tsx  WeeklyChart.tsx
+      lib/          stats.ts
+    settings/
+      components/   ThemePicker.tsx  GoalEditor.tsx
+      store/        useSettingsStore.ts
+  shared/
+    ui/             Button.tsx  Card.tsx  EmptyState.tsx
+    lib/            supabase.ts
+    theme/          index.ts
+app/                (chỉ chứa route, mỗi file mỏng, gọi vào features)
+```
+
+**Luật vàng:** file trong `app/` chỉ nên là vỏ mỏng — nhập component từ `features/` rồi render. Nếu một file route dài quá ~50 dòng, logic đang nằm nhầm chỗ.
+
+**Luật thứ hai:** hai feature **không được import trực tiếp của nhau**. Cần dùng chung thì đưa vào `shared/`. Đây là thứ giữ cho dự án không rối sau 6 tháng.
+
+Cập nhật alias trong `tsconfig.json`:
+
+```json
+{ "compilerOptions": { "paths": { "@/*": ["./src/*"] } } }
+```
+
+### 14:40–15:00 · Kiểm tra sức khỏe dự án
+
+```bash
+npx tsc --noEmit
+npx expo lint
+npx expo-doctor
+```
+
+Đếm dòng từng file, tách file nào trên 250 dòng:
+
+```bash
+find src app -name "*.tsx" -o -name "*.ts" | xargs wc -l | sort -rn | head -20
+```
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–15:50 · Cập nhật README
+
+Thêm phần kiến trúc — đây là thứ người phỏng vấn đọc:
+
+```markdown
+## Architecture
+
+Feature-based structure. Each feature owns its components, hooks and data
+access. Features never import from each other; anything shared lives in `shared/`.
+
+**State split**
+- Server state (meals) → TanStack Query. Caching, retries and background
+  refetch come from the library rather than hand-written reducers.
+- Client state (theme, daily goals) → Zustand with persist middleware.
+
+**Validation**
+TypeScript types disappear at runtime, so every external boundary — the API
+response, local storage, and the meal form — is validated with Zod.
+Types are inferred from the schemas so they can never drift apart.
+```
+
+### 15:50–16:30 · Tổng kết tuần 3
+
+```text
+## Tổng kết tuần 3 (21–25/09)
+
+Tính năng thêm được ngoài khóa học:
+1. Dark mode + hệ thống theme
+2. Màn hình thống kê + FlashList
+3. Backend Supabase + TanStack Query
+4. Zod validation
+5. Zustand + kiến trúc theo feature
+
+Số đo hiệu năng (từ docs/perf-notes.md):
+  FPS trước: ___  → sau: ___
+  RAM trước: ___  → sau: ___
+
+Khái niệm nắm chắc nhất tuần này:
+Chỗ còn mơ hồ:
+Số ngày có commit: ___/5
+```
+
+```bash
+git checkout main && git merge feat/zustand
+git add . && git commit -m "refactor: kiến trúc theo feature + cập nhật README"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nhìn lại tuần
+
+### 16:30–16:40 · Shadowing
+
+2 phút như thường lệ.
+
+### 16:40–17:00 · Nói to có ghi âm — 3 phút
+
+> **1. What I did**
+> *"This week I took the tutorial app and made it my own. I added a theming system with light and dark mode, a stats screen, a real Supabase backend, Zod validation, and I restructured the whole project around features instead of file types."*
+>
+> **2. The thing I'm most pleased with**
+> *"The part I'm most pleased with is that swapping local storage for a real API didn't require touching a single component. I'd isolated the data layer a week earlier, and that decision paid off exactly the way I hoped."*
+>
+> **3. What I struggled with**
+> *"I struggled with ___."*
+>
+> **4. Next week**
+> *"Next week is the last week of the month. I'm doing EAS builds for both platforms and getting the app onto TestFlight and Google Play internal testing."*
+
+**Kiêm buổi họp một mình.** Ghi âm xong, tự hỏi bằng tiếng Việt: tuần này vai trò nào bị bỏ rơi?
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**A Philosophy of Software Design** — chương 15 *(Write The Comments First)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Client state đã sang Zustand, dùng selector đúng cách
+- [ ] Nói được Context khác Zustand ở 4 điểm
+- [ ] Cấu trúc theo feature xong, `app/` chỉ còn route mỏng
+- [ ] Không feature nào import trực tiếp của feature khác
+- [ ] Không file nào trên 250 dòng không có lý do
+- [ ] `tsc`, `lint`, `expo-doctor` đều sạch
+- [ ] README có phần Architecture
+- [ ] Điền xong tổng kết tuần 3
+- [ ] **Có commit hôm nay** — 15/15 ngày làm việc đều có commit
+- [ ] Ghi âm `2026-09-25.m4a`
+- [ ] Đọc xong ch.15
+
+---
+
+## Cuối tuần 26–27/09: NGHỈ HOÀN TOÀN
+
+Tuần sau là tuần cuối tháng 9 — tuần **đưa app lên store**.

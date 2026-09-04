@@ -1,0 +1,215 @@
+---
+description: Thứ Tư 18/11/2026 — Tuần 12 Ngày 3. Chuyển màn có chia sẻ phần tử, và biết khi nào KHÔNG nên animate.
+alwaysApply: false
+---
+
+# Thứ Tư · 18/11/2026 · Tuần 12 — Ngày 53/61
+
+> Hôm qua bạn học làm animation. Hôm nay bạn học **kiềm chế** — đó mới là dấu hiệu của người có kinh nghiệm.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Chuyển màn có chia sẻ phần tử |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Kiểm toán animation + tôn trọng cài đặt hệ thống |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
+| **16:30** | **TIẾNG ANH** — Kể chuyện kỹ thuật |
+| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 4–6 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Chuyển màn có chia sẻ phần tử
+
+Expo Router hỗ trợ sẵn từ SDK 52:
+
+```tsx
+// trong danh sách
+<Link href={`/meal/${meal.id}`}>
+  <Animated.View sharedTransitionTag={`meal-${meal.id}`}>
+    <MealCard meal={meal} />
+  </Animated.View>
+</Link>
+
+// trong màn chi tiết
+<Animated.View sharedTransitionTag={`meal-${meal.id}`}>
+  <MealHeader meal={meal} />
+</Animated.View>
+```
+
+Thẻ phải **trùng nhau và duy nhất**. Dùng `id` chứ đừng dùng chỉ số mảng — chỉ số đổi khi danh sách sắp xếp lại, và bạn sẽ thấy phần tử bay sai chỗ.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Khi nào chuyển màn kiểu này có ý nghĩa
+
+Nó chỉ đáng khi **cùng một đối tượng** xuất hiện ở hai màn. Nó giúp người dùng giữ được ngữ cảnh: *"tôi vừa bấm vào cái này, và đây chính là nó."*
+
+Nó **vô nghĩa** khi:
+- Hai màn không chia sẻ nội dung nào
+- Phần tử nhỏ và không phải trọng tâm
+- Chuyển màn xảy ra rất thường xuyên (làm chậm thao tác lặp lại)
+
+Nếu bạn không giải thích được nó giúp gì cho người dùng, đừng làm.
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:15 · Tôn trọng cài đặt hệ thống
+
+**Người dùng bật "giảm chuyển động" trên iOS/Android là vì lý do y tế.** Chuyển động lớn gây chóng mặt, buồn nôn với người nhạy cảm tiền đình.
+
+```tsx
+import { AccessibilityInfo } from 'react-native';
+
+export function useReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduced);
+    const sub = AccessibilityInfo.addEventListener(
+      'reduceMotionChanged',
+      setReduced,
+    );
+    return () => sub.remove();
+  }, []);
+
+  return reduced;
+}
+```
+
+Áp dụng ở mọi chỗ có animation lớn:
+
+```tsx
+const reduced = useReducedMotion();
+
+const style = useAnimatedStyle(() => ({
+  opacity: withTiming(1, { duration: reduced ? 0 : 300 }),
+  transform: reduced
+    ? []                                  // bỏ hẳn chuyển động
+    : [{ translateY: withSpring(0) }],
+}));
+```
+
+**Quy tắc:** giảm chuyển động không có nghĩa là bỏ hết phản hồi. Đổi từ **trượt** sang **mờ dần**, hoặc rút ngắn thời gian. Người dùng vẫn cần biết có gì đó vừa thay đổi.
+
+### 14:15–15:00 · Kiểm toán animation
+
+Đi qua toàn bộ app, liệt kê **mọi** animation đang có. Với mỗi cái, trả lời hai câu:
+
+| Animation | Nó giúp người dùng hiểu điều gì? | Giữ / Bỏ |
+| --- | --- | --- |
+| Thanh macro chạy khi số đổi | Số đã thay đổi, thay đổi bao nhiêu | Giữ |
+| Mục mới trượt vào | Bữa ăn vừa được thêm, ở đâu | Giữ |
+| Mục thu lại khi xóa | Đã xóa, các mục dưới dịch lên | Giữ |
+| Logo nảy lên ở màn chờ | *(không gì cả)* | **Bỏ** |
+| Nút phóng to khi nhấn | Đã nhận thao tác | Giữ (nhưng rút xuống 100ms) |
+
+> **Nguyên tắc: animation là để trả lời một câu hỏi của người dùng, không phải để khoe.**
+> Nếu bạn không viết được câu trả lời ở cột giữa, xóa nó đi.
+
+Xóa thật những cái ghi "Bỏ". Commit riêng để thấy rõ:
+
+```bash
+git commit -m "refactor: bỏ animation trang trí không phục vụ người dùng"
+```
+
+**Đây là commit mà người phỏng vấn giỏi sẽ chú ý.** Thêm thứ mới thì ai cũng làm được. Nhận ra thứ mình vừa làm là thừa và tự xóa — đó là dấu hiệu khác.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Viết `docs/animations.md`
+
+```markdown
+# Animation trong MacroZone
+
+## Vì sao dùng Reanimated
+[gắn video thí nghiệm chặn JS thread 2 giây từ hôm 16/11]
+
+## Nguyên tắc
+1. Mỗi animation phải trả lời được một câu hỏi của người dùng
+2. Thời lượng: 150–300ms cho chuyển tiếp, dưới 100ms cho phản hồi chạm
+3. Tôn trọng cài đặt giảm chuyển động của hệ thống
+4. Cử chỉ ẩn luôn phải có đường lui hiện rõ
+
+## Những gì đã bỏ và vì sao
+[bảng kiểm toán]
+
+## Ngân sách hiệu năng
+FPS khi cuộn + vuốt với 1000 mục: __ (mục tiêu ≥ 58)
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Kể chuyện kỹ thuật
+
+### 16:40–16:55 · Nói to có ghi âm
+
+**Chủ đề: một thứ bạn đã xây rồi tự xóa.**
+
+Đây là dạng câu hỏi *"tell me about a time you changed your mind"* — rất hay được hỏi và rất ít người trả lời tốt.
+
+> *"This week I added animations to the app, and by the end of the second day I had more than I needed.*
+> *So I made a table of every animation and forced myself to write, next to each one, what question it answers for the user. The progress bar filling in answers 'how much did that change.' A row sliding in answers 'where did my new entry go.' A bouncing logo on the loading screen answers nothing — it was there because I thought it looked nice.*
+> *I deleted the ones with an empty second column, in their own commit so it's visible in the history.*
+> *I also added a check for the system reduce-motion setting. People turn that on for medical reasons, not preference. When it's on, I don't remove the feedback entirely — I switch from sliding to fading, so the user still knows something changed.*
+> *The general thing I took from it: adding is easy, and the discipline is in removing."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `answers the question` | trả lời được câu hỏi | *What question does it answer?* |
+| `for medical reasons` | vì lý do y tế | *People turn it on for medical reasons.* |
+| `in its own commit` | trong một commit riêng | *I deleted them in their own commit.* |
+| `visible in the history` | thấy được trong lịch sử | *So it's visible in the git history.* |
+| `the discipline is in` | cái khó nằm ở | *The discipline is in removing.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**`qa-bank.mdc` Topic 4–6** — Navigation, Auth, Reliability. Đọc to, bấm giờ.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Chuyển màn chia sẻ phần tử chạy đúng, không bay sai chỗ khi sắp xếp lại
+- [ ] `useReducedMotion` áp dụng ở mọi animation lớn
+- [ ] Khi giảm chuyển động: đổi sang mờ dần, **không** bỏ hết phản hồi
+- [ ] Bảng kiểm toán animation đã viết xong
+- [ ] **Đã xóa thật những animation trang trí, có commit riêng**
+- [ ] `docs/animations.md` hoàn chỉnh, có gắn video thí nghiệm
+- [ ] Đã nộp 3 đơn
+- [ ] Ghi âm `2026-11-18.m4a`
+- [ ] Đã rà Topic 4–6
+- [ ] 21:30 lên giường

@@ -1,0 +1,258 @@
+---
+description: Thứ Hai 02/11/2026 — Tuần 10 Ngày 1. AI SDK + Edge Function proxy — gọi LLM mà không lộ API key.
+alwaysApply: false
+---
+
+# Thứ Hai · 02/11/2026 · Tuần 10 — Ngày 41/61
+
+> **Tháng 11 bắt đầu.** Hai điều đổi so với hai tháng trước:
+> 1. Khối chiều cắt 30 phút cho việc **nộp đơn**. Bắt đầu từ hôm nay, không hoãn.
+> 2. Chủ đề tháng là thứ **nhìn thấy được** — AI, thông báo, animation.
+
+**Docs:** https://sdk.vercel.ai/docs/getting-started/expo · https://supabase.com/docs/guides/functions
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Edge Function làm proxy |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — AI SDK phía client |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC (30 phút)** — nộp 3 đơn |
+| **16:30** | **TIẾNG ANH** — Daily standup |
+| **17:00** | **ĐỌC SÁCH** — ch.21, xong cuốn 2 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Proxy phía server
+
+### 08:30–08:50 · Vấn đề bảo mật, hiểu cho kỹ
+
+**Đây là điểm quan trọng nhất cả tuần, và là câu hỏi phỏng vấn.**
+
+Bạn **không bao giờ** được đặt khóa API của OpenAI trong app di động. Kể cả trong biến môi trường. Kể cả có làm rối mã.
+
+| Cách sai | Vì sao sai |
+| --- | --- |
+| `EXPO_PUBLIC_OPENAI_KEY` | Nằm thẳng trong bundle. Giải nén APK là đọc được |
+| Biến môi trường không có tiền tố public | Vẫn được nhúng lúc build. Chỉ khác chỗ khó tìm hơn một chút |
+| Làm rối mã khóa | Chạy app rồi bắt gói mạng là thấy nguyên khóa |
+| Lấy khóa từ server lúc chạy | Vẫn nằm trong bộ nhớ và đi qua mạng. Bắt gói là thấy |
+
+**Chỉ có một cách đúng: khóa nằm trên server, app gọi vào server của bạn.**
+
+Nếu khóa lộ, người khác dùng hạn mức của bạn cho tới khi hết tiền. Đây không phải chuyện lý thuyết — nó xảy ra thường xuyên.
+
+### 08:50–09:30 · Viết Edge Function
+
+```bash
+npx supabase functions new nutrition-chat
+```
+
+```ts
+// supabase/functions/nutrition-chat/index.ts
+import { streamText } from 'npm:ai';
+import { createOpenAI } from 'npm:@ai-sdk/openai';
+
+const openai = createOpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
+
+Deno.serve(async (req) => {
+  // 1. Xác thực — bắt buộc, không thì ai cũng gọi được và tiêu tiền của bạn
+  const authHeader = req.headers.get('Authorization');
+  const { data: { user } } = await supabase.auth.getUser(authHeader?.replace('Bearer ', ''));
+  if (!user) return new Response('Unauthorized', { status: 401 });
+
+  // 2. Giới hạn tần suất
+  const allowed = await checkRateLimit(user.id);
+  if (!allowed) return new Response('Rate limit exceeded', { status: 429 });
+
+  // 3. Gọi mô hình
+  const { messages } = await req.json();
+  const result = streamText({
+    model: openai('gpt-4o-mini'),
+    system: 'Bạn là trợ lý dinh dưỡng. Trả lời ngắn gọn, tối đa 3 câu. Không đưa lời khuyên y tế.',
+    messages,
+    maxTokens: 300,
+  });
+
+  return result.toDataStreamResponse();
+});
+```
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Triển khai và kiểm chứng
+
+```bash
+npx supabase secrets set OPENAI_API_KEY=sk-...
+npx supabase functions deploy nutrition-chat
+```
+
+**Ba thứ phải kiểm chứng:**
+
+1. Gọi không kèm token → nhận 401
+2. Gọi có token hợp lệ → có phản hồi
+3. **Giải nén file APK và tìm khóa:**
+
+```bash
+unzip -o app.apk -d apk-contents
+grep -r "sk-" apk-contents/ || echo "Không tìm thấy khóa — đúng như mong đợi"
+```
+
+> Bước thứ ba đáng làm không phải vì bạn nghi ngờ, mà vì **kể được rằng bạn đã tự kiểm tra** là câu trả lời tốt hơn nhiều so với "tôi biết là không nên để khóa trong app."
+
+```bash
+git checkout -b feat/ai-assistant
+git add . && git commit -m "feat: edge function proxy có xác thực và giới hạn tần suất"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00 — AI SDK phía client
+
+### 13:30–14:15 · Cài đặt
+
+```bash
+npm install ai @ai-sdk/react
+npx expo install expo-crypto react-native-url-polyfill
+```
+
+```ts
+// polyfill cần cho streaming trong React Native
+import 'react-native-url-polyfill/auto';
+import { Platform } from 'react-native';
+import structuredClone from '@ungap/structured-clone';
+
+if (Platform.OS !== 'web') {
+  const setupPolyfills = async () => {
+    const { TextEncoderStream, TextDecoderStream } = await import('@stardazed/streams-text-encoding');
+    if (!('structuredClone' in global)) polyfillGlobal('structuredClone', () => structuredClone);
+    polyfillGlobal('TextEncoderStream', () => TextEncoderStream);
+    polyfillGlobal('TextDecoderStream', () => TextDecoderStream);
+  };
+  setupPolyfills();
+}
+```
+
+**Vì sao cần polyfill:** streaming của AI SDK dựa trên Web Streams API. Trình duyệt có sẵn, Hermes thì không. Thiếu polyfill là streaming im lặng không chạy — không báo lỗi, chỉ là không có gì hiện ra. Rất mất thời gian nếu không biết trước.
+
+### 14:15–15:00 · Hook `useChat`
+
+```tsx
+const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+  api: `${SUPABASE_URL}/functions/v1/nutrition-chat`,
+  headers: { Authorization: `Bearer ${session?.access_token}` },
+  onError: (err) => Sentry.captureException(err),
+});
+```
+
+Đây là lúc mọi thứ hai tháng qua ghép lại: phiên đăng nhập từ SecureStore (01/10), Sentry (29/09), giao diện đủ trạng thái (24/09).
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Giao diện chat
+
+- Tin nhắn hiện **từng chữ một** khi stream về, không chờ xong mới hiện
+- Tự cuộn xuống dưới khi có chữ mới
+- Nút dừng khi đang stream
+- Có lỗi → hiện thông báo + nút thử lại, không mất tin nhắn đã gõ
+
+**Vì sao streaming quan trọng:** đợi 8 giây rồi hiện cả đoạn cảm giác hỏng. Chữ chạy ra ngay sau 300ms cảm giác tức thì — dù tổng thời gian như nhau. Đây lại là hiệu năng nhận thức, giống bài học khung xương tải hôm 22/10.
+
+```bash
+git add . && git commit -m "feat: chat trợ lý dinh dưỡng có streaming"
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+
+**Hôm nay là ngày đầu tiên. Bắt đầu bằng việc dựng bảng theo dõi.**
+
+Tạo `docs/job-tracker.md`:
+
+```markdown
+| Ngày | Công ty | Vị trí | Nguồn | Thư riêng? | Trạng thái | Ghi chú |
+|---|---|---|---|---|---|---|
+| 02/11 | | | | | Đã nộp | |
+```
+
+**Luật viết thư ứng tuyển — 4 câu, không hơn:**
+
+1. Một câu về **một thứ cụ thể** ở công ty họ *(sản phẩm nào, tin gì mới đây, thử thách gì)*
+2. Một câu về kinh nghiệm liên quan nhất của bạn kèm số
+3. Một câu về dự án của bạn kèm **link**
+4. Một câu về việc bạn muốn đóng góp gì
+
+> **Nói thẳng về khoảng trống việc làm ngay từ đầu.** *"Tôi nghỉ việc từ tháng 3 và dùng thời gian đó xây một app end-to-end — CI/CD, testing, một native module tự viết. Code và tài liệu ở đây: [link]."*
+>
+> Chủ động nói ra thì đó là **bối cảnh**. Để họ hỏi mới nói thì thành **lời bào chữa**. Khác nhau hoàn toàn.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Standup có ghi âm
+
+> *"Morning. Last week I finished offline support and the CI/CD pipeline, and shipped version 1.1.0 through it end to end.*
+> *This week I'm adding an AI feature — a nutrition assistant. Today I set up a Supabase Edge Function as a proxy so the model key never leaves the server, with auth and rate limiting in front of it. Then I wired up the AI SDK on the client with streaming.*
+> *One thing I did that I'd recommend to anyone: I unzipped the APK and grepped for the key prefix, just to confirm it genuinely isn't in the bundle. Knowing something is safe and verifying it are different things.*
+> *I've also started applying — three applications a day from now on."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `never leaves the server` | không rời khỏi server | *The key never leaves the server.* |
+| `in front of` | đứng chắn phía trước | *Auth and rate limiting in front of it.* |
+| `grep for` | tìm chuỗi trong file | *I grepped for the key prefix.* |
+| `token` (LLM) | đơn vị tính của mô hình | *Capped at 300 output tokens.* |
+| `stream` (v) | truyền dần từng phần | *The response streams in.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 21. **Xong cuốn 2.**
+
+Viết 5 dòng vào `docs/reading-notes.md`: ba ý bạn thật sự áp dụng. Từ tuần sau chuyển sang đọc lại `qa-bank.mdc` của chính mình.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Edge Function chạy, có xác thực và giới hạn tần suất
+- [ ] Gọi không token → 401
+- [ ] **Đã giải nén APK và xác nhận không tìm thấy khóa**
+- [ ] Polyfill streaming cài đúng, chữ chạy ra từng phần
+- [ ] Giao diện chat đủ trạng thái, có nút dừng
+- [ ] **`docs/job-tracker.md` đã tạo, 3 đơn đầu tiên đã nộp**
+- [ ] Thư ứng tuyển viết riêng, nói thẳng về khoảng trống
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-11-02.m4a`
+- [ ] **Đọc xong The Pragmatic Programmer**
+- [ ] 21:30 lên giường

@@ -1,0 +1,246 @@
+---
+description: Thứ Ba 06/10/2026 — Tuần 6 Ngày 2. React Native Testing Library — test component như người dùng thật.
+alwaysApply: false
+---
+
+# Thứ Ba · 06/10/2026 · Tuần 6 — Ngày 22/61
+
+> Hôm qua test hàm thuần. Hôm nay test giao diện — nhưng theo **cách người dùng nhìn thấy**, không theo cách component được viết.
+
+**Docs:** https://callstack.github.io/react-native-testing-library/
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — RNTL, test component đầu tiên |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Test form, tương tác người dùng |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
+| **17:00** | **ĐỌC SÁCH** — ch.2 |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — RNTL
+
+```bash
+npm install --save-dev @testing-library/react-native
+```
+
+> **Lưu ý cập nhật 2026:** `react-test-renderer` đã bị khai tử và không hỗ trợ React 19. RNTL là lựa chọn duy nhất còn đúng. Nếu bạn đọc bài hướng dẫn nào còn dùng `react-test-renderer` thì bài đó đã cũ.
+
+### 08:45–09:30 · Triết lý của RNTL
+
+**Test những gì người dùng thấy, không test cách bạn viết code.**
+
+```tsx
+// SAI — bám vào chi tiết triển khai
+expect(component.instance().state.isOpen).toBe(true);
+expect(useState).toHaveBeenCalledTimes(2);
+
+// ĐÚNG — bám vào thứ người dùng trải nghiệm
+expect(screen.getByText('Add meal')).toBeVisible();
+expect(screen.getByLabelText('Calories')).toHaveDisplayValue('450');
+```
+
+Thứ tự ưu tiên khi tìm phần tử — dùng từ trên xuống:
+
+| Ưu tiên | Cách tìm | Vì sao |
+| --- | --- | --- |
+| 1 | `getByRole`, `getByLabelText` | Giống trình đọc màn hình. Test tốt = app dễ tiếp cận |
+| 2 | `getByText`, `getByPlaceholderText` | Thứ người dùng thật nhìn thấy |
+| 3 | `getByTestId` | Chỉ khi hai cách trên không dùng được |
+
+> **Lợi ích kép rất đáng nói khi phỏng vấn:** ưu tiên `getByLabelText` buộc bạn phải thêm `accessibilityLabel` vào component. Test tốt lên và app dễ tiếp cận hơn cùng lúc. Rất ít ứng viên Việt Nam nhắc tới accessibility.
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · Test `MealItem`
+
+```tsx
+import { render, screen, userEvent } from '@testing-library/react-native';
+
+describe('MealItem', () => {
+  it('hiển thị tên món và số calo', () => {
+    render(<MealItem meal={meal({ name: 'Phở bò', calories: 450 })} onDelete={jest.fn()} />);
+    expect(screen.getByText('Phở bò')).toBeVisible();
+    expect(screen.getByText('450 kcal')).toBeVisible();
+  });
+
+  it('gọi onDelete với đúng id khi bấm nút xóa', async () => {
+    const onDelete = jest.fn();
+    const user = userEvent.setup();
+    render(<MealItem meal={meal({ id: 'abc' })} onDelete={onDelete} />);
+
+    await user.press(screen.getByLabelText('Xóa Cơm gà'));
+
+    expect(onDelete).toHaveBeenCalledWith('abc');
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+});
+```
+
+**Dùng `userEvent` chứ đừng dùng `fireEvent`.** `userEvent` mô phỏng chuỗi sự kiện thật (chạm xuống, chạm lên, độ trễ), gần với người dùng hơn và bắt được lỗi mà `fireEvent` bỏ sót.
+
+```bash
+git add . && git commit -m "test: component MealItem với RNTL"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:30 — Test form
+
+### 13:30–14:30 · Test `MealForm`
+
+Form là chỗ đáng test nhất trong giao diện, vì nó có logic thật:
+
+```tsx
+describe('MealForm', () => {
+  it('không cho gửi khi tên món để trống', async () => {
+    const onSubmit = jest.fn();
+    const user = userEvent.setup();
+    render(<MealForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Calories'), '450');
+    await user.press(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Tên món không được để trống')).toBeVisible();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('gửi dữ liệu đã ép về kiểu số', async () => {
+    const onSubmit = jest.fn();
+    const user = userEvent.setup();
+    render(<MealForm onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Name'), 'Bún chả');
+    await user.type(screen.getByLabelText('Calories'), '620');
+    await user.press(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Bún chả', calories: 620 }),  // số, không phải chuỗi
+      );
+    });
+  });
+});
+```
+
+**Test thứ hai rất giá trị** vì nó bắt đúng cái bẫy `TextInput` luôn trả chuỗi mà bạn học hôm 23/09. Nếu ai đó lỡ xóa `z.coerce` sau này, test này đỏ ngay.
+
+### 14:30–15:00 · Test bất đồng bộ
+
+Ba công cụ, dùng đúng chỗ:
+
+| Dùng cái nào | Khi nào |
+| --- | --- |
+| `findBy*` | Chờ một phần tử **xuất hiện** |
+| `waitFor` | Chờ một **điều kiện** thành đúng |
+| `waitForElementToBeRemoved` | Chờ phần tử **biến mất** (ví dụ khung xương tải) |
+
+**Đừng dùng `setTimeout` trong test.** Nó làm test chậm và chập chờn. Nếu thấy mình định viết `await sleep(500)`, nghĩa là đang dùng sai công cụ.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:30 · Test theme và trạng thái rỗng
+
+```tsx
+it('hiện hướng dẫn khi chưa có bữa ăn nào', () => {
+  render(<MealList meals={[]} />);
+  expect(screen.getByText('Chưa có bữa ăn nào')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Thêm bữa đầu tiên' })).toBeVisible();
+});
+```
+
+Viết hàm render dùng chung để khỏi lặp provider:
+
+```tsx
+// src/test/render.tsx
+export function renderWithProviders(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },   // tắt retry trong test
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>{ui}</ThemeProvider>
+    </QueryClientProvider>,
+  );
+}
+```
+
+**`retry: false` là bắt buộc trong test.** Không tắt thì mỗi test lỗi mạng sẽ thử lại 3 lần, làm bộ test chậm gấp mấy lần và thỉnh thoảng hết giờ.
+
+```bash
+npm test
+git add . && git commit -m "test: form, trạng thái rỗng và hàm render dùng chung"
+```
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
+
+### 16:30–16:40 · Shadowing
+
+### 16:40–16:55 · Nói to có ghi âm
+
+**Chủ đề: vì sao không nên test chi tiết triển khai.**
+
+> *"The rule I follow is: test what the user experiences, not how the component is built.*
+> *If I write a test that checks internal state, or how many times a hook was called, that test is tied to my implementation. The moment I refactor — even if the app behaves exactly the same — the test goes red. So it costs me time without catching a real bug. That's a brittle test.*
+> *Instead I query the way a user would. Find the button by its accessible name, press it, and assert on what appears on screen. If I rewrite the internals but the screen still behaves correctly, the test should stay green — because nothing the user cares about changed.*
+> *There's a nice side effect too. Querying by accessible label pushes you to actually add accessibility labels, so your app gets more usable for screen readers as a by-product of writing good tests.*
+> *The boundary is that this style is slower than pure unit tests, so I don't do it for everything. Business logic goes in pure functions with plain unit tests, and I save component tests for the parts with real interaction — mostly forms."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `go red` / `stay green` | test hỏng / test đậu | *The test goes red after a refactor.* |
+| `tied to` | bị buộc chặt vào | *That test is tied to my implementation.* |
+| `side effect` (n) | tác dụng phụ (ở đây là tốt) | *There's a nice side effect too.* |
+| `by-product` (n) | sản phẩm đi kèm | *Accessibility as a by-product.* |
+| `assert on` | kiểm chứng | *Assert on what appears on screen.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**The Pragmatic Programmer** — chương 2 *(A Pragmatic Approach)*.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] RNTL cài xong, test component chạy
+- [ ] Ưu tiên `getByRole` / `getByLabelText` trước `getByTestId`
+- [ ] Đã thêm `accessibilityLabel` vào các component tương tác
+- [ ] Test form bắt được cả nhánh lỗi lẫn nhánh thành công
+- [ ] Có test kiểm tra calo được ép về `number`, không phải chuỗi
+- [ ] `renderWithProviders` có `retry: false`
+- [ ] Không có `setTimeout` nào trong test
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-10-06.m4a`
+- [ ] Đọc xong ch.2
+- [ ] 21:30 lên giường

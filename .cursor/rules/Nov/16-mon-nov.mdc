@@ -1,0 +1,272 @@
+---
+description: Thứ Hai 16/11/2026 — Tuần 12 Ngày 1. Reanimated — worklet, UI thread, và vì sao animation không giật.
+alwaysApply: false
+---
+
+# Thứ Hai · 16/11/2026 · Tuần 12 — Ngày 51/61
+
+> **Lỗ hổng kỹ thuật cuối cùng.** Bạn tự ghi trong hồ sơ: *"Chưa Reanimated / Gesture sâu. Concept worklet UI thread, useSharedValue. Implementation level: dùng được preset, chưa custom panGesture phức tạp."*
+> Năm ngày này biến câu đó thành *"tôi đã tự viết."*
+
+**Docs:** https://docs.swmansion.com/react-native-reanimated/
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Hiểu worklet và UI thread |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Animation đầu tiên + chứng minh bằng thí nghiệm |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
+| **16:30** | **TIẾNG ANH** — Daily standup |
+| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc`: viết Topic mới về animation |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30 — Worklet
+
+```bash
+npx expo install react-native-reanimated react-native-gesture-handler
+```
+
+### 08:30–09:00 · Vấn đề mà Reanimated giải quyết
+
+Nhớ lại bài học hôm 22/10 về JS thread và UI thread.
+
+**Animation bằng `Animated` của React Native (không có `useNativeDriver`):**
+
+```
+Mỗi khung hình:
+  JS thread tính giá trị mới  →  gửi sang UI thread  →  vẽ
+       ↑
+  Nếu JS thread đang bận (đang parse JSON, đang render danh sách)
+  thì khung hình này bị bỏ → animation giật
+```
+
+**Animation bằng Reanimated:**
+
+```
+Mỗi khung hình:
+  UI thread tự tính và tự vẽ
+       ↑
+  JS thread có bận gì cũng không ảnh hưởng
+```
+
+**`useNativeDriver: true` của `Animated` giải quyết được một phần**, nhưng chỉ cho `transform` và `opacity`, và không cho phép logic phức tạp. Reanimated chạy **cả hàm JavaScript của bạn** trên UI thread.
+
+### 09:00–09:30 · Worklet là gì
+
+```ts
+function myWorklet(x: number) {
+  'worklet';                    // chỉ thị này là toàn bộ điều kỳ diệu
+  return x * 2;
+}
+```
+
+Chỉ thị `'worklet'` báo cho trình biên dịch Babel **tách hàm này ra và chạy nó trên UI thread** bằng một runtime JavaScript riêng.
+
+**Ba hệ quả phải nhớ:**
+
+1. Worklet **không thấy được** biến ở scope ngoài trừ khi biến đó được "bắt" (capture) lúc tạo. Đóng gói giá trị, không đóng gói tham chiếu sống.
+2. Worklet **không gọi được** hàm thường trên JS thread. Muốn gọi phải qua `runOnJS`.
+3. `useSharedValue` là cầu nối — cả hai thread đều đọc ghi được, không cần nối chuỗi.
+
+```ts
+const offset = useSharedValue(0);
+
+const animatedStyle = useAnimatedStyle(() => {
+  // hàm này là worklet — Reanimated tự thêm chỉ thị
+  return { transform: [{ translateX: offset.value }] };
+});
+
+// gọi ngược về JS thread khi cần
+const onFinish = () => setSaved(true);
+offset.value = withTiming(100, {}, (finished) => {
+  'worklet';
+  if (finished) runOnJS(onFinish)();
+});
+```
+
+Giãn cơ 5 phút lúc 09:30.
+
+### 09:30–10:30 · `useSharedValue` khác `useState`
+
+**Đây là câu hỏi phỏng vấn, và là chỗ hay nhầm nhất:**
+
+| | `useState` | `useSharedValue` |
+| --- | --- | --- |
+| Đổi giá trị gây re-render? | **Có** | **Không** |
+| Đọc được từ UI thread? | Không | Có |
+| Cập nhật ở tần suất 60fps | Thảm họa — 60 lần render/giây | Đúng mục đích |
+| Đọc giá trị | `value` | `value.value` |
+
+> Nếu bạn animate bằng `useState`, bạn ép React render lại 60 lần mỗi giây. Đó chính là lý do animation viết theo cách đó luôn giật trên máy yếu.
+
+```bash
+git checkout -b feat/animations
+git add . && git commit -m "chore: cài reanimated và gesture handler"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:15 · Animation đầu tiên
+
+Thanh tiến độ macro chạy mượt khi số liệu đổi:
+
+```tsx
+function MacroBar({ current, target }: Props) {
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withSpring(Math.min(current / target, 1), {
+      damping: 15,
+      stiffness: 120,
+    });
+  }, [current, target]);
+
+  const barStyle = useAnimatedStyle(() => ({
+    width: `${progress.value * 100}%`,
+    backgroundColor: interpolateColor(
+      progress.value,
+      [0, 0.8, 1],
+      [theme.colors.accent, theme.colors.accent, theme.colors.success],
+    ),
+  }));
+
+  return <Animated.View style={[styles.bar, barStyle]} />;
+}
+```
+
+`interpolateColor` chạy **trên UI thread** — màu chuyển mượt theo tiến độ mà JS thread không phải làm gì.
+
+### 14:15–15:00 · Chứng minh bằng thí nghiệm
+
+**Đây là phần quan trọng nhất hôm nay** — giống thí nghiệm nạp lười hôm 13/10.
+
+Dựng hai phiên bản cùng một animation cạnh nhau:
+- Bản A: dùng `Animated` **không** có `useNativeDriver`
+- Bản B: dùng Reanimated
+
+Thêm một nút làm nghẽn JS thread có chủ đích:
+
+```tsx
+function blockJsThread() {
+  const end = Date.now() + 2000;
+  while (Date.now() < end) { /* chặn 2 giây */ }
+}
+```
+
+Chạy cả hai animation, bấm nút chặn:
+
+| | Animated (không native driver) | Reanimated |
+| --- | --- | --- |
+| Khi JS thread bị chặn 2 giây | **Đứng hình hoàn toàn** | **Chạy tiếp mượt mà** |
+
+Quay màn hình lại. Ghi vào `docs/animations.md`.
+
+> **Đoạn video 15 giây này là bằng chứng thuyết phục nhất** cho câu trả lời phỏng vấn *"vì sao animation phải chạy trên UI thread"*. Bạn không kể lý thuyết — bạn đã dựng thí nghiệm và có kết quả.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Layout animation
+
+Thứ rẻ nhất mà hiệu quả nhất:
+
+```tsx
+<Animated.View
+  entering={FadeInDown.duration(300).springify()}
+  exiting={FadeOutUp.duration(200)}
+  layout={LinearTransition.springify()}
+>
+  <MealItem meal={meal} />
+</Animated.View>
+```
+
+Ba dòng này làm cho: thêm bữa ăn thì trượt vào, xóa thì mờ đi, và các mục còn lại tự dịch chuyển mượt thay vì nhảy cóc.
+
+**Cảnh báo hiệu năng:** layout animation trên danh sách dài tốn kém. Với FlashList, chỉ áp cho mục đang hiện trên màn hình, đừng áp cho toàn bộ. Đo lại FPS sau khi thêm — dùng chính công cụ đã dựng tuần 19–23/10.
+
+```bash
+git add . && git commit -m "feat: thanh macro động và layout animation, có thí nghiệm so sánh"
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+
+Tuần thứ ba. Tổng đến giờ khoảng 18 đơn.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+
+### 16:30–16:40 · Shadowing
+
+Dùng video William Candillon — giọng Pháp nói tiếng Anh, tốc độ nhanh, tốt để luyện nghe giọng không phải bản xứ.
+
+### 16:40–16:55 · Standup có ghi âm
+
+> *"Morning. Last week was push notifications and deep linking — both shipped in 1.3.0, and I finally got the app in front of real users.*
+> *This week is Reanimated, which is the last technical gap on my list. Today I worked through worklets and shared values, and built animated macro bars.*
+> *The useful part was building the same animation twice — once with the old Animated API without the native driver, once with Reanimated — and then deliberately blocking the JavaScript thread for two seconds. The first one freezes completely. The second doesn't notice. I recorded it, because that's a much better answer than repeating what the docs say.*
+> *Tomorrow: gesture handling and swipe to delete."*
+
+### 16:55–17:00 · 5 từ mới
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `block the thread` | chặn luồng | *Deliberately blocking the JS thread.* |
+| `freeze` (v) | đứng hình | *The first one freezes completely.* |
+| `doesn't notice` | không hề bị ảnh hưởng | *The second one doesn't notice.* |
+| `worklet` (n) | hàm chạy trên UI thread | *A worklet runs on the UI thread.* |
+| `off the main thread` | không nằm trên luồng chính | *It keeps the work off the JS thread.* |
+
+---
+
+## ĐỌC SÁCH · 17:00–17:30
+
+**Viết một topic mới trong `qa-bank.mdc`: Topic 9 — Animation & Gesture.**
+
+Bạn chưa có topic này vì trước đây nó là lỗ hổng. Giờ viết 3 câu hỏi kèm câu trả lời 60 giây:
+- Vì sao animation nên chạy trên UI thread?
+- `useSharedValue` khác `useState` ở đâu?
+- Khi nào bạn **không** cần Reanimated?
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Giải thích được worklet là gì và chạy ở đâu
+- [ ] Nói được `useSharedValue` khác `useState` ở 4 điểm
+- [ ] Thanh macro chạy mượt, màu chuyển theo tiến độ
+- [ ] **Đã dựng thí nghiệm hai bản và quay màn hình lại**
+- [ ] Layout animation chạy, đã đo lại FPS sau khi thêm
+- [ ] Đã nộp 3 đơn
+- [ ] **Có commit hôm nay**
+- [ ] Ghi âm `2026-11-16.m4a`
+- [ ] Đã viết Topic 9 trong `qa-bank.mdc`
+- [ ] 21:30 lên giường
