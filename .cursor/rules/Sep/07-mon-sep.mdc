@@ -101,7 +101,7 @@ eas whoami           # xác nhận đã đăng nhập
 cd ~/Dev
 npx create-expo-app@latest sticker-smash
 cd sticker-smash
-npm run reset-project     # xóa code mẫu, bắt đầu sạch
+npm run reset-project
 npx expo start
 ```
 
