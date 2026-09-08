@@ -1,0 +1,80 @@
+---
+description: Thứ Năm 10/12/2026 — Tuần 15 Ngày 4. Hai người sửa một bản ghi — optimistic lock + real-time conflict.
+alwaysApply: false
+---
+
+# Thứ Năm · 10/12/2026 · Tuần 15 — Ngày 69/82
+
+> Câu hỏi fullstack #2 trong Dec context: *"Hai người dùng cùng sửa một bản ghi. Chuyện gì xảy ra?"*
+> Hôm nay bạn phải trả lời được bằng demo, không bằng định nghĩa.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| **08:30** | **KHỐI XÂY** — Cột version + 409 Conflict |
+| **13:30** | **KHỐI HỌC** — Client merge UI + SSE báo conflict |
+| **16:00** | **TÌM VIỆC** — theo dõi lại |
+| **16:30** | **TIẾNG ANH** — 3 câu phỏng vấn |
+| **17:00** | **GHI CHÚ** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+Nhắc lại pattern Nov 11 — siết cho meal update:
+
+```ts
+const [updated] = await db.update(meals)
+  .set({ ...patch, version: sql`${meals.version} + 1` })
+  .where(and(
+    eq(meals.id, id),
+    eq(meals.userId, userId),
+    eq(meals.version, expectedVersion),
+  ))
+  .returning();
+
+if (!updated) throw conflict('Bản ghi đã đổi. Tải lại rồi thử lại.');
+```
+
+API trả **409** + body có `current` (bản mới nhất) để client không đoán mù.
+
+Viết integration test: hai update song song cùng version → đúng một cái 200, một cái 409.
+
+```bash
+git add . && git commit -m "feat: optimistic lock meal update trả 409 kèm bản hiện tại"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### Client
+
+- Form edit giữ `version` từ GET
+- Mutation gửi `expectedVersion`
+- 409 → hiện dialog: giữ bản local / lấy bản server (không im lặng ghi đè)
+
+SSE `meals-changed` trong lúc đang edit → banner nhẹ "Dữ liệu đã đổi trên thiết bị khác".
+
+### Luyện nói câu #2 ≤90s
+
+Claim → version column → why not lock row forever → 409 + reload → boundary (last-write-wins chỉ khi chấp nhận mất dữ liệu).
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+**Q:** "Two users edit the same meal."
+> *"Each row has a version. Updates succeed only if the version still matches. The loser gets 409 with the current row and has to reload. I don't hold a DB lock for the whole edit session — that would block the other phone for minutes."*
+
+---
+
+## Checklist
+
+- [ ] 409 + test tích hợp race
+- [ ] UI xử lý conflict rõ ràng
+- [ ] Nói được câu hỏi #2 trôi
+- [ ] Ghi âm `2026-12-10.m4a`

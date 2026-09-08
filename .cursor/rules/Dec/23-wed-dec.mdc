@@ -1,0 +1,73 @@
+---
+description: Thứ Tư 23/12/2026 — Tuần 17 Ngày 3. Deep link + phát hành v2.1.0. Nghỉ 24–25/12.
+alwaysApply: false
+---
+
+# Thứ Tư · 23/12/2026 · Tuần 17 — Ngày 78/82
+
+> Deep link một ngày (phần khó server/push đã xong). Phát hành **v2.1.0**. Sau đó nghỉ 24–25/12.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| **08:30** | **KHỐI XÂY** — Expo Router linking + cold start |
+| **13:30** | **KHỐI HỌC** — Verify store + submit v2.1.0 |
+| **16:00** | **TÌM VIỆC** — nhắn ngắn / không nộp ồ ạt trước lễ |
+| **16:30** | **TIẾNG ANH** — Quyết định thiết kế |
+| **17:00** | **GHI CHÚ** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+Cấu hình scheme + universal link path tối thiểu:
+
+- `macrozone://meal/:id`
+- `https://macrozone.app/reset-password?token=...` *(khớp email 02/12)*
+- Mở từ notification data.url *(26/11)*
+
+**Cold start:** giữ URL/notification response đến khi navigation ready *(cùng pattern đã học)*.
+
+Validate params bằng Zod trước khi navigate — deep link là input kẻ tấn công.
+
+```bash
+git add . && git commit -m "feat: deep link meal + reset password, validate params"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### v2.1.0 checklist
+
+- [ ] API health + migration prod
+- [ ] Reminders + SSE + AI proxy hoạt động trên build prod
+- [ ] Deep link reset password trên máy thật
+- [ ] Sentry release version khớp
+- [ ] `eas build` + `eas submit`
+
+Release notes ngắn cho user (không cho eng):
+
+> **v2.1.0** — Nhắc bữa ăn đúng giờ của bạn, đồng bộ tức thời giữa thiết bị, gợi ý bữa ăn, mở được từ link và thông báo.
+
+**24–25/12: nghỉ hoàn toàn. Không code. Không "chỉ sửa một chút".**
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+> *"Deep links are untrusted input. I validate with Zod, and I defer navigation until the router is ready so cold start from a notification still lands on the right screen."*
+
+**5 từ:** `untrusted input` · `defer` · `cold start` · `land on` · `scheme`
+
+---
+
+## Checklist
+
+- [ ] Deep link + notification cold start OK
+- [ ] v2.1.0 đã submit
+- [ ] Lịch nghỉ 24–25 đã chốt với bản thân
+- [ ] Ghi âm `2026-12-23.m4a`

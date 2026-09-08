@@ -1,0 +1,123 @@
+---
+description: Thứ Hai 07/12/2026 — Tuần 15 Ngày 1. SSE real-time — slot/dữ liệu đổi, client nhận ngay không poll.
+alwaysApply: false
+---
+
+# Thứ Hai · 07/12/2026 · Tuần 15 — Ngày 66/82
+
+> Mục tiêu tuần: người dùng thấy dữ liệu đổi **ngay**, không bấm kéo để làm mới.
+> Hôm nay chọn **SSE** (đơn giản, một chiều, đủ cho MacroZone). Không tự host Socket.io trên Vercel-style serverless — Render process dài hạn thì SSE ổn.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Endpoint SSE + publish khi meal đổi |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Client subscribe + invalidate Query |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nhắn 3 người quen |
+| **16:30** | **TIẾNG ANH** — Standup |
+| **17:00** | **GHI CHÚ** |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+### Vì sao SSE chứ không WebSocket hôm nay
+
+| | SSE | WebSocket |
+| --- | --- | --- |
+| Hướng | Server → client | Hai chiều |
+| HTTP | Một request dài | Protocol riêng |
+| Đủ cho "danh sách meal đổi" | **Có** | Thừa |
+| Auth | Header / cookie quen thuộc | Phải tự gắn |
+
+Khi cần chat hai chiều mới nâng WebSocket. Nói được *"vì sao không"* là điểm fullstack.
+
+```ts
+app.get('/v1/events', { preHandler: authenticate }, async (req, reply) => {
+  reply.hijack();
+  reply.raw.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+  const userId = req.user.id;
+  const send = (event: string, data: unknown) => {
+    reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+  send('connected', { ok: true });
+  const unsub = eventBus.subscribe(userId, send);
+  req.raw.on('close', unsub);
+});
+```
+
+Sau `mealService.create/update/delete` → `eventBus.publish(userId, 'meals-changed', { id })`.
+
+**Lưu ý Render sleep:** kết nối SSE đứt khi service ngủ. Client phải reconnect + fallback poll. Đó là bài ngày mai gắn cold start.
+
+```bash
+git add . && git commit -m "feat: SSE /v1/events khi meal thay đổi"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### Client
+
+```ts
+useEffect(() => {
+  const es = new EventSourcePolyfill(`${API}/v1/events`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  es.addEventListener('meals-changed', () => {
+    queryClient.invalidateQueries({ queryKey: ['meals'] });
+  });
+  return () => es.close();
+}, [token]);
+```
+
+Thử: mở 2 thiết bị / 2 simulator cùng user → thêm meal bên A → bên B cập nhật không kéo.
+
+Giãn cơ 14:30. Nghỉ 15:00. 15:10–16:00: xử lý auth hết hạn trên stream (đóng + refresh + mở lại).
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+> *"I used Server-Sent Events instead of WebSockets because the app only needs server-to-client invalidation. When a meal changes, the API publishes an event and the phone invalidates TanStack Query. Two-way sockets would be extra moving parts for no gain yet."*
+
+**5 từ:** `invalidate` · `one-way` · `moving parts` · `reconnect` · `fallback poll`
+
+---
+
+## Checklist
+
+- [ ] SSE chạy local + trên Render
+- [ ] 2 client cùng user thấy cập nhật
+- [ ] Giải thích được vì sao không WebSocket
+- [ ] Ghi âm `2026-12-07.m4a`
+- [ ] 21:30 lên giường

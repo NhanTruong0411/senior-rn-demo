@@ -1,14 +1,13 @@
 ---
-description: Thứ Hai 23/11/2026 — Tuần 13 Ngày 1. Phỏng vấn thử số 1 — vòng sàng lọc và giới thiệu bản thân. Xử lý câu hỏi khoảng trống 6 tháng.
+description: Thứ Hai 23/11/2026 — Tuần 13 Ngày 1. Test backend — test service nhanh, test tích hợp có database thật.
 alwaysApply: false
 ---
 
-# Thứ Hai · 23/11/2026 · Tuần 13 — Ngày 56/61
+# Thứ Hai · 23/11/2026 · Tuần 13 — Ngày 56/82
 
-> **Tuần cuối. Không viết tính năng mới nữa.**
-> Bạn đã có năng lực. Tuần này bạn luyện cách làm cho người khác thấy được năng lực đó trong 45 phút nói chuyện.
->
-> **Cấu trúc mỗi ngày tuần này:** buổi sáng phỏng vấn thử có ghi âm → buổi chiều nghe lại và sửa → tối vẫn nộp đơn.
+> Bạn đã học test ở mobile hồi tháng 10. Backend đảo ngược tỉ lệ: ở đây **test tích hợp đáng giá hơn test đơn vị**, vì phần lớn bug nằm ở chỗ code gặp database.
+
+**Tài nguyên:** https://vitest.dev/ · https://github.com/ladjs/supertest
 
 ---
 
@@ -24,18 +23,18 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **PHỎNG VẤN THỬ 1** — vòng sàng lọc, 45 phút, ghi âm |
+| **08:30** | **KHỐI XÂY** — Vitest + test service |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **NGHE LẠI VÀ SỬA** |
+| **13:30** | **KHỐI HỌC** — Test tích hợp với database thật |
 | 15:00 | Nghỉ 10 phút |
-| 15:10 | Viết lại câu yếu, nói lại 3 lần |
-| **16:00** | **TÌM VIỆC** — viết lại tóm tắt CV + nộp 3 đơn |
-| **16:30** | **TIẾNG ANH** — Bản tiếng Anh của phần giới thiệu |
-| **17:00** | **ĐỌC SÁCH** — hoàn thiện cheatsheet |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nhắn 2 người quen |
+| **16:30** | **TIẾNG ANH** — Daily standup |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -45,141 +44,198 @@ alwaysApply: false
 
 ---
 
-## PHỎNG VẤN THỬ 1 · 08:30–10:30
+## KHỐI XÂY · 08:30–10:30
 
-### Cách chạy cho ra kết quả thật
+### 08:30–09:00 · Test cái gì ở backend
 
-1. **Bật ghi âm trước khi bắt đầu.** Không ghi âm thì không có tiến bộ đo được.
-2. **Mặc áo như đi phỏng vấn thật.** Ngồi bàn, không nằm.
-3. **Không dừng giữa chừng.** Vấp thì đi tiếp. Trong phỏng vấn thật không có nút tạm dừng.
-4. **Bấm giờ từng câu.** Quá 90 giây là dài.
-5. Mở Cursor, gõ `mock interview` để AI đóng vai người phỏng vấn theo `interview/context.mdc`.
+Đảo ngược so với mobile. Ở mobile bạn ưu tiên test component. Ở đây:
 
-### 08:30–09:30 · Vòng 1 — Sàng lọc (45 phút)
+| Loại | Test gì | Tốc độ | Tỉ lệ |
+| --- | --- | --- | --- |
+| Đơn vị | Hàm thuần: tính toán, ánh xạ, kiểm tra | mili giây | 20% |
+| **Tích hợp** | **Route + service + database thật** | trăm mili giây | **70%** |
+| Đầu-cuối | Client thật gọi API thật | giây | 10% |
 
-Đây là vòng HR / tuyển dụng. Nó không kiểm tra kỹ thuật, nó kiểm tra **bạn có đáng để mời vào vòng sau không**.
+**Vì sao tích hợp chiếm phần lớn:** bug backend hiếm khi nằm trong logic thuần. Nó nằm ở chỗ code gặp database — truy vấn sai, transaction thiếu, ràng buộc không như bạn tưởng, phân quyền lọt. Test đơn vị với database giả **không bắt được** những thứ đó, vì database giả không có ràng buộc thật.
 
-**Câu hỏi:**
+**Không test cái gì** *(giống nguyên tắc 05/10)*:
+- Không test Drizzle sinh SQL đúng — đó là việc của Drizzle
+- Không test Zod kiểm tra đúng — đó là việc của Zod
+- Không test framework định tuyến đúng
 
-1. Anh giới thiệu về bản thân được không?
-2. Vì sao anh nghỉ ở công ty cũ?
-3. **Sáu tháng vừa rồi anh làm gì?**
-4. Vì sao anh quan tâm vị trí này?
-5. Mức lương anh mong muốn?
-6. Bao giờ anh có thể bắt đầu?
-7. Anh có câu hỏi gì cho bên em không?
+Test **hành vi hệ thống của bạn**, không test thư viện của người khác.
 
-### Câu số 3 là câu quyết định
+### 09:00–10:30 · Test service — nhanh, không cần database
 
-**Đây là câu bạn sợ nhất, và cũng là câu có lợi thế nhất nếu chuẩn bị kỹ.** Hầu hết ứng viên có khoảng trống sẽ vòng vo, xin lỗi, hoặc nói mơ hồ *"em có tự học thêm"*. Bạn thì có bằng chứng.
+Đây là phần thưởng của việc tách route/service/repo hôm 04/11:
 
-**Cấu trúc trả lời — thẳng, cụ thể, rồi tiến lên:**
+```ts
+describe('mealService.create', () => {
+  it('từ chối khi vượt giới hạn calo hằng ngày', async () => {
+    const repo = { byId: async () => ({ id: 'u1', dailyLimit: 2000 }) };
+    const service = makeMealService({ userRepo: repo, mealRepo: fakeMealRepo });
 
-> *"Em nghỉ tháng 3, ban đầu định nghỉ ngắn rồi tìm việc luôn. Thật sự thì giai đoạn đầu em khá chật vật.*
-> *Từ tháng 9 em đặt cho mình một chương trình ba tháng có kỷ luật, mỗi ngày làm việc như đi làm thật. Kết quả cụ thể là em có một ứng dụng đang chạy trên TestFlight và Google Play, có năm người dùng thật đang dùng hằng ngày.*
-> *Trong đó em tự viết một TurboModule cho cả Android và iOS — trước đây em chỉ hiểu ở mức khái niệm. Em dựng bộ test và đường ống CI/CD từ đầu, cái này ở công ty cũ em chưa từng làm. Và em có ba bài viết kỹ thuật về những phần khó nhất.*
-> *Nói thẳng thì sáu tháng này không phải kế hoạch của em, nhưng ba tháng cuối em học được nhiều hơn cả năm cuối ở chỗ làm cũ — vì em phải tự quyết định mọi thứ chứ không có ai giao việc."*
+    await expect(service.create('u1', { calories: 2500, ...base }))
+      .rejects.toMatchObject({ code: 'CONFLICT' });
+  });
+});
+```
 
-**Vì sao câu này hiệu quả:**
-- Thừa nhận thật, không tô vẽ *(người phỏng vấn có kinh nghiệm phát hiện được ngay)*
-- Chuyển sang bằng chứng cụ thể trong vòng 15 giây
-- Mọi thứ nói ra đều **kiểm chứng được** — có link, có repo, có app tải về được
-- Kết bằng cái bạn học được, không phải lời xin lỗi
+**Chạy trong vài mili giây** vì không chạm database. Đây là lý do bạn tách tầng — hôm nay bạn nhận lãi.
 
-**Ba lỗi phải tránh:**
-- ❌ Nói "em nghỉ để nghỉ ngơi và suy nghĩ lại định hướng" mà không có gì cụ thể
-- ❌ Xin lỗi hoặc tỏ ra ngại — bạn không nợ ai lời xin lỗi
-- ❌ Nói xấu công ty cũ để giải thích lý do nghỉ
+Để làm được điều này, service phải nhận phụ thuộc qua tham số chứ không import trực tiếp:
 
-Giãn cơ 5 phút lúc 09:30.
+```ts
+export function makeMealService(deps: { userRepo: UserRepo; mealRepo: MealRepo }) {
+  return { async create(...) { /* dùng deps */ } };
+}
+```
 
-### 09:30–10:30 · Câu lương và câu hỏi ngược
+Đây là **tiêm phụ thuộc** — không cần framework, chỉ cần một hàm nhận tham số. Nói được điều này khi phỏng vấn về NestJS: *"em hiểu DI, em chỉ không cần framework để làm nó với quy mô này."*
 
-**Lương — luôn nói khoảng, đừng nói một số:**
-
-> *"Với vị trí Middle và phạm vi công việc như mô tả, em nghĩ khoảng __ đến __ triệu là hợp lý. Nhưng em quan tâm cả gói tổng thể, nên nếu bên mình có con số trong đầu thì em sẵn sàng nghe."*
-
-Ghi **số rời bàn** ra giấy trước khi vào cuộc gọi. Không phải để nói ra, mà để bạn biết khi nào nên dừng.
-
-**Ba câu hỏi ngược — chuẩn bị sẵn, hỏi thật:**
-
-1. *"Người vào vị trí này trong ba tháng đầu sẽ làm gì là chủ yếu?"*
-2. *"Team đang có quy trình review code và test như thế nào ạ?"*
-3. *"Điều gì làm anh/chị thấy khó nhất khi làm ở đây?"*
-
-Câu thứ ba là câu tốt nhất. Nó cho bạn thông tin thật và cho thấy bạn đánh giá công ty chứ không chỉ xin việc.
+```bash
+git add . && git commit -m "test: test service với repo giả"
+```
 
 ---
 
-## NGHE LẠI VÀ SỬA · 13:30–16:00
+## KHỐI HỌC · 13:30–16:00
 
-### 13:30–15:00 · Nghe toàn bộ bản ghi
+### 13:30–14:45 · Test tích hợp với database thật
 
-Nghe hết, không tua. **Việc này khó chịu — đó là lý do nó hiệu quả.**
+**Đừng giả lập database.** Dùng Postgres thật — đây là lúc branching của Neon trả lãi.
 
-Chấm từng câu theo 5 trục trong `coding-context.mdc` mục 7:
+```ts
+// test/setup.ts
+beforeAll(async () => {
+  process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;   // nhánh Neon riêng
+  await migrate(db, { migrationsFolder: './drizzle' });
+});
 
-| Câu | Hình dạng quyết định | Ví dụ cụ thể | Trung thực | Kiểm soát thời gian | Sẵn sàng bị hỏi tiếp | Tổng |
-| --- | --- | --- | --- | --- | --- | --- |
-| Giới thiệu | | | | | | /25 |
-| Vì sao nghỉ | | | | | | /25 |
-| **6 tháng qua** | | | | | | /25 |
-| Vì sao vị trí này | | | | | | /25 |
-| Lương | | | | | | /25 |
+beforeEach(async () => {
+  await db.execute(sql`truncate table meals, sessions, users restart identity cascade`);
+});
+```
 
-Dưới 15 điểm là phải viết lại. 15–20 là đạt. Trên 20 là tốt.
+Test một luồng thật, đi hết đường:
 
-**Đếm luôn:**
-- Số lần nói "uhm", "à", "kiểu như":
-- Câu dài nhất: __ giây
-- Số câu có con số cụ thể: __ / 7
+```ts
+it('không cho người dùng xoá bữa ăn của người khác', async () => {
+  const a = await createTestUser('a@x.com');
+  const b = await createTestUser('b@x.com');
+  const meal = await createTestMeal(b.id);
+
+  const res = await request(app.server)
+    .delete(`/v1/meals/${meal.id}`)
+    .set('Authorization', `Bearer ${a.accessToken}`);
+
+  expect(res.status).toBe(404);                          // 404, không phải 403
+  expect(await mealRepo.byId(meal.id)).toBeTruthy();     // vẫn còn đó
+});
+```
+
+**Test này là test có giá trị nhất trong toàn bộ bộ test.** Nó chốt chặn lỗ hổng OWASP số một. Bạn tìm ra nó bằng tay hôm 18/11; hôm nay bạn làm cho nó không thể quay lại.
+
+Viết đủ bộ test bảo mật:
+
+| Test | Kỳ vọng |
+| --- | --- |
+| Không có token → mọi endpoint | 401 |
+| Token hết hạn | 401 |
+| Đọc/sửa/xoá bản ghi người khác | 404, và bản ghi không đổi |
+| Người dùng thường gọi endpoint admin | 403 |
+| Refresh token dùng lại lần hai | 401 và **cả họ bị thu hồi** |
+| Đăng ký email đã tồn tại | Thông báo giống hệt lần đầu |
+| Phản hồi **không chứa** `passwordHash` | Luôn đúng |
+
+**Bảy test này là thứ bạn chỉ tay vào khi phỏng vấn.** Bộ test bảo mật đáng giá hơn nhiều so với độ phủ 80%.
+
+Giãn cơ 5 phút lúc 14:45.
+
+### 14:45–15:00 · Dữ liệu test — factory, không dùng fixture
+
+```ts
+export async function createTestUser(email = `${randomUUID()}@test.com`) {
+  const [user] = await db.insert(users)
+    .values({ email, passwordHash: await hashPassword('test1234') })
+    .returning();
+  return { ...user, accessToken: await signAccessToken(user.id) };
+}
+```
+
+**Vì sao factory chứ không file fixture cố định:** mỗi test tự tạo dữ liệu nó cần, nên test không phụ thuộc nhau và **chạy song song được**. File fixture dùng chung sinh ra kiểu bug tệ nhất — test chạy một mình thì đậu, chạy cả bộ thì rớt.
+
+Một cảnh báo: `hashPassword` mất ~100 ms. Trong test dùng tham số argon2 yếu hơn để bộ test không chậm lê thê:
+
+```ts
+const OPTIONS = process.env.NODE_ENV === 'test'
+  ? { memoryCost: 8, timeCost: 1, parallelism: 1 }
+  : PRODUCTION_OPTIONS;
+```
 
 ### 15:00–15:10 · Nghỉ
 
-### 15:10–16:00 · Viết lại và nói lại
+### 15:10–16:00 · Đo bộ test
 
-Chọn **hai câu điểm thấp nhất**. Viết lại bằng chữ, đúng 150 từ. Nói to 3 lần, lần cuối có ghi âm. So với bản sáng.
+| Chỉ số | Con số |
+| --- | --- |
+| Số test | |
+| Thời gian chạy toàn bộ | |
+| Test chậm nhất | |
+| Đã chạy song song chưa? | |
+
+**Nếu toàn bộ vượt 60 giây, bạn sẽ ngừng chạy nó.** Đó là quy luật con người, không phải kỹ thuật. Tối ưu ngay hôm nay: chạy song song, tham số băm yếu trong test, dọn bảng bằng `truncate` thay vì migrate lại.
+
+```bash
+git add . && git commit -m "test: bộ test tích hợp với database thật, có test bảo mật"
+```
 
 ---
 
 ## TÌM VIỆC · 16:00–16:30
 
-Từ kết quả tổng kết hôm thứ Sáu:
+---
 
-- **Tỉ lệ phản hồi dưới 10%** → dành trọn 30 phút hôm nay viết lại phần tóm tắt đầu CV. Dùng chính đoạn trả lời câu "6 tháng qua" — nó đã cô đọng nhất.
-- **Trên 10%** → nộp 3 đơn như thường lệ.
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily standup
+
+> *"Morning. Last week of the backend month — testing, CI, and rate limiting.*
+> *Today was testing, and the ratio is the opposite of what I do on mobile. On mobile I lean on component tests. On the backend most of my tests are integration tests hitting a real Postgres, because almost every backend bug I've had is at the boundary where my code meets the database. A mocked database doesn't have real constraints, so it can't catch the bugs that matter.*
+> *The most valuable test I wrote today: user A tries to delete user B's record and gets a 404, and the record is still there afterwards. I found that class of bug by hand last week. Today I made it impossible for it to come back.*
+> *I'm using Neon's branching so tests run against a separate database branch rather than a mock. Whole suite is [N] seconds — I care about that number, because if it gets past a minute I'll stop running it.*
+> *Tomorrow: wiring this into CI."*
+
+**5 từ mới:**
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `lean on` | dựa vào chủ yếu | *On mobile I lean on component tests.* |
+| `boundary where X meets Y` | chỗ giáp ranh | *The boundary where my code meets the database.* |
+| `that class of bug` | loại bug đó | *I found that class of bug by hand.* |
+| `come back` (về bug) | tái xuất hiện | *I made it impossible for it to come back.* |
+| `whole suite` | toàn bộ bộ test | *The whole suite is thirty seconds.* |
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Phần giới thiệu bằng tiếng Anh
+## GHI CHÚ · 17:00–17:30
 
-Cùng nội dung phần giới thiệu, nhưng bằng tiếng Anh. Viết ra trước, rồi nói to 3 lần, ghi âm lần cuối.
-
-> *"I'm a React Native developer with three years of production experience, mostly at Firegroup where I worked on two apps — a loyalty product and a super-app. The work I'm proudest of there was cutting our bundle from forty-five megabytes down to twenty-eight.*
-> *I've been out of work since March. For the last three months I've run a structured program on myself — treating it like a job. The output is a nutrition tracking app that's live on TestFlight and Play internal testing with real users on it.*
-> *Along the way I wrote a TurboModule from scratch on both platforms, built a test suite and a CI/CD pipeline — neither of which existed at my old job — and wrote three technical articles about the hard parts.*
-> *I'm looking for a middle-level React Native role where the team cares about engineering quality, not just shipping features."*
-
-**Chú ý cách xử lý khoảng trống trong bản tiếng Anh:** *"I've been out of work since March"* — nói thẳng, một câu, rồi đi tiếp ngay sang bằng chứng. Không vòng vo.
-
----
-
-## ĐỌC SÁCH · 17:00–17:30
-
-Hoàn thiện `docs/interview-cheatsheet.md`. Chép vào phần giới thiệu và câu trả lời khoảng trống đã viết lại hôm nay.
+Tạo `docs/testing-strategy.md`:
+- Tỉ lệ ở backend khác mobile ra sao, và **vì sao**
+- Cái gì không test và lý do
+- **Bảy test bảo mật, liệt kê tên**
+- Con số bộ test
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] Đã chạy hết phỏng vấn thử 45 phút, **không dừng giữa chừng**
-- [ ] Có bản ghi âm đầy đủ
-- [ ] Đã nghe lại toàn bộ và chấm theo 5 trục
-- [ ] **Câu "6 tháng qua" đạt trên 20 điểm** — nếu chưa, viết lại tối nay
-- [ ] Đã viết lại và nói lại 2 câu yếu nhất
-- [ ] Số rời bàn đã ghi ra giấy
-- [ ] 3 câu hỏi ngược đã chuẩn bị
-- [ ] Đã nộp 3 đơn (hoặc viết lại tóm tắt CV)
-- [ ] Ghi âm phần giới thiệu tiếng Anh
-- [ ] Cheatsheet đã có phần giới thiệu + câu khoảng trống
+- [ ] Vitest chạy, có tách script test đơn vị và test tích hợp
+- [ ] Test service chạy **không cần database**, tính bằng mili giây
+- [ ] Service nhận phụ thuộc qua tham số, không import trực tiếp
+- [ ] Test tích hợp chạy trên **Postgres thật** qua nhánh Neon riêng
+- [ ] **Đủ 7 test bảo mật, tất cả đều đậu**
+- [ ] Test "A xoá bữa của B" trả 404 và bản ghi vẫn còn
+- [ ] Dùng factory, không dùng fixture dùng chung
+- [ ] Tham số argon2 yếu hơn trong môi trường test
+- [ ] **Toàn bộ bộ test dưới 60 giây**
+- [ ] Ghi âm `2026-11-23.m4a`
 - [ ] 21:30 lên giường

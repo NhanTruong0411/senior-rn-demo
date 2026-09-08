@@ -1,0 +1,48 @@
+---
+description: Thứ Ba 29/12/2026 — Tuần 18 Ngày 2. Mock interview fullstack #2 — data, conflict, perf.
+alwaysApply: false
+---
+
+# Thứ Ba · 29/12/2026 · Tuần 18 — Ngày 80/82
+
+> Mock B: database, conflict, API chậm. Đây là vòng dễ lộ người chỉ học framework.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| **08:30** | **KHỐI XÂY** — Ôn EXPLAIN + bảng OWASP + notification_log |
+| **13:30** | **KHỐI HỌC** — Mock 45 phút set B |
+| **16:00** | **TÌM VIỆC** — nộp 3 đơn chất lượng |
+| **16:30** | **TIẾNG ANH** — 3 câu khó bằng EN |
+| **17:00** | **GHI CHÚ** |
+
+---
+
+## Mock set B
+
+1. Design schema meals + sessions (nói, không code)
+2. Two users edit same row
+3. API is slow — your steps
+4. Rate limit login vs other routes
+5. Weakness + what you did in 4 months
+
+Chấm rubric. Câu yếu nhất → viết lại claim→evidence→boundary 10 dòng, nói lại 3 lần.
+
+Ghi âm `2026-12-29-mock.m4a`.
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+Luyện câu #2 và #3 bằng English full, không xen Việt.
+
+---
+
+## Checklist
+
+- [ ] Mock B ≥15 điểm hoặc có plan drill
+- [ ] Đã nộp 3 đơn
+- [ ] Ghi âm `2026-12-29.m4a`

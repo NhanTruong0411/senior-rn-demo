@@ -1,12 +1,11 @@
 ---
-description: Thứ Ba 24/11/2026 — Tuần 13 Ngày 2. Phỏng vấn thử số 2 — vòng kỹ thuật. Trả lời khi bị đào sâu và khi không biết câu trả lời.
+description: Thứ Ba 24/11/2026 — Tuần 13 Ngày 2. CI cho backend — mỗi pull request có database riêng, và cổng chất lượng tự động.
 alwaysApply: false
 ---
 
-# Thứ Ba · 24/11/2026 · Tuần 13 — Ngày 57/61
+# Thứ Ba · 24/11/2026 · Tuần 13 — Ngày 57/82
 
-> Hôm nay là vòng mà bạn mạnh nhất — nhưng cũng là vòng dễ tự bắn vào chân nhất bằng cách nói quá lên.
-> **Mục tiêu hôm nay không phải trả lời đúng mọi câu. Mục tiêu là biết đâu là ranh giới của mình và nói ra được nó một cách bình thản.**
+> Bạn đã dựng CI cho mobile hôm 28/10. Hôm nay làm cho backend — với một thứ mobile không có: **mỗi pull request được cấp một database riêng**.
 
 ---
 
@@ -22,18 +21,18 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **PHỎNG VẤN THỬ 2** — vòng kỹ thuật, 60 phút |
+| **08:30** | **KHỐI XÂY** — Workflow CI + nhánh database theo PR |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **NGHE LẠI VÀ SỬA** |
+| **13:30** | **KHỐI HỌC** — Cổng chất lượng + triển khai tự động |
 | 15:00 | Nghỉ 10 phút |
-| 15:10 | Luyện chuỗi câu hỏi đào sâu |
-| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
-| **16:30** | **TIẾNG ANH** — Trả lời kỹ thuật bằng tiếng Anh |
-| **17:00** | **ĐỌC SÁCH** — `docs/red-flags.md` |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nhắn 2 người ở công ty mục tiêu |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -43,143 +42,210 @@ alwaysApply: false
 
 ---
 
-## PHỎNG VẤN THỬ 2 · 08:30–10:30 — Vòng kỹ thuật
+## KHỐI XÂY · 08:30–10:30
 
-Gõ `mock interview` trong Cursor. Yêu cầu AI hỏi kỹ thuật và **đào sâu ít nhất hai tầng cho mỗi câu**.
+### 08:30–09:30 · Workflow cơ bản
 
-### Mười câu hỏi
+```yaml
+name: API CI
+on:
+  pull_request:
+    branches: [main]
 
-1. Redux Toolkit và TanStack Query — anh dùng cái nào khi nào?
-2. FlatList chậm với danh sách dài. Anh xử lý thế nào?
-3. `useEffect` chạy hai lần. Vì sao và anh làm gì?
-4. Kể lại cách anh xử lý token hết hạn khi có nhiều request cùng lúc.
-5. Kiến trúc mới của React Native khác kiến trúc cũ ở đâu?
-6. Anh test cái gì và **không** test cái gì?
-7. App bị crash trên máy người dùng mà anh không tái hiện được. Anh làm sao?
-8. Anh làm app chạy được khi mất mạng như thế nào?
-9. Vì sao animation nên chạy trên UI thread?
-10. Trong ba tháng qua anh có quyết định kỹ thuật nào mà sau đó anh thấy sai không?
+concurrency:
+  group: api-ci-${{ github.ref }}
+  cancel-in-progress: true          # huỷ lần chạy cũ khi push mới
 
-Giãn cơ 5 phút lúc 09:30.
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:unit
+```
 
-### Ba luật khi trả lời kỹ thuật
+`concurrency` với `cancel-in-progress` là chi tiết nhỏ nhưng đáng nói: push ba lần liên tiếp thì chỉ lần cuối chạy tới cùng. Tiết kiệm giờ chạy — mà bậc miễn phí chỉ có 2.000 phút mỗi tháng.
 
-**Luật 1 — Nói quyết định, đừng đọc định nghĩa.**
+### 09:30–10:30 · Nhánh database cho mỗi PR
 
-> ❌ *"Redux là thư viện quản lý state toàn cục, còn TanStack Query là thư viện quản lý server state..."*
->
-> ✅ *"Em chia theo nguồn dữ liệu. Cái gì máy chủ sở hữu thì em để TanStack Query lo, vì nó có sẵn cache, làm mới, thử lại, và cập nhật lạc quan — viết tay mấy cái đó là tự chuốc lấy bug. Cái gì chỉ tồn tại trên máy — bộ lọc đang chọn, chế độ tối, nháp form — thì em dùng Zustand, nhẹ hơn Redux nhiều. Trong app hiện tại của em không còn Redux nữa, vì sau khi tách hai loại state ra thì phần còn lại quá nhỏ để cần tới nó."*
+Đây là phần đáng giá nhất hôm nay:
 
-**Luật 2 — Chuẩn bị cho tầng hỏi thứ hai và thứ ba.**
+```yaml
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: neondatabase/create-branch-action@v5
+        id: branch
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch_name: ci-pr-${{ github.event.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - run: npm ci && npm run db:migrate && npm run test:integration
+        env:
+          TEST_DATABASE_URL: ${{ steps.branch.outputs.db_url }}
+```
 
-Người phỏng vấn giỏi luôn đào tiếp. Với mỗi câu trên, tự hỏi *"nếu bị hỏi 'vì sao' thêm hai lần nữa thì tôi nói gì?"*
+**Ba điều bạn được:**
 
-Ví dụ chuỗi:
-- *"Cập nhật lạc quan là sao?"* → giao diện đổi ngay, chưa chờ máy chủ
-- *"Nếu máy chủ trả lỗi thì sao?"* → `onError` khôi phục lại ảnh chụp cache trước đó
-- *"Ảnh chụp lấy ở đâu ra?"* → `onMutate` trả về, TanStack Query truyền sang `onError` qua tham số context
-
-Nếu bạn đứt ở tầng ba, đó là chỗ bạn chỉ đọc chứ chưa làm.
-
-**Luật 3 — Khi không biết, nói không biết. Có cấu trúc.**
-
-Đây là kỹ năng quan trọng nhất hôm nay:
-
-> *"Cái đó em chưa làm thật. Em hiểu ở mức khái niệm là [nói phần bạn thật sự hiểu]. Nếu phải làm, em sẽ bắt đầu bằng [bước đầu tiên cụ thể] và kiểm chứng bằng [cách đo]. Em không muốn nói chắc về thứ em chưa chạm tới."*
-
-**Ba phần bắt buộc:** thừa nhận thẳng → nói phần bạn thật sự biết → nêu bước đi cụ thể nếu phải làm.
-
-> Người phỏng vấn có kinh nghiệm coi trọng câu này hơn một câu trả lời bịa nghe hay. Vì họ đang tự hỏi: *"người này khi gặp việc không biết ở trong dự án sẽ xử lý ra sao?"*
-
-### Sáu ranh giới của bạn — thuộc lòng
-
-Từ mục 11 trong `coding-context.mdc`, đã cập nhật sau ba tháng:
-
-| Chủ đề | Cách nói |
+| Được gì | Vì sao quan trọng |
 | --- | --- |
-| Native sâu | *"Em đã tự viết TurboModule cả Kotlin lẫn Swift, hiểu Codegen và nạp lười. Nhưng em chưa làm ứng dụng native thuần, nên vòng đời Activity hay quản lý bộ nhớ iOS em chỉ ở mức khái niệm."* |
-| GraphQL | *"Chưa dùng trong việc thật. REST đủ cho những gì em làm. Vào team có GraphQL em sẽ bắt đầu với Apollo và codegen."* |
-| Quy mô lớn | *"App của em có năm người dùng, không phải năm triệu. Em hiểu nguyên tắc mở rộng, nhưng em chưa đối mặt vấn đề ở quy mô đó."* |
-| Backend | *"Em dựng được Supabase với RLS và Edge Function. Nhưng em không phải người thiết kế cơ sở dữ liệu — đó là chỗ em cần người giỏi hơn."* |
-| CI/CD nâng cao | *"Em tự dựng GitHub Actions với kiểm tra chất lượng, cập nhật OTA, và build lên kho. Chưa làm triển khai theo tỉ lệ hay nhiều môi trường."* |
-| Dẫn dắt | *"Em chưa quản lý ai. Em có hướng dẫn thực tập sinh và review code, nhưng gọi đó là kinh nghiệm dẫn dắt thì hơi quá."* |
+| Test chạy trên **Postgres thật**, không phải giả lập | Ràng buộc, kiểu dữ liệu, hành vi transaction đều thật |
+| Mỗi PR **cô lập** | Hai PR chạy cùng lúc không giẫm lên nhau |
+| **Migration được kiểm tra** trên mỗi PR | Migration hỏng bị bắt ở PR, không bị bắt ở sản xuất |
 
-**Nói ranh giới ra ngay khi nó liên quan, đừng chờ bị đào ra.** Chủ động nói thì gọi là tự nhận thức. Bị moi ra mới nói thì gọi là nói quá.
+Điều thứ ba là điều quan trọng nhất và ít người nghĩ tới. Migration là loại thay đổi nguy hiểm nhất trong backend, và đây là cách duy nhất kiểm tra nó tự động mà không tốn tiền.
+
+Nhớ thêm bước xoá nhánh khi PR đóng, kẻo hết hạn mức miễn phí:
+
+```yaml
+  cleanup:
+    if: github.event.action == 'closed'
+    steps:
+      - uses: neondatabase/delete-branch-action@v3
+```
+
+```bash
+git add . && git commit -m "ci: workflow api với nhánh database riêng cho mỗi pr"
+```
 
 ---
 
-## NGHE LẠI VÀ SỬA · 13:30–16:00
+## KHỐI HỌC · 13:30–16:00
 
-### 13:30–15:00 · Chấm bản ghi
+### 13:30–14:30 · Cổng chất lượng
 
-| Câu | Có nói quá không? | Đứt ở tầng mấy? | Điểm /25 |
-| --- | --- | --- | --- |
+Thêm ba cổng nữa. Mỗi cái phải **chặn được merge**, không chỉ cảnh báo:
 
-**Hai câu hỏi khó nhất với chính mình:**
-1. Có câu nào tôi nói chắc hơn mức tôi thật sự biết không? Câu nào?
-2. Câu nào tôi đứt ở tầng hai? Đó chính là chỗ tôi mới đọc chứ chưa làm.
+```yaml
+      # 1. Migration phải áp dụng sạch từ đầu
+      - run: npm run db:migrate
+      # 2. Schema và migration không được lệch nhau
+      - run: npx drizzle-kit check
+      # 3. Không có bí mật lọt vào code
+      - uses: gitleaks/gitleaks-action@v2
+```
 
-Ghi mọi lần nói quá vào `docs/red-flags.md`.
+**Cổng thứ hai đáng giải thích.** `drizzle-kit check` phát hiện khi bạn sửa `schema.ts` mà quên sinh migration. Không có nó, code chạy ngon trên máy bạn *(vì database máy bạn đã có cột đó từ lần thử tay)* rồi sập ở sản xuất. Đây là bug rất khó chịu và cổng này chặn được hoàn toàn.
+
+**Cổng thứ ba — quét bí mật — cứu bạn một lần trong đời là đủ hoàn vốn.** Khoá API lọt vào lịch sử Git thì gỡ ra rất khó, và bot quét GitHub công khai trong vài phút.
+
+Bật bảo vệ nhánh `main`: bắt buộc PR, bắt buộc mọi cổng đậu.
+
+> **Vì sao tự bắt mình làm PR khi chỉ có một người:** nó buộc bạn đọc lại diff của chính mình trước khi merge, và nó tạo ra thói quen đúng khi vào đội. Nó cũng để lại dấu vết cho người phỏng vấn mở GitHub xem.
+
+Giãn cơ 5 phút lúc 14:30.
+
+### 14:30–15:00 · Triển khai tự động có phanh
+
+```yaml
+name: Deploy API
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    steps:
+      - run: npm ci && npm run test          # test lại lần nữa trên main
+      - run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+      - name: Chờ health check
+        run: |
+          for i in {1..30}; do
+            if curl -sf https://macrozone-api.onrender.com/healthz; then exit 0; fi
+            sleep 10
+          done
+          exit 1                              # thất bại thì báo đỏ
+```
+
+**Bước chờ health check là cái phanh.** Không có nó, workflow báo xanh trong khi dịch vụ đang sập. Báo xanh sai còn tệ hơn không có CI, vì bạn tin nó.
+
+**Thứ tự migration và triển khai — câu hỏi phỏng vấn hay:**
+
+| Cách | Rủi ro |
+| --- | --- |
+| Migration **trước**, rồi triển khai code | Code cũ chạy trên schema mới trong vài giây |
+| Triển khai code trước, migration sau | Code mới chạy trên schema cũ — **sập ngay** |
+
+**Chọn cách một**, và đó chính là lý do luật "chỉ thêm, không xoá" từ ngày 10/11 tồn tại. Nếu migration chỉ thêm cột, code cũ chạy được trên schema mới hoàn toàn bình thường.
+
+Bây giờ bạn thấy hai bài học nối vào nhau. Nói ra được mối nối này khi phỏng vấn là dấu hiệu hiểu hệ thống chứ không thuộc quy trình.
 
 ### 15:00–15:10 · Nghỉ
 
-### 15:10–16:00 · Luyện chuỗi đào sâu
+### 15:10–16:00 · Thử phá CI có chủ ý
 
-Chọn ba câu bị đứt sâu nhất. Với mỗi câu, viết ra **chuỗi năm tầng**:
+Kiểm chứng cổng chứ đừng tin. Mở 4 PR nháp, mỗi cái hỏng một kiểu:
 
-```
-Câu hỏi gốc:
-  → vì sao? →
-    → vì sao? →
-      → vì sao? →
-        → "chỗ này em chưa làm thật, em biết đến đây thôi"
-```
+| PR | Cố tình làm gì | Cổng nào phải bắt |
+| --- | --- | --- |
+| 1 | Lỗi kiểu TypeScript | `typecheck` |
+| 2 | Sửa `schema.ts`, không sinh migration | `drizzle-kit check` |
+| 3 | Bỏ kiểm tra quyền sở hữu ở một endpoint | test bảo mật |
+| 4 | Thêm chuỗi giống khoá API vào code | `gitleaks` |
 
-**Việc viết ra tầng cuối cùng có giá trị đặc biệt.** Nó cho bạn biết chính xác ranh giới nằm ở đâu, nên trong phỏng vấn thật bạn không hoảng — bạn thấy nó đến từ xa và bước qua nó một cách bình thản.
+**Cái nào không bị bắt là một lỗ hổng thật trong CI của bạn.** Sửa hôm nay.
 
----
+PR số 3 là bài kiểm tra quan trọng nhất — nó xác nhận bộ test bảo mật hôm qua thật sự bảo vệ được.
 
-## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
-
----
-
-## TIẾNG ANH · 16:30–17:00 — Trả lời kỹ thuật bằng tiếng Anh
-
-Chọn **ba câu** trong mười câu sáng nay, trả lời bằng tiếng Anh, mỗi câu 60 giây, ghi âm liền mạch.
-
-Gợi ý câu số 10 — câu về quyết định sai:
-
-> *"Yes. In September I built the whole storage layer on AsyncStorage, and I wrote the UI to call it directly. When I moved to a real backend in late September, that decision cost me most of a day, because the calls were scattered across components.*
-> *What I should have done — and did do the second time — is put a thin interface in front of storage, so the UI asks for meals and doesn't know where they come from. When I switched to Supabase, only the implementation behind that interface changed.*
-> *The lesson wasn't 'always abstract.' Premature abstraction is its own problem. The lesson is that anything crossing a boundary — network, disk, native — is worth one thin layer, because those are the things that get replaced."*
-
-Câu này mạnh vì nó có sai lầm thật, cách sửa cụ thể, **và** một ranh giới nhận thức ở cuối *(không phải lúc nào cũng nên trừu tượng hóa)*.
+Đóng cả bốn PR nháp sau khi kiểm xong.
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## TÌM VIỆC · 16:00–16:30
 
-Viết `docs/red-flags.md` — danh sách những điều **bạn** có xu hướng nói quá:
+---
 
-```markdown
-# Những câu tôi không nên nói
+## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
 
-- ❌ "Em rành hiệu năng" → ✅ "Em đã đo và sửa được ba vấn đề cụ thể, đây là số liệu"
-- ❌ "Em làm được native" → ✅ "Em viết được TurboModule, nhưng chưa làm app native thuần"
-- ❌ "Em có kinh nghiệm CI/CD" → ✅ "Em dựng được pipeline cho dự án cá nhân"
-- ❌ [tự thêm sau khi nghe bản ghi hôm nay]
-```
+**Chủ đề: một database riêng cho mỗi pull request.**
+
+> *"The thing I set up today that I'm most pleased with: every pull request gets its own database.*
+> *Neon supports branching — you branch a database the way you branch Git, and it takes about a second. So the CI job creates a branch named after the PR, runs migrations against it, runs the integration suite, and deletes it when the PR closes.*
+> *Three things that gives me. Tests run against real Postgres, so real constraints and real transaction behavior — a mocked database can't catch a bug where I forgot a unique constraint. Concurrent PRs don't interfere. And most importantly, every migration gets applied from scratch on every PR, so a broken migration fails in review instead of in production.*
+> *That last one matters because migrations are the most dangerous change you can make on a backend. On mobile a bad deploy means a crash. On the backend it can mean permanent data loss.*
+> *I also deliberately broke CI four different ways to check each gate actually catches what it's supposed to. One of them didn't."*
+
+Câu cuối là câu hay nhất — nó cho thấy bạn kiểm chứng chứ không giả định.
+
+**5 từ mới:**
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `branch a database` | tạo nhánh database | *You branch a database the way you branch Git.* |
+| `interfere` (v) | giẫm lên nhau | *Concurrent PRs don't interfere.* |
+| `from scratch` | từ đầu, từ số không | *Every migration is applied from scratch.* |
+| `fail in review` | rớt ở khâu review | *A broken migration fails in review.* |
+| `deliberately break` | cố tình làm hỏng | *I deliberately broke CI four ways.* |
+
+---
+
+## GHI CHÚ · 17:00–17:30
+
+Thêm vào `docs/testing-strategy.md`:
+- Sơ đồ pipeline CI
+- **Bảng 4 cách phá CI và cổng bắt được**
+- Thứ tự migration và triển khai, kèm lý do nối với luật "chỉ thêm"
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] Đã chạy hết 10 câu, bị đào sâu ít nhất 2 tầng mỗi câu
-- [ ] Đã dùng câu "em chưa làm thật" **ít nhất một lần** — nếu không lần nào thì bạn đang nói quá
-- [ ] Thuộc 6 ranh giới, nói ra được tự nhiên
-- [ ] Đã chấm bản ghi, tìm ra chỗ đứt tầng hai
-- [ ] Viết chuỗi 5 tầng cho 3 câu yếu nhất
-- [ ] `docs/red-flags.md` đã có ít nhất 5 mục
-- [ ] Đã nộp 3 đơn
-- [ ] Ghi âm 3 câu kỹ thuật bằng tiếng Anh
+- [ ] CI chạy trên mọi PR, có `concurrency` huỷ lần cũ
+- [ ] **Mỗi PR có nhánh database riêng**, xoá khi PR đóng
+- [ ] `drizzle-kit check` chặn được schema lệch migration
+- [ ] Quét bí mật đã bật
+- [ ] Bảo vệ nhánh `main` đã bật, bắt buộc PR
+- [ ] Triển khai tự động **có chờ health check**, thất bại thì báo đỏ
+- [ ] Nói được vì sao migration chạy trước triển khai
+- [ ] Nối được luật này với luật "chỉ thêm, không xoá" hôm 10/11
+- [ ] **Đã thử phá CI 4 cách, mọi cổng đều bắt được**
+- [ ] Ghi âm `2026-11-24.m4a`
 - [ ] 21:30 lên giường

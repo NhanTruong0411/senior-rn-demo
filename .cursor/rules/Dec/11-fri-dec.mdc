@@ -1,0 +1,72 @@
+---
+description: Thứ Sáu 11/12/2026 — Tuần 15 Ngày 5. EXPLAIN ANALYZE lại, chốt p95, tổng kết real-time.
+alwaysApply: false
+---
+
+# Thứ Sáu · 11/12/2026 · Tuần 15 — Ngày 70/82
+
+> Đo → sửa index nếu cần → đo lại. Chốt ngân sách. Tổng kết tuần real-time.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| **08:30** | **KHỐI XÂY** — 3 truy vấn EXPLAIN ANALYZE |
+| **13:30** | **KHỐI HỌC** — Bài viết ngắn + tổng kết tuần 15 |
+| **16:00** | **TÌM VIỆC** — cập nhật CV (real-time + perf) |
+| **16:30** | **TIẾNG ANH** — Nghe lại |
+| **17:00** | **GHI CHÚ** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+Bắt buộc 3 truy vấn (copy plan vào docs):
+
+1. List meals theo user + khoảng ngày
+2. Dispatch reminders (`now() at time zone …`)
+3. Stats theo ngày
+
+Với mỗi cái: Seq Scan hay Index Scan? Thêm index nếu có chứng minh. **Đo lại sau khi thêm.**
+
+Cập nhật bảng p95 tuần này (warm, có cron ping).
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### Checklist tuần 15
+
+| Mục | Xong? |
+| --- | --- |
+| SSE meals-changed | |
+| Cold start UX + cron ping | |
+| Cache có đo / hoặc quyết định không cache | |
+| Optimistic lock + 409 demo | |
+| p95 dưới ngân sách tự đặt | |
+| Câu hỏi #1 và #2 nói được | |
+
+### Ghi chú kỹ thuật 20 phút
+
+`docs/realtime.md`: SSE vs WS, reconnect, cold start.
+
+Không đăng bài dài nếu đã đăng tuần 14 — chỉ cập nhật README kiến trúc có nhánh events.
+
+---
+
+## TÌM VIỆC
+
+Bullet CV:
+
+> SSE invalidate cache client; đo p95 API; optimistic locking khi đồng bộ đa thiết bị.
+
+---
+
+## Checklist cuối tuần
+
+- [ ] 3 EXPLAIN đã lưu + trước/sau
+- [ ] Ngân sách p95 đạt hoặc có lý do chưa đạt + plan
+- [ ] **T7–CN nghỉ**
+- [ ] Ghi âm `2026-12-11.m4a`

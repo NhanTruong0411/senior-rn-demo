@@ -1,0 +1,65 @@
+---
+description: Thứ Sáu 18/12/2026 — Tuần 16 Ngày 5. Chốt AI + quan sát + docs + Docker; tổng kết tuần.
+alwaysApply: false
+---
+
+# Thứ Sáu · 18/12/2026 · Tuần 16 — Ngày 75/82
+
+> Không feature mới. Vá lỗ hổng tuần 16. Tự chấm 4 câu hỏi fullstack.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| **08:30** | **KHỐI XÂY** — Dọn nợ (AI rate limit, docs prod, Docker README) |
+| **13:30** | **KHỐI HỌC** — Tự chấm 4 câu + bài ngắn nếu thiếu |
+| **16:00** | **TÌM VIỆC** — cập nhật CV fullstack |
+| **16:30** | **TIẾNG ANH** — Nghe lại |
+| **17:00** | **GHI CHÚ** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+- [ ] AI: không key trong client, có rate limit, Zod output
+- [ ] Runbook slow API trong repo
+- [ ] OpenAPI không lộ trên prod không auth
+- [ ] README: `docker compose up` 5 bước
+- [ ] Sentry + Better Stack còn nhận event
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### Tự chấm (1–5)
+
+| # | Câu | Điểm | Chỗ vấp |
+| --- | --- | --- | --- |
+| 1 | Request ngón tay → DB | | |
+| 2 | Hai người sửa 1 bản ghi | | |
+| 3 | API chậm thì sao | | |
+| 4 | Vì sao không K8s/GraphQL/microservice | | |
+
+Tổng < 14 → cuối tuần 18 drill lại, không tự phong senior.
+
+Cập nhật sơ đồ kiến trúc tháng 12 (thêm SSE, jobs, AI, Redis optional).
+
+---
+
+## TÌM VIỆC
+
+Định vị CV chốt:
+
+> **Fullstack Mobile Engineer** — React Native · Node.js · PostgreSQL  
+> App trên TestFlight/Play + API tự host (auth, jobs, realtime, AI proxy).
+
+---
+
+## Checklist cuối tuần
+
+- [ ] 4 câu tự chấm xong
+- [ ] Sơ đồ kiến trúc cập nhật
+- [ ] **T7–CN nghỉ** (21/12 mới làm tiếp)
+- [ ] Ghi âm `2026-12-18.m4a`

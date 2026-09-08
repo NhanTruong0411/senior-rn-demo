@@ -1,11 +1,12 @@
 ---
-description: Thứ Sáu 13/11/2026 — Tuần 11 Ngày 5. Phát hành v1.3.0, tổng kết tuần push và deep link.
+description: Thứ Sáu 13/11/2026 — Tuần 11 Ngày 5. Tối ưu truy vấn có đo đạc, viết bài kỹ thuật, tổng kết tuần database.
 alwaysApply: false
 ---
 
-# Thứ Sáu · 13/11/2026 · Tuần 11 — Ngày 50/61
+# Thứ Sáu · 13/11/2026 · Tuần 11 — Ngày 50/82
 
-> Ngày 50. Còn 11 ngày làm việc trong sprint này.
+> Nửa chặng đường. Ngày 50 trên 82.
+> Hôm nay đóng lại tuần database bằng thứ có sức nặng nhất khi phỏng vấn: **những con số bạn tự đo được**.
 
 ---
 
@@ -21,190 +22,186 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Kiểm tra toàn diện + phát hành v1.3.0 |
+| **08:30** | **KHỐI XÂY** — Đo và tối ưu 3 truy vấn chậm nhất |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Có người thật thử app + tổng kết |
+| **13:30** | **KHỐI HỌC** — Viết bài kỹ thuật + tổng kết tuần |
 | 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nhìn lại tuần 2 |
-| **16:30** | **TIẾNG ANH** — Nhìn lại tuần |
-| **17:00** | **ĐỌC SÁCH** — Chuẩn bị tuần 12 |
+| 15:10 | Tự chấm |
+| **16:00** | **TÌM VIỆC** — cập nhật CV |
+| **16:30** | **TIẾNG ANH** — nghe lại 5 bản ghi |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
 | 20:30 | Thời gian với con |
 | 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ. **Nghỉ trọn vẹn T7 + CN** |
+| 21:30 | Ngủ |
 
 ---
 
 ## KHỐI XÂY · 08:30–10:30
 
-### 08:30–09:30 · Chạy lại ma trận trên bản production
+### 08:30–09:00 · Đo trước — tìm truy vấn chậm thật
 
-Ma trận hôm qua bạn chạy trên development build. **Bản production hành xử khác** — Universal Link cần vân tay đúng của keystore production, và `__DEV__` là `false` nên nhiều đường code khác đi.
+Bật ghi log truy vấn chậm:
 
-```bash
-eas build --platform android --profile production --local
+```ts
+const client = postgres(env.DATABASE_URL, {
+  onnotice: () => {},
+  debug: (_c, query, params, types) => {
+    const start = performance.now();
+    queueMicrotask(() => {
+      const ms = performance.now() - start;
+      if (ms > 50) logger.warn({ query, ms }, 'truy vấn chậm');
+    });
+  },
+});
 ```
 
-Chạy lại 9 tình huống trên bản production. Ghi lại chỗ nào khác biệt.
+Chạy app 10 phút, làm mọi thao tác. Đọc log. **Lấy 3 truy vấn chậm nhất.**
 
-> **Bài học sẽ rút ra:** *"chạy được ở dev không có nghĩa là chạy được ở production"* — đặc biệt đúng với deep link, và là câu chuyện tốt để kể khi phỏng vấn.
+> Quy tắc y hệt tháng 10: đo trước, sửa sau. Bạn đã có thói quen này với Flashlight rồi. Đừng đoán truy vấn nào chậm — bạn sẽ đoán sai.
 
-Giãn cơ 5 phút lúc 09:30.
+### 09:00–10:30 · `EXPLAIN ANALYZE` từng cái
 
-### 09:30–10:30 · Phát hành v1.3.0
+Với mỗi truy vấn, làm đủ bốn bước:
+
+1. Chạy `explain analyze`, ghi thời gian và kiểu quét
+2. Tìm nguyên nhân — thường là một trong bốn thứ dưới đây
+3. Sửa
+4. **Đo lại**, ghi con số mới
+
+| Dấu hiệu trong kế hoạch thực thi | Nguyên nhân thường gặp | Cách sửa |
+| --- | --- | --- |
+| `Seq Scan` trên bảng lớn | Thiếu index | Thêm index đúng cột và đúng thứ tự |
+| `Rows Removed by Filter` rất lớn | Index sai cột | Đổi thứ tự cột trong index |
+| `Nested Loop` với số vòng lớn | N+1 hoặc thiếu index bên phía join | Join lại, hoặc thêm index vào khoá ngoại |
+| `Sort` tốn nhiều thời gian | Sắp xếp không có index hỗ trợ | Thêm index có cùng thứ tự sắp xếp |
+
+Ghi vào bảng:
+
+| Truy vấn | Trước | Sau | Đã làm gì |
+| --- | --- | --- | --- |
+| Danh sách bữa ăn theo ngày | __ ms | __ ms | |
+| Thống kê 7 ngày | __ ms | __ ms | |
+| | __ ms | __ ms | |
+
+**Bảng này là tài sản phỏng vấn.** Nó là bằng chứng bạn đo, sửa, đo lại — chứ không tối ưu theo cảm giác.
+
+**Một cảnh báo về index:** mỗi index làm câu `INSERT` chậm đi một chút và tốn dung lượng. Đừng thêm index cho mọi cột. Chỉ thêm khi có truy vấn thật cần nó. Nói được điều này khi phỏng vấn cho thấy bạn hiểu cả cái giá.
 
 ```bash
-npm run verify && npm run test:e2e
-git checkout main && git merge feat/push
-npm version minor
-git push --follow-tags
-```
-
-```markdown
-# v1.3.0 — 13 November 2026
-
-## Added
-- Meal reminders you can schedule per meal, with quiet hours
-- Share a meal — the link opens in the app if installed, on the web if not
-- Notifications and links open the right screen, including from a cold start
-
-## Notes
-Reminders are skipped if you've already logged that meal. The app won't
-notify you about something you just did.
+git add . && git commit -m "perf: thêm index cho 3 truy vấn chậm nhất, có số đo"
 ```
 
 ---
 
 ## KHỐI HỌC · 13:30–16:00
 
-### 13:30–14:30 · Cho người thật thử
+### 13:30–14:45 · Viết bài kỹ thuật số 4
 
-**Đây là việc bạn nên làm từ sớm hơn.** Hôm nay là ngày.
+**Tiêu đề:** *"Một mobile developer học database: năm điều tôi hiểu sai"*
 
-Gửi link Play Internal Testing cho **3–5 người thật**: vợ, anh chị em, bạn cũ. Người không phải lập trình viên càng tốt.
+Đây là góc nhìn ít người viết, và nó đúng với bạn. Dàn bài:
 
-Xin họ ba việc:
-1. Ghi lại một bữa ăn hôm nay
-2. Bật nhắc nhở
-3. Nhắn cho bạn **bất cứ chỗ nào họ thấy khó hiểu**
+| Điều tôi hiểu sai | Sự thật |
+| --- | --- |
+| "ORM lo hết, không cần biết SQL" | ORM sinh SQL, và bạn phải đọc được nó khi chậm |
+| "Index là thứ thêm vào lúc nào cũng được" | Thứ tự cột quyết định index có dùng được hay không |
+| "Transaction chỉ dành cho ngân hàng" | Bất kỳ chỗ nào ghi hai bảng đều cần |
+| "Ràng buộc unique chỉ để tránh trùng" | Nó là thứ **thật sự** đảm bảo tính bất biến |
+| "Phân trang là `limit` và `offset`" | `offset` vừa chậm vừa sai trên danh sách đang đổi |
 
-**Ngồi cạnh ít nhất một người và im lặng nhìn họ dùng.** Không hướng dẫn, không giải thích. Ghi lại mỗi lần họ ngập ngừng.
+Mỗi mục: nhận thức cũ, cái gì làm bạn đổi ý, **con số hoặc đoạn code thật**.
 
-> Bạn sẽ phát hiện ra những thứ mà 50 ngày viết code không cho bạn thấy. Người dùng thật không đọc nhãn, không hiểu biểu tượng bạn thấy hiển nhiên, và bấm vào những chỗ bạn không nghĩ là bấm được.
->
-> **Và đây là nguyên liệu phỏng vấn quý:** *"Tôi cho năm người thật dùng thử. Ba người trong số đó không tìm ra nút thêm bữa ăn, nên tôi đổi từ nút nổi ở góc sang nút rõ ràng trên thanh tiêu đề."* Câu này giá trị hơn nhiều so với mọi mô tả kỹ thuật.
+Đăng lên dev.to hoặc Viblo. Bài này phục vụ hai mục đích: nó là bằng chứng công khai *(thứ tấn công trực tiếp cơ chế gây ra hình phạt khoảng trống thất nghiệp)*, và nó là dàn bài sẵn cho câu trả lời phỏng vấn.
 
-Ghi vào `docs/user-feedback.md`.
+Giãn cơ 5 phút lúc 14:45.
 
-### 14:30–15:00 · Sửa ngay hai thứ dễ nhất
+### 14:45–15:00 · Nghỉ sớm hơn thường lệ
 
-Trong danh sách phản hồi, chọn hai thứ sửa được trong 30 phút và sửa luôn. Đẩy OTA — pipeline hôm 29/10 lo phần còn lại.
+### 15:00–16:00 · Tổng kết Tuần 11
 
-```bash
-git add . && git commit -m "fix: sửa hai vấn đề trải nghiệm từ thử nghiệm người thật"
-```
+Tự chấm 1–5:
 
-### 15:00–15:10 · Nghỉ
+| Mục | Điểm |
+| --- | --- |
+| Thiết kế được schema và giải thích từng quyết định | |
+| Viết được truy vấn SQL bằng tay, không cần công cụ | |
+| Đọc được `EXPLAIN ANALYZE` và biết phải sửa gì | |
+| Giải thích được vì sao thứ tự cột index quan trọng | |
+| Nói được transaction dùng khi nào và bẫy `db` vs `tx` | |
+| Nói được khoá lạc quan vs bi quan và lý do chọn | |
+| Chuyển dữ liệu thật an toàn, có đối chiếu | |
 
-### 15:10–16:00 · Tổng kết tuần 11
+**Ba câu tự trả lời:**
+1. Tuần này chỗ nào tôi thấy khó nhất, và vì sao?
+2. Chỗ nào tôi vẫn đang làm theo mà chưa thật hiểu?
+3. Kể tuần này cho một Tech Lead trong 2 phút, tôi nói gì?
 
-```text
-## Tổng kết tuần 11 (09–13/11) — PUSH + DEEP LINK
+Câu 3 tập nói to. Đó gần như chắc chắn là một câu hỏi phỏng vấn.
 
-- [ ] Push thật chạy trên cả 2 nền tảng
-- [ ] Universal Link + App Link đều verified
-- [ ] Ma trận 9 tình huống chạy hết trên bản production
-- [ ] Cài đặt thông báo chi tiết + giờ yên lặng
-- [ ] Chiến lược thông báo có tài liệu
-- [ ] v1.3.0 đã phát hành
-- [ ] ___ người thật đã thử app
-
-Lỗi tìm được ở cột "App killed":
-Lỗi tìm được ở hàng "signed out":
-Khác biệt giữa dev build và production build:
-
-Phản hồi bất ngờ nhất từ người dùng thật:
-
-Số ngày có commit: ___/5
-```
+**Kiểm tra hình dạng code:** file nào vượt 250 dòng? Có logic nghiệp vụ nào lọt vào route không? Sửa ngay hôm nay.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Nhìn lại tuần 2
+## TÌM VIỆC · 16:00–16:30 — Cập nhật CV
 
-```text
-## Tuần apply thứ 2 (09–13/11)
+Mở rộng mục Backend:
 
-Tổng đơn đã nộp (tích lũy):  ___
-Phản hồi:                    ___
-Phỏng vấn được hẹn:          ___
-Từ chối:                     ___
-
-So với tuần 1, có gì khác?
-
-Nếu chưa có phản hồi nào sau 2 tuần, thử đổi:
-- [ ] Nộp vào công ty nhỏ hơn, ít cạnh tranh hơn
-- [ ] Nhắn thẳng cho engineering manager thay vì nộp qua form
-- [ ] Xem lại dòng đầu tiên của CV — người ta đọc 6 giây
-- [ ] Nhờ một người trong ngành đọc lại CV và nói thẳng
+```
+Backend (Node.js) — từ 11/2026
+- API REST Fastify + TypeScript + Drizzle + PostgreSQL (Neon)
+- Thiết kế schema: ràng buộc unique đảm bảo tính bất biến cho ghi ngoại tuyến,
+  khoá lạc quan bằng version xử lý sửa đồng thời từ nhiều thiết bị
+- Tối ưu truy vấn có đo đạc: EXPLAIN ANALYZE → thêm index → [X]ms còn [Y]ms
+- Chuyển dữ liệu sản xuất từ BaaS sang database riêng, có kiểm tra đối chiếu, không mất dữ liệu
 ```
 
-> **Ba tuần liên tiếp không phản hồi thì vấn đề thường nằm ở CV hoặc ở kênh nộp, không nằm ở năng lực.** Đừng học thêm để "đủ giỏi" — hãy nhờ người đọc lại CV. Đó là thay đổi rẻ nhất và tác động lớn nhất.
+**Dòng thứ ba là dòng mạnh nhất** — nó có con số thật.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nhìn lại tuần
+## TIẾNG ANH · 16:30–17:00 — Nghe lại 5 bản ghi
 
-### 16:30–16:40 · Shadowing
+Nghe từ `2026-11-09` đến `2026-11-13`.
 
-### 16:40–17:00 · Nói to có ghi âm — 3 phút
-
-> **1. What I did**
-> *"Push notifications and deep linking. Both are working across all three app states, including cold start, which is where most deep link bugs live."*
->
-> **2. The bug I'm glad I found**
-> *"Cold start with the user signed out. The app launches, the router tries to navigate to the link target, but the session is still loading — so the auth guard redirects to sign-in and the link is silently dropped. It works perfectly if you test with the app already open. I hold the target now and navigate after the session resolves."*
->
-> **3. Something I should have done earlier**
-> *"I put the app in front of five real people for the first time. ___ . Fifty days of building and it took an afternoon of watching someone else use it to see that."*
->
-> **4. Next week**
-> *"Reanimated and gestures — the last technical gap on my list. Then the final week is entirely mock interviews."*
-
-**Kiêm buổi họp một mình.**
+So với tuần trước:
+1. Từ vựng database nào giờ nói tự nhiên rồi?
+2. Chỗ nào còn phải dừng lại nghĩ?
+3. Một câu dùng nguyên văn được trong phỏng vấn:
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## GHI CHÚ · 17:00–17:30
 
-Đọc trước tài liệu Reanimated cho tuần sau: https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started
-
-Xem một video của William Candillon: https://www.youtube.com/@wcandillon — chọn video ngắn nhất, xem để làm quen với cách nghĩ.
+Hoàn thiện `docs/database.md`. Nó phải có:
+- Sơ đồ quan hệ
+- Bảy quyết định schema kèm lý do
+- Bảng đo hiệu năng trước/sau
+- Transaction, N+1, khoá lạc quan — mỗi mục một đoạn ngắn
+- Nhật ký chuyển dữ liệu
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] Ma trận 9 tình huống chạy hết **trên bản production**
-- [ ] Ghi lại được khác biệt giữa bản dev và bản production
-- [ ] v1.3.0 phát hành
-- [ ] **3–5 người thật đã cài và dùng app**
-- [ ] Đã ngồi im nhìn ít nhất 1 người dùng
-- [ ] `docs/user-feedback.md` có ghi chép
-- [ ] Đã sửa 2 vấn đề trải nghiệm và đẩy OTA
-- [ ] Điền xong tổng kết tuần 11 và bảng apply tuần 2
-- [ ] **Có commit hôm nay** — 50/50 ngày làm việc
-- [ ] Ghi âm `2026-11-13.m4a`
+- [ ] Đã **đo** để tìm 3 truy vấn chậm nhất, không đoán
+- [ ] Mỗi truy vấn có `EXPLAIN ANALYZE` trước và sau
+- [ ] **Bảng trước/sau đã điền số thật**
+- [ ] Nói được cái giá của việc thêm index
+- [ ] Bài viết số 4 đã đăng, có link
+- [ ] Tổng kết Tuần 11 xong, có trả lời câu "chỗ nào chỉ làm theo"
+- [ ] Tập kể tuần này trong 2 phút, nói to
+- [ ] Không file nào vượt 250 dòng vô cớ
+- [ ] CV có con số hiệu năng thật
+- [ ] Đã nghe lại 5 bản ghi
+- [ ] 21:30 lên giường
 
 ---
 
-## Cuối tuần 14–15/11: NGHỈ HOÀN TOÀN
-
-Tuần sau: **Reanimated** — lỗ hổng kỹ thuật cuối cùng trong danh sách của bạn.
+> Tuần sau: xác thực tự viết. Đây là tuần bạn có lợi thế lớn nhất — bạn đã xây hàng đợi refresh token ở phía client hôm 02/10. Tuần tới bạn viết đầu còn lại.

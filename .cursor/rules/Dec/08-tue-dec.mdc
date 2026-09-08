@@ -1,0 +1,96 @@
+---
+description: Thứ Ba 08/12/2026 — Tuần 15 Ngày 2. Cold start Render — cron đánh thức, client chịu được ngủ.
+alwaysApply: false
+---
+
+# Thứ Ba · 08/12/2026 · Tuần 15 — Ngày 67/82
+
+> Free tier Render ngủ sau ~15 phút. Đó không phải lỗi cấu hình — đó là ràng buộc bạn phải thiết kế quanh nó.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy … *(lịch cố định Dec context)* |
+| **08:30** | **KHỐI XÂY** — Cron đánh thức + đo cold start |
+| 10:30–13:30 | Giữ bé / ăn / ngủ *(như lịch cố định)* |
+| **13:30** | **KHỐI HỌC** — Client UX khi API đang thức dậy |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nộp 3 đơn có thư riêng |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
+| **17:00** | **GHI CHÚ** |
+| 17:30–21:30 | Gia đình + ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+### Đo trước
+
+```bash
+# Để service ngủ ≥15 phút, rồi:
+time curl -s -o /dev/null -w "%{time_total}\n" https://macrozone-api.onrender.com/healthz
+```
+
+Ghi: thời gian cold start thực tế (thường 15–60s).
+
+### Cron đánh thức (GitHub Actions)
+
+```yaml
+name: Keep API warm
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # mỗi 10 phút — trong hạn mức Actions
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf --max-time 30 https://macrozone-api.onrender.com/healthz || exit 0
+```
+
+**Trung thực khi phỏng vấn:** ping chỉ giảm tần suất ngủ, không đảm bảo 0 cold start. Client vẫn phải chịu được.
+
+**Phương án B (không tốn Actions):** `boss.schedule('ping-self', '*/10 * * * *')` gọi `/healthz` — nhưng khi process đã chết thì cron trong process cũng chết. Vì vậy Actions bên ngoài vẫn cần nếu muốn warm.
+
+```bash
+git add . && git commit -m "chore: github actions ping giữ api warm"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### Client chịu cold start
+
+| Triệu chứng | UX đúng |
+| --- | --- |
+| Timeout / 502 lần đầu | Skeleton + copy "Đang kết nối máy chủ…" |
+| Retry | TanStack Query: `retry: 3`, `retryDelay` tăng dần, lần đầu có thể 5–10s |
+| SSE đứt | `onerror` → đóng → đợi → mở lại; tạm thời `refetchInterval` 30s |
+
+**Không** hiện toast đỏ "Lỗi mạng" ngay giây đầu sau khi mở app buổi sáng — đó là cold start, không phải wifi chết.
+
+Viết hook `useApiWarmup()`: ping `/healthz` khi app foreground, trước mutation quan trọng nếu lần cuối fail.
+
+Giãn cơ 14:30. 15:10: tài liệu hóa số đo cold start vào `docs/ops.md`.
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+> *"On the free tier the API sleeps after idle time. Cold start can take half a minute. I mitigate with an external cron ping, but I don't pretend that removes the problem. The client shows a connecting state and retries with longer delays instead of screaming network error on the first request of the day."*
+
+**5 từ:** `cold start` · `idle` · `mitigate` · `scream` *(metaphor)* · `warmup`
+
+---
+
+## Checklist
+
+- [ ] Đã đo cold start bằng số
+- [ ] Cron ping đã bật
+- [ ] Client có trạng thái "đang kết nối" + retry dài
+- [ ] SSE reconnect + fallback poll
+- [ ] Ghi âm `2026-12-08.m4a`

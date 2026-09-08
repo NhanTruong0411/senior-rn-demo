@@ -1,12 +1,12 @@
 ---
-description: Thứ Tư 25/11/2026 — Tuần 13 Ngày 3. Phỏng vấn thử số 3 — thiết kế hệ thống và dẫn người khác đi qua dự án của mình.
+description: Thứ Tư 25/11/2026 — Tuần 13 Ngày 3. Giới hạn tần suất, bảo vệ tài nguyên, và tự tấn công API của mình bằng tải.
 alwaysApply: false
 ---
 
-# Thứ Tư · 25/11/2026 · Tuần 13 — Ngày 58/61
+# Thứ Tư · 25/11/2026 · Tuần 13 — Ngày 58/82
 
-> Vòng này ít người chuẩn bị nhất, nên nó là chỗ dễ tạo khác biệt nhất.
-> Bạn có lợi thế hiếm: **bạn có một dự án thật để chỉ tay vào**, không phải nói lý thuyết suông.
+> Ô còn trống trong bảng OWASP hôm 18/11: **tiêu thụ tài nguyên không giới hạn**.
+> Hôm nay bạn tự tấn công API của mình bằng tải, xem nó gãy ở đâu, rồi vá.
 
 ---
 
@@ -22,18 +22,18 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **PHỎNG VẤN THỬ 3** — thiết kế hệ thống + dẫn đi qua dự án |
+| **08:30** | **KHỐI XÂY** — Bắn tải, tìm chỗ gãy |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **NGHE LẠI + luyện phần dẫn dự án cho gọn** |
+| **13:30** | **KHỐI HỌC** — Giới hạn tần suất + các giới hạn khác |
 | 15:00 | Nghỉ 10 phút |
-| 15:10 | Dựng sơ đồ vẽ tay |
+| 15:10 | Tiếp tục |
 | **16:00** | **TÌM VIỆC** — nộp 3 đơn |
-| **16:30** | **TIẾNG ANH** — Dẫn dự án bằng tiếng Anh |
-| **17:00** | **ĐỌC SÁCH** — rà cheatsheet |
+| **16:30** | **TIẾNG ANH** — Quyết định thiết kế |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -43,98 +43,145 @@ alwaysApply: false
 
 ---
 
-## PHỎNG VẤN THỬ 3 · 08:30–10:30
+## KHỐI XÂY · 08:30–10:30
 
-### Phần A · 08:30–09:30 — Dẫn người khác đi qua dự án của bạn
+### 08:30–09:15 · Bắn tải vào chính mình
 
-**Câu hỏi:** *"Anh kể em nghe về một dự án anh tâm đắc nhất."*
+```bash
+npm i -g autocannon
+autocannon -c 50 -d 20 https://macrozone-api.onrender.com/v1/meals -H "Authorization: Bearer $TOKEN"
+```
 
-Đây là câu bạn sẽ gặp ở gần như mọi buổi phỏng vấn. Nó dài 5–7 phút nếu kể tốt, và nó là nơi bạn kiểm soát được nội dung nhiều nhất.
+50 kết nối đồng thời trong 20 giây. Ghi lại:
 
-**Cấu trúc — bốn phần, tổng 6 phút:**
-
-**1. Bối cảnh (30 giây)**
-> *"Em làm một app theo dõi dinh dưỡng, chạy trên TestFlight và Play internal testing, hiện có năm người dùng thật. Em làm nó vừa để có sản phẩm chạy được, vừa để lấp những chỗ mà công việc cũ không cho em cơ hội chạm tới."*
-
-**2. Ba quyết định kỹ thuật, mỗi cái 90 giây (4 phút 30)**
-
-Chỉ chọn **ba**, không kể hết. Với mỗi cái nói theo: vấn đề → phương án đã cân nhắc → chọn gì và vì sao → cái giá phải trả.
-
-*Quyết định 1 — Ghi khi mất mạng:*
-> *"Bài toán là người dùng ghi bữa ăn ở những chỗ hay mất sóng — thang máy, tầng hầm. Em có ba lựa chọn: chặn không cho ghi khi mất mạng, tự viết hàng đợi, hoặc dùng hàng đợi mutation có sẵn của TanStack Query kèm lưu xuống đĩa.*
-> *Em chọn cái thứ ba, vì tự viết hàng đợi nghĩa là tự lo phần thử lại, phần thứ tự, và phần khôi phục sau khi app bị tắt — ba chỗ dễ sai.*
-> *Chỗ khó nhất không phải hàng đợi mà là tính bất biến. Nếu request được gửi lại thì không được tạo hai bản ghi. Em giải bằng cách sinh UUID ở phía máy khách rồi dùng upsert, nên gửi lại bao nhiêu lần cũng ra một kết quả.*
-> *Cái giá là em phải tự xử lý xung đột. Hiện tại em dùng 'bản ghi sau thắng', và em biết nó không đúng cho mọi trường hợp — chỉ là với dữ liệu bữa ăn cá nhân thì nó chấp nhận được."*
-
-*Quyết định 2 — Tính năng AI có ranh giới* (khóa API ở phía máy chủ, giới hạn tần suất, có đường lui nhập tay, chi phí thực tế)
-
-*Quyết định 3 — TurboModule tự viết* (vì sao chọn viết thay vì dùng thư viện có sẵn, so sánh với Expo Modules API)
-
-**3. Cái sai (45 giây)**
-> *"Chỗ em làm sai là ban đầu để giao diện gọi thẳng xuống lớp lưu trữ. Khi đổi sang Supabase em mất gần một ngày chỉ để đi sửa từng chỗ..."*
-
-**4. Cái làm tiếp nếu có thêm thời gian (15 giây)**
-> *"Nếu làm tiếp em sẽ xử lý xung đột tử tế hơn, và em muốn có số liệu về việc người dùng bỏ giữa chừng ở màn nào."*
-
-> **Vì sao cấu trúc này hiệu quả:** người phỏng vấn không cần biết bạn làm được gì — họ cần biết bạn **suy nghĩ thế nào**. Cấu trúc "vấn đề → phương án → chọn → cái giá" chính là suy nghĩ được nói thành lời.
-
-Giãn cơ 5 phút lúc 09:30.
-
-### Phần B · 09:30–10:30 — Thiết kế hệ thống
-
-**Đề bài:** *"Thiết kế màn hình bảng tin cho một ứng dụng thương mại điện tử. Cuộn vô tận, có ảnh, có thể thích bài, và phải chạy được khi mạng chập chờn."*
-
-**Đừng bắt đầu bằng giải pháp. Bắt đầu bằng câu hỏi.** Dành 5 phút đầu hỏi:
-- Bao nhiêu mục một trang? Người dùng thường cuộn sâu bao nhiêu?
-- Ảnh có nhiều kích cỡ không, hay chỉ một?
-- "Thích" có cần chính xác tuyệt đối hay hiển thị lạc quan là được?
-- Máy yếu nhất cần hỗ trợ là gì?
-
-Người phỏng vấn cho điểm phần hỏi này gần bằng phần thiết kế.
-
-**Rồi đi theo bốn lớp:**
-
-| Lớp | Nội dung |
+| Chỉ số | Con số |
 | --- | --- |
-| **Dữ liệu** | `useInfiniteQuery` với con trỏ, không dùng số trang *(số trang lệch khi có mục mới chèn vào)* |
-| **Hiển thị** | FlashList, chiều cao ước lượng, `recyclingKey` cho ảnh, `expo-image` với blurhash |
-| **Tương tác** | Thích theo kiểu lạc quan, hoàn tác khi lỗi, gộp nhiều lần bấm liên tiếp |
-| **Chống lỗi** | Cache lưu xuống đĩa, chỉ báo khi ngoại tuyến, khung xương khi tải, thử lại có giãn cách tăng dần |
+| Yêu cầu mỗi giây | |
+| Độ trễ trung bình | |
+| **Độ trễ p99** | |
+| Lỗi | |
+| Timeout | |
 
-**Nói ra cái bạn cố tình không làm:**
-> *"Em sẽ không làm cuộn ảo tự viết. FlashList đã giải bài đó tốt hơn em, và phần dễ sai nhất — đo chiều cao động — là chỗ tự viết sẽ tốn hàng tuần."*
+**Nhìn p99, không nhìn trung bình.** Trung bình giấu mất trải nghiệm tệ nhất. Nếu 99% dưới 200 ms nhưng p99 là 5 giây, thì cứ 100 người dùng có 1 người nghĩ app của bạn hỏng. Đây là cùng bài học đo đạc từ tháng 10 — trung bình nói dối.
 
-**Nói ra cách bạn sẽ đo:**
-> *"Em sẽ đo bằng Flashlight với kịch bản cuộn 30 giây trên máy tầm thấp, và đặt ngưỡng FPS trung bình 58. Nếu tụt dưới thì không cho lên bản phát hành."*
+Rồi thử tấn công đăng nhập:
+
+```bash
+autocannon -c 20 -d 10 -m POST .../v1/auth/login -b '{"email":"a@x.com","password":"sai"}'
+```
+
+**Cái này sẽ giết server của bạn.** Mỗi lần thử băm argon2 mất ~100 ms và ngốn 19 MiB bộ nhớ. Hai mươi kết nối đồng thời là 380 MiB và event loop nghẹt.
+
+Đây chính là điều bạn học hôm 02/11: chặn event loop làm **mọi người** phải chờ. Hôm nay bạn thấy nó bị khai thác như một đường tấn công từ chối dịch vụ.
+
+Ghi lại chuyện gì xảy ra. **Đây là câu chuyện phỏng vấn hay nhất trong tuần.**
+
+### 09:15–10:30 · Giới hạn tần suất
+
+```bash
+npm i @fastify/rate-limit @upstash/redis
+```
+
+**Vì sao phải dùng Redis chứ không dùng bộ nhớ:** nếu Render chạy 2 instance, bộ đếm trong bộ nhớ chỉ đếm được một nửa lưu lượng mỗi cái. Kẻ tấn công được gấp đôi hạn mức. *Bạn đã nói về chính bẫy này hôm 02/11 khi học về nhiều tiến trình.*
+
+Đặt hạn mức khác nhau theo mức độ nhạy cảm:
+
+```ts
+await app.register(rateLimit, {
+  redis: upstash,
+  global: true,
+  max: 100,
+  timeWindow: '1 minute',
+  keyGenerator: (req) => req.user?.id ?? req.ip,       // theo người dùng, không theo IP
+});
+
+// Đăng nhập chặt hơn nhiều
+app.post('/v1/auth/login', {
+  config: { rateLimit: { max: 5, timeWindow: '15 minutes', keyGenerator: (r) => r.ip } },
+}, handler);
+```
+
+**Vì sao đăng nhập tính theo IP mà endpoint khác tính theo người dùng:** ở endpoint đăng nhập bạn **chưa biết** họ là ai — đó chính là điều họ đang cố chứng minh. Chi tiết nhỏ này là dấu hiệu bạn nghĩ thật chứ không dán cấu hình.
+
+Trả header đúng chuẩn để client biết đường lùi:
+
+```
+RateLimit-Limit: 100
+RateLimit-Remaining: 12
+RateLimit-Reset: 45
+Retry-After: 45
+```
+
+Phía mobile: khi nhận **429**, đọc `Retry-After` và chờ đúng thời gian đó thay vì thử lại theo lịch mù. Nối vào cấu hình `retry` của TanStack Query.
+
+```bash
+git add . && git commit -m "feat: giới hạn tần suất theo redis, chặt hơn ở endpoint đăng nhập"
+```
 
 ---
 
-## NGHE LẠI · 13:30–16:00
+## KHỐI HỌC · 13:30–16:00
 
-### 13:30–15:00 · Cắt gọn phần dẫn dự án
+### 13:30–14:30 · Các giới hạn khác — không chỉ có tần suất
 
-Nghe lại phần A. Bấm giờ.
+Giới hạn tần suất chỉ là một trong sáu. Rà đủ:
 
-| Vấn đề thường gặp | Cách sửa |
-| --- | --- |
-| Dài quá 8 phút | Bỏ bớt một quyết định, giữ ba cái mạnh nhất |
-| Kể tính năng thay vì kể quyết định | Mỗi đoạn phải có chữ "em chọn X thay vì Y vì..." |
-| Không có cái giá phải trả | Mỗi quyết định phải kèm một nhược điểm |
-| Không có con số | Chèn con số vào ít nhất hai chỗ |
+| Giới hạn | Không có thì sao | Cách đặt |
+| --- | --- | --- |
+| Kích thước body | Ai đó gửi JSON 500 MB, hết bộ nhớ | `bodyLimit: 1_048_576` (1 MB) |
+| `limit` khi phân trang | `?limit=1000000` kéo cả bảng | Chặn cứng ở 100, kể cả khi client xin hơn |
+| Độ sâu / độ dài chuỗi | Chuỗi 10 MB trong tên bữa ăn | Zod `.max()` ở **mọi** trường chuỗi |
+| Timeout truy vấn | Truy vấn chậm giữ kết nối mãi | `statement_timeout = '5s'` |
+| Timeout kết nối | Client mở kết nối rồi bỏ đó | `connectionTimeout` của Fastify |
+| Số kết nối database | Hết pool, mọi request treo | `max` trong pool *(đã đặt 10/11)* |
 
-Nói lại phần A một lần nữa, ghi âm. Mục tiêu **đúng 6 phút**.
+Dòng thứ hai đáng nhấn mạnh. Client gửi `?limit=1000000` — nếu bạn tin con số đó, một request kéo cả bảng và làm hết bộ nhớ. **Chặn cứng ở server**, đừng tin client.
+
+Đây là nguyên tắc chung: **mọi con số đến từ client đều là đầu vào của kẻ tấn công.**
+
+Giãn cơ 5 phút lúc 14:30.
+
+### 14:30–15:00 · Bắn tải lại
+
+Chạy lại đúng hai lệnh sáng nay. So sánh:
+
+| | Trước | Sau |
+| --- | --- | --- |
+| Tấn công đăng nhập — server còn sống? | | |
+| Yêu cầu mỗi giây khi tải bình thường | | |
+| p99 | | |
+| Số 429 trả về | | |
+
+**Bảng này là bằng chứng.** Nó cho thấy bạn tấn công, đo, vá, đo lại. Đó là quy trình, không phải may mắn.
+
+**Một điều phải trung thực khi phỏng vấn:** giới hạn tần suất không chống được tấn công phân tán từ hàng nghìn IP. Cái đó cần tầng CDN hoặc WAF phía trước. Bạn giải quyết được kẻ tấn công đơn lẻ và người dùng vô tình bấm nút liên tục — không giải quyết được botnet. Nói ra ranh giới đó.
 
 ### 15:00–15:10 · Nghỉ
 
-### 15:10–16:00 · Sơ đồ vẽ tay
+### 15:10–16:00 · Hoàn tất bảng OWASP
 
-Vẽ tay hai sơ đồ trên giấy, chụp lại, để trong `docs/`:
+Quay lại bảng hôm 18/11, điền nốt ô số 4:
 
-**Sơ đồ 1 — Kiến trúc app của bạn:** màn hình → hook → lớp dữ liệu → Supabase, với hàng đợi ngoại tuyến và Edge Function cho AI vẽ tách ra rõ.
+| # | Rủi ro | Đã làm gì |
+| --- | --- | --- |
+| 4 | Tiêu thụ tài nguyên không giới hạn | Giới hạn tần suất theo Redis, giới hạn body, chặn cứng phân trang, timeout truy vấn, kích thước pool |
 
-**Sơ đồ 2 — Luồng đăng nhập và làm mới token:** gồm cả hàng đợi khi nhiều request cùng nhận 401.
+**Toàn bộ bảng giờ đã điền.** In ra một trang. Mang theo khi phỏng vấn.
 
-Vẽ mỗi cái **ba lần cho tới khi vẽ được trong 2 phút mà không cần nghĩ**. Trong phỏng vấn online bạn sẽ phải vẽ trên bảng trắng chung, và việc vừa vẽ vừa nghĩ làm bạn nói ấp úng.
+Thêm vào bộ test hôm qua:
+
+```ts
+it('giới hạn số lần thử đăng nhập', async () => {
+  for (let i = 0; i < 5; i++) await login('a@x.com', 'sai');
+  const res = await login('a@x.com', 'sai');
+  expect(res.status).toBe(429);
+  expect(res.headers['retry-after']).toBeDefined();
+});
+```
+
+```bash
+git add . && git commit -m "feat: đủ 6 loại giới hạn tài nguyên, có test"
+```
 
 ---
 
@@ -142,38 +189,51 @@ Vẽ mỗi cái **ba lần cho tới khi vẽ được trong 2 phút mà không 
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Dẫn dự án bằng tiếng Anh
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Quyết định thiết kế
 
-Phần A bằng tiếng Anh, nhưng **rút xuống 3 phút**. Giữ bối cảnh + hai quyết định + cái sai.
+> *"Today I attacked my own API with a load generator, and the interesting part is what killed it.*
+> *Normal traffic was fine. But twenty concurrent requests against the login endpoint took the whole thing down. The reason is argon2 — it's deliberately slow and deliberately memory-hungry, about a hundred milliseconds and nineteen megabytes per attempt. That's exactly what you want against offline password cracking. It's also a denial of service vector, because it's expensive work an unauthenticated stranger can ask me to do.*
+> *So login is rate limited to five attempts per fifteen minutes per IP — much tighter than everything else, which is a hundred per minute per user.*
+> *One detail I want to call out: login is limited by IP and everything else by user ID. On the login endpoint I don't know who they are yet — that's the thing they're trying to establish.*
+> *The counters live in Redis, not in process memory, because I run more than one instance. An in-memory counter would give an attacker double the allowance.*
+> *And to be honest about the limit: this stops one attacker and it stops a user hammering a button. It does not stop a distributed attack from a thousand IPs. That needs something in front of my server, which I don't have."*
 
-Mở đầu:
+Đoạn cuối — thừa nhận ranh giới — là đoạn tăng độ tin cậy nhiều nhất.
 
-> *"The project is a nutrition tracking app — it's on TestFlight and Play internal testing with a handful of real users. I built it partly to have something shipped, and partly to work on things my previous job never gave me a reason to touch.*
-> *I'll walk you through two decisions and one thing I got wrong.*
-> *The first is offline writes. People log meals in places with bad signal..."*
+**5 từ mới:**
 
-Ghi âm. Nghe lại và đếm số lần ngập ngừng.
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `memory-hungry` | ngốn bộ nhớ | *It's deliberately memory-hungry.* |
+| `denial of service vector` | đường tấn công từ chối dịch vụ | *It's also a DoS vector.* |
+| `call out` (v) | nêu bật ra | *One detail I want to call out.* |
+| `allowance` | hạn mức được cấp | *That gives an attacker double the allowance.* |
+| `hammer a button` | bấm nút liên tục | *It stops a user hammering a button.* |
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## GHI CHÚ · 17:00–17:30
 
-Rà `docs/interview-cheatsheet.md`. Nó phải vừa **đúng một trang**. Nếu tràn, cắt.
-
-Cheatsheet mà phải cuộn thì vô dụng — bạn không đọc kịp trong lúc phỏng vấn.
+Tạo `docs/security.md`:
+- Kết quả bắn tải **trước và sau**
+- Sáu loại giới hạn tài nguyên, kèm giá trị đã đặt
+- **Bảng OWASP đầy đủ đã điền**
+- Ranh giới trung thực: cái gì bạn không chống được
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] Phần dẫn dự án nói được trong **6 phút**, không nhìn ghi chú
-- [ ] Ba quyết định đều có: vấn đề → phương án → chọn → **cái giá**
-- [ ] Có kể một cái sai thật
-- [ ] Phần thiết kế hệ thống: **hỏi trước khi thiết kế**
-- [ ] Đã nói ra cái cố tình không làm và vì sao
-- [ ] Đã nói ra cách đo
-- [ ] Hai sơ đồ vẽ được trong 2 phút không cần nghĩ
-- [ ] Đã nộp 3 đơn
-- [ ] Ghi âm bản tiếng Anh 3 phút
-- [ ] Cheatsheet vừa đúng một trang
+- [ ] Đã bắn tải và **ghi p99, không chỉ ghi trung bình**
+- [ ] Đã tái hiện được việc endpoint đăng nhập giết server
+- [ ] Giới hạn tần suất chạy trên **Redis**, không phải bộ nhớ
+- [ ] Nói được vì sao bộ nhớ không dùng được khi có nhiều instance
+- [ ] Đăng nhập giới hạn theo **IP**, endpoint khác theo **người dùng** — giải thích được
+- [ ] Trả đủ header `RateLimit-*` và `Retry-After`
+- [ ] Client đọc `Retry-After` thay vì thử lại mù
+- [ ] **Đủ 6 loại giới hạn tài nguyên**
+- [ ] Đã bắn tải lại, **bảng trước/sau đã điền**
+- [ ] Bảng OWASP đầy đủ, đã in một trang
+- [ ] Nói được ranh giới: không chống được tấn công phân tán
+- [ ] Ghi âm `2026-11-25.m4a`
 - [ ] 21:30 lên giường

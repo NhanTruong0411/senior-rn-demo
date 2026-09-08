@@ -1,0 +1,101 @@
+---
+description: Thứ Sáu 04/12/2026 — Tuần 14 Ngày 5. Tổng kết việc nền, bài viết kỹ thuật, chuẩn bị tuần real-time.
+alwaysApply: false
+---
+
+# Thứ Sáu · 04/12/2026 · Tuần 14 — Ngày 65/82
+
+> Chốt tuần việc nền. Viết bài. Không thêm tính năng mới — củng cố và nói được.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Dọn nợ kỹ thuật tuần 14 |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Bài viết + tổng kết tuần |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — cập nhật CV + README (background jobs) |
+| **16:30** | **TIẾNG ANH** — Nghe lại tuần |
+| **17:00** | **GHI CHÚ** |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+Danh sách nợ — chỉ sửa cái đang cháy:
+
+- [ ] Worker crash khi payload thiếu field → Zod trong worker
+- [ ] README API: cách chạy pg-boss local
+- [ ] Health check `/healthz` báo cả `boss` started hay chưa
+- [ ] Xóa endpoint admin tạm nếu lộ trên production không auth
+
+Không bắt đầu WebSocket hôm nay.
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### Bài viết thứ 5 (30–40 phút)
+
+*"Why I put background jobs in Postgres instead of Redis"*
+
+Cấu trúc: setTimeout chết trên free tier → pg-boss → enqueue trong transaction → idempotency key nhắc bữa → ranh giới khi nào mới cần Redis queue.
+
+### Tổng kết tuần 14
+
+| Ngày | Kết quả |
+| --- | --- |
+| 30/11 | pg-boss, retry, dead letter |
+| 01/12 | timezone + quiet hours |
+| 02/12 | email giao dịch |
+| 03/12 | vòng kín nhắc trên máy thật |
+| 04/12 | bài viết + dọn nợ |
+
+**Tự chấm câu hỏi #1** (Dec context mục 6): 1–5. Dưới 4 thì ghi 3 chỗ còn vấp.
+
+---
+
+## TÌM VIỆC · 16:00–16:30
+
+Thêm 1 bullet CV:
+
+> Xây hàng đợi việc nền trên Postgres (pg-boss): email giao dịch, nhắc bữa ăn theo múi giờ, retry có backoff và dead letter.
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+Nghe `2026-11-30` → `2026-12-03`. Ghi số lần "ừm"/phút. Ghi âm *"What I shipped in week 14."*
+
+---
+
+## Checklist cuối tuần
+
+- [ ] Nhắc bữa ăn chạy tự động từ server
+- [ ] Bài viết đã đăng
+- [ ] CV có bullet jobs
+- [ ] Câu hỏi fullstack #1 tự chấm ≥4 hoặc có plan drill
+- [ ] **Cuối tuần nghỉ. Không mở máy T7–CN.**
+- [ ] Ghi âm `2026-12-04.m4a`

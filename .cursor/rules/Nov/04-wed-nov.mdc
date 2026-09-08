@@ -1,11 +1,12 @@
 ---
-description: Thứ Tư 04/11/2026 — Tuần 10 Ngày 3. Giới hạn tần suất, đệm kết quả, và ranh giới của AI trong sản phẩm.
+description: Thứ Tư 04/11/2026 — Tuần 10 Ngày 3. Chuyển sang Fastify, tách route khỏi service, và kiến trúc backend không rối.
 alwaysApply: false
 ---
 
-# Thứ Tư · 04/11/2026 · Tuần 10 — Ngày 43/61
+# Thứ Tư · 04/11/2026 · Tuần 10 — Ngày 43/82
 
-> Hai ngày qua làm tính năng chạy được. Hôm nay làm nó **chịu được người dùng thật** — và biết chỗ nào **không** nên dùng AI.
+> Hôm nay bạn đổi framework — nhưng phần quan trọng không phải framework. Phần quan trọng là **ranh giới giữa HTTP và logic nghiệp vụ**.
+> Đây là cùng bài học hôm 16/09 khi bạn tách lớp lưu trữ khỏi giao diện. Tầng khác, nguyên tắc y hệt.
 
 ---
 
@@ -21,18 +22,18 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Giới hạn tần suất + đệm kết quả |
+| **08:30** | **KHỐI XÂY** — Chuyển sang Fastify |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Ranh giới của AI + test tính năng AI |
+| **13:30** | **KHỐI HỌC** — Tách route và service, so sánh framework |
 | 15:00 | Nghỉ 10 phút |
 | 15:10 | Tiếp tục |
 | **16:00** | **TÌM VIỆC** — nộp 3 đơn |
-| **16:30** | **TIẾNG ANH** — Nghe + chép chính tả |
-| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 2 |
+| **16:30** | **TIẾNG ANH** — Quyết định thiết kế |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -44,197 +45,194 @@ alwaysApply: false
 
 ## KHỐI XÂY · 08:30–10:30
 
-### 08:30–09:30 · Giới hạn tần suất thật
-
-Hôm thứ Hai bạn để chỗ trống cho `checkRateLimit`. Hôm nay viết thật:
-
-```sql
-create table ai_usage (
-  user_id    uuid references auth.users(id) on delete cascade,
-  day        date not null default current_date,
-  call_count integer not null default 0,
-  primary key (user_id, day)
-);
-
-alter table ai_usage enable row level security;
-create policy "Chỉ đọc lượt dùng của chính mình"
-  on ai_usage for select using (auth.uid() = user_id);
-```
-
-```ts
-async function checkRateLimit(userId: string): Promise<boolean> {
-  const { data } = await supabase
-    .from('ai_usage')
-    .upsert({ user_id: userId, day: new Date().toISOString().slice(0, 10) },
-            { onConflict: 'user_id,day', ignoreDuplicates: true })
-    .select('call_count').single();
-
-  if ((data?.call_count ?? 0) >= DAILY_LIMIT) return false;
-
-  await supabase.rpc('increment_ai_usage', { p_user_id: userId });
-  return true;
-}
-```
-
-**Vì sao dùng RPC để tăng đếm thay vì đọc rồi ghi:** hai request cùng lúc đọc được cùng một con số rồi cùng ghi giá trị +1 → chỉ tăng 1 thay vì 2. Đây là race condition kinh điển. Hàm SQL `update ... set call_count = call_count + 1` là thao tác nguyên tử, không bị vấn đề này.
-
-> **Đây là câu trả lời phỏng vấn tốt về tính đúng đắn dữ liệu.** Nó cho thấy bạn nghĩ về đồng thời, không chỉ về luồng chạy thuận lợi.
-
-Giãn cơ 5 phút lúc 09:30.
-
-### 09:30–10:30 · Đệm kết quả
-
-Rất nhiều người gõ *"2 quả trứng"*. Không cần gọi mô hình lần thứ hai cho cùng một câu:
-
-```ts
-const cacheKey = await sha256(normalise(userText));
-
-const { data: cached } = await supabase
-  .from('meal_parse_cache').select('result').eq('key', cacheKey).single();
-
-if (cached) return Response.json(cached.result);       // 0 đồng, ~50ms
-```
-
-Chuẩn hóa trước khi băm: chữ thường, bỏ khoảng trắng thừa, bỏ dấu câu. *"2 quả trứng"*, *"2 Quả Trứng"* và *"2 quả trứng."* phải cho cùng một khóa.
-
-Ghi vào `docs/ai-feature.md`:
-
-```markdown
-## Caching
-
-Parse results are cached by a hash of the normalised input. On my own usage,
-about __% of parses are repeats — the same few meals typed again and again.
-Cached responses cost nothing and return in roughly 50ms instead of 1.5 seconds,
-so the cache improves latency more than it saves money.
-```
+### 08:30–09:30 · Vì sao đổi sang Fastify
 
 ```bash
-git add . && git commit -m "feat: giới hạn tần suất nguyên tử và đệm kết quả phân tích"
+npm i fastify @fastify/cors @fastify/helmet fastify-type-provider-zod
+npm remove express @types/express
+```
+
+**Đừng đổi chỉ vì nó mới.** Bốn lý do cụ thể, và bạn phải nói được cả bốn:
+
+| Lý do | Chi tiết |
+| --- | --- |
+| Kiểu dữ liệu chạy xuyên suốt | Với type provider của Zod, `request.body` **đã có kiểu đúng** trong handler. Express phải ép kiểu bằng tay |
+| Kiểm tra đầu vào là công dân hạng nhất | Schema gắn vào route, không phải middleware rời |
+| Tài liệu OpenAPI tự sinh | Từ chính schema đó. Bạn được tài liệu miễn phí ngày 17/12 |
+| Nhanh hơn | Có thật nhưng **không phải lý do chính** — sản phẩm của bạn không bị nghẽn ở đây |
+
+> Khi phỏng vấn, nếu bạn nói "tôi chọn Fastify vì nó nhanh hơn Express", người hỏi giỏi sẽ hỏi *"nhanh hơn bao nhiêu, và điều đó có quan trọng với ứng dụng của anh không?"* — và bạn sẽ đứt. Lý do thật là **an toàn kiểu và tài liệu tự sinh**. Nói lý do thật.
+
+```ts
+// src/routes/meals.ts
+const app = Fastify().withTypeProvider<ZodTypeProvider>();
+
+app.post('/v1/meals', {
+  schema: {
+    body: createMealSchema,
+    response: { 201: mealSchema },
+  },
+}, async (req, reply) => {
+  const meal = await mealService.create(req.user.id, req.body);   // req.body đã có kiểu
+  return reply.code(201).header('Location', `/v1/meals/${meal.id}`).send(meal);
+});
+```
+
+**Chú ý `response` schema.** Nó kiểm tra cả đầu ra — nghĩa là bạn không thể vô tình trả về trường `passwordHash`. Đây là một lớp bảo vệ thật, không phải trang trí.
+
+### 09:30–10:30 · Chuyển toàn bộ endpoint
+
+Chuyển hết bảng endpoint hôm qua sang Fastify. Giữ nguyên hành vi, chỉ đổi khung.
+
+Thêm hai plugin ngay hôm nay:
+
+```ts
+await app.register(helmet);                       // header bảo mật
+await app.register(cors, {
+  origin: ['http://localhost:8081'],              // chỉ Metro dev server
+});
+```
+
+`helmet` đặt các header như `X-Content-Type-Options` và `Strict-Transport-Security`. Với API thuần JSON gọi từ mobile, phần lớn header này không tác dụng nhiều — nhưng nó miễn phí và nó là thứ người review bảo mật tìm.
+
+**Về CORS:** app mobile **không** bị ràng buộc CORS *(chỉ trình duyệt mới có)*. Bạn cấu hình CORS cho Metro dev server và cho một web admin sau này. Nói được điều này khi phỏng vấn là dấu hiệu bạn hiểu chứ không chép.
+
+```bash
+git add . && git commit -m "refactor: chuyển sang fastify với type provider zod"
 ```
 
 ---
 
 ## KHỐI HỌC · 13:30–16:00
 
-### 13:30–14:30 · Nơi **không** nên dùng AI
+### 13:30–14:45 · Tách route khỏi service — luật quan trọng nhất tháng này
 
-**Đây là phần khiến bạn nghe như người có phán đoán, không phải người theo trend.**
-
-Viết vào `docs/ai-feature.md`:
-
-```markdown
-## Where I deliberately didn't use AI
-
-**Calculating daily totals.** Summing calories is arithmetic. A model would be
-slower, cost money, and occasionally be wrong. This is a `reduce`.
-
-**Deciding whether the user hit their goal.** Same reasoning — it's a
-comparison. Non-deterministic tooling for a deterministic problem is a
-downgrade, not a feature.
-
-**Generating meal suggestions.** I prototyped this and cut it. The suggestions
-were generic enough to be useless, and it risks reading as health advice, which
-I'm not qualified to ship.
-
-**Anything on the critical path with no manual fallback.** Every AI feature in
-this app is an accelerator for something the user could already do by hand.
-If the model is down, the app still works.
-
-The rule I settled on: use a model where the input is genuinely unstructured
-human language and the output goes through human confirmation. Everywhere else,
-write the function.
-```
-
-> Đoạn này ngắn nhưng có sức nặng. Trong một thị trường mà mọi CV đều ghi "AI", người **nói được chỗ mình cố tình không dùng AI** sẽ nổi bật.
-
-### 14:30–15:00 · Test tính năng AI
-
-Không test được mô hình, nhưng test được mọi thứ xung quanh:
+**Sai:**
 
 ```ts
-describe('parse-meal endpoint', () => {
-  it('trả 401 khi không có token', async () => { });
-  it('trả 429 khi vượt hạn mức ngày', async () => { });
-  it('trả kết quả đệm mà không gọi mô hình', async () => { });
-  it('trả 422 khi mô hình không sinh được object hợp lệ', async () => { });
-  it('xác thực phản hồi mô hình bằng schema trước khi trả về', async () => { });
+app.post('/v1/meals', async (req, reply) => {
+  const user = await db.select().from(users).where(eq(users.id, req.user.id));
+  if (!user) return reply.code(401).send({ error: 'không có quyền' });
+  if (req.body.calories > user.dailyLimit) { /* logic nghiệp vụ trong route */ }
+  const meal = await db.insert(meals).values({ ...req.body }).returning();
+  return reply.code(201).send(meal);
 });
 ```
 
-Giả lập mô hình bằng MSW — bạn đã dựng sẵn hôm 07/10:
+**Đúng:**
 
 ```ts
-server.use(http.post('https://api.openai.com/v1/*', () =>
-  HttpResponse.json({ /* phản hồi cố định */ })));
+// routes/meals.ts — chỉ làm 3 việc: đọc, gọi, định dạng
+app.post('/v1/meals', { schema: { body: createMealSchema } }, async (req, reply) => {
+  const meal = await mealService.create(req.user.id, req.body);
+  return reply.code(201).header('Location', `/v1/meals/${meal.id}`).send(meal);
+});
+
+// services/meal.ts — không biết HTTP là gì
+export const mealService = {
+  async create(userId: string, input: CreateMealInput): Promise<Meal> {
+    const user = await userRepo.byId(userId);
+    if (!user) throw notFound('người dùng');
+    if (input.calories > user.dailyLimit) throw conflict('Vượt giới hạn calo hằng ngày');
+    return mealRepo.insert(userId, input);
+  },
+};
 ```
 
-**Điều đáng nói khi phỏng vấn:** *"Tôi không test đầu ra của mô hình vì nó không tất định. Tôi test hàng rào quanh nó — xác thực, giới hạn tần suất, đệm kết quả, kiểm tra schema, và đường lui khi hỏng. Đó là những phần tôi kiểm soát được."*
+**Ba thứ bạn được từ việc tách này:**
+
+1. **Service test được không cần HTTP server.** Gọi hàm, kiểm kết quả. Bạn sẽ thấy giá trị này ngày 23/11.
+2. **Logic dùng lại được.** Việc chạy nền ngày 30/11 gọi cùng service, không phải gọi HTTP vào chính mình.
+3. **Route đọc là hiểu.** Không cần đọc để biết nó làm gì.
+
+**Luật kiểm tra nhanh:** nếu trong file `services/` xuất hiện chữ `reply`, `req`, hoặc một mã trạng thái HTTP, bạn đã làm sai. Service ném `AppError`, route dịch nó thành HTTP.
+
+> Đây chính là bài học "sâu chứ không rộng" của *A Philosophy of Software Design* mà bạn đọc xong hôm 02/10. Service có giao diện hẹp *(một hàm, tham số rõ ràng)* nhưng chứa nhiều thứ bên trong. Route thì mỏng.
+
+Giãn cơ 5 phút lúc 14:45.
+
+### 14:45–15:00 · Repository — tách thêm một tầng?
+
+Câu hỏi thật: có cần tầng `repo` riêng không, hay service gọi thẳng Drizzle?
+
+| Có tầng repo | Không có |
+| --- | --- |
+| Đổi ORM dễ hơn | Ít file hơn, đọc nhanh hơn |
+| Test service không cần DB | Test service phải có DB |
+| Thêm một lớp gián tiếp | Truy vấn phức tạp bị ép qua giao diện chật |
+
+**Quyết định cho dự án này: có, nhưng mỏng.** Repo chỉ chứa truy vấn, không chứa logic. Lý do: bạn muốn test service bằng repo giả, và đó là cách nhanh nhất để có bộ test chạy trong mili giây.
+
+Ghi quyết định và **cả lý do phản đối** vào `api-design.md`. Người phỏng vấn thích thấy bạn biết mặt trái của lựa chọn mình.
 
 ### 15:00–15:10 · Nghỉ
 
-### 15:10–16:00 · Streaming vs không streaming
+### 15:10–16:00 · Bảng so sánh framework
 
-Đo và quyết định bằng số:
+Viết vào `docs/api-design.md` — đây là câu hỏi phỏng vấn gần như chắc chắn có:
 
-| | Chat | Phân tích bữa ăn |
-| --- | --- | --- |
-| Streaming | Có | **Không** |
-| Vì sao | Người dùng đọc dần khi chữ chạy ra | Kết quả là một bảng — hiện nửa bảng thì rối hơn là chờ |
-| Thời gian cảm nhận | ~300ms tới chữ đầu | ~1.5 giây, có khung xương |
+| | Express | Fastify | Hono | NestJS |
+| --- | --- | --- | --- | --- |
+| Nhiều tin tuyển VN nhất | **Có** | Đang tăng | Ít | Có, mảng doanh nghiệp |
+| An toàn kiểu | Kém, phải ép tay | **Tốt** | Tốt | Tốt |
+| Kiểm tra đầu vào sẵn | Không | **Có** | Có | Có (class-validator) |
+| Chạy được ở edge | Không | Không | **Có** | Không |
+| Áp đặt cấu trúc | Không | Nhẹ | Nhẹ | **Nặng** (DI, decorator) |
+| Hợp khi nào | Đội đã quen, hệ sinh thái lớn | API mới, TypeScript nặng | Cloudflare Workers | Đội lớn cần khuôn cứng |
 
-> **Streaming không phải lúc nào cũng tốt hơn.** Nó tốt khi đầu ra là văn bản đọc tuần tự. Với dữ liệu có cấu trúc, hiện từng phần chỉ làm bố cục nhảy loạn. Nói được điều này cho thấy bạn nghĩ về trải nghiệm chứ không chỉ chạy theo kỹ thuật.
+**Câu trả lời phỏng vấn 60 giây:**
+
+> *"Em học Express trước vì phần lớn tin tuyển ở Việt Nam ghi Express, và vì hiểu mô hình middleware của nó thì đọc được mọi framework khác. Nhưng dự án thật em dùng Fastify, lý do chính là kiểu chạy xuyên suốt từ schema Zod vào handler và tài liệu OpenAPI sinh tự động — em không phải duy trì tài liệu bằng tay. Tốc độ Fastify nhanh hơn thật nhưng không phải lý do em chọn; sản phẩm của em không nghẽn ở đó. NestJS em chưa dùng thật — em hiểu nó áp đặt cấu trúc để đội đông người viết giống nhau, nhưng với một người thì cái giá lớn hơn cái được."*
+
+Câu này mạnh vì có **so sánh, lý do thật, lý do bị loại, và một ranh giới trung thực** ở cuối.
 
 ```bash
-git add . && git commit -m "test: hàng rào quanh tính năng ai + tài liệu ranh giới"
+git add . && git commit -m "refactor: tách route, service, repo"
 ```
 
 ---
 
 ## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
 
-Đây là ngày thứ ba. Kiểm tra bảng theo dõi: đã có 6 đơn và 2 tin nhắn.
+Đơn đầu tiên trong đợt này. Dùng từ khoá mở rộng: `Mobile Developer`, `Fullstack Developer`, `NodeJS`, không chỉ `React Native`.
 
-**Cách chọn công ty để nộp — theo thứ tự ưu tiên:**
-1. Công ty có người bạn quen *(tỷ lệ phản hồi cao nhất)*
-2. Công ty đăng tin dưới 7 ngày *(tin cũ thường đã tuyển xong)*
-3. Công ty có sản phẩm bạn dùng thật *(có thứ cụ thể để nhắc trong thư)*
-4. Công ty có blog kỹ thuật *(dễ nhắc bài viết cụ thể)*
-
-**Không nộp** cho tin đăng mơ hồ không tên công ty, hoặc tin yêu cầu "5 năm React Native" khi RN mới có 10 năm và họ ghi 5 năm cho vị trí Junior.
+Trong CV, thêm ngay một dòng vào phần dự án — **đừng đợi hoàn hảo mới cập nhật:**
+*"Đang xây API Node/Fastify/Postgres thay thế lớp BaaS của ứng dụng."*
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Nghe + chép chính tả
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Quyết định thiết kế
 
-### 16:30–16:45 · Chép chính tả
+Nói to bản 60 giây về Express vs Fastify ở trên, **bằng tiếng Anh**, có ghi âm.
 
-60 giây. Nghe → chép → đối chiếu → khoanh chỗ sai.
+Ba câu hỏi vặn tự chuẩn bị:
+1. *"How much faster is Fastify?"* → *"Roughly two to three times on synthetic benchmarks, but my bottleneck is the database, not the framework. It wasn't the reason I chose it."*
+2. *"Why not NestJS?"* → *"It imposes structure so a large team writes the same way. I'm one person — the cost is higher than the benefit."*
+3. *"Would you use Express on a new project?"* → *"If the team already knows it, yes. Familiarity beats a marginal technical edge."*
 
-### 16:45–16:55 · Đọc to lại 3 lần, ghi âm
-
-### 16:55–17:00 · 5 từ nghe không ra
-
-**Tuần thứ 9 chép chính tả.** Đếm số chỗ sai. So với tuần 1 (09/09) và tuần 5 (07/10). Ba con số này là đường tiến bộ nghe của bạn.
+Câu thứ ba là câu quan trọng nhất. Nó cho thấy bạn không phải người theo mốt.
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## GHI CHÚ · 17:00–17:30
 
-**`qa-bank.mdc` — Topic 2 (State management).**
-
-Câu Redux vs TanStack Query giờ bạn có ví dụ thật từ MacroZone. Sửa lại câu trả lời cũ, thêm ví dụ cụ thể vào.
+Thêm vào `docs/api-design.md`:
+- Bảng so sánh 4 framework
+- Quyết định tầng repo, **kèm lý do phản đối**
+- Sơ đồ vẽ tay: `route → service → repo → db`, chụp lại
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] Giới hạn tần suất chạy, dùng thao tác nguyên tử không bị race condition
-- [ ] Đệm kết quả chạy, đã đo tỷ lệ trùng
-- [ ] **`docs/ai-feature.md` có phần "chỗ tôi cố tình không dùng AI"**
-- [ ] Test phủ đủ hàng rào: 401, 429, cache, 422, kiểm tra schema
-- [ ] Giải thích được vì sao chat thì streaming mà phân tích thì không
-- [ ] Đã nộp 3 đơn, tổng 6 đơn
-- [ ] **Có commit hôm nay**
-- [ ] Chép chính tả + ghi âm `2026-11-04.m4a`
-- [ ] Đã sửa Topic 2 trong `qa-bank.mdc`
+- [ ] Toàn bộ endpoint chạy trên Fastify
+- [ ] `request.body` có kiểu đúng, không ép tay
+- [ ] Có `response` schema chặn rò rỉ trường nhạy cảm
+- [ ] `helmet` và `cors` đã đăng ký
+- [ ] Nói được vì sao app mobile không bị CORS ràng buộc
+- [ ] **Không có chữ `reply` nào trong thư mục `services/`**
+- [ ] Bảng so sánh 4 framework đã viết
+- [ ] Nói được lý do **thật** khi chọn Fastify, không nói "vì nhanh"
+- [ ] Đã nộp 3 đơn, CV đã thêm dòng backend
+- [ ] Ghi âm `2026-11-04.m4a`
 - [ ] 21:30 lên giường

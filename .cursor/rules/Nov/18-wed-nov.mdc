@@ -1,11 +1,14 @@
 ---
-description: Thứ Tư 18/11/2026 — Tuần 12 Ngày 3. Chuyển màn có chia sẻ phần tử, và biết khi nào KHÔNG nên animate.
+description: Thứ Tư 18/11/2026 — Tuần 12 Ngày 3. Phân quyền — ai được đọc gì, và vì sao kiểm tra quyền sở hữu phải nằm trong truy vấn.
 alwaysApply: false
 ---
 
-# Thứ Tư · 18/11/2026 · Tuần 12 — Ngày 53/61
+# Thứ Tư · 18/11/2026 · Tuần 12 — Ngày 53/82
 
-> Hôm qua bạn học làm animation. Hôm nay bạn học **kiềm chế** — đó mới là dấu hiệu của người có kinh nghiệm.
+> Hôm qua trả lời "anh là ai". Hôm nay trả lời **"anh được làm gì"**.
+> Đây là chỗ lỗi bảo mật nghiêm trọng nhất trong API thường xảy ra — và nó đứng số một trong OWASP API Security Top 10.
+
+**Tài nguyên:** https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/
 
 ---
 
@@ -21,18 +24,18 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Chuyển màn có chia sẻ phần tử |
+| **08:30** | **KHỐI XÂY** — Tự tấn công API của mình |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Kiểm toán animation + tôn trọng cài đặt hệ thống |
+| **13:30** | **KHỐI HỌC** — Phân quyền theo vai + rò rỉ qua trường dữ liệu |
 | 15:00 | Nghỉ 10 phút |
 | 15:10 | Tiếp tục |
 | **16:00** | **TÌM VIỆC** — nộp 3 đơn |
-| **16:30** | **TIẾNG ANH** — Kể chuyện kỹ thuật |
-| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 4–6 |
+| **16:30** | **TIẾNG ANH** — Quyết định thiết kế |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -42,126 +45,140 @@ alwaysApply: false
 
 ---
 
-## KHỐI XÂY · 08:30–10:30 — Chuyển màn có chia sẻ phần tử
+## KHỐI XÂY · 08:30–10:30
 
-Expo Router hỗ trợ sẵn từ SDK 52:
+### 08:30–09:15 · Tự tấn công API của mình
 
-```tsx
-// trong danh sách
-<Link href={`/meal/${meal.id}`}>
-  <Animated.View sharedTransitionTag={`meal-${meal.id}`}>
-    <MealCard meal={meal} />
-  </Animated.View>
-</Link>
+Tạo hai tài khoản: A và B. Đăng nhập A, lấy token. Lấy `id` một bữa ăn của B.
 
-// trong màn chi tiết
-<Animated.View sharedTransitionTag={`meal-${meal.id}`}>
-  <MealHeader meal={meal} />
-</Animated.View>
+Rồi thử **bằng token của A**:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN_A" .../v1/meals/$MEAL_ID_CUA_B
+curl -X PATCH -H "Authorization: Bearer $TOKEN_A" .../v1/meals/$MEAL_ID_CUA_B -d '{"name":"bị chiếm"}'
+curl -X DELETE -H "Authorization: Bearer $TOKEN_A" .../v1/meals/$MEAL_ID_CUA_B
 ```
 
-Thẻ phải **trùng nhau và duy nhất**. Dùng `id` chứ đừng dùng chỉ số mảng — chỉ số đổi khi danh sách sắp xếp lại, và bạn sẽ thấy phần tử bay sai chỗ.
+**Nếu có bất kỳ cái nào thành công, bạn vừa tìm ra lỗ hổng nghiêm trọng nhất trong API — Broken Object Level Authorization.** Nó đứng số một trong OWASP API Top 10 vì nó cực kỳ phổ biến và cực kỳ dễ khai thác: kẻ tấn công chỉ cần đổi một số trong URL.
 
-Giãn cơ 5 phút lúc 09:30.
+Ghi kết quả từng cái. Sửa cái nào lọt.
 
-### 09:30–10:30 · Khi nào chuyển màn kiểu này có ý nghĩa
+### 09:15–10:30 · Cách sửa đúng
 
-Nó chỉ đáng khi **cùng một đối tượng** xuất hiện ở hai màn. Nó giúp người dùng giữ được ngữ cảnh: *"tôi vừa bấm vào cái này, và đây chính là nó."*
+**Sai — kiểm tra rồi mới thao tác:**
 
-Nó **vô nghĩa** khi:
-- Hai màn không chia sẻ nội dung nào
-- Phần tử nhỏ và không phải trọng tâm
-- Chuyển màn xảy ra rất thường xuyên (làm chậm thao tác lặp lại)
+```ts
+const meal = await mealRepo.byId(id);
+if (meal.userId !== userId) throw forbidden();     // hai lượt đi database, có khe hở
+await mealRepo.delete(id);
+```
 
-Nếu bạn không giải thích được nó giúp gì cho người dùng, đừng làm.
+**Đúng — quyền sở hữu nằm trong chính truy vấn:**
+
+```ts
+const [deleted] = await db.delete(meals)
+  .where(and(eq(meals.id, id), eq(meals.userId, userId)))
+  .returning();
+
+if (!deleted) throw notFound('bữa ăn');            // không phân biệt "của người khác" và "không tồn tại"
+```
+
+**Ba lý do cách thứ hai đúng hơn:**
+
+| Lý do | Giải thích |
+| --- | --- |
+| Không có khe hở tranh chấp | Kiểm tra và thao tác là **một** câu lệnh nguyên tử |
+| Ít đi database hơn | Một lượt thay vì hai |
+| Không rò rỉ thông tin | Trả 404 cho cả hai trường hợp — kẻ tấn công không biết bản ghi có tồn tại hay không |
+
+**Áp dụng cho mọi endpoint không có ngoại lệ.** Rà lại toàn bộ bảng endpoint hôm 03/11 và đánh dấu từng cái.
+
+> **Luật để nhớ suốt đời:** `userId` **luôn** lấy từ token, **không bao giờ** từ body hay query. Nếu client gửi được `userId` thì client tự chọn được mình là ai. Rà kỹ: có endpoint nào của bạn nhận `userId` từ đầu vào không?
+
+```bash
+git add . && git commit -m "fix: quyền sở hữu nằm trong truy vấn cho mọi endpoint"
+```
 
 ---
 
 ## KHỐI HỌC · 13:30–16:00
 
-### 13:30–14:15 · Tôn trọng cài đặt hệ thống
+### 13:30–14:15 · Phân quyền theo vai — chỉ làm phần cần
 
-**Người dùng bật "giảm chuyển động" trên iOS/Android là vì lý do y tế.** Chuyển động lớn gây chóng mặt, buồn nôn với người nhạy cảm tiền đình.
+```sql
+alter table users add column role text not null default 'user'
+  check (role in ('user', 'admin'));
+```
 
-```tsx
-import { AccessibilityInfo } from 'react-native';
-
-export function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduced);
-    const sub = AccessibilityInfo.addEventListener(
-      'reduceMotionChanged',
-      setReduced,
-    );
-    return () => sub.remove();
-  }, []);
-
-  return reduced;
+```ts
+export function requireRole(...allowed: Role[]) {
+  return async (req: FastifyRequest) => {
+    if (!allowed.includes(req.user.role)) {
+      throw new AppError(403, 'FORBIDDEN', 'Không đủ quyền');
+    }
+  };
 }
+
+app.get('/v1/admin/users', { onRequest: [app.authenticate, requireRole('admin')] }, handler);
 ```
 
-Áp dụng ở mọi chỗ có animation lớn:
+**Đừng làm hệ thống phân quyền phức tạp.** Bạn có hai vai. Đừng xây RBAC đầy đủ với quyền chi tiết và kế thừa vai — người phỏng vấn sẽ hỏi *"vì sao"* và bạn không có câu trả lời thật.
 
-```tsx
-const reduced = useReducedMotion();
+**Phân biệt hai tầng, câu này hay bị hỏi:**
 
-const style = useAnimatedStyle(() => ({
-  opacity: withTiming(1, { duration: reduced ? 0 : 300 }),
-  transform: reduced
-    ? []                                  // bỏ hẳn chuyển động
-    : [{ translateY: withSpring(0) }],
-}));
-```
-
-**Quy tắc:** giảm chuyển động không có nghĩa là bỏ hết phản hồi. Đổi từ **trượt** sang **mờ dần**, hoặc rút ngắn thời gian. Người dùng vẫn cần biết có gì đó vừa thay đổi.
-
-### 14:15–15:00 · Kiểm toán animation
-
-Đi qua toàn bộ app, liệt kê **mọi** animation đang có. Với mỗi cái, trả lời hai câu:
-
-| Animation | Nó giúp người dùng hiểu điều gì? | Giữ / Bỏ |
+| Tầng | Câu hỏi | Ví dụ |
 | --- | --- | --- |
-| Thanh macro chạy khi số đổi | Số đã thay đổi, thay đổi bao nhiêu | Giữ |
-| Mục mới trượt vào | Bữa ăn vừa được thêm, ở đâu | Giữ |
-| Mục thu lại khi xóa | Đã xóa, các mục dưới dịch lên | Giữ |
-| Logo nảy lên ở màn chờ | *(không gì cả)* | **Bỏ** |
-| Nút phóng to khi nhấn | Đã nhận thao tác | Giữ (nhưng rút xuống 100ms) |
+| Theo **vai** | Loại người này được gọi endpoint này không? | Admin xem được danh sách người dùng |
+| Theo **đối tượng** | Người cụ thể này được đụng bản ghi cụ thể này không? | Chỉ được xoá bữa ăn của mình |
 
-> **Nguyên tắc: animation là để trả lời một câu hỏi của người dùng, không phải để khoe.**
-> Nếu bạn không viết được câu trả lời ở cột giữa, xóa nó đi.
+**Kiểm tra theo vai không thay thế được kiểm tra theo đối tượng.** Người dùng thường được gọi `DELETE /v1/meals/:id` — đó là vai. Nhưng chỉ với bữa ăn của họ — đó là đối tượng. Rất nhiều API làm đúng tầng đầu và quên tầng thứ hai.
 
-Xóa thật những cái ghi "Bỏ". Commit riêng để thấy rõ:
+Giãn cơ 5 phút lúc 14:15.
 
-```bash
-git commit -m "refactor: bỏ animation trang trí không phục vụ người dùng"
+### 14:15–15:00 · Rò rỉ qua trường dữ liệu
+
+Kiểu rò rỉ tinh vi hơn: quyền đúng nhưng **trả về quá nhiều**.
+
+```ts
+// SAI — trả cả object
+return db.select().from(users).where(eq(users.id, id));
+// → passwordHash, role, email nội bộ đều lộ
+
+// ĐÚNG — chọn tường minh
+return db.select({
+  id: users.id,
+  email: users.email,
+  dailyLimit: users.dailyLimit,
+}).from(users).where(eq(users.id, id));
 ```
 
-**Đây là commit mà người phỏng vấn giỏi sẽ chú ý.** Thêm thứ mới thì ai cũng làm được. Nhận ra thứ mình vừa làm là thừa và tự xóa — đó là dấu hiệu khác.
+**Hai lớp phòng vệ, dùng cả hai:**
+1. Chọn cột tường minh ở tầng repo
+2. `response` schema của Fastify từ 04/11 — nó cắt bỏ trường không khai báo
+
+Kiểm tra thật: tạm thêm `select()` toàn bộ vào một endpoint, xem `response` schema có chặn không. Kiểm chứng lớp phòng vệ chứ đừng giả định nó hoạt động.
+
+**Đây là lý do `response` schema đáng công viết ra.** Hôm 04/11 nó trông như thủ tục thừa. Hôm nay nó là thứ chặn rò rỉ khi bạn vô tình viết `select()`.
 
 ### 15:00–15:10 · Nghỉ
 
-### 15:10–16:00 · Viết `docs/animations.md`
+### 15:10–16:00 · Danh sách kiểm tra bảo mật
 
-```markdown
-# Animation trong MacroZone
+Đọc lướt https://owasp.org/API-Security/editions/2023/en/0x11-t10/ và tự chấm:
 
-## Vì sao dùng Reanimated
-[gắn video thí nghiệm chặn JS thread 2 giây từ hôm 16/11]
+| # | Rủi ro | Bạn ổn chưa? | Đã làm gì |
+| --- | --- | --- | --- |
+| 1 | Phân quyền theo đối tượng bị hỏng | | Quyền sở hữu trong truy vấn |
+| 2 | Xác thực bị hỏng | | argon2, xoay token, phát hiện tái sử dụng |
+| 3 | Phân quyền theo thuộc tính bị hỏng | | Chọn cột tường minh + response schema |
+| 4 | Tiêu thụ tài nguyên không giới hạn | | **Chưa — làm ngày 27/11** |
+| 5 | Phân quyền cấp chức năng bị hỏng | | `requireRole` |
+| 8 | Cấu hình sai bảo mật | | helmet, CORS, biến môi trường kiểm tra |
+| 9 | Quản lý tồn kho API kém | | Có `/v1`, tài liệu OpenAPI làm 17/12 |
 
-## Nguyên tắc
-1. Mỗi animation phải trả lời được một câu hỏi của người dùng
-2. Thời lượng: 150–300ms cho chuyển tiếp, dưới 100ms cho phản hồi chạm
-3. Tôn trọng cài đặt giảm chuyển động của hệ thống
-4. Cử chỉ ẩn luôn phải có đường lui hiện rõ
+Điền cột thứ ba trung thực. Ô nào trống là việc phải làm.
 
-## Những gì đã bỏ và vì sao
-[bảng kiểm toán]
-
-## Ngân sách hiệu năng
-FPS khi cuộn + vuốt với 1000 mục: __ (mục tiêu ≥ 58)
-```
+**Bảng này in ra mang đi phỏng vấn được.** Rất ít ứng viên Middle tự chấm API của mình theo OWASP.
 
 ---
 
@@ -169,47 +186,46 @@ FPS khi cuộn + vuốt với 1000 mục: __ (mục tiêu ≥ 58)
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Kể chuyện kỹ thuật
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Quyết định thiết kế
 
-### 16:40–16:55 · Nói to có ghi âm
+> *"The decision I want to explain is putting ownership checks inside the query instead of before it.*
+> *The obvious way is: fetch the record, compare the owner ID to the user ID, then act. That works, but it has three problems. It's two round trips. There's a window between the check and the action. And when it fails you have to decide what to return — and if you return 403, you've just confirmed the record exists, which leaks information.*
+> *So instead the ownership condition goes in the WHERE clause. Delete where ID matches and user ID matches. If nothing comes back, I return 404 — same response whether the record belongs to someone else or doesn't exist at all.*
+> *The rule I follow is that the user ID always comes from the token, never from the request body. If the client can send a user ID, the client can choose who to be.*
+> *I tested this by creating two accounts and trying to read, update, and delete each other's records. That's the OWASP number one API risk, and the only way to know you don't have it is to try it."*
 
-**Chủ đề: một thứ bạn đã xây rồi tự xóa.**
-
-Đây là dạng câu hỏi *"tell me about a time you changed your mind"* — rất hay được hỏi và rất ít người trả lời tốt.
-
-> *"This week I added animations to the app, and by the end of the second day I had more than I needed.*
-> *So I made a table of every animation and forced myself to write, next to each one, what question it answers for the user. The progress bar filling in answers 'how much did that change.' A row sliding in answers 'where did my new entry go.' A bouncing logo on the loading screen answers nothing — it was there because I thought it looked nice.*
-> *I deleted the ones with an empty second column, in their own commit so it's visible in the history.*
-> *I also added a check for the system reduce-motion setting. People turn that on for medical reasons, not preference. When it's on, I don't remove the feedback entirely — I switch from sliding to fading, so the user still knows something changed.*
-> *The general thing I took from it: adding is easy, and the discipline is in removing."*
-
-### 16:55–17:00 · 5 từ mới
+**5 từ mới:**
 
 | Từ / cụm | Nghĩa | Câu mẫu |
 | --- | --- | --- |
-| `answers the question` | trả lời được câu hỏi | *What question does it answer?* |
-| `for medical reasons` | vì lý do y tế | *People turn it on for medical reasons.* |
-| `in its own commit` | trong một commit riêng | *I deleted them in their own commit.* |
-| `visible in the history` | thấy được trong lịch sử | *So it's visible in the git history.* |
-| `the discipline is in` | cái khó nằm ở | *The discipline is in removing.* |
+| `round trip` | một lượt đi về | *It's two round trips.* |
+| `window` (giữa hai thao tác) | khe hở thời gian | *There's a window between the check and the action.* |
+| `confirm it exists` | xác nhận sự tồn tại | *You've just confirmed the record exists.* |
+| `WHERE clause` | mệnh đề where | *The condition goes in the WHERE clause.* |
+| `choose who to be` | tự chọn mình là ai | *The client can choose who to be.* |
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## GHI CHÚ · 17:00–17:30
 
-**`qa-bank.mdc` Topic 4–6** — Navigation, Auth, Reliability. Đọc to, bấm giờ.
+Thêm vào `docs/auth-design.md`:
+- Kết quả tự tấn công: đã thử gì, cái nào lọt, sửa ra sao
+- Phân biệt phân quyền theo vai và theo đối tượng
+- **Bảng tự chấm OWASP đã điền**
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] Chuyển màn chia sẻ phần tử chạy đúng, không bay sai chỗ khi sắp xếp lại
-- [ ] `useReducedMotion` áp dụng ở mọi animation lớn
-- [ ] Khi giảm chuyển động: đổi sang mờ dần, **không** bỏ hết phản hồi
-- [ ] Bảng kiểm toán animation đã viết xong
-- [ ] **Đã xóa thật những animation trang trí, có commit riêng**
-- [ ] `docs/animations.md` hoàn chỉnh, có gắn video thí nghiệm
-- [ ] Đã nộp 3 đơn
+- [ ] Đã tạo 2 tài khoản và **tự tấn công API của mình**
+- [ ] Không endpoint nào cho phép đụng dữ liệu người khác
+- [ ] Quyền sở hữu nằm trong `where`, không phải kiểm tra riêng
+- [ ] Trả 404 chứ không 403 cho tài nguyên của người khác
+- [ ] **Đã rà: không endpoint nào nhận `userId` từ body hay query**
+- [ ] `requireRole` chạy, chỉ có 2 vai, không phức tạp hoá
+- [ ] Nói được khác biệt giữa phân quyền theo vai và theo đối tượng
+- [ ] Repo chọn cột tường minh, không `select()` toàn bộ
+- [ ] **Đã kiểm chứng `response` schema thật sự chặn được trường thừa**
+- [ ] Bảng OWASP đã điền trung thực
 - [ ] Ghi âm `2026-11-18.m4a`
-- [ ] Đã rà Topic 4–6
 - [ ] 21:30 lên giường

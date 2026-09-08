@@ -1,0 +1,239 @@
+---
+description: Thứ Ba 01/12/2026 — Tuần 14 Ngày 2. Việc theo lịch — múi giờ, giờ yên lặng, và vì sao "9 giờ sáng" là một câu hỏi khó.
+alwaysApply: false
+---
+
+# Thứ Ba · 01/12/2026 · Tuần 14 — Ngày 62/82
+
+> Yêu cầu nghe rất đơn giản: *"nhắc tôi ăn trưa lúc 12 giờ."*
+> Hôm nay bạn sẽ thấy vì sao câu đó là một trong những yêu cầu khó nhất trong lập trình.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Việc định kỳ + bài toán múi giờ |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Giờ yên lặng, tuỳ chọn người dùng, chống trùng |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nộp 3 đơn có thư riêng |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
+| **17:00** | **GHI CHÚ** |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+### 08:30–09:00 · Bài toán múi giờ, nghĩ trên giấy trước
+
+Người dùng chọn "nhắc lúc 12:00". Bạn lưu gì vào database?
+
+| Lưu gì | Hỏng khi nào |
+| --- | --- |
+| `12:00` dạng chuỗi | Không biết 12:00 ở đâu. Người dùng ở Tokyo nhận lúc 10:00 giờ họ |
+| Dấu thời gian UTC | Người dùng bay sang Nhật — vẫn nhận theo giờ Việt Nam |
+| **`12:00` + tên vùng IANA** | **Đúng.** Tính giờ UTC ngay lúc gửi |
+
+**Luật:** với sự kiện **đã xảy ra** *(bữa ăn được ghi lúc nào)*, lưu dấu thời gian tuyệt đối. Với sự kiện **sẽ xảy ra theo giờ địa phương** *(nhắc lúc 12 giờ trưa)*, lưu giờ trên đồng hồ **cộng với vùng**.
+
+Nghe thì hiển nhiên, nhưng đây là một trong những bug phổ biến nhất trong phần mềm, và nói rõ được nó khi phỏng vấn thì rất ăn điểm.
+
+Lý do phải lưu **tên vùng** *(`Asia/Ho_Chi_Minh`)* chứ không lưu **độ lệch** *(`+07:00`)*: độ lệch thay đổi. Các nước có giờ mùa hè đổi độ lệch hai lần mỗi năm. Tên vùng thì bền, còn độ lệch chỉ đúng tại một thời điểm.
+
+```ts
+export const reminderPrefs = pgTable('reminder_prefs', {
+  userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  timezone: text('timezone').notNull(),                  // 'Asia/Ho_Chi_Minh'
+  times: text('times').array().notNull(),                // ['08:00','12:00','18:30']
+  quietStart: text('quiet_start').notNull().default('22:00'),
+  quietEnd: text('quiet_end').notNull().default('07:00'),
+  enabled: boolean('enabled').notNull().default(true),
+});
+```
+
+Phía mobile lấy vùng bằng `Intl.DateTimeFormat().resolvedOptions().timeZone` và **gửi lại mỗi lần mở app**, vì người dùng có thể đi du lịch.
+
+### 09:00–10:30 · Việc định kỳ
+
+```ts
+// Chạy mỗi 15 phút. Không chạy mỗi phút — lãng phí và không cần thiết.
+await boss.schedule('dispatch-reminders', '*/15 * * * *');
+
+await boss.work('dispatch-reminders', async () => {
+  const now = new Date();
+  const due = await findUsersDueForReminder(now);       // xem truy vấn dưới
+  for (const user of due) {
+    await boss.send('send-push', { userId: user.id, kind: 'meal-reminder' }, {
+      singletonKey: `reminder:${user.id}:${slotKey(now, user.timezone)}`,
+    });
+  }
+});
+```
+
+**`singletonKey` ở đây là dòng quan trọng nhất.** Nếu việc điều phối chạy hai lần *(tiến trình khởi động lại, hai instance cùng chạy)*, người dùng vẫn chỉ nhận **một** thông báo. Đây là lần thứ tư trong hai tháng bạn dùng nguyên tắc bình thản — và với thông báo thì hậu quả của việc quên nó rất dễ thấy: người dùng bị làm phiền gấp đôi rồi gỡ app.
+
+Postgres tự chuyển múi giờ giúp bạn, không cần thư viện:
+
+```sql
+select u.id, p.timezone
+from reminder_prefs p
+join users u on u.id = p.user_id
+where p.enabled
+  and to_char(now() at time zone p.timezone, 'HH24:MI') = any(p.times);
+```
+
+`now() at time zone p.timezone` là cú pháp đáng nhớ. Nó đổi dấu thời gian UTC sang giờ treo tường ở vùng của từng người dùng — mỗi hàng một vùng khác nhau.
+
+```bash
+git add . && git commit -m "feat: nhắc bữa ăn theo lịch, đúng múi giờ từng người"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:30 · Giờ yên lặng và quyền của người dùng
+
+Đánh thức người dùng lúc 3 giờ sáng là cách nhanh nhất để bị gỡ app. Kiểm tra giờ yên lặng **ở phía server**, ngay trước khi gửi — không kiểm ở lúc lập lịch, vì người dùng có thể đổi vùng giữa hai thời điểm đó.
+
+```ts
+function isQuiet(nowLocal: string, start: string, end: string) {
+  // Khoảng giờ yên lặng thường vắt qua nửa đêm: 22:00 → 07:00
+  return start > end
+    ? nowLocal >= start || nowLocal < end
+    : nowLocal >= start && nowLocal < end;
+}
+```
+
+Trường hợp vắt qua nửa đêm là chỗ hầu như ai cũng làm sai lần đầu. Viết một test cho nó ngay.
+
+**Màn hình cài đặt phía mobile — người dùng phải điều khiển được:**
+
+| Điều khiển | Vì sao cần |
+| --- | --- |
+| Bật/tắt từng loại thông báo | Không phải chỉ có một công tắc tất-cả-hoặc-không |
+| Sửa giờ nhắc | Người ta ăn giờ khác nhau |
+| Đặt giờ yên lặng | Người làm ca đêm |
+| Nút tắt hết | Nếu không có, họ tắt ở Cài đặt hệ thống và **bạn mất họ vĩnh viễn** |
+
+Hàng cuối quan trọng hơn vẻ ngoài của nó. Tắt trong app thì bạn còn giữ được token và còn cơ hội mời họ bật lại. Tắt ở tầng hệ điều hành thì bạn không bao giờ lấy lại được, đặc biệt trên iOS.
+
+Giãn cơ 5 phút lúc 14:30.
+
+### 14:30–15:00 · Lịch sử gửi và trần tần suất
+
+```ts
+export const notificationLog = pgTable('notification_log', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  kind: text('kind').notNull(),
+  sentAt: timestamptz('sent_at').notNull().defaultNow(),
+  openedAt: timestamptz('opened_at'),
+}, (t) => ({ userSentIdx: index().on(t.userId, t.sentAt.desc()) }));
+```
+
+Bảng này cho bạn ba thứ:
+
+1. **Trần tần suất** — không quá 3 thông báo mỗi ngày mỗi người, bất kể logic tính ra bao nhiêu
+2. **Tỉ lệ mở** — thông báo nào có ích, thông báo nào chỉ gây phiền
+3. **Bằng chứng khi gỡ lỗi** — người dùng nói *"tôi không nhận được"*, bạn tra được
+
+Điểm 2 là điểm đáng nói khi phỏng vấn: **thông báo không có tỉ lệ mở là thông báo bạn nên xoá.** Đo rồi cắt, chứ không phải thêm mãi.
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Thử nghiệm múi giờ
+
+Không tin logic thời gian trước khi thử. Tạo bốn người dùng thử:
+
+| Người dùng | Vùng | Giờ nhắc | Phải nhận lúc (UTC) |
+| --- | --- | --- | --- |
+| A | `Asia/Ho_Chi_Minh` | 12:00 | 05:00 |
+| B | `Asia/Tokyo` | 12:00 | 03:00 |
+| C | `Europe/London` | 12:00 | 12:00 *(mùa đông)* |
+| D | `Asia/Ho_Chi_Minh` | 23:00, yên lặng 22:00–07:00 | **không gửi** |
+
+Chạy bộ điều phối với thời gian giả ở nhiều mốc trong ngày, xác nhận đúng người nhận đúng lúc.
+
+Rồi thử một tình huống thật: đổi vùng của người dùng A sang `Asia/Tokyo` giữa chừng, mô phỏng chuyến bay. Lời nhắc phải dịch theo.
+
+```bash
+git add . && git commit -m "feat: giờ yên lặng, trần tần suất, nhật ký thông báo"
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — 3 đơn có thư riêng
+
+Thư riêng nghĩa là **có một câu chỉ đúng với công ty đó**. Không có câu đó thì đừng nộp — tỉ lệ hồi âm của thư mẫu gần bằng không.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
+
+**Chủ đề: vì sao "nhắc tôi lúc 12 giờ" là bài toán khó.**
+
+> *"I spent this morning on something that sounds trivial: remind me at noon.*
+> *The question is what you store. If you store the string 'twelve o'clock' you don't know twelve o'clock where. If you store a UTC timestamp, then the user flies to Tokyo and still gets reminded on Vietnam time. So you store the wall clock time plus the IANA zone name, and you resolve to UTC at send time.*
+> *And it has to be the zone name, not the offset. Offsets change — daylight saving moves them twice a year. The zone name is stable.*
+> *The general rule I ended up with: for something that already happened, store an absolute instant. For something that should happen at a local time in the future, store the clock time and the zone.*
+> *The other half was quiet hours, and the case everyone gets wrong first is a window that crosses midnight — ten at night to seven in the morning. A naive between-check returns false for the entire window. I wrote a test for that before I wrote the code.*
+> *And every reminder job has an idempotency key, because if the dispatcher runs twice the user gets notified twice, and that's how you get uninstalled."*
+
+**5 từ mới:**
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `wall clock time` | giờ trên đồng hồ treo tường | *Store the wall clock time plus the zone.* |
+| `resolve to UTC` | quy về giờ UTC | *You resolve to UTC at send time.* |
+| `daylight saving` | giờ mùa hè | *Daylight saving moves offsets twice a year.* |
+| `absolute instant` | thời điểm tuyệt đối | *For something that happened, store an absolute instant.* |
+| `cross midnight` | vắt qua nửa đêm | *A window that crosses midnight.* |
+
+---
+
+## GHI CHÚ · 17:00–17:30
+
+Thêm vào `docs/background-jobs.md`:
+- Bảng 3 cách lưu giờ nhắc và chỗ hỏng
+- **Vì sao lưu tên vùng chứ không lưu độ lệch**
+- Truy vấn `now() at time zone`
+- Bảng 4 người dùng thử và kết quả mong đợi
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Lưu **giờ đồng hồ + tên vùng IANA**, không lưu độ lệch
+- [ ] Giải thích được khác biệt tên vùng và độ lệch
+- [ ] Mobile gửi lại vùng mỗi lần mở app
+- [ ] Bộ điều phối chạy mỗi 15 phút, **không phải mỗi phút**
+- [ ] Mỗi lời nhắc có `singletonKey` chống gửi trùng
+- [ ] Giờ yên lặng kiểm ở server, **xử lý được khoảng vắt qua nửa đêm, có test**
+- [ ] Màn hình cài đặt có nút tắt trong app
+- [ ] Nói được vì sao nút đó ngăn người dùng tắt ở tầng hệ điều hành
+- [ ] Có nhật ký thông báo, có trần tần suất
+- [ ] **Đã thử đủ 4 vùng + tình huống đổi vùng giữa chừng**
+- [ ] Ghi âm `2026-12-01.m4a`
+- [ ] 21:30 lên giường

@@ -1,0 +1,72 @@
+---
+description: Thứ Năm 31/12/2026 — Tuần 18 Ngày 4. Tổng kết 82 ngày, nghe lại bản ghi 07/09, kế hoạch 2027.
+alwaysApply: false
+---
+
+# Thứ Năm · 31/12/2026 · Tuần 18 — Ngày 82/82
+
+> Ngày cuối chương trình. Không ship feature. Đo bằng tai, bằng checklist, bằng kế hoạch tháng 1.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| **08:30** | **KHỐI XÂY** — Tick Definition of Done Dec context mục 9 |
+| **13:30** | **KHỐI HỌC** — Nghe 07/09 vs hôm nay + viết kế hoạch 2027 |
+| **16:00** | **TÌM VIỆC** — pipeline: đang chờ / follow-up / bỏ |
+| **16:30** | **TIẾNG ANH** — Ghi âm cuối "Who I am after 82 days" |
+| **17:00** | **GHI CHÚ** — đóng sổ |
+| 17:30+ | Gia đình · năm mới — **không mở IDE** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+Mở `Dec/00-context-dec.mdc` mục 9 — tick từng dòng. Mục đỏ = nợ tháng 1, không tự lừa.
+
+Kiểm nhanh sản phẩm còn sống: TestFlight/Play + API health.
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### Nghe lại
+
+`2026-09-07.m4a` (hoặc bản EN đầu tháng 9) → `2026-12-30-mock.m4a`.
+
+Ghi 5 dòng: giọng, từ vựng, độ dài câu, tự tin, chỗ vẫn vấp.
+
+### Ba kịch bản (Dec context mục 10)
+
+Viết vào `docs/plan-2027-01.md` **một** trong ba:
+
+1. Đã có offer → 90 ngày đầu job
+2. Đang trong pipeline → sáng prep công ty, chiều maintain
+3. Chưa có gì → đổi kênh (referral, outsourcing foreign client, cân nhắc nhận mức thấp hơn để quay lại thị trường)
+
+### Ranh giới danh xưng
+
+Sau 82 ngày mặc định: **Strong Middle Fullstack Mobile Engineer**.  
+"Senior Fullstack" chỉ khi JD khớp **và** bạn defend được vận hành/production depth — đừng tự gắn trên CV nếu chưa.
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+Ghi âm 3 phút: *"Who I am after 82 days."* Giữ file — đây là thước đo.
+
+---
+
+## Checklist cuối chương trình
+
+- [ ] DoD tháng 12 đã tick trung thực
+- [ ] `plan-2027-01.md` đã viết
+- [ ] Cheatsheet + walkaway sẵn sàng
+- [ ] Ghi âm `2026-12-31.m4a`
+- [ ] **Đóng máy. Ăn Tết dương lịch với gia đình.**
+
+---
+
+_82 ngày kết thúc. Thứ bạn xây không hết hạn hôm nay._

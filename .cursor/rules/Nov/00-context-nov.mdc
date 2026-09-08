@@ -1,37 +1,58 @@
 ---
-description: Context tháng 11/2026 — Tháng CHO NGƯỜI KHÁC THẤY. AI features, push notification, animation, và 5 ngày phỏng vấn thử. Đọc trước khi mở file ngày.
+description: Context tháng 11/2026 — Tháng BACKEND. Node + Postgres + Auth tự viết, thay Supabase bằng API của chính mình. Đọc trước khi mở file ngày.
 alwaysApply: false
 ---
 
-# Tháng 11/2026 — Tháng 3: CHO NGƯỜI KHÁC THẤY
+# Tháng 11/2026 — Tháng 3: BACKEND
 
-> **Mục tiêu tháng:** Hai tháng qua bạn xây năng lực. Tháng này bạn **biến nó thành offer**.
+> **Mục tiêu tháng:** Từ người **gọi** API thành người **viết** API.
+> Cuối tháng, ứng dụng MacroZone không còn nói chuyện với Supabase nữa. Nó nói chuyện với một API Node do bạn viết, chạy trên máy chủ thật, có xác thực tự làm, có test, có CI.
 > **21 ngày làm việc** · Thứ 2 → Thứ 6 · T7 + CN nghỉ hoàn toàn.
-> **Khác biệt lớn nhất so với tháng 9 và 10:** từ tuần 11 trở đi, bạn **vừa học vừa apply**. Không chờ "đủ giỏi" rồi mới nộp — không bao giờ có ngày đó.
 
 ---
 
-## 1. Lịch cố định (không đổi)
+## 1. Vì sao đổi hướng sang backend
+
+Tháng 9 và 10 xây năng lực mobile. Tháng 11 và 12 mở rộng thành fullstack. Đây không phải quyết định cảm tính — đây là dữ liệu thị trường tháng 9/2026:
+
+| Dữ kiện | Nguồn |
+| --- | --- |
+| Backend Developer là vị trí tuyển nhiều **thứ 2** ở VN (37,4% doanh nghiệp) | TopCV 2026 |
+| **NodeJS: 49 tin, mức cạnh tranh "Thấp"** — trong khi ReactJS 79 tin, cạnh tranh "Cao" | ITViec, 4/2026 |
+| Nhu cầu RN đang nghiêng về "full-stack hybrid", không phải mobile thuần | Báo cáo thị trường RN 2026 |
+| Tin tuyển Middle/Senior tại VN **+35%**, Fresher/Junior −10~15% | Shelby Global, Q1/2026 |
+| SQL đứng hạng 3 trong 20 kỹ năng được tìm nhiều nhất VN (149 tin) | ITViec, 4/2026 |
+
+**Định vị mới:** *Fullstack Mobile Engineer — React Native + Node.js.*
+Không phải "mobile dev biết chút backend", cũng không phải "senior fullstack" (bạn chưa tới đó). Là người **sở hữu được cả hai đầu của một sản phẩm**.
+
+> **Ranh giới trung thực — nhớ kỹ khi phỏng vấn:**
+> Sau 4 tháng bạn là **Strong Middle**. Bạn viết được API sản xuất, thiết kế được schema, tự làm xác thực. Bạn **chưa** từng vận hành hệ thống ở quy mô lớn, chưa xử lý sự cố lúc 3 giờ sáng, chưa thiết kế cho hàng triệu người dùng. Nói ra ranh giới đó trước khi bị hỏi.
+
+---
+
+## 2. Lịch cố định (không đổi từ tháng 9)
 
 | Giờ | Việc |
 | --- | --- |
 | 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
 | 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
+| 05:45 | Về nhà, tắm, cà phê (1 ly duy nhất) |
 | 06:30 | Chuẩn bị bữa sáng cho bé |
 | 07:00 | Cho bé ăn, vitamin D |
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY (2h)** — giãn cơ 5 phút lúc 09:30 |
+| **08:30–10:30** | **KHỐI XÂY** |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC (3h)** — nghỉ 10 phút lúc 15:00 |
-| **16:30** | **TIẾNG ANH (30 phút)** |
-| **17:00** | **ĐỌC SÁCH (30 phút)** |
+| **13:30–16:00** | **KHỐI HỌC** (nghỉ 10 phút lúc 15:00) |
+| **16:00–16:30** | **TÌM VIỆC** |
+| **16:30–17:00** | **TIẾNG ANH** |
+| **17:00–17:30** | **ĐỌC / GHI CHÚ KỸ THUẬT** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -41,136 +62,209 @@ alwaysApply: false
 
 ---
 
-## 2. Lộ trình tháng 11
+## 3. Lộ trình 4 tuần
 
-| Tuần | Ngày | Chủ đề | Kết quả phải có |
+| Tuần | Ngày | Chủ đề | Kết quả cuối tuần |
 | --- | --- | --- | --- |
-| **10** | 02–06/11 | **AI features** — Vercel AI SDK, streaming vào RN | Trợ lý dinh dưỡng chạy được, key không nằm trong app |
-| **11** | 09–13/11 | **Push notification + deep link** | Push thật qua FCM/APNs · deep link mở đúng màn hình |
-| **12** | 16–20/11 | **Reanimated + Gesture** | Lỗ hổng cuối cùng. Animation chạy trên UI thread |
-| **13** | 23–27/11 | **Phỏng vấn thử + apply** | 5 buổi mock có ghi âm · 30+ đơn đã nộp |
-| **14** | 30/11 | **Tổng kết 3 tháng** | Nhìn lại toàn bộ · kế hoạch tháng 12 |
+| **10** | 02–06/11 | Node, HTTP thật, Express → Fastify, thiết kế REST, Zod, xử lý lỗi | API đầu tiên chạy trên Render, gọi được từ điện thoại |
+| **11** | 09–13/11 | SQL và Postgres, thiết kế schema, index, Drizzle, migration | App đọc dữ liệu từ API của bạn, không qua Supabase client |
+| **12** | 16–20/11 | Xác thực tự viết: argon2, JWT, xoay refresh token, thu hồi, RBAC | Đăng nhập chạy hoàn toàn trên backend của bạn |
+| **13** | 23–27/11 | Test backend, CI, giới hạn tài nguyên, push từ server, truy vết | **v2.0.0** — app chạy 100% trên API của bạn |
+| **14** | 30/11 → | Việc chạy nền *(bắt đầu nội dung tháng 12)* | Xem `Dec/00-context-dec.mdc` |
 
 ---
 
-## 3. Thay đổi quan trọng: apply song song với học
+## 4. Tech stack — miễn phí toàn bộ
 
-Từ **02/11**, mỗi ngày dành **30 phút trong khối chiều** cho việc tìm việc. Không phải khối riêng — cắt từ khối học.
+Bạn nói không có ngân sách. Mọi thứ dưới đây **free tier vĩnh viễn**, không cần thẻ tín dụng trừ chỗ ghi rõ.
 
-| Ngày | Việc tìm việc (30 phút) |
-| --- | --- |
-| Thứ 2 | Nộp 3 đơn có thư ứng tuyển viết riêng |
-| Thứ 3 | Nhắn 2 người trong ngành trên LinkedIn hoặc cộng đồng |
-| Thứ 4 | Nộp 3 đơn |
-| Thứ 5 | Theo dõi đơn cũ · trả lời tin nhắn |
-| Thứ 6 | Xem lại tuần: nộp mấy đơn, phản hồi mấy, học được gì |
+| Lớp | Chọn gì | Free tier | Vì sao chọn |
+| --- | --- | --- | --- |
+| Runtime | **Node.js 22 LTS** | — | Nhiều tin tuyển nhất, cạnh tranh thấp ở VN |
+| Ngôn ngữ | **TypeScript** | — | Bạn đã mạnh sẵn, dùng chung type với mobile |
+| Framework | **Express** (2 ngày học) → **Fastify** (dự án thật) | — | Express để hiểu middleware và trả lời phỏng vấn; Fastify để làm thật |
+| Cơ sở dữ liệu | **Neon Postgres** | 0,5 GB, nhánh không giới hạn | Có **branching** — tạo DB riêng cho mỗi PR, cực hợp CI |
+| Truy vấn | **Drizzle ORM** | — | Gần SQL nhất → học được SQL thật (kỹ năng #3 ở VN) |
+| Kiểm tra dữ liệu | **Zod** | — | Đã biết từ 23/09, dùng chung schema client ↔ server |
+| Chạy máy chủ | **Render** web service | 750 giờ/tháng | Node thật, Docker thật, log thật. Ngủ sau 15 phút — đây là bài học |
+| Test | **Vitest + supertest** | — | Nhanh hơn Jest, cùng API |
+| Hàng đợi việc | **pg-boss** | — | Dùng chính Postgres làm hàng đợi → không tốn thêm dịch vụ |
+| Cache | **Upstash Redis** | 10.000 lệnh/ngày | Không cần thẻ |
+| Gửi email | **Resend** | 3.000 email/tháng | Xác thực email, đặt lại mật khẩu |
+| Lưu file | **Cloudflare R2** | 10 GB | Ảnh bữa ăn |
+| Log | **pino** + **Better Stack** | 1 GB/tháng | Log có cấu trúc, tìm kiếm được |
+| Lỗi | **Sentry** | 5.000 lỗi/tháng | Đã dựng từ 29/09, nay thêm phía server |
+| Chạy định kỳ | **GitHub Actions** cron | 2.000 phút/tháng | Không cần dịch vụ cron riêng |
+| Tài liệu API | **OpenAPI** sinh từ Zod + **Scalar** | — | Tự động, không viết tay |
 
-**Mục tiêu tháng: 40+ đơn.** Đọc lại số cũ — bạn đã nộp 100 đơn trong 6 tháng mà chưa có kết quả. Tháng này khác ở ba điểm:
-1. Bạn có **dự án thật để chỉ vào**, không chỉ có CV
-2. Thư ứng tuyển viết riêng cho từng công ty, nhắc đúng một thứ cụ thể về họ
-3. Bạn nhắn người thật, không chỉ bấm nút nộp
-
-### Nơi nộp
-
-| Loại | Nơi |
-| --- | --- |
-| Product VN | Tiki, Momo, ZaloPay, VNG, Be, ELSA, Coolmate, Sky Mavis, FE Credit, MB Bank |
-| Outsourcing tốt | KMS Technology, NashTech, FPT Software, Axon Active, Saigon Technology, TMA, KIE |
-| Văn phòng nước ngoài | Shopee VN, Lazada VN, Grab VN, Lalamove, Got It |
-| Nền tảng | ITviec, TopDev, LinkedIn, VietnamWorks |
-| Remote quốc tế | WeWorkRemotely, RemoteOK, Wellfound |
+**Điều duy nhất tốn tiền:** tài khoản Apple Developer 99 USD/năm, nhưng bạn đã cần nó từ tháng 9 cho TestFlight rồi.
 
 ---
 
-## 4. Tài nguyên tháng 11
+## 5. Nguyên tắc học backend (khác học mobile)
 
-### AI
-| Tên | Link |
-| --- | --- |
-| Vercel AI SDK | https://sdk.vercel.ai/docs |
-| AI SDK — React Native | https://sdk.vercel.ai/docs/getting-started/expo |
-| Supabase Edge Functions | https://supabase.com/docs/guides/functions |
-| OpenAI API | https://platform.openai.com/docs |
+Ba tháng qua bạn học bằng cách làm theo hướng dẫn rồi dựng lại. Backend cần thêm một tầng nữa.
 
-### Push + deep link
-| Tên | Link |
-| --- | --- |
-| Expo Notifications | https://docs.expo.dev/push-notifications/overview/ |
-| Expo Router — linking | https://docs.expo.dev/router/advanced/native-intent/ |
-| Firebase Cloud Messaging | https://firebase.google.com/docs/cloud-messaging |
+### Quy tắc 3 vòng, phiên bản backend
 
-### Animation
-| Tên | Link |
-| --- | --- |
-| Reanimated 4 | https://docs.swmansion.com/react-native-reanimated/ |
-| Gesture Handler | https://docs.swmansion.com/react-native-gesture-handler/ |
-| William Candillon — "Can it be done in React Native?" | https://www.youtube.com/@wcandillon |
+1. **Vòng 1 — Làm cho nó chạy.** Endpoint trả đúng dữ liệu.
+2. **Vòng 2 — Làm cho nó đúng.** Xử lý lỗi, kiểm tra đầu vào, đúng mã trạng thái, không rò rỉ thông tin nhạy cảm.
+3. **Vòng 3 — Làm cho nó chịu được.** Chuyện gì xảy ra khi hai request cùng lúc? Khi DB rớt? Khi client gửi lại request cũ?
 
-### Phỏng vấn
-| Tên | Link |
-| --- | --- |
-| Q&A bank của chính bạn | `.cursor/rules/coding/qa-bank.mdc` |
-| Context phỏng vấn | `.cursor/rules/interview/context.mdc` |
+> Vòng 3 chính là chỗ phân biệt người viết API và người viết API **sản xuất**. Nó cũng là chỗ phỏng vấn backend đào sâu nhất.
+
+### Ba câu hỏi bắt buộc cho mọi endpoint
+
+Dán ba câu này lên tường:
+
+1. **Ai được gọi cái này?** *(xác thực và phân quyền — không được để sót)*
+2. **Nếu gọi hai lần thì sao?** *(tính bất biến — bạn đã học ở mobile hôm 27/10, giờ là phía server)*
+3. **Nếu nó chậm 5 giây thì client thấy gì?** *(timeout, huỷ, trạng thái tải)*
 
 ---
 
-## 5. Khối Tiếng Anh — đổi trọng tâm từ tuần 13
+## 6. Lợi thế bạn có mà người học backend thuần không có
 
-Tuần 10–12 giữ nguyên cấu trúc cũ. **Tuần 13 (23–27/11) chuyển hoàn toàn sang mô phỏng phỏng vấn** — 30 phút mỗi ngày trả lời câu hỏi thật, bấm giờ, ghi âm, nghe lại.
+Đừng học backend như người mới. Bạn đã ở phía đối diện 3 năm rồi.
 
-| Ngày (tuần 10–12) | Chủ đề |
+| Bạn đã biết từ phía client | Nay nhìn từ phía server |
 | --- | --- |
-| Thứ 2 | Daily standup |
-| Thứ 3 | Giải thích 1 khái niệm kỹ thuật |
-| Thứ 4 | Nghe + chép chính tả |
-| Thứ 5 | Trả lời 1 câu phỏng vấn ≤60 giây |
-| Thứ 6 | Nhìn lại tuần |
+| Hàng đợi refresh token khi nhiều request nhận 401 *(02/10)* | Vì sao server phải xoay refresh token và thu hồi cái cũ |
+| Cập nhật lạc quan và khôi phục khi lỗi *(24/09)* | Vì sao server phải trả lỗi có cấu trúc để client biết cách lùi |
+| UUID sinh phía client + upsert để bất biến *(27/10)* | Vì sao endpoint ghi phải chịu được gửi lại |
+| Cache và làm mới của TanStack Query | Header `ETag`, `Cache-Control`, và khi nào cache ở server |
+| Đau đầu vì API trả 200 kèm `{ error: ... }` | Vì sao mã trạng thái HTTP phải đúng |
 
-### Câu hỏi Thứ Năm tháng 11
+**Đây là câu chuyện phỏng vấn mạnh nhất của bạn tháng này:** *"Tôi thiết kế API này từ góc nhìn người đã phải tiêu thụ API tệ suốt ba năm."*
 
-| Ngày | Câu hỏi |
+---
+
+## 7. Tài nguyên (miễn phí toàn bộ)
+
+**Node và nền tảng**
+- Node.js docs — https://nodejs.org/docs/latest-v22.x/api/
+- The Node.js Event Loop — https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick
+- Fastify docs — https://fastify.dev/docs/latest/
+- Express guide — https://expressjs.com/en/guide/routing.html
+
+**Cơ sở dữ liệu**
+- PostgreSQL Tutorial — https://www.postgresqltutorial.com/
+- Use The Index, Luke (index và hiệu năng) — https://use-the-index-luke.com/
+- Drizzle docs — https://orm.drizzle.team/docs/overview
+- Neon docs — https://neon.tech/docs/introduction
+
+**Thiết kế API và bảo mật**
+- OWASP API Security Top 10 — https://owasp.org/API-Security/editions/2023/en/0x11-t10/
+- OWASP Cheat Sheets (Auth, JWT, Password) — https://cheatsheetseries.owasp.org/
+- HTTP status codes — https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+- Zod — https://zod.dev/
+
+**Triển khai và vận hành**
+- Render docs — https://render.com/docs/web-services
+- pino — https://getpino.io/
+- pg-boss — https://github.com/timgit/pg-boss
+
+---
+
+## 8. Cấu trúc repo mới
+
+Từ 02/11 bạn có repo thứ hai. **Không gộp vào repo mobile.**
+
+```text
+~/Dev/macrozone-api/
+  src/
+    routes/          # định nghĩa endpoint, mỏng
+    services/        # logic nghiệp vụ, không biết gì về HTTP
+    db/
+      schema.ts      # Drizzle schema
+      migrations/
+    lib/             # auth, logger, errors
+    index.ts
+  test/
+  drizzle.config.ts
+```
+
+**Luật kiến trúc quan trọng nhất:** route **không** được chứa logic nghiệp vụ. Route chỉ làm ba việc — đọc đầu vào, gọi service, định dạng đầu ra. Service không được biết `req` và `res` là gì.
+
+> Vì sao: nó làm service test được mà không cần dựng HTTP server, và nó là cùng một nguyên tắc bạn đã áp dụng khi tách lớp lưu trữ khỏi giao diện hôm 16/09. Cùng bài học, tầng khác.
+
+**Chia sẻ type giữa hai repo:** dùng schema Zod xuất ra type, sao chép sang mobile bằng một script, hoặc để mobile import trực tiếp từ package công khai trên npm. Tháng 11 làm cách đơn giản nhất — một file `shared-types.ts` sao chép tay. Tháng 12 sẽ làm tử tế.
+
+---
+
+## 9. Tìm việc — bắt đầu ngay, không đợi
+
+**Đổi so với kế hoạch cũ.** Nghiên cứu tuyển dụng cho thấy tỉ lệ vào vòng phỏng vấn:
+
+| Kênh | Tỉ lệ hồ sơ → phỏng vấn |
 | --- | --- |
-| 05/11 | *"How would you add an AI feature to a mobile app without exposing your API key?"* |
-| 12/11 | *"How do push notifications work end to end?"* |
-| 19/11 | *"Why do animations run on the UI thread in Reanimated?"* |
-| 26/11 | *"Tell me about yourself."* — câu quan trọng nhất, cả tuần luyện |
+| Nộp lạnh | ~2% |
+| Có người giới thiệu | **~40%** |
+
+Giới thiệu chiếm ~1% tổng hồ sơ nộp nhưng tạo ra 30–50% số lượt tuyển. **Một lời giới thiệu ấm hơn mười đơn nộp lạnh.**
+
+**Phân bổ khối 16:00–16:30 trong tháng 11:**
+
+| Thứ | Việc |
+| --- | --- |
+| T2 | Nhắn 2 người quen cũ (Firegroup, bạn học, cộng đồng) |
+| T3 | Nhắn 2 người ở công ty bạn muốn vào, kể cả khi họ không đăng tuyển |
+| T4 | Nộp 3 đơn |
+| T5 | Theo dõi lại đơn cũ + tin nhắn chưa hồi |
+| T6 | Cập nhật CV/README theo cái vừa học trong tuần |
+
+**Từ khoá tìm việc — mở rộng, đừng chỉ gõ "React Native":**
+`Mobile Developer` · `Fullstack Developer` · `NodeJS Developer` · `React Native` · `Flutter` · `Kỹ sư cầu nối / BrSE` *(nếu tiếng Anh khá lên)*
+
+**Khoảng lương cập nhật:** 30–45 triệu gross. Khung tham chiếu Middle Mobile 2026 tại VN là 25–45 triệu; có thêm backend thì bạn ở nửa trên.
 
 ---
 
-## 6. Đọc sách tháng 11
+## 10. Tiếng Anh — chủ đề mới
 
-Xong *The Pragmatic Programmer* trong tuần đầu. Sau đó chuyển sang đọc **ngắn hơn và hướng phỏng vấn**:
+Giữ nguyên 30 phút mỗi ngày, nhưng chủ đề chuyển sang backend vì đó là chỗ bạn yếu về từ vựng.
 
-- Tuần 11–12: đọc lại `qa-bank.mdc` của chính bạn, mỗi ngày 30 phút, sửa câu trả lời cũ theo những gì đã học 2 tháng qua
-- Tuần 13–14: *Cracking the Coding Interview* — chỉ phần behavioral, bỏ phần thuật toán
+| Thứ | Dạng bài |
+| --- | --- |
+| T2 | Daily standup — kể việc backend hôm qua và hôm nay |
+| T3 | Giải thích một khái niệm backend cho người không biết |
+| T4 | Kể một quyết định thiết kế API và cái giá của nó |
+| T5 | 3 câu hỏi phỏng vấn backend, mỗi câu ≤60 giây |
+| T6 | Nghe lại 5 bản ghi trong tuần, đếm chỗ vấp |
 
----
-
-## 7. Định nghĩa hoàn thành — 30/11
-
-- [ ] Tính năng AI chạy, **API key không nằm trong app**
-- [ ] Push notification thật, mở app đúng màn hình khi bấm
-- [ ] Deep link chạy cả từ trạng thái app đã đóng
-- [ ] 2 animation dùng Reanimated chạy trên UI thread
-- [ ] **40+ đơn đã nộp**, có bảng theo dõi
-- [ ] **5 buổi phỏng vấn thử có ghi âm**, đã nghe lại và ghi cải thiện
-- [ ] `docs/interview-cheatsheet.md` — 1 trang
-- [ ] Con số lương tối thiểu viết ra giấy
-- [ ] 21 file ghi âm tiếng Anh
-- [ ] Commit đủ 21/21 ngày
+**Ghi âm mỗi ngày.** Đặt tên `2026-11-DD.m4a`.
 
 ---
 
-## 8. Điều cần nhớ suốt tháng này
+## 11. Định nghĩa hoàn thành — 30/11/2026
 
-Tháng 9 và 10 bạn kiểm soát được kết quả: viết code thì code chạy.
-
-**Tháng 11 thì không.** Bạn nộp 40 đơn và có thể chỉ 3 nơi trả lời. Đó không phải thước đo năng lực của bạn — đó là cách thị trường tuyển dụng vận hành, và nó luôn như vậy với mọi người.
-
-Thứ bạn kiểm soát được: nộp đủ số đơn, viết thư ứng tuyển tử tế, luyện nói cho trôi, giữ được nhịp ngủ và giờ với con.
-
-Làm đủ những thứ đó mỗi ngày. Kết quả là chuyện của xác suất và thời gian.
+- [ ] API Node chạy trên Render, có tên miền công khai
+- [ ] Postgres trên Neon, schema có migration, có index ở đúng chỗ
+- [ ] Ứng dụng mobile **không còn dùng Supabase client**
+- [ ] Đăng ký, đăng nhập, xoay refresh token, đăng xuất — tự viết hoàn toàn
+- [ ] Mật khẩu băm bằng argon2, không lưu token dạng thô
+- [ ] Bộ test backend chạy trên mọi PR, dùng nhánh DB riêng
+- [ ] Giới hạn tần suất, CORS, header bảo mật đầy đủ
+- [ ] Push notification gửi từ server của bạn, không qua dịch vụ trung gian
+- [ ] v2.0.0 lên TestFlight và Play Internal
+- [ ] `docs/api-design.md` — các quyết định và cái giá
+- [ ] CV có mục "Backend" với công nghệ cụ thể
+- [ ] Đã nhắn ít nhất 30 người, nộp ít nhất 12 đơn
 
 ---
 
-_Đọc file này trước khi mở file ngày._
+## 12. Cảnh báo — cái bẫy lớn nhất tháng này
+
+**Backend dễ gây nghiện hơn mobile.** Có vô số thứ để làm: microservice, Kubernetes, gRPC, event sourcing, CQRS. Đừng.
+
+Ba luật:
+
+1. **Một API đơn khối (monolith) là câu trả lời đúng** cho một sản phẩm có 5 người dùng. Nếu bạn tách microservice, người phỏng vấn giỏi sẽ hỏi *"vì sao"* và bạn không có câu trả lời thật.
+2. **Không thêm dịch vụ mới nếu Postgres làm được.** Hàng đợi? pg-boss. Tìm kiếm toàn văn? Postgres có sẵn. Cron? pg-boss hoặc GitHub Actions.
+3. **Không tối ưu thứ chưa đo.** Giống hệt bài học tháng 10.
+
+> Người phỏng vấn không ấn tượng vì bạn dùng nhiều công nghệ. Họ ấn tượng vì bạn **giải thích được vì sao không dùng** những thứ còn lại.
+
+---
+
+_Đọc file này trước khi mở bất kỳ file ngày nào của tháng 11._

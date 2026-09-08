@@ -1,11 +1,12 @@
 ---
-description: Thứ Tư 11/11/2026 — Tuần 11 Ngày 3. Nối push với deep link, chia sẻ link, và ma trận thử nghiệm đầy đủ.
+description: Thứ Tư 11/11/2026 — Tuần 11 Ngày 3. Transaction, N+1, và hai người cùng sửa một bản ghi.
 alwaysApply: false
 ---
 
-# Thứ Tư · 11/11/2026 · Tuần 11 — Ngày 48/61
+# Thứ Tư · 11/11/2026 · Tuần 11 — Ngày 48/82
 
-> Hai ngày qua làm push và deep link riêng lẻ. Hôm nay nối chúng lại — và đây là chỗ **ma trận trạng thái** nhân lên thành 9 tình huống phải thử.
+> Ba chủ đề hôm nay đều là câu hỏi phỏng vấn backend gần như chắc chắn có: **transaction**, **N+1**, và **tranh chấp ghi đồng thời**.
+> Không đọc định nghĩa. Gây ra từng vấn đề, nhìn nó hỏng, rồi sửa.
 
 ---
 
@@ -21,18 +22,18 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Bấm thông báo → mở đúng màn hình |
+| **08:30** | **KHỐI XÂY** — Transaction + gây ra bài toán N+1 |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Chia sẻ link + ma trận thử nghiệm |
+| **13:30** | **KHỐI HỌC** — Ghi đồng thời và khoá lạc quan |
 | 15:00 | Nghỉ 10 phút |
 | 15:10 | Tiếp tục |
 | **16:00** | **TÌM VIỆC** — nộp 3 đơn |
-| **16:30** | **TIẾNG ANH** — Nghe + chép chính tả |
-| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 7 |
+| **16:30** | **TIẾNG ANH** — Quyết định thiết kế |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -42,187 +43,202 @@ alwaysApply: false
 
 ---
 
-## KHỐI XÂY · 08:30–10:30 — Nối hai thứ lại
+## KHỐI XÂY · 08:30–10:30
 
-### 08:30–09:30 · Bấm thông báo mở đúng màn hình
+### 08:30–09:15 · Transaction — gây lỗi trước
 
-Payload push hôm thứ Hai đã có sẵn `data.screen`. Giờ dùng nó:
+Viết một thao tác cần hai lần ghi: xoá bữa ăn **và** ghi vào nhật ký kiểm toán.
 
 ```ts
-function useNotificationNavigation() {
-  const router = useRouter();
-  const { session, isLoading } = useSession();
-  const pending = useRef<string | null>(null);
-
-  // App đang mở hoặc ở nền
-  useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const screen = response.notification.request.content.data?.screen;
-      if (typeof screen === 'string') handle(screen);
-    });
-    return () => sub.remove();
-  }, [session, isLoading]);
-
-  // App đã đóng hẳn — thông báo đã khởi động app
-  useEffect(() => {
-    Notifications.getLastNotificationResponseAsync().then((response) => {
-      const screen = response?.notification.request.content.data?.screen;
-      if (typeof screen === 'string') handle(screen);
-    });
-  }, []);
-
-  function handle(screen: string) {
-    if (isLoading) { pending.current = screen; return; }   // giữ lại chờ auth
-    if (!session) { pending.current = screen; return; }    // giữ lại chờ đăng nhập
-    router.push(screen);
-  }
-
-  // xử lý link đang chờ khi có phiên
-  useEffect(() => {
-    if (session && pending.current) {
-      router.push(pending.current);
-      pending.current = null;
-    }
-  }, [session]);
+// SAI — không có transaction
+async function deleteMeal(userId: string, id: string) {
+  await db.delete(meals).where(eq(meals.id, id));
+  await db.insert(auditLog).values({ userId, action: 'delete_meal', mealId: id });
 }
 ```
 
-**Cùng một cơ chế "giữ lại chờ" như deep link hôm qua.** Nếu bạn thấy mình viết logic này lần thứ hai, đó là dấu hiệu nên gom vào một chỗ:
+Gây lỗi: đặt `throw new Error('bùm')` giữa hai dòng. Chạy. **Bữa ăn mất, nhật ký không có.** Dữ liệu bây giờ nói dối.
+
+Sửa:
 
 ```ts
-// src/shared/lib/pendingNavigation.ts — dùng chung cho cả push và deep link
+async function deleteMeal(userId: string, id: string) {
+  await db.transaction(async (tx) => {
+    const deleted = await tx.delete(meals)
+      .where(and(eq(meals.id, id), eq(meals.userId, userId)))
+      .returning();
+    if (deleted.length === 0) throw notFound('bữa ăn');       // ném ra = tự động rollback
+    await tx.insert(auditLog).values({ userId, action: 'delete_meal', mealId: id });
+  });
+}
 ```
 
-Giãn cơ 5 phút lúc 09:30.
+**Ba điều phải nói được:**
+1. Ném lỗi bên trong `transaction` sẽ **tự động rollback**. Không phải gọi rollback bằng tay.
+2. Phải dùng `tx`, không dùng `db` bên trong. Dùng nhầm `db` là câu lệnh đó **nằm ngoài transaction** — bug im lặng và rất khó tìm.
+3. Kiểm tra quyền sở hữu nằm trong chính câu `where`, không phải một truy vấn riêng trước đó. Truy vấn riêng tạo khe hở tranh chấp.
 
-### 09:30–10:30 · Ba nguồn điều hướng, một đường xử lý
+Điểm thứ ba tinh tế và là dấu hiệu của người đã làm thật.
 
-App giờ có ba nguồn có thể điều hướng từ bên ngoài:
-1. Deep link (`macrozone://meal/123`)
-2. Universal Link (`https://macrozone.app/meal/123`)
-3. Bấm push notification
+### 09:15–10:30 · N+1 — gây ra rồi sửa
 
-**Cả ba phải đi qua cùng một hàm xử lý.** Ba đường riêng là ba chỗ để lỗi ẩn nấp, và bạn sẽ chỉ sửa được một chỗ khi phát hiện bug.
+```ts
+// SAI — 1 truy vấn lấy users, rồi N truy vấn lấy meals
+const users = await db.select().from(users).limit(50);
+for (const u of users) {
+  u.meals = await db.select().from(meals).where(eq(meals.userId, u.id));
+}
+// 51 lần đi vòng tới database
+```
+
+Bật log SQL của Drizzle và **đếm số dòng**. Đây là lúc nhìn thấy vấn đề bằng mắt thay vì đọc về nó.
+
+Sửa bằng một truy vấn:
+
+```ts
+const rows = await db.select().from(users)
+  .leftJoin(meals, eq(meals.userId, users.id))
+  .limit(50);
+// rồi gom nhóm trong bộ nhớ
+```
+
+Đo cả hai bằng `console.time`. Với 50 người dùng qua mạng tới Neon, khác biệt thường là **hàng trăm mili giây**.
+
+> **Bạn đã biết bài toán này rồi.** Nó chính là việc gọi API trong vòng lặp ở client — thứ bạn tránh bằng cách gộp request. Cùng một bài toán, khác tầng. Nói ra liên hệ này khi phỏng vấn cho thấy bạn hiểu nguyên lý chứ không thuộc mẹo.
+
+Ghi con số vào `docs/database.md`.
 
 ```bash
-git add . && git commit -m "feat: gom điều hướng từ push và deep link về một đường"
+git add . && git commit -m "feat: transaction cho ghi nhiều bảng, sửa n+1 bằng join"
 ```
 
 ---
 
 ## KHỐI HỌC · 13:30–16:00
 
-### 13:30–14:15 · Chia sẻ link
+### 13:30–14:45 · Hai người cùng sửa một bản ghi
 
-Cho người dùng chia sẻ một bữa ăn:
+Đây là câu hỏi phỏng vấn số 2 trong bốn câu của tháng 12. Làm cho nó hỏng trước.
+
+**Tình huống:** người dùng mở app trên điện thoại và trên máy tính bảng. Cả hai sửa cùng một bữa ăn. Người sau ghi đè người trước mà không ai biết — **mất cập nhật**.
+
+Chạy thật bằng hai lệnh `curl` gần như cùng lúc, hoặc bằng `Promise.all` hai request `PATCH`.
+
+**Cách sửa: khoá lạc quan bằng cột version.**
+
+```sql
+alter table meals add column version int not null default 1;
+```
 
 ```ts
-await Share.share({
-  message: `Tôi vừa ghi ${meal.name} — ${meal.calories} kcal`,
-  url: `https://macrozone.app/meal/${meal.id}`,     // Universal Link
-});
+const [updated] = await db.update(meals)
+  .set({ ...input, version: sql`${meals.version} + 1` })
+  .where(and(
+    eq(meals.id, id),
+    eq(meals.userId, userId),
+    eq(meals.version, input.expectedVersion),      // mấu chốt nằm ở đây
+  ))
+  .returning();
+
+if (!updated) throw conflict('Bản ghi đã bị thay đổi ở nơi khác. Tải lại rồi thử lại.');
 ```
 
-**Vì sao chia sẻ phải dùng `https://` chứ không `macrozone://`:** người nhận có thể chưa cài app. Link `https://` mở web và ở đó bạn mời họ cài. Link `macrozone://` gửi cho người chưa cài app là một link chết hoàn toàn — họ bấm và không có gì xảy ra.
+Client gửi kèm `version` nó đang giữ. Nếu ai đó đã sửa trước, `version` không khớp, không có dòng nào được cập nhật, và bạn trả **409 Conflict**.
 
-Trang web cần một trang tối thiểu tại `/meal/:id`:
-- Nếu bữa ăn công khai: hiện thông tin cơ bản
-- Nút "Mở trong app" và nút tải app
-- Thẻ Open Graph để link hiện đẹp khi dán vào Zalo/Messenger
+**So sánh hai cách khoá:**
 
-### 14:15–15:00 · Ma trận thử nghiệm
+| | Lạc quan (version) | Bi quan (`SELECT FOR UPDATE`) |
+| --- | --- | --- |
+| Giả định | Xung đột hiếm | Xung đột thường xuyên |
+| Chi phí | Không khoá gì cả | Giữ khoá, request khác phải chờ |
+| Khi thất bại | Client phải thử lại | Client chờ rồi thành công |
+| Hợp với | **Ứng dụng người dùng** | Chuyển tiền, đặt chỗ có giới hạn |
 
-**Đây là phần quan trọng nhất hôm nay.** Ba trạng thái app × ba nguồn = 9 tình huống, cộng thêm trạng thái đăng nhập.
+**Chọn lạc quan cho app này**, vì hai người sửa cùng một bữa ăn trong cùng một giây gần như không xảy ra, và bạn không muốn giữ khoá database qua độ trễ mạng di động.
 
-Viết vào `docs/deep-linking.md`:
+Phía mobile: khi nhận 409, đừng hiện lỗi kỹ thuật. Tải lại bản ghi, cho người dùng thấy phiên bản mới, hỏi họ có muốn áp dụng thay đổi của mình không. Đây là cùng nguyên tắc xử lý xung đột bạn học hôm 27/10.
 
-```markdown
-## Test matrix
+Giãn cơ 5 phút lúc 14:45.
 
-| Source | App open | App backgrounded | App killed |
-|---|---|---|---|
-| Custom scheme | ☐ | ☐ | ☐ |
-| Universal Link | ☐ | ☐ | ☐ |
-| Push tap | ☐ | ☐ | ☐ |
+### 14:45–15:00 · Mức cô lập — đủ để trả lời phỏng vấn
 
-Each of the nine, twice: signed in, and signed out.
-Signed out must hold the target and navigate there after sign-in —
-not drop it and land on the home screen.
+Postgres mặc định `READ COMMITTED`. Bạn cần biết đúng ba điều:
 
-| Edge case | Expected |
-|---|---|
-| Malformed id | Error screen, no crash |
-| Someone else's meal id | "Not found" — RLS blocks the read |
-| Unknown route | In-app 404 |
-| Link tapped while offline | Screen opens from cache, or a clear offline message |
-```
+| Mức | Nghĩa | Khi nào cần |
+| --- | --- | --- |
+| `READ COMMITTED` | Chỉ thấy dữ liệu đã commit. Hai lần đọc trong cùng transaction có thể khác nhau | Mặc định, đủ cho 95% trường hợp |
+| `REPEATABLE READ` | Đọc lại luôn cho cùng kết quả | Báo cáo cần dữ liệu nhất quán |
+| `SERIALIZABLE` | Như thể các transaction chạy tuần tự | Ràng buộc tài chính. **Có thể lỗi và phải thử lại** |
 
-**Đi hết ma trận này bằng tay.** Mất khoảng 40 phút. Bạn sẽ tìm ra ít nhất hai lỗi — gần như chắc chắn ở cột "App killed" và ở hàng "signed out".
+**Câu trả lời trung thực khi được hỏi:** *"Em dùng mặc định READ COMMITTED và giải bài toán ghi đè bằng khoá lạc quan ở tầng ứng dụng. Em chưa gặp tình huống thật cần SERIALIZABLE — nếu gặp em biết nó buộc phải xử lý lỗi serialization và thử lại."*
+
+Trung thực về ranh giới mạnh hơn đọc thuộc định nghĩa.
 
 ### 15:00–15:10 · Nghỉ
 
-### 15:10–16:00 · Tự động hóa phần chính
+### 15:10–16:00 · Nối vào client
 
-Không tự động hóa được cả 9, nhưng ba cái quan trọng nhất thì được — thêm vào Maestro:
+Thêm `version` vào type `Meal`, gửi kèm khi `PATCH`, xử lý 409 bằng luồng tải lại và hỏi người dùng.
 
-```yaml
-# .maestro/04-deep-link-cold-start.yaml
-appId: com.truonghuunhan.macrozone
----
-- stopApp
-- openLink: "macrozone://meal/${MEAL_ID}"
-- assertVisible:
-    text: "Phở bò"
-    timeout: 15000
-```
-
-Ba luồng E2E của bạn giờ thành sáu. Chúng chạy hằng đêm qua GitHub Actions đã dựng hôm 28/10.
+Test tay: mở app trên hai thiết bị, sửa cùng một bữa ăn, xem thiết bị thứ hai xử lý ra sao.
 
 ```bash
-git add . && git commit -m "feat: chia sẻ universal link + e2e cho deep link"
+git add . && git commit -m "feat: khoá lạc quan bằng version, client xử lý 409"
 ```
 
 ---
 
 ## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
 
-Tổng đến giờ: khoảng 12 đơn.
+Trong thư xin việc, thêm một câu cụ thể về tuần này:
 
-**Nếu đã có buổi phỏng vấn được hẹn:** dành 30 phút này để chuẩn bị cho buổi đó thay vì nộp thêm. Đọc kỹ về công ty, chuẩn bị 3 câu hỏi để hỏi ngược lại họ.
+> *"Tuần này em vừa xử lý bài toán mất cập nhật khi hai thiết bị cùng sửa một bản ghi, bằng khoá lạc quan với cột version và trả 409 để client hoà giải. Code ở đây: [link]."*
 
----
-
-## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Nghe + chép chính tả
-
-### 16:30–16:45 · Chép chính tả
-
-60 giây. Nghe → chép → đối chiếu → khoanh chỗ sai.
-
-### 16:45–16:55 · Đọc to lại 3 lần, ghi âm
-
-### 16:55–17:00 · 5 từ nghe không ra
+Một câu cụ thể như vậy hơn hẳn một đoạn văn nói mình "đam mê công nghệ".
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Quyết định thiết kế
 
-**`qa-bank.mdc` — Topic 7 (Testing).**
+Nói to bằng tiếng Anh, ghi âm:
 
-Đây là topic thay đổi nhiều nhất. Câu trả lời cũ của bạn là *"Firegroup không có culture test mạnh, đây là honest gap."* Giờ bạn có 55+ test, 6 luồng E2E, và một tài liệu chiến lược. **Viết lại hoàn toàn topic này.**
+> *"I picked optimistic locking over pessimistic locking for concurrent edits.*
+> *The scenario is a user with the app open on a phone and a tablet, both editing the same meal. Without protection the second write silently overwrites the first — a lost update.*
+> *Optimistic means I don't lock anything. Every row has a version number, the client sends the version it's holding, and the update only applies if the version still matches. If it doesn't, nobody wins by accident — I return 409 and the client reconciles.*
+> *I chose that over SELECT FOR UPDATE for one specific reason: my clients are phones on mobile networks. A pessimistic lock would be held across network latency I don't control. If someone loses signal holding a lock, everyone else waits.*
+> *The tradeoff is that the client has to handle retry, which is more work on my side. I think that's the right trade when conflicts are rare."*
+
+**5 từ mới:**
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `lost update` | mất cập nhật | *That's a lost update.* |
+| `reconcile` (v) | hoà giải, dung hoà | *The client reconciles.* |
+| `hold a lock` | giữ khoá | *A lock held across network latency.* |
+| `silently overwrite` | ghi đè im lặng | *The second write silently overwrites the first.* |
+| `the right trade` | đánh đổi hợp lý | *I think that's the right trade.* |
+
+---
+
+## GHI CHÚ · 17:00–17:30
+
+Thêm vào `docs/database.md`:
+- Transaction: ba luật, kèm bẫy dùng nhầm `db` thay vì `tx`
+- N+1: con số đo được trước và sau
+- Khoá lạc quan vs bi quan, **lý do chọn liên quan tới mạng di động**
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] Bấm push mở đúng màn hình ở cả 3 trạng thái app
-- [ ] Ba nguồn điều hướng đi qua **một** hàm xử lý chung
-- [ ] Chia sẻ dùng `https://`, không dùng custom scheme
-- [ ] **Đã đi hết ma trận 9 tình huống bằng tay**
-- [ ] Trạng thái chưa đăng nhập: giữ được đích đến, không rơi mất
-- [ ] Ghi lại các lỗi tìm được và đã sửa
-- [ ] Thêm 3 luồng E2E cho deep link
-- [ ] Đã nộp 3 đơn
-- [ ] **Có commit hôm nay**
-- [ ] Chép chính tả + ghi âm `2026-11-11.m4a`
-- [ ] **Đã viết lại hoàn toàn Topic 7 trong `qa-bank.mdc`**
+- [ ] Đã **gây ra** lỗi ghi nửa chừng rồi mới sửa bằng transaction
+- [ ] Nói được vì sao dùng nhầm `db` thay `tx` là bug im lặng
+- [ ] Kiểm tra quyền sở hữu nằm trong `where`, không phải truy vấn riêng
+- [ ] Đã **đếm** số truy vấn N+1 bằng log, đo cả hai cách
+- [ ] Đã tái hiện được mất cập nhật bằng hai request cùng lúc
+- [ ] Khoá lạc quan chạy, trả 409 đúng
+- [ ] Client xử lý 409 bằng tải lại và hỏi, không hiện lỗi kỹ thuật
+- [ ] Nói được vì sao chọn lạc quan **vì client là điện thoại**
+- [ ] Đã nộp 3 đơn có câu cụ thể về tuần này
+- [ ] Ghi âm `2026-11-11.m4a`
 - [ ] 21:30 lên giường

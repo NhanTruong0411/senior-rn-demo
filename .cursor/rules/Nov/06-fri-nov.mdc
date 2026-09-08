@@ -1,11 +1,12 @@
 ---
-description: Thứ Sáu 06/11/2026 — Tuần 10 Ngày 5. Hoàn thiện tính năng AI, phát hành v1.2.0, tổng kết tuần.
+description: Thứ Sáu 06/11/2026 — Tuần 10 Ngày 5. Nối app mobile vào API thật cho một luồng hoàn chỉnh, tổng kết tuần đầu backend.
 alwaysApply: false
 ---
 
-# Thứ Sáu · 06/11/2026 · Tuần 10 — Ngày 45/61
+# Thứ Sáu · 06/11/2026 · Tuần 10 — Ngày 45/82
 
-> Khép lại tuần AI. Phát hành, viết lại, và **nhìn lại tuần đầu tiên vừa học vừa apply**.
+> Hôm nay lần đầu tiên bạn thấy **cả hai đầu do chính mình viết** nói chuyện với nhau.
+> Đây là khoảnh khắc chuyển từ "mobile dev đang học backend" sang "người làm được cả hệ thống".
 
 ---
 
@@ -21,227 +22,178 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Hoàn thiện và phát hành v1.2.0 |
+| **08:30** | **KHỐI XÂY** — Một luồng chạy trọn vẹn qua API của bạn |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Viết bài + tổng kết tuần |
+| **13:30** | **KHỐI HỌC** — Chia sẻ type + tổng kết tuần |
 | 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nhìn lại tuần đầu apply |
-| **16:30** | **TIẾNG ANH** — Nhìn lại tuần |
-| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 4 |
+| 15:10 | Tự chấm |
+| **16:00** | **TÌM VIỆC** — cập nhật CV theo tuần vừa học |
+| **16:30** | **TIẾNG ANH** — nghe lại 5 bản ghi |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
 | 20:30 | Thời gian với con |
 | 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ. **Nghỉ trọn vẹn T7 + CN** |
+| 21:30 | Ngủ |
 
 ---
 
-## KHỐI XÂY · 08:30–10:30 — Hoàn thiện và phát hành
+## KHỐI XÂY · 08:30–10:30 — Một luồng trọn vẹn
 
-### 08:30–09:30 · Kiểm tra tính năng AI trên bản build thật
+Chưa có database thật *(tuần sau)*. Hôm nay API vẫn giữ dữ liệu trong bộ nhớ — **và đó là chủ ý**. Bạn kiểm chứng hợp đồng giữa hai đầu trước, thêm database sau. Mỗi lần chỉ đổi một biến.
 
-Danh sách phải chạy đúng hết:
+### 08:30–09:30 · Luồng "thêm bữa ăn" đi qua API của bạn
 
-- [ ] Chat streaming trên máy thật, cả iOS lẫn Android
-- [ ] Phân tích bữa ăn từ câu tiếng Việt, có bước xem trước
-- [ ] Nhập bằng giọng nói
-- [ ] Vượt hạn mức ngày → thông báo tử tế, không phải lỗi thô
-- [ ] Mất mạng khi đang chat → báo lỗi, không mất tin nhắn đã gõ
-- [ ] Mô hình trả sai → đường lui thủ công vẫn dùng được
-- [ ] Không có `sk-` nào trong file APK
-- [ ] Không có crash mới trong Sentry
+Trong app mobile, đổi `useAddMeal` từ Supabase sang API của bạn:
+
+```ts
+export function useAddMeal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateMealInput) => api.post('v1/meals', { json: input }).json<Meal>(),
+    onMutate: async (input) => { /* cập nhật lạc quan — giữ nguyên từ 24/09 */ },
+    onError: (_e, _v, ctx) => { /* khôi phục ảnh chụp */ },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['meals'] }),
+  });
+}
+```
+
+**Chú ý phần cập nhật lạc quan không đổi gì cả.** Bạn đổi nguồn dữ liệu, không đổi kiến trúc. Đó là phần thưởng của việc tách lớp dữ liệu khỏi giao diện từ tháng 9.
 
 Giãn cơ 5 phút lúc 09:30.
 
-### 09:30–10:30 · Phát hành
+### 09:30–10:30 · Đi hết ba đường thất bại
+
+Đường thành công dễ. Ba đường này mới là chỗ hệ thống lộ ra:
+
+| Tình huống | Cách gây ra | Phải thấy gì |
+| --- | --- | --- |
+| Dữ liệu sai | Gửi `calories: -5` | 400, giao diện chỉ đúng ô sai, không sập |
+| Server chết | Tắt dịch vụ trên Render | Thông báo trung thực, dữ liệu vẫn còn trên máy |
+| Server chậm | Thêm `await sleep(10_000)` tạm thời | Client không treo mãi, có timeout, huỷ được |
+
+Tình huống thứ ba đáng làm kỹ. Thêm độ trễ giả vào một endpoint, xem client xử lý ra sao. Nếu vòng xoay quay vô tận thì bạn thiếu timeout.
 
 ```bash
-npm run verify && npm run test:e2e
-git checkout main && git merge feat/ai-assistant feat/edit-meal
-npm version minor          # 1.1.0 → 1.2.0
-git push --follow-tags
+git add . && git commit -m "feat: thêm bữa ăn chạy qua api riêng, xử lý 3 đường thất bại"
 ```
-
-Ghi chú phát hành:
-
-```markdown
-# v1.2.0 — 6 November 2026
-
-## Added
-- Natural language meal entry — describe what you ate and confirm the breakdown
-- Voice input
-- Nutrition assistant chat
-- Edit saved meals, works offline
-
-## Notes
-The model key never reaches the device. All model calls go through an
-authenticated Edge Function with per-user daily rate limiting.
-```
-
-Pipeline dựng hôm 29/10 lo phần còn lại.
 
 ---
 
 ## KHỐI HỌC · 13:30–16:00
 
-### 13:30–14:45 · Viết bài kỹ thuật thứ hai
+### 13:30–14:15 · Chia sẻ type giữa hai repo
 
-`docs/shipping-an-ai-feature.md`, tiếng Anh, 800–1200 từ.
+Bạn có `Meal` định nghĩa ở hai nơi. Chúng sẽ lệch nhau — chỉ là vấn đề thời gian.
 
-Dàn bài:
+Ba cách, chọn cái đơn giản nhất cho tháng này:
 
-```markdown
-# Shipping an AI feature in a React Native app
+| Cách | Công sức | Khi nào hợp |
+| --- | --- | --- |
+| Sao chép tay | Thấp | Một người viết, đổi ít |
+| Script đồng bộ khi build | Trung bình | **Chọn cái này tháng 11** |
+| Package npm dùng chung / monorepo | Cao | Có đội, hoặc từ tháng 12 |
 
-## The obvious mistake I didn't make
-[Key on the server. Why every client-side option fails. The APK grep.]
+Script đơn giản:
 
-## Structured output beats free text
-[Zod schema, .describe(), the confidence field]
-
-## The design decision that matters most
-[Nothing saves automatically. Preview and confirm. Graceful degradation.]
-
-## What it costs
-[Token counts, the model comparison, why the cheaper model won]
-
-## Where I deliberately didn't use a model
-[Arithmetic, comparisons, the suggestions feature I cut]
-
-## What I'd do differently
-[Be honest]
+```json
+"scripts": {
+  "sync:types": "cp -r ../macrozone-api/src/schemas ./src/shared/"
+}
 ```
 
-**Phần "chỗ tôi cố tình không dùng AI" là phần khiến bài này khác mọi bài AI khác trên mạng.** Đưa nó lên đủ cao trong bài để người đọc lướt cũng thấy.
+Chạy nó trong CI của app mobile và **báo lỗi nếu có khác biệt chưa commit**. Như vậy sự lệch bị bắt ở PR chứ không bị bắt ở sản xuất.
 
-### 14:45–15:00 · Cập nhật README và CV
+> Đây là một ví dụ hay về nguyên tắc "làm cho trạng thái sai không biểu diễn được". Bạn không dựa vào kỷ luật của bản thân để nhớ đồng bộ — bạn để CI thất bại.
 
-README:
+### 14:15–15:00 · Tổng kết Tuần 10
 
-```markdown
-## AI features
+Bốn ngày, tự chấm 1–5:
 
-Natural language meal entry and a nutrition assistant, backed by an
-authenticated Supabase Edge Function — the model key never reaches the device,
-verified by inspecting the built APK.
+| Mục | Điểm | Ghi chú |
+| --- | --- | --- |
+| Giải thích được event loop và hệ quả của việc chặn nó | | |
+| Thiết kế được bảng endpoint kèm lý do từng mã trạng thái | | |
+| Nói được vì sao tách route khỏi service | | |
+| Triển khai được và đọc được log sản xuất | | |
+| Truy được một request từ lỗi trên máy về đúng dòng log | | |
+| Nói được lý do **thật** khi chọn Fastify | | |
 
-Parses use structured output validated against the same Zod schema as the
-manual form, and always produce a preview the user confirms rather than
-writing directly. Cost analysis and the reasoning for what is deliberately
-**not** AI-powered: [docs/ai-feature.md](docs/ai-feature.md)
-```
+**Ba câu tự trả lời, viết ra:**
+1. Điều gì về backend khác với tưởng tượng của tôi trước tuần này?
+2. Chỗ nào tôi thấy dễ hơn dự kiến vì đã biết TypeScript và HTTP từ phía client?
+3. Chỗ nào tôi vẫn chưa thật sự hiểu, chỉ đang làm theo?
 
-CV — thêm một dòng:
-
-```
-• Shipped AI-assisted meal entry: structured output validated with Zod,
-  server-side key handling, per-user rate limiting, and a documented
-  cost/model trade-off. Every result passes through user confirmation.
-```
+Câu số 3 là câu quan trọng nhất. Ghi lại, nó là danh sách phải quay lại.
 
 ### 15:00–15:10 · Nghỉ
 
-### 15:10–16:00 · Tổng kết tuần 10
+### 15:10–16:00 · Đọc lại code của chính mình
 
-```text
-## Tổng kết tuần 10 (02–06/11) — AI
+Mở `git diff` toàn tuần. Đọc như đang review PR của người khác.
 
-- [ ] Edge Function proxy, key an toàn, đã kiểm chứng bằng cách grep APK
-- [ ] Chat streaming chạy trên cả 2 nền tảng
-- [ ] Phân tích ngôn ngữ tự nhiên có xem trước và sửa được
-- [ ] Giới hạn tần suất + đệm kết quả
-- [ ] Tài liệu "chỗ tôi không dùng AI"
-- [ ] Quy trình làm việc với AI + checklist review
-- [ ] v1.2.0 đã phát hành
-- [ ] Bài kỹ thuật thứ hai viết xong
+Tìm ba thứ:
+- Chỗ nào có logic nghiệp vụ lọt vào route?
+- Chỗ nào bắt lỗi rồi nuốt im lặng?
+- File nào đã vượt 200 dòng?
 
-Câu hỏi tự trả lời:
-- Tôi giải thích được vì sao không để key trong app không? __
-- Tôi kể được chỗ tôi cố tình KHÔNG dùng AI không? __
-- Tôi nói được chi phí mỗi lần gọi không? __
+Sửa ngay hôm nay, đừng để sang tuần.
 
-Số ngày có commit: ___/5
+---
+
+## TÌM VIỆC · 16:00–16:30 — Cập nhật CV
+
+Thêm vào phần dự án:
+
+```
+Backend (Node.js) — từ 11/2026
+- API REST bằng Fastify + TypeScript, Zod kiểm tra ở biên, lỗi có cấu trúc
+- Triển khai Render, log JSON có request ID truy được, tắt tử tế
+- Kiến trúc route/service/repo — service không phụ thuộc HTTP, test được độc lập
 ```
 
----
-
-## TÌM VIỆC · 16:00–16:30 — Nhìn lại tuần đầu
-
-```text
-## Tuần apply thứ 1 (02–06/11)
-
-Đơn đã nộp:              ___  (mục tiêu 6)
-Người đã nhắn:           ___  (mục tiêu 2)
-Phản hồi nhận được:      ___
-Phỏng vấn được hẹn:      ___
-Tỷ lệ phản hồi:          ___%
-
-Thư ứng tuyển nào tôi thấy tự tin nhất? Vì sao?
-
-Có công ty nào tôi ngại nộp vì "chưa đủ giỏi" không?
-→ Nộp tuần sau. Không có ngày "đủ giỏi".
-
-Cần đổi gì tuần sau:
-```
-
-> **Về tỷ lệ phản hồi.** Tỷ lệ 5–10% là bình thường ở thị trường này, kể cả với ứng viên mạnh. Nộp 6 đơn mà không ai trả lời trong tuần đầu **không nói lên điều gì về bạn** — nó chỉ là cỡ mẫu quá nhỏ.
->
-> Sáu tháng qua bạn nộp 100 đơn với một CV không có gì để chỉ vào. Bây giờ bạn có một app trên hai cửa hàng, một native module tự viết, một pipeline CI/CD, và ba bài viết kỹ thuật. Nguyên liệu đã khác hẳn. Cứ giữ nhịp.
+**Cập nhật CV mỗi tuần, không đợi cuối tháng.** Việc viết ra ép bạn diễn đạt cái vừa làm, và đó cũng chính là luyện trả lời phỏng vấn.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nhìn lại tuần
+## TIẾNG ANH · 16:30–17:00 — Nghe lại 5 bản ghi
 
-### 16:30–16:40 · Shadowing
+Nghe `2026-11-02` đến `2026-11-06`.
 
-### 16:40–17:00 · Nói to có ghi âm — 3 phút
-
-> **1. What I did**
-> *"AI week. I built natural language meal entry and an assistant chat, both behind an authenticated Edge Function so the model key never reaches the device."*
->
-> **2. The decision I'd defend hardest**
-> *"Nothing saves automatically. The parse produces a preview the user confirms. The model is guessing at portion sizes and the user actually knows — and it means if the model fails, they just use the form, which is what they did before. The feature is an accelerator, not a dependency."*
->
-> **3. What I chose not to do**
-> *"I deliberately didn't use a model for anything deterministic. Summing calories is arithmetic. Using a non-deterministic, paid, slower tool for that would be a downgrade. I wrote that down, because I think knowing where not to use something is part of knowing how to use it."*
->
-> **4. Next week**
-> *"Push notifications and deep linking. Real push through FCM and APNs, and links that open the right screen even from a cold start."*
-
-**Kiêm buổi họp một mình.** Tuần này thêm một câu hỏi: việc bắt đầu apply có làm tôi lo lắng nhiều hơn không? Nếu có, đó là bình thường — nhưng đừng để nó ăn vào giờ ngủ.
+Ghi ba điều:
+1. Từ vựng backend nào tôi dùng được tự nhiên rồi:
+2. Chỗ nào tôi còn phải dịch trong đầu trước khi nói:
+3. Một câu tôi sẽ dùng nguyên văn trong phỏng vấn thật:
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## GHI CHÚ · 17:00–17:30
 
-**`qa-bank.mdc` — Topic 4 (Navigation).**
-
-Tuần sau bạn làm deep linking, nên đọc trước topic này rồi tuần sau quay lại sửa cho khớp thực tế.
+`docs/api-design.md` phải xong bốn mục sau tuần này:
+- Vì sao viết backend riêng, và cái giá phải trả
+- Bảng endpoint kèm lý do từng mã trạng thái
+- Năm sai lầm API tôi từng phải chịu và cách tôi tránh
+- Ràng buộc của bậc miễn phí và cách thiết kế quanh nó
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] Toàn bộ tính năng AI chạy đúng trên bản build thật
-- [ ] v1.2.0 phát hành qua pipeline
-- [ ] Bài kỹ thuật thứ hai viết xong
-- [ ] README và CV đã cập nhật
-- [ ] Điền xong tổng kết tuần 10
-- [ ] **Điền xong bảng nhìn lại tuần apply đầu tiên**
-- [ ] **Có commit hôm nay** — 45/45 ngày làm việc
-- [ ] Ghi âm `2026-11-06.m4a`
-- [ ] Đã đọc Topic 4 trong `qa-bank.mdc`
+- [ ] Thêm bữa ăn chạy trọn vẹn qua API của bạn trên máy thật
+- [ ] Đã thử cả ba đường thất bại: dữ liệu sai, server chết, server chậm
+- [ ] Client **không** treo vô tận khi server chậm
+- [ ] Script đồng bộ type chạy được, CI bắt được lệch
+- [ ] Tổng kết Tuần 10 xong, **có trả lời câu "chỗ nào tôi chỉ làm theo"**
+- [ ] Đã đọc lại toàn bộ diff của tuần, sửa chỗ gợn
+- [ ] CV đã thêm mục Backend
+- [ ] Đã nghe lại 5 bản ghi
+- [ ] 21:30 lên giường
 
 ---
 
-## Cuối tuần 07–08/11: NGHỈ HOÀN TOÀN
-
-Không mở email tuyển dụng. Không kiểm tra LinkedIn. Nhà thờ, gia đình, ngủ.
-
-**Đây là điều khó nhất của tháng 11:** khi đang chờ phản hồi, rất khó không kiểm tra điện thoại mỗi 20 phút. Nhưng kiểm tra không làm email đến nhanh hơn — nó chỉ lấy mất ngày cuối tuần của bạn và của con gái bạn.
+> Tuần sau là tuần khó nhất tháng: SQL và thiết kế cơ sở dữ liệu. Đây là chỗ mobile developer thường hổng nhất, và cũng là chỗ SQL đứng hạng 3 trong 20 kỹ năng được tìm nhiều nhất ở Việt Nam.

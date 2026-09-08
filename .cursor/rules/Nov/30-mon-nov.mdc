@@ -1,12 +1,12 @@
 ---
-description: Thứ Hai 30/11/2026 — Ngày cuối cùng. Tổng kết 90 ngày, viết lại hồ sơ lần cuối, và quyết định tháng 12 làm gì.
+description: Thứ Hai 30/11/2026 — Tuần 14 Ngày 1. Hàng đợi việc với pg-boss — thử lại, hàng đợi chết, và vì sao không dùng setTimeout.
 alwaysApply: false
 ---
 
-# Thứ Hai · 30/11/2026 · Ngày 61/61
+# Thứ Hai · 30/11/2026 · Tuần 14 — Ngày 61/82
 
-> **Ngày cuối cùng của chương trình.**
-> Hôm nay không học gì mới. Hôm nay bạn nhìn lại xem mình đã đi được bao xa, sửa hồ sơ lần cuối, và quyết định tháng 12 sống thế nào.
+> Đây là ngày mở đầu tháng 12 về mặt nội dung *(tuần 14 bắt đầu hôm nay)*.
+> Câu hỏi hôm nay: **việc gì đó phải xảy ra, nhưng không phải bây giờ và không phải trong request này.** Bạn để nó ở đâu?
 
 ---
 
@@ -22,18 +22,18 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **TỔNG KẾT 90 NGÀY** |
+| **08:30** | **KHỐI XÂY** — pg-boss, việc đầu tiên chạy nền |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **VIẾT LẠI CV LẦN CUỐI** |
+| **13:30** | **KHỐI HỌC** — Thử lại, tính bình phương, hàng đợi chết |
 | 15:00 | Nghỉ 10 phút |
-| 15:10 | **Kế hoạch tháng 12** |
-| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
-| **16:30** | **TIẾNG ANH** — bản giới thiệu cuối cùng |
-| **17:00** | **ĐỌC SÁCH** — viết thư cho chính mình |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nhắn 3 người quen *(ưu tiên cao từ tháng này)* |
+| **16:30** | **TIẾNG ANH** — Standup |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -43,154 +43,214 @@ alwaysApply: false
 
 ---
 
-## TỔNG KẾT 90 NGÀY · 08:30–10:30
+## KHỐI XÂY · 08:30–10:30
 
-### 08:30–09:30 · Kiểm kê những gì đã có thật
+### 08:30–09:00 · Vì sao không dùng `setTimeout`
 
-Mở từng thứ ra và xác nhận nó tồn tại. Không tick từ trí nhớ.
+Hôm 19/11 bạn gửi email đặt lại mật khẩu bằng cách gọi hàm rồi không chờ. Nó chạy được. Nó cũng sai. Đây là lý do:
 
-**Sản phẩm:**
-- [ ] Ứng dụng trên TestFlight — số bản build: __
-- [ ] Ứng dụng trên Google Play Internal Testing
-- [ ] Số người dùng thật: __
-- [ ] Phiên bản hiện tại: v1.4.x
-
-**Kỹ thuật:**
-- [ ] TurboModule tự viết, cả Kotlin và Swift
-- [ ] Cùng một module viết lại bằng Expo Modules API để so sánh
-- [ ] Bộ test: __ unit · __ component · __ E2E Maestro
-- [ ] Đường ống CI/CD: kiểm tra chất lượng khi mở PR, OTA khi merge, build kho khi gắn tag
-- [ ] Ghi và đọc khi mất mạng, có hàng đợi bền vững
-- [ ] Tính năng AI có khóa ở phía máy chủ, giới hạn tần suất, đường lui nhập tay
-- [ ] Thông báo đẩy + deep link, đã kiểm đủ 9 tình huống
-- [ ] Animation trên UI thread, cử chỉ tự viết
-
-**Bằng chứng:**
-- [ ] Ba bài viết kỹ thuật
-- [ ] `docs/` có: `new-architecture.md`, `testing-strategy.md`, `perf-notes.md`, `performance-budget.md`, `notifications.md`, `ai-feature.md`, `ai-workflow.md`, `animations.md`, `user-feedback.md`
-- [ ] Lịch sử commit đều đặn từ 07/09
-- [ ] 61 bản ghi âm tiếng Anh
-
-**Ba tháng trước, không có mục nào trong danh sách này tồn tại.**
-
-### 09:30–10:30 · Nhìn lại sáu lỗ hổng
-
-Mở mục 11 trong `coding-context.mdc`. Với mỗi lỗ hổng, viết lại câu trả lời cho hôm nay:
-
-| Lỗ hổng tháng 9 | Câu trả lời tháng 11 |
+| Cách làm | Hỏng ở đâu |
 | --- | --- |
-| Chưa native sâu | *"Em đã tự viết TurboModule cả hai nền tảng, hiểu Codegen và nạp lười. Ranh giới còn lại: chưa làm ứng dụng native thuần."* |
-| Chưa GraphQL | *(vẫn còn — và không sao)* |
-| Chưa test rigorous | *"Em có __ test, dùng RNTL theo hướng người dùng, MSW để giả API, Maestro cho E2E, chạy tự động khi mở PR."* |
-| Chưa Reanimated / Gesture sâu | *"Em tự viết pan gesture xử lý xung đột, và em dựng thí nghiệm chặn JS thread để chứng minh vì sao phải chạy trên UI thread."* |
-| Chưa CI/CD | *"Em dựng GitHub Actions đầy đủ: kiểm tra chất lượng, chặn OTA khi có thay đổi native, build kho theo tag."* |
-| Tiếng Anh nói dưới áp lực | *(nghe bản ghi rồi tự chấm — thật lòng)* |
+| `sendEmail()` không `await` | Tiến trình khởi động lại là mất luôn. Thất bại thì không ai biết |
+| `setTimeout` 5 phút | Render tái khởi động sau 15 phút không dùng — hẹn giờ biến mất |
+| Vòng lặp trong bộ nhớ | Hai instance thì chạy hai lần |
+| **Hàng đợi trong database** | Sống sót qua khởi động lại, có thử lại, có nhật ký |
 
-**Bốn trong sáu lỗ hổng đã lấp trong 90 ngày. Hai cái còn lại vẫn là ranh giới thật, và bạn nói ra được nó một cách bình thản.** Đó là kết quả tốt.
+Nguyên tắc: **nếu việc đó quan trọng, nó phải nằm trong bộ nhớ bền chứ không nằm trong RAM.** Một tiến trình có thể chết bất cứ lúc nào — trên bậc miễn phí thì gần như chắc chắn sẽ chết.
+
+Đây cũng chính là lý do bạn xây hàng đợi ghi ngoại tuyến ở phía mobile hôm 27/10 và lưu nó xuống đĩa thay vì giữ trong state. **Cùng một bài toán, khác phía.** Nói ra được sự đối xứng này khi phỏng vấn là một điểm cộng thật.
+
+### 09:00–10:30 · pg-boss
+
+```bash
+npm i pg-boss
+```
+
+**Vì sao chọn pg-boss chứ không phải BullMQ:** BullMQ cần Redis. Bạn đã có Postgres. Thêm một dịch vụ nữa là thêm một thứ có thể sập, thêm một thứ phải theo dõi, và với khối lượng công việc của bạn thì Postgres thừa sức. Chọn ít bộ phận chuyển động hơn khi chưa có lý do bắt buộc.
+
+*(Nếu người phỏng vấn hỏi khi nào đổi sang BullMQ: khi khối lượng việc bắt đầu cạnh tranh tài nguyên với truy vấn phục vụ người dùng. Với vài nghìn việc mỗi ngày thì chưa tới.)*
+
+```ts
+// src/jobs/index.ts
+export const boss = new PgBoss({ connectionString: env.DATABASE_URL, schema: 'pgboss' });
+
+await boss.start();                       // tự tạo bảng ở lần chạy đầu
+
+await boss.work('send-email', { batchSize: 5 }, async ([job]) => {
+  await resend.emails.send(job.data);     // ném lỗi = pg-boss tự thử lại
+});
+```
+
+Chuyển email đặt lại mật khẩu sang hàng đợi:
+
+```ts
+// Trước:  void sendPasswordReset(email, token);
+await boss.send('send-email', { to: email, template: 'reset', token });
+```
+
+Endpoint bây giờ trả lời trong vài mili giây thay vì chờ nhà cung cấp email. Người dùng thấy nhanh hơn, và nếu Resend đang sập thì việc vẫn nằm đó chờ thử lại — không mất.
+
+**Một tính chất của pg-boss đáng chú ý:** vì hàng đợi nằm trong chính Postgres, bạn có thể **đưa việc vào hàng đợi bên trong transaction**. Nếu transaction rollback, việc cũng biến mất. Với BullMQ trên Redis bạn không làm được điều đó — bạn có thể lưu database thất bại mà email vẫn gửi đi.
+
+Đây là một trong những lập luận kỹ thuật sắc nhất bạn có thể đưa ra về lựa chọn công nghệ. Ghi lại.
+
+```bash
+git add . && git commit -m "feat: hàng đợi việc pg-boss, chuyển gửi email sang chạy nền"
+```
 
 ---
 
-## VIẾT LẠI CV LẦN CUỐI · 13:30–16:00
+## KHỐI HỌC · 13:30–16:00
 
-### 13:30–14:30 · Phần tóm tắt đầu CV
+### 13:30–14:30 · Thử lại đúng cách
 
-Ba câu, không hơn. Đây là thứ duy nhất chắc chắn được đọc.
+Thử lại là nơi hàng đợi hoặc cứu bạn hoặc phá bạn.
 
-> *"React Native developer, 3 năm kinh nghiệm sản phẩm. Gần nhất tự xây và phát hành một ứng dụng theo dõi dinh dưỡng lên TestFlight và Google Play — gồm TurboModule tự viết cho cả hai nền tảng, bộ test tự động, và đường ống CI/CD. Mạnh nhất ở hiệu năng và chất lượng kỹ thuật: từng giảm bundle sản phẩm từ 45MB xuống 28MB."*
-
-**Mỗi câu đều kiểm chứng được.** Không có tính từ rỗng như "đam mê", "năng động", "học hỏi nhanh".
-
-### 14:30–15:00 · Phần dự án cá nhân
-
-Đưa lên **ngay dưới phần tóm tắt**, trên cả phần kinh nghiệm làm việc. Với hoàn cảnh của bạn, đây là bằng chứng mạnh nhất — đừng chôn nó ở cuối trang hai.
-
+```ts
+await boss.send('send-email', data, {
+  retryLimit: 5,
+  retryDelay: 30,           // giây
+  retryBackoff: true,       // 30s → 60s → 120s → 240s → 480s
+  expireInMinutes: 15,      // quá lâu coi như thất bại, không treo mãi
+});
 ```
-MacroZone — ứng dụng theo dõi dinh dưỡng (9/2026 – nay)
-Cá nhân · React Native, Expo, TypeScript, Supabase · [link tải] · [github]
 
-- Phát hành lên TestFlight và Play Internal Testing, __ người dùng thật
-- Viết TurboModule (Kotlin + Swift) theo kiến trúc mới, có Codegen và nạp lười
-- __ test tự động (Jest, RNTL, MSW, Maestro), chạy khi mở mọi PR
-- CI/CD với GitHub Actions: OTA khi merge, build kho theo tag, có chặn OTA khi thay đổi native
-- Ghi khi mất mạng với hàng đợi bền vững, dùng UUID phía máy khách để bảo đảm bất biến
-- Tính năng AI với khóa ở phía máy chủ và giới hạn tần suất, chi phí $__/tháng
+**Tính bình phương quan trọng vì:** nếu dịch vụ email đang quá tải, thử lại ngay lập tức làm nó tệ hơn. Bạn góp phần vào sự cố mà mình đang cố vượt qua. Lùi dần cho bên kia thời gian hồi phục.
+
+Đây đúng là logic thử lại bạn cấu hình cho TanStack Query ở tháng 10. **Cùng nguyên tắc, cả hai phía.**
+
+**Nhưng luật quan trọng nhất là:** đừng thử lại thứ sẽ không bao giờ thành công.
+
+| Lỗi | Thử lại? |
+| --- | --- |
+| Hết thời gian mạng | Có |
+| Nhà cung cấp trả 500 | Có |
+| 429 quá tần suất | Có, lùi lâu hơn |
+| **Email sai định dạng** | **Không** — thử 5 lần vẫn sai |
+| **Khoá API không hợp lệ** | **Không** — cần người sửa |
+
+```ts
+class PermanentError extends Error {}
+
+await boss.work('send-email', async ([job]) => {
+  try {
+    await resend.emails.send(job.data);
+  } catch (e) {
+    if (isPermanent(e)) {
+      await boss.fail(job.id, { reason: 'permanent', error: String(e) });
+      return;                       // không thử lại
+    }
+    throw e;                        // thử lại
+  }
+});
 ```
+
+Đây chính là nguyên tắc phân biệt lỗi tạm thời và lỗi vĩnh viễn bạn đã dùng hôm 26/11 với biên nhận push. Bạn đang thấy cùng một khuôn mẫu xuất hiện ở chỗ thứ ba.
+
+Giãn cơ 5 phút lúc 14:30.
+
+### 14:30–15:00 · Hàng đợi chết và tính bình thản
+
+**Hàng đợi chết** *(dead letter queue)* là nơi việc thất bại hết số lần thử được chuyển tới. Không có nó, việc hỏng biến mất lặng lẽ và bạn không bao giờ biết.
+
+```ts
+await boss.work('__state__completed__send-email', async ([job]) => {
+  if (job.data.state === 'failed') {
+    logger.error({ jobId: job.data.id, output: job.data.output }, 'việc thất bại hẳn');
+    Sentry.captureMessage('Job failed permanently', { extra: job.data });
+  }
+});
+```
+
+**Tính bình thản** *(idempotency)* — bắt buộc, không phải tuỳ chọn. Một việc **có thể chạy hai lần**: tiến trình chết sau khi gửi email nhưng trước khi đánh dấu xong. Đó không phải giả thuyết, đó là chuyện thường xuyên trên bậc miễn phí.
+
+Cách xử lý là dùng khoá duy nhất:
+
+```ts
+await boss.send('send-email', data, {
+  singletonKey: `reset:${userId}:${tokenId}`,   // trùng khoá thì bỏ qua
+});
+```
+
+Bạn đã gặp khái niệm này hôm 10/11 với `client_id` khi ghi bữa ăn. **Lần thứ ba cùng một ý tưởng: làm sao để chạy hai lần cũng vô hại.**
+
+Khi phỏng vấn, nếu bạn chỉ ra được rằng bạn nhận diện cùng một khuôn mẫu ở ba tầng khác nhau *(ghi dữ liệu, gửi push, chạy việc nền)*, đó là dấu hiệu bạn tư duy theo nguyên tắc chứ không theo công thức.
 
 ### 15:00–15:10 · Nghỉ
 
-### 15:10–16:00 · Kế hoạch tháng 12
+### 15:10–16:00 · Tự làm hỏng để kiểm chứng
 
-Chương trình này kết thúc hôm nay. Nếu chưa có việc, ngày mai bạn vẫn phải dậy lúc 4:30. **Cấu trúc phải đổi, vì mục tiêu đã đổi.**
+Đừng tin hàng đợi trước khi phá nó:
 
-**Phân bổ tháng 12 — đảo ngược so với tháng 9:**
+| Thử nghiệm | Phải xảy ra gì |
+| --- | --- |
+| Đưa 20 việc vào rồi giết tiến trình | Khởi động lại, cả 20 vẫn chạy xong |
+| Cho worker ném lỗi 3 lần rồi thành công | Thử lại có giãn cách, cuối cùng thành công |
+| Cho worker luôn thất bại | Sau 5 lần, vào hàng đợi chết, có báo Sentry |
+| Gửi 2 việc cùng `singletonKey` | Chỉ chạy một |
+| Gửi việc bên trong transaction rồi rollback | **Việc biến mất** |
 
-| Khối | Tháng 9 | Tháng 12 |
+Hàng cuối là hàng thú vị nhất và là hàng bạn nên kể lại.
+
+Tạo một trang quản trị nhỏ *(một endpoint JSON là đủ)*: bao nhiêu việc đang chờ, đang chạy, đã thất bại. Không nhìn thấy thì không quản được.
+
+```bash
+git add . && git commit -m "feat: thử lại có giãn cách, hàng đợi chết, việc bình thản"
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30 — Ưu tiên cao
+
+Từ tháng 12 khối này **không được bỏ**. Hôm nay nhắn 3 người quen. Dùng mẫu tin ở mục 7 của `Dec/00-context-dec.mdc`.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Standup
+
+> *"Today I moved email out of the request path and into a job queue.*
+> *I'm using pg-boss, which runs on Postgres rather than Redis. I already have Postgres, and adding Redis means adding something else that can go down. But there's a better reason: because the queue lives in the same database, I can enqueue a job inside a transaction. If the transaction rolls back, the job disappears with it. With a Redis queue you can have the database write fail and the email still go out.*
+> *The part I spent most time on was retries. Exponential backoff, because retrying immediately against an overloaded provider makes the outage worse. And a hard rule: don't retry what can never succeed. A malformed email address will still be malformed on the fifth attempt — that goes straight to the dead letter queue.*
+> *Jobs also have to be idempotent, because a process can die after sending the email but before marking the job done. That's the third place this month I've had to make an operation safe to run twice — offline writes, push receipts, and now background jobs. Same idea each time."*
+
+Câu cuối là câu mạnh nhất. Nhận ra một khuôn mẫu lặp lại là dấu hiệu của người hiểu, không phải người thuộc.
+
+**5 từ mới:**
+
+| Từ / cụm | Nghĩa | Câu mẫu |
 | --- | --- | --- |
-| 08:30–10:30 | Xây | **Tìm việc** — nộp đơn, nhắn người, chuẩn bị riêng cho từng chỗ |
-| 13:30–16:00 | Học | **Chuẩn bị phỏng vấn** cho các buổi sắp tới, hoặc bảo trì dự án |
-| 16:00–16:30 | Tìm việc | Đọc và ghi chú kỹ thuật |
-| 16:30–17:00 | Tiếng Anh | Tiếng Anh *(giữ nguyên)* |
-
-**Vì sao đảo:** ba tháng qua bạn xây năng lực. Bây giờ nút thắt không còn là năng lực nữa — mà là số lượng cuộc trò chuyện bạn có với người tuyển dụng. Việc học thêm một công nghệ nữa không làm tăng số đó.
-
-**Ba quy tắc cho tháng 12:**
-
-1. **Mỗi ngày ít nhất một hành động hướng ra ngoài** — một đơn, một tin nhắn, một lần theo dõi lại. Không có ngày nào chỉ code.
-2. **Dự án ở chế độ bảo trì.** Sửa lỗi khi người dùng báo. Không thêm tính năng mới trừ khi có lý do rõ. Cám dỗ lớn nhất tháng 12 là trốn vào code vì code dễ chịu hơn bị từ chối.
-3. **Xem lại vào 15/12.** Nếu vẫn chưa có phỏng vấn nào, thứ cần đổi không phải là học thêm — mà là cách tiếp cận: mở rộng vùng địa lý, xét công ty gia công, hạ khoảng lương, hoặc nhờ giới thiệu trực tiếp thay vì nộp lạnh.
-
-**Về mặt tài chính và tinh thần:** sáu tháng đã dài, và tháng 12 có thể thành tháng thứ bảy. Nếu đến giữa tháng 12 áp lực tiền bạc thành thật sự nghiêm trọng, nhận một công việc dưới mong muốn **không phải là thất bại** — đó là một quyết định hợp lý, và bạn vẫn có thể tiếp tục tìm chỗ tốt hơn khi đã có thu nhập. Quyết định đó nên được cân nhắc lúc bình tĩnh, giống như con số rời bàn.
+| `the request path` | đường đi của request | *I moved email out of the request path.* |
+| `roll back` | quay lui giao dịch | *If the transaction rolls back, the job disappears.* |
+| `make the outage worse` | làm sự cố tệ hơn | *Retrying immediately makes the outage worse.* |
+| `dead letter queue` | hàng đợi chết | *That goes straight to the dead letter queue.* |
+| `safe to run twice` | chạy hai lần vẫn an toàn | *Make the operation safe to run twice.* |
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+## GHI CHÚ · 17:00–17:30
 
-Hôm nay dùng phần tóm tắt CV mới.
-
----
-
-## TIẾNG ANH · 16:30–17:00 — Bản giới thiệu cuối cùng
-
-Ghi âm phần giới thiệu 60 giây bằng tiếng Anh, phiên bản cuối cùng. Đây là bản bạn sẽ dùng thật.
-
-Nghe lại `2026-09-07` — bản ghi đầu tiên, cách đây gần ba tháng. Rồi nghe bản hôm nay.
-
-**Đây là thứ duy nhất trong 90 ngày mà bạn có thể nghe thấy tiến bộ bằng tai, không cần bảng biểu.**
-
----
-
-## ĐỌC SÁCH · 17:00–17:30 — Thư cho chính mình
-
-Không đọc sách hôm nay. Viết một trang, cất vào `docs/`, đề *"Đọc lại khi thấy nản."*
-
-**Bốn điều cần có trong thư:**
-
-1. **Bạn đã ở đâu vào ngày 07/09.** Viết thật. Cảm giác lúc đó thế nào.
-2. **Bạn có gì vào hôm nay.** Liệt kê cụ thể, không khiêm tốn giả tạo.
-3. **Điều khó nhất trong 90 ngày và bạn đã vượt qua thế nào.**
-4. **Điều bạn muốn nói với chính mình của tháng 1/2027**, dù lúc đó đã có việc hay chưa.
+Tạo `docs/background-jobs.md`:
+- Bảng 4 cách làm và chỗ hỏng của từng cách
+- **Lý do chọn pg-boss: đưa việc vào hàng đợi trong transaction**
+- Bảng lỗi nào thử lại, lỗi nào không
+- **Ba chỗ trong dự án cần tính bình thản** — liệt kê cả ba
+- Kết quả 5 thử nghiệm phá hoại
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] Đã kiểm kê xong, **mở từng thứ ra xác nhận**, không tick từ trí nhớ
-- [ ] Sáu lỗ hổng đã viết lại câu trả lời cho hôm nay
-- [ ] Phần tóm tắt CV mới: 3 câu, mọi câu kiểm chứng được
-- [ ] Dự án cá nhân đã đưa lên đầu CV
-- [ ] Kế hoạch tháng 12 đã viết ra, có ba quy tắc
-- [ ] Đã nộp 3 đơn
-- [ ] Ghi âm bản giới thiệu cuối cùng
-- [ ] **Đã nghe lại bản ghi đầu tiên ngày 07/09**
-- [ ] Thư cho chính mình đã viết xong
+- [ ] pg-boss chạy, email đã ra khỏi đường đi của request
+- [ ] Nói được vì sao `setTimeout` không dùng được trên Render
+- [ ] Nối được với hàng đợi ghi ngoại tuyến ở mobile *(27/10)*
+- [ ] Nói được lợi thế **đưa việc vào hàng đợi trong transaction**
+- [ ] Thử lại có tính bình phương, giải thích được vì sao
+- [ ] **Lỗi vĩnh viễn không bị thử lại**
+- [ ] Hàng đợi chết có ghi log và báo Sentry
+- [ ] Việc bình thản bằng `singletonKey`
+- [ ] Chỉ ra được **ba chỗ** cùng dùng nguyên tắc bình thản
+- [ ] **Đã chạy đủ 5 thử nghiệm phá hoại**
+- [ ] Có endpoint xem trạng thái hàng đợi
+- [ ] Đã nhắn 3 người
+- [ ] Ghi âm `2026-11-30.m4a`
 - [ ] 21:30 lên giường
-
----
-
-> **Ngày 07/09 bạn không có gì ngoài một khoảng trống sáu tháng trong CV và cảm giác mọi thứ đang trôi đi.**
->
-> Hôm nay bạn có một ứng dụng người ta tải về được, một module native tự viết bằng hai ngôn ngữ, một bộ test, một đường ống tự động, ba bài viết, và 61 ngày liên tục dậy lúc 4:30 để làm việc mà không ai trả tiền và không ai kiểm tra.
->
-> Cái cuối cùng mới là thứ đáng giá nhất, và nó là thứ không thể hiện được trong CV. Bạn đã tự chứng minh rằng bạn còn làm được — không phải với nhà tuyển dụng, mà với chính mình.
->
-> Việc làm sẽ đến. Có thể tháng 12, có thể tháng 1. Nhưng bạn của tháng 12 không còn là người của tháng 8 nữa.

@@ -1,0 +1,63 @@
+---
+description: Thứ Tư 16/12/2026 — Tuần 16 Ngày 3. OpenAPI + Scalar — tài liệu API sinh từ Zod, không viết tay.
+alwaysApply: false
+---
+
+# Thứ Tư · 16/12/2026 · Tuần 16 — Ngày 73/82
+
+> Tài liệu API lỗi thời còn tệ hơn không có tài liệu. Hôm nay tài liệu **sinh từ schema** bạn đã dùng để validate.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| **08:30** | **KHỐI XÂY** — Fastify schema → OpenAPI |
+| **13:30** | **KHỐI HỌC** — Scalar UI + sync type mobile |
+| **16:00** | **TÌM VIỆC** — nhắn 2 người lạ |
+| **16:30** | **TIẾNG ANH** — Quyết định thiết kế |
+| **17:00** | **GHI CHÚ** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+Gắn `@fastify/swagger` + Scalar (hoặc `@scalar/fastify-api-reference`).
+
+Mỗi route quan trọng: `body` / `response` / `params` từ Zod.
+
+`GET /docs` — chỉ bật khi `NODE_ENV !== 'production'` **hoặc** bảo vệ basic auth. Đừng để docs công khai lộ shape admin.
+
+```bash
+git add . && git commit -m "docs: openapi sinh từ zod, scalar ui"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### Đồng bộ type
+
+Script `sync:types` hoặc export OpenAPI → generate types phía mobile *(cách đơn giản nhất bạn duy trì được)*.
+
+README hai repo: link `/docs`, ví dụ curl đăng nhập + tạo meal.
+
+**Câu hỏi #4 ôn lại:** vì sao không GraphQL / microservice — 60s, trung thực.
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+> *"The OpenAPI doc is generated from the same Zod schemas that validate requests. If the doc drifts, the validation would drift too — so I don't maintain a second source of truth by hand."*
+
+**5 từ:** `source of truth` · `drift` · `generated` · `by hand` · `shape`
+
+---
+
+## Checklist
+
+- [ ] /docs chạy local
+- [ ] Ít nhất auth + meals có schema đủ
+- [ ] README trỏ tới docs
+- [ ] Ghi âm `2026-12-16.m4a`

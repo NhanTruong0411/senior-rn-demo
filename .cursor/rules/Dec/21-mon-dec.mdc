@@ -1,0 +1,68 @@
+---
+description: Thứ Hai 21/12/2026 — Tuần 17 Ngày 1. Animation nén — Reanimated preset, không custom gesture phức tạp.
+alwaysApply: false
+---
+
+# Thứ Hai · 21/12/2026 · Tuần 17 — Ngày 76/82
+
+> Đánh đổi đã chốt ở Dec context: Reanimated **2 ngày**, không 5. Hôm nay: animation cảm nhận được, không over-claim gesture custom.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| **08:30** | **KHỐI XÂY** — Layout animation list + skeleton |
+| **13:30** | **KHỐI HỌC** — Shared element / press feedback có đo |
+| **16:00** | **TÌM VIỆC** — nhắn 3 người quen |
+| **16:30** | **TIẾNG ANH** — Standup |
+| **17:00** | **GHI CHÚ** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+```bash
+npx expo install react-native-reanimated
+```
+
+Làm **3 chỗ** thôi:
+
+1. Enter/exit item trong FlashList (LayoutAnimation hoặc Reanimated entering)
+2. Skeleton shimmer khi loading meals
+3. Nút primary: scale nhẹ khi press (` co nhấn`)
+
+**Boundary nói trong PV:** *"Preset và entering/exiting tôi dùng được; pan gesture custom phức tạp là gap trung thực."*
+
+Không viết gesture handler 200 dòng hôm nay.
+
+```bash
+git add . && git commit -m "feat: reanimated entering/skeleton/press feedback"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+Đọc lại mental model: UI thread vs JS thread (Day 16/39 June). Nói được vì sao animation nặng trên JS bị giật.
+
+Nếu còn giờ: một `useSharedValue` + `withSpring` cho progress daily calories.
+
+Ghi `docs/animation.md` nửa trang: cái đã làm + cái chưa làm.
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+> *"I keep animations on the UI thread with Reanimated presets. I'm honest that I haven't built complex custom pan gestures end-to-end — for this product the list enter/exit and press feedback were the highest user-visible wins."*
+
+**5 từ:** `UI thread` · `preset` · `user-visible` · `pan gesture` · `honest gap`
+
+---
+
+## Checklist
+
+- [ ] 3 animation đã ship trên máy thật
+- [ ] Không over-claim gesture
+- [ ] Ghi âm `2026-12-21.m4a`

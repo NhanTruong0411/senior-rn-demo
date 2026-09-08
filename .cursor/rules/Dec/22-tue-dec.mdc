@@ -1,0 +1,64 @@
+---
+description: Thứ Ba 22/12/2026 — Tuần 17 Ngày 2. Animation ngày 2 + đánh bóng UX loading/empty/error.
+alwaysApply: false
+---
+
+# Thứ Ba · 22/12/2026 · Tuần 17 — Ngày 77/82
+
+> Ngày animation thứ hai — và ngày **đánh bóng state**. App fullstack mà empty/error xấu vẫn trông junior.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| **08:30** | **KHỐI XÂY** — Mọi màn chính đủ 4 state |
+| **13:30** | **KHỐI HỌC** — Microcopy + accessibility tối thiểu |
+| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
+| **17:00** | **GHI CHÚ** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+Audit từng màn: Home, Add meal, Stats, Settings, Auth.
+
+| State | Có chưa? |
+| --- | --- |
+| Loading (skeleton, không spinner full màn vô hạn) | |
+| Empty (CTA rõ) | |
+| Error (có requestId + thử lại) | |
+| Success | |
+
+Sửa chỗ thiếu. Animation chỉ thêm nếu giúp hiểu state (không trang trí).
+
+```bash
+git add . && git commit -m "fix: đủ loading empty error trên màn chính"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+- `accessibilityLabel` nút chính
+- Dynamic type: không cắt chữ font lớn
+- Dark mode còn đúng không sau khi thêm animation
+
+Chuẩn bị checklist phát hành cho ngày mai.
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+> *"Fullstack doesn't excuse weak client states. Every primary screen has loading, empty, error with a retry and a request id, and success. That's what I polish before a store bump."*
+
+**5 từ:** `excuse` · `polish` · `store bump` · `empty state` · `retry`
+
+---
+
+## Checklist
+
+- [ ] Bảng 4 state đã tick hết màn chính
+- [ ] Ghi âm `2026-12-22.m4a`

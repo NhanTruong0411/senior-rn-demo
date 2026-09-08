@@ -1,13 +1,14 @@
 ---
-description: Thứ Ba 10/11/2026 — Tuần 11 Ngày 2. Deep linking — URL scheme, Universal Links, App Links.
+description: Thứ Ba 10/11/2026 — Tuần 11 Ngày 2. Drizzle ORM, migration có kiểm soát, và pool kết nối.
 alwaysApply: false
 ---
 
-# Thứ Ba · 10/11/2026 · Tuần 11 — Ngày 47/61
+# Thứ Ba · 10/11/2026 · Tuần 11 — Ngày 47/82
 
-> Deep link là chỗ mọi thứ trông đơn giản cho tới khi thử trên máy thật. Hôm nay làm cho chạy được **cả ba trạng thái app**, và hiểu vì sao Universal Links khác `myapp://`.
+> Hôm qua bạn viết SQL bằng tay. Hôm nay thêm ORM — nhưng là loại ORM **không giấu SQL đi**.
+> Và học một thứ mà mobile developer không bao giờ gặp: **pool kết nối**.
 
-**Docs:** https://docs.expo.dev/linking/into-your-app/
+**Tài nguyên:** https://orm.drizzle.team/docs/overview
 
 ---
 
@@ -23,18 +24,18 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — URL scheme + cấu hình linking |
+| **08:30** | **KHỐI XÂY** — Drizzle schema + migration đầu tiên |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Universal Links + App Links |
+| **13:30** | **KHỐI HỌC** — Migration an toàn + pool kết nối |
 | 15:00 | Nghỉ 10 phút |
 | 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nhắn 2 người |
+| **16:00** | **TÌM VIỆC** — nhắn 2 người ở công ty mục tiêu |
 | **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
-| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 6 |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -44,238 +45,205 @@ alwaysApply: false
 
 ---
 
-## KHỐI XÂY · 08:30–10:30 — URL scheme
+## KHỐI XÂY · 08:30–10:30
 
-### 08:30–09:00 · Hai loại link, hiểu cho rõ
+### 08:30–09:00 · Vì sao Drizzle chứ không Prisma
 
-**Đây là bảng phải thuộc — câu hỏi phỏng vấn về navigation hay dừng ở đây:**
+```bash
+npm i drizzle-orm postgres
+npm i -D drizzle-kit
+```
 
-| | Custom scheme (`macrozone://`) | Universal Link / App Link (`https://...`) |
+Bạn phải trả lời được câu này khi phỏng vấn, vì Prisma phổ biến hơn:
+
+| | Drizzle | Prisma |
 | --- | --- | --- |
-| Cấu hình | Chỉ khai trong app | Cần **file trên server** của bạn |
-| Chưa cài app thì sao | Không làm gì cả, link chết | Mở web bình thường |
-| Bảo mật | App khác **giả mạo scheme của bạn được** | Không giả được — phải chứng minh sở hữu tên miền |
-| Nơi dùng | Nội bộ, OAuth callback | Link chia sẻ, email, SMS, quảng cáo |
+| Cú pháp | Gần SQL — `select().from().where()` | Ngôn ngữ riêng, trừu tượng hơn |
+| Ngôn ngữ schema | TypeScript | File `.prisma` riêng |
+| Sinh code | Không cần | Cần chạy `prisma generate` |
+| Kích thước runtime | Rất nhỏ | Có engine nhị phân |
+| Tin tuyển dụng | Đang tăng | **Nhiều hơn** |
+| Truy vấn phức tạp | Viết SQL thô dễ dàng | Thường phải thoát ra `$queryRaw` |
 
-**Điểm mấu chốt về bảo mật:** bất kỳ app nào cũng khai được `macrozone://`. Nếu bạn dùng custom scheme cho OAuth callback, một app độc hại có thể chặn được mã xác thực. Đó là lý do OAuth hiện đại dùng PKCE.
+**Câu trả lời 60 giây:**
 
-### 09:00–09:30 · Cấu hình cơ bản
+> *"Em chọn Drizzle vì cú pháp nó gần SQL — em đang học SQL nên em không muốn một lớp trừu tượng che mất thứ mình cần hiểu. Khi em viết `select().from(meals).where(eq(...))`, em hình dung được câu SQL sinh ra. Với Prisma em sẽ không.*
+> *Prisma phổ biến hơn và có Studio tiện hơn. Nếu vào một đội đang dùng Prisma thì em học trong vài ngày — mô hình giống nhau, khác cú pháp. Cái không đổi được nhanh là hiểu SQL, và đó là cái em ưu tiên."*
 
-```json
-// app.json
-{
-  "expo": {
-    "scheme": "macrozone",
-    "ios": { "associatedDomains": ["applinks:macrozone.app"] },
-    "android": {
-      "intentFilters": [{
-        "action": "VIEW",
-        "autoVerify": true,
-        "data": [{ "scheme": "https", "host": "macrozone.app" }],
-        "category": ["BROWSABLE", "DEFAULT"]
-      }]
-    }
-  }
-}
+Câu này mạnh vì bạn thừa nhận lựa chọn kia phổ biến hơn và nêu tiêu chí thật của mình.
+
+### 09:00–10:30 · Schema và migration
+
+```ts
+// src/db/schema.ts
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').unique().notNull(),
+  passwordHash: text('password_hash').notNull(),
+  dailyLimit: integer('daily_limit').notNull().default(2000),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const meals = pgTable('meals', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  clientId: uuid('client_id').notNull(),
+  name: text('name').notNull(),
+  calories: integer('calories').notNull(),
+  eatenAt: timestamp('eaten_at', { withTimezone: true }).notNull(),
+}, (t) => ({
+  userClientUnique: unique().on(t.userId, t.clientId),
+  userEatenIdx: index('meals_user_eaten_idx').on(t.userId, t.eatenAt.desc()),
+}));
+
+export type Meal = typeof meals.$inferSelect;
+export type NewMeal = typeof meals.$inferInsert;
 ```
 
-Expo Router tự sinh cấu hình linking từ cấu trúc thư mục `app/` — không phải viết tay bảng ánh xạ route như React Navigation thuần.
-
-Giãn cơ 5 phút lúc 09:30.
-
-### 09:30–10:30 · Thử scheme cơ bản
+**Hai dòng cuối là phần thưởng lớn nhất:** type sinh thẳng từ schema. Đổi cột thì TypeScript báo lỗi ở mọi chỗ dùng. Không có nguồn sự thật thứ hai.
 
 ```bash
-# iOS
-xcrun simctl openurl booted "macrozone://meal/abc-123"
-
-# Android
-adb shell am start -W -a android.intent.action.VIEW -d "macrozone://meal/abc-123"
+npx drizzle-kit generate      # sinh file SQL migration
+npx drizzle-kit migrate       # áp dụng
 ```
 
-**Thử đủ ba trạng thái — đây mới là phần thật:**
-
-| Trạng thái | Kết quả phải có |
-| --- | --- |
-| App đang mở | Điều hướng sang màn hình đúng |
-| App ở nền | Đưa lên trước, điều hướng đúng |
-| **App đã đóng hẳn** | Khởi động, **chờ auth xong**, rồi mới điều hướng |
-
-**Trạng thái thứ ba là chỗ 90% lỗi deep link nằm ở đó.** App khởi động, deep link kích hoạt điều hướng, nhưng phiên đăng nhập chưa đọc xong từ SecureStore → bộ định tuyến đá người dùng về màn hình đăng nhập và **nuốt mất deep link**.
-
-Cách xử lý — nhớ lại logic protected route hôm 02/10:
-
-```tsx
-const pendingLink = useRef<string | null>(null);
-
-// giữ link lại nếu chưa biết trạng thái auth
-if (isLoadingSession) {
-  pendingLink.current = url;
-  return;
-}
-
-// khi biết rồi thì xử lý
-if (session && pendingLink.current) {
-  router.push(pendingLink.current);
-  pendingLink.current = null;
-}
-```
+**Mở file SQL vừa sinh ra và đọc.** Đừng chạy mù. Đây là thói quen bảo vệ bạn khỏi tai nạn — công cụ sinh migration thỉnh thoảng đề xuất xoá cột khi bạn chỉ định đổi tên.
 
 ```bash
-git add . && git commit -m "feat: deep link chạy được cả 3 trạng thái app"
+git add . && git commit -m "feat: drizzle schema và migration đầu tiên"
 ```
 
 ---
 
 ## KHỐI HỌC · 13:30–16:00
 
-### 13:30–14:30 · Universal Links (iOS)
+### 13:30–14:30 · Migration an toàn — bài học đắt nhất của backend
 
-Cần một trang web. Dùng GitHub Pages miễn phí.
+Trên mobile, đổi hình dạng dữ liệu sai thì app crash. Trên backend, **bạn mất dữ liệu người dùng vĩnh viễn**.
 
-Đặt file tại `https://macrozone.app/.well-known/apple-app-site-association`:
+Ba luật, không có ngoại lệ:
 
-```json
-{
-  "applinks": {
-    "details": [{
-      "appIDs": ["TEAMID.com.truonghuunhan.macrozone"],
-      "components": [
-        { "/": "/meal/*", "comment": "Chi tiết bữa ăn" },
-        { "/": "/stats", "comment": "Màn hình thống kê" }
-      ]
-    }]
-  }
-}
+| Luật | Vì sao |
+| --- | --- |
+| **Chỉ thêm, không xoá** trong một lần triển khai | Code cũ vẫn đang chạy khi migration chạy xong. Nó cần cột cũ |
+| Đổi tên cột = **ba lần triển khai** | Thêm cột mới → ghi cả hai → đọc cột mới → sau đó mới xoá cột cũ |
+| Migration phải **chạy lại được** | Nếu nó chạy nửa chừng rồi lỗi, chạy lại không được hỏng thêm |
+
+Luật thứ hai — quy trình mở rộng rồi thu hẹp (expand/contract) — là câu hỏi phỏng vấn backend rất hay gặp. Diễn tập trên giấy: đổi `name` thành `title` mất bao nhiêu lần triển khai, mỗi lần làm gì?
+
+**Đặc biệt với mobile:** người dùng có thể chạy phiên bản app từ ba tháng trước. API của bạn phải phục vụ cả phiên bản cũ. Điều này làm mọi thay đổi phá vỡ tương thích trở nên đắt hơn nhiều so với web — nơi bạn ép làm mới trang là xong.
+
+> Đây chính là lý do bạn đặt tiền tố `/v1` từ ngày 03/11. Hôm nay bạn thấy nó không phải hình thức.
+
+Giãn cơ 5 phút lúc 14:30.
+
+### 14:30–15:00 · Pool kết nối — khái niệm mobile không có
+
+```ts
+const client = postgres(env.DATABASE_URL, {
+  max: 10,                    // tối đa 10 kết nối
+  idle_timeout: 20,
+  connect_timeout: 10,
+});
+export const db = drizzle(client, { schema });
 ```
 
-**Ba luật của file này — sai một cái là im lặng không chạy:**
-1. Không có đuôi `.json`
-2. Trả về với `Content-Type: application/json`
-3. Phải là HTTPS, **không được chuyển hướng**
+**Vì sao cần pool:** mở kết nối Postgres tốn khoảng vài chục mili giây và tốn bộ nhớ phía server. Mở một cái cho mỗi request là tự sát. Pool giữ sẵn vài kết nối và cho request mượn.
 
-**iOS chỉ tải file này lúc cài app.** Sửa file rồi thì phải gỡ app cài lại mới thấy thay đổi. Đây là lý do nhiều người tưởng mình cấu hình sai trong khi thực ra chỉ cần cài lại.
+**Bẫy chết người:** nếu `max` lớn hơn giới hạn của database, bạn sẽ gặp lỗi *"too many connections"* dưới tải — và nó chỉ xuất hiện ở sản xuất, không bao giờ ở máy bạn.
 
-Kiểm tra bằng https://branch.io/resources/aasa-validator/
+Bậc miễn phí của Neon giới hạn khoảng 100 kết nối. Nếu chạy 2 instance × `max: 10` thì bạn dùng 20. An toàn. Nhưng phải **biết** con số, không đoán.
 
-### 14:30–15:00 · App Links (Android)
+Tra và ghi lại:
+- Giới hạn kết nối của Neon free: ____
+- Số instance Render của bạn: ____
+- `max` của bạn: ____
+- Tổng: ____ / giới hạn
 
-`https://macrozone.app/.well-known/assetlinks.json`:
-
-```json
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.truonghuunhan.macrozone",
-    "sha256_cert_fingerprints": ["<vân tay từ EAS>"]
-  }
-}]
-```
-
-Lấy vân tay:
-
-```bash
-eas credentials    # chọn Android → xem SHA-256
-```
-
-Kiểm tra xác minh:
-
-```bash
-adb shell pm get-app-links com.truonghuunhan.macrozone
-# phải thấy "verified"
-```
-
-**Vân tay phải khớp với keystore dùng để ký bản build.** Bản debug và bản production có vân tay khác nhau — nên App Link chạy ở bản này mà không chạy ở bản kia là chuyện bình thường, và bạn phải khai cả hai nếu muốn thử ở cả hai.
+Bảng bốn dòng này là câu trả lời phỏng vấn tốt hơn bất kỳ định nghĩa nào về pool.
 
 ### 15:00–15:10 · Nghỉ
 
-### 15:10–16:00 · Xác thực tham số
-
-**Đây là điểm bảo mật quan trọng và ít người nghĩ tới.**
-
-Deep link là **đầu vào từ bên ngoài**. Bất kỳ ai cũng gửi được link tùy ý cho app của bạn.
+### 15:10–16:00 · Tầng repo
 
 ```ts
-const paramsSchema = z.object({
-  id: z.string().uuid(),          // phải là UUID hợp lệ
-});
+// src/db/repos/meal.ts
+export const mealRepo = {
+  async byUserAndRange(userId: string, from: Date, to: Date) {
+    return db.select().from(meals)
+      .where(and(eq(meals.userId, userId), gte(meals.eatenAt, from), lt(meals.eatenAt, to)))
+      .orderBy(desc(meals.eatenAt));
+  },
 
-const parsed = paramsSchema.safeParse(useLocalSearchParams());
-if (!parsed.success) {
-  return <InvalidLinkScreen />;    // không crash, không truy vấn dữ liệu bậy
-}
+  async upsert(userId: string, input: CreateMealInput) {
+    const [row] = await db.insert(meals)
+      .values({ userId, ...input })
+      .onConflictDoUpdate({
+        target: [meals.userId, meals.clientId],       // dùng đúng ràng buộc unique hôm qua
+        set: { name: input.name, calories: input.calories },
+      })
+      .returning();
+    return row;
+  },
+};
 ```
 
-Ba tình huống bắt buộc xử lý:
-1. `macrozone://meal/không-phải-uuid` → màn hình lỗi tử tế
-2. `macrozone://meal/<uuid-của-người-khác>` → RLS chặn, hiện "không tìm thấy"
-3. `macrozone://màn-hình-không-tồn-tại` → màn hình 404 của app
+**Hàm `upsert` là chỗ mọi thứ khớp lại.** Ràng buộc unique hôm qua, UUID sinh từ client hôm 27/10, và hàng đợi ghi ngoại tuyến — cả ba gặp nhau ở dòng `onConflictDoUpdate`. Gửi lại cùng một bữa ăn mười lần vẫn chỉ có một bản ghi.
 
-> **Nhớ lại nguyên tắc hôm 23/09:** mọi dữ liệu từ bên ngoài phải xác thực lúc chạy. Deep link nằm đúng trong danh sách đó — cùng nhóm với API response, storage, và tham số điều hướng.
+Đây là câu chuyện phỏng vấn mạnh nhất tuần này. Tập kể trong 60 giây.
 
 ```bash
-git add . && git commit -m "feat: universal links, app links, xác thực tham số deep link"
+git add . && git commit -m "feat: tầng repo với upsert bất biến"
 ```
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Nhắn 2 người
+## TÌM VIỆC · 16:00–16:30
 
-Tuần này thử một kênh khác với tuần trước:
-- Nhóm Facebook về React Native Việt Nam
-- Discord/Slack của cộng đồng dev
-- Người vừa bình luận trong một thread tuyển dụng
-
-Vẫn ba luật cũ: nhắc thứ cụ thể · có link · nói rõ bạn cần gì.
+Nhắn 2 người ở công ty mục tiêu. Ưu tiên các công ty sản phẩm có app di động thật: Momo, ZaloPay, Tiki, Be, ELSA, Coolmate, Sky Mavis.
 
 ---
 
 ## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
 
-### 16:30–16:40 · Shadowing
+**Chủ đề: idempotency — từ điện thoại đến ràng buộc database.**
 
-### 16:40–16:55 · Nói to có ghi âm
+> *"Idempotency means doing something twice has the same effect as doing it once. It matters for mobile more than for web, because phones lose connectivity mid-request. The user taps save, the request goes out, the network drops before the response comes back. The app doesn't know whether it worked, so it retries — and now you might have two records.*
+> *I solved this in two layers. On the client, the app generates a UUID for each meal before sending, so a retry carries the same ID. On the server, there's a unique constraint on user ID plus client ID, and the insert uses ON CONFLICT DO UPDATE.*
+> *The reason I need both: the client-generated ID makes retries identifiable, but only the database constraint actually guarantees uniqueness. Application logic can have bugs — two requests can race past a check. The constraint can't be raced.*
+> *I built the client half in October and the server half today, which is the first time I've seen a whole problem from both ends."*
 
-**Chủ đề: deep linking, và chỗ nó hay hỏng.**
-
-> *"There are two kinds and the difference matters.*
-> *A custom scheme like macrozone-colon-slash-slash only needs configuration inside the app. It's quick, but any other app can register the same scheme, and if the app isn't installed the link just does nothing. Universal Links and App Links use a real https URL and require a file hosted on your domain, so the OS can verify you own it. If the app isn't installed, the link opens the website instead — which is what you want for anything you share.*
-> *The part that actually breaks in practice is cold start. If the app is closed and you tap a link, the app launches and the router tries to navigate — but the session is still being read from secure storage. So the auth guard sees no session, redirects to sign-in, and the deep link is swallowed. It works fine when you test it with the app already open, and then fails for real users.*
-> *The fix is to hold the pending link until the session state is resolved, and only then navigate.*
-> *One more thing people skip: deep link parameters are untrusted input. Anyone can send your app any URL. I validate them with Zod and show a proper error screen rather than querying with whatever came in."*
-
-### 16:55–17:00 · 5 từ mới
+**5 từ mới:**
 
 | Từ / cụm | Nghĩa | Câu mẫu |
 | --- | --- | --- |
-| `swallow` (v) | nuốt mất, làm mất | *The deep link is swallowed.* |
-| `resolve` (v) | xác định xong | *Until the session state is resolved.* |
-| `untrusted input` | đầu vào không đáng tin | *Deep link params are untrusted input.* |
-| `register a scheme` | đăng ký scheme | *Any app can register the same scheme.* |
-| `hold` (v) | giữ lại chờ xử lý | *Hold the pending link.* |
+| `mid-request` | giữa lúc request đang chạy | *The network drops mid-request.* |
+| `race past a check` | hai luồng vượt qua kiểm tra cùng lúc | *Two requests can race past a check.* |
+| `guarantee` (v) | đảm bảo chắc chắn | *Only the constraint guarantees it.* |
+| `identifiable` | nhận dạng được | *The client ID makes retries identifiable.* |
+| `from both ends` | từ cả hai phía | *I've seen the problem from both ends.* |
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## GHI CHÚ · 17:00–17:30
 
-**`qa-bank.mdc` — Topic 6 (Reliability / Sentry / release).**
-
-Bạn đã dựng Sentry, error boundary, OTA và pipeline CI/CD. Viết lại topic này cho khớp.
+Thêm vào `docs/database.md`:
+- So sánh Drizzle và Prisma, kèm tiêu chí chọn
+- Quy trình mở rộng rồi thu hẹp cho đổi tên cột, vẽ 3 bước
+- **Bảng tính kết nối 4 dòng ở trên**
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] `macrozone://` chạy cả 3 trạng thái app
-- [ ] **Cold start giữ được deep link qua bước kiểm tra auth**
-- [ ] `apple-app-site-association` đúng chuẩn, validator xác nhận
-- [ ] `assetlinks.json` đúng, `adb shell pm get-app-links` báo verified
-- [ ] Tham số deep link xác thực bằng Zod
-- [ ] Ba tình huống link sai đều xử lý tử tế
-- [ ] Nói được custom scheme khác Universal Link ở 4 điểm
-- [ ] Đã nhắn 2 người
-- [ ] **Có commit hôm nay**
+- [ ] Drizzle schema khớp với SQL viết tay hôm qua
+- [ ] Migration đã sinh, **đã đọc file SQL trước khi chạy**
+- [ ] Type `Meal` sinh từ schema, không định nghĩa tay
+- [ ] Nói được vì sao chọn Drizzle, và thừa nhận Prisma phổ biến hơn
+- [ ] Vẽ được 3 bước đổi tên cột an toàn
+- [ ] Nói được vì sao mobile làm thay đổi phá vỡ tương thích đắt hơn web
+- [ ] **Bảng tính kết nối đã điền số thật, không đoán**
+- [ ] `upsert` chạy đúng: gửi 10 lần vẫn 1 bản ghi
+- [ ] Kể được câu chuyện bất biến hai tầng trong 60 giây
 - [ ] Ghi âm `2026-11-10.m4a`
-- [ ] Đã sửa Topic 6 trong `qa-bank.mdc`
 - [ ] 21:30 lên giường

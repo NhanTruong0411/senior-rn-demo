@@ -1,0 +1,165 @@
+---
+description: Thứ Tư 02/12/2026 — Tuần 14 Ngày 3. Email giao dịch — mẫu, hàng đợi, và vì sao không gửi email trong request.
+alwaysApply: false
+---
+
+# Thứ Tư · 02/12/2026 · Tuần 14 — Ngày 63/82
+
+> Hôm 30/11 bạn đã đưa email vào hàng đợi. Hôm nay làm cho email **đáng tin**: mẫu rõ ràng, lỗi không làm sập request, và người dùng thật sự nhận được thư.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Mẫu email + Resend từ worker |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Theo dõi gửi thất bại + liên kết deep link trong email |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — nhắn 2 người lạ có chọn lọc |
+| **16:30** | **TIẾNG ANH** — Quyết định thiết kế |
+| **17:00** | **GHI CHÚ** |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+### 08:30–09:30 · Ba loại email, một worker
+
+| Loại | Khi nào | Nội dung tối thiểu |
+| --- | --- | --- |
+| Đặt lại mật khẩu | User bấm quên mật khẩu | Link 1 lần, hết hạn 15 phút |
+| Xác nhận đăng ký | Sau đăng ký | Link xác nhận email |
+| Nhắc bữa ăn (email backup) | User tắt push nhưng bật email | Tóm tắt + deep link mở app |
+
+```ts
+type EmailJob =
+  | { kind: 'password-reset'; to: string; token: string }
+  | { kind: 'verify-email'; to: string; token: string }
+  | { kind: 'meal-reminder'; to: string; userId: string };
+
+await boss.work('send-email', { batchSize: 5 }, async ([job]) => {
+  const payload = job.data as EmailJob;
+  const html = renderTemplate(payload);
+  await resend.emails.send({
+    from: 'MacroZone <noreply@yourdomain.com>',
+    to: payload.to,
+    subject: subjectFor(payload.kind),
+    html,
+  });
+});
+```
+
+**Vì sao tách `kind` rõ ràng:** một worker chung nhưng template riêng. Khi Resend trả lỗi theo loại email, bạn biết chỗ nào hỏng — không phải một đống "email failed".
+
+### 09:30–10:30 · Không bao giờ đưa token thô vào log
+
+```ts
+logger.info({ kind: payload.kind, toHash: hashEmail(payload.to) }, 'email queued');
+// ❌ logger.info({ token: payload.token })  — tuyệt đối không
+```
+
+Link trong email phải là **HTTPS + path app** (sau này deep link 23/12 sẽ dùng cùng URL):
+
+```
+https://macrozone.app/reset-password?token=...
+```
+
+Trên bậc miễn phí Resend: xác minh domain hoặc dùng địa chỉ onboarding. Ghi rõ trong README: email chỉ hoạt động sau khi verify domain.
+
+```bash
+git add . && git commit -m "feat: ba mẫu email giao dịch qua hàng đợi pg-boss"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:30 · Theo dõi thất bại có ý nghĩa
+
+| Sự kiện | Làm gì |
+| --- | --- |
+| Resend 429 / 5xx | Ném lỗi → pg-boss thử lại |
+| 422 địa chỉ không hợp lệ | `PermanentError` → dead letter, không thử lại |
+| Bounce / complaint (webhook nếu có) | Đánh dấu email `suppressed` trong DB |
+
+Thêm cột tối thiểu:
+
+```ts
+emailSuppressedAt: timestamptz('email_suppressed_at'),
+```
+
+Trước khi `boss.send('send-email', ...)`, nếu user bị suppress thì **không xếp hàng**. Gửi vào hộp thư chết làm hại uy tín domain — giống token push chết hôm 26/11.
+
+Giãn cơ 5 phút lúc 14:30.
+
+### 14:30–15:00 · Endpoint admin xem hàng email
+
+Một route bảo vệ role `admin`:
+
+- số việc `send-email` đang chờ / thất bại
+- 10 dead letter gần nhất (không lộ token)
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Thử end-to-end
+
+1. Quên mật khẩu → nhận email (hoặc log Resend dashboard)
+2. Giết worker giữa chừng → khởi động lại → email vẫn gửi
+3. Token hết hạn → mở link → 400 rõ ràng, không 500
+
+```bash
+git add . && git commit -m "feat: suppress email bounce, theo dõi dead letter email"
+```
+
+---
+
+## TÌM VIỆC · 16:00–16:30
+
+Nhắn 2 người viết bài / tổ chức meetup bạn đã đọc. Một câu cụ thể về bài của họ + link repo của bạn.
+
+---
+
+## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Quyết định thiết kế
+
+> *"I keep email off the request path on purpose. The handler writes a row and enqueues a job; the worker talks to Resend. If Resend is down, the user still gets a fast 200, and the job retries with backoff. The hard rule is the same as push receipts: don't retry permanent failures — a bad address stays bad. And I never log the reset token. If that shows up in Better Stack I've already lost."*
+
+**5 từ mới:** `off the request path` · `enqueue` · `suppressed` · `deliverability` · `permanent failure`
+
+---
+
+## GHI CHÚ · 17:00–17:30
+
+Cập nhật `docs/background-jobs.md`: bảng 3 loại email + quy tắc suppress.
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Ba loại email chạy qua worker, không trong route
+- [ ] Token không bao giờ vào log
+- [ ] Lỗi vĩnh viễn → dead letter; lỗi tạm → thử lại
+- [ ] Có cơ chế suppress email
+- [ ] Thử quên mật khẩu end-to-end
+- [ ] Ghi âm `2026-12-02.m4a`
+- [ ] 21:30 lên giường

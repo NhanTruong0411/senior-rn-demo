@@ -1,12 +1,12 @@
 ---
-description: Thứ Sáu 27/11/2026 — Tuần 13 Ngày 5. Phỏng vấn thử số 5 — chạy đủ 90 phút không nghỉ. Tổng kết tuần.
+description: Thứ Sáu 27/11/2026 — Tuần 13 Ngày 5. Quan sát được — một requestId đi xuyên từ điện thoại tới database. Phát hành v2.0.0 fullstack.
 alwaysApply: false
 ---
 
-# Thứ Sáu · 27/11/2026 · Tuần 13 — Ngày 60/61
+# Thứ Sáu · 27/11/2026 · Tuần 13 — Ngày 60/82
 
-> Bốn ngày qua bạn luyện từng vòng riêng lẻ. Hôm nay chạy tất cả liền một mạch, đúng như buổi phỏng vấn thật.
-> **Phỏng vấn thật mệt hơn bạn nghĩ. Hôm nay là để cơ thể bạn biết cảm giác đó trước khi nó xảy ra thật.**
+> Hôm nay bạn làm một thứ mà mobile developer gần như không bao giờ có: **nhìn thấy một request duy nhất đi từ ngón tay người dùng tới database và quay về** — trong một dòng tìm kiếm.
+> Rồi phát hành v2.0.0: phiên bản đầu tiên chạy hoàn toàn trên hạ tầng của chính bạn.
 
 ---
 
@@ -22,18 +22,18 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **PHỎNG VẤN THỬ CUỐI** — 90 phút liền mạch, không nghỉ |
+| **08:30** | **KHỐI XÂY** — Truy vết một request xuyên hệ thống |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **CHẤM ĐIỂM + so với buổi thứ Hai** |
+| **13:30** | **KHỐI HỌC** — Sentry hai đầu + phát hành v2.0.0 |
 | 15:00 | Nghỉ 10 phút |
-| 15:10 | Tổng kết Tuần 13 |
-| **16:00** | **TÌM VIỆC** — nộp 3 đơn + tổng kết tháng |
-| **16:30** | **TIẾNG ANH** — nghe lại toàn bộ tháng 11 |
-| **17:00** | **ĐỌC SÁCH** — kiểm tra lần cuối bộ hồ sơ |
+| 15:10 | Tổng kết tuần 13 |
+| **16:00** | **TÌM VIỆC** — cập nhật CV mục Backend |
+| **16:30** | **TIẾNG ANH** — Nghe lại, so sánh |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -43,133 +43,214 @@ alwaysApply: false
 
 ---
 
-## PHỎNG VẤN THỬ CUỐI · 08:30–10:30
+## KHỐI XÂY · 08:30–10:30
 
-### Luật chạy
+### 08:30–09:30 · Một mã định danh, xuyên suốt cả hệ thống
 
-1. **Không tạm dừng. Không tua lại. Không xem ghi chú.** Cheatsheet để úp mặt xuống bàn — chỉ lật nếu bạn thật sự bí, và ghi lại là đã lật mấy lần.
-2. Mặc đúng đồ sẽ mặc hôm phỏng vấn thật.
-3. Bật camera, ghi cả hình. Bạn cần thấy tư thế và ánh mắt, không chỉ nghe giọng.
-4. Chạy đủ 90 phút. **Chỗ mệt nhất là phút 60 trở đi — đó chính là chỗ cần luyện.**
+Hôm 05/11 bạn đã sinh `requestId` ở server. Hôm nay bạn kéo nó dài ra hai đầu.
 
-### Kịch bản 90 phút
+**Phía mobile — sinh mã và gắn vào mọi request:**
 
-| Phút | Vòng | Nội dung |
-| --- | --- | --- |
-| 0–10 | Mở đầu | Giới thiệu bản thân · vì sao nghỉ · **6 tháng qua** |
-| 10–35 | Kỹ thuật | 6 câu ngẫu nhiên từ `qa-bank.mdc`, đào sâu 2 tầng mỗi câu |
-| 35–55 | Dự án | Dẫn đi qua dự án, 6 phút, rồi bị hỏi vặn |
-| 55–75 | Thiết kế | Một đề mới, tự đặt câu hỏi trước |
-| 75–85 | Hành vi | 3 câu, gồm câu điểm yếu |
-| 85–90 | Kết | Lương · bạn hỏi ngược · thời gian bắt đầu |
+```ts
+const api = ky.create({
+  hooks: {
+    beforeRequest: [(req) => {
+      req.headers.set('x-request-id', crypto.randomUUID());
+    }],
+  },
+});
+```
 
-Giãn cơ 5 phút lúc 09:30 — nhưng **giữ đồng hồ chạy**, coi như người phỏng vấn đi lấy nước. Vào lại ngay.
+**Phía server — dùng lại mã của client nếu có:**
 
-### Ba điều tự quan sát trong lúc chạy
+```ts
+const app = Fastify({
+  genReqId: (req) => (req.headers['x-request-id'] as string) ?? crypto.randomUUID(),
+});
+```
 
-- **Phút 60 trở đi giọng tôi có xuống không?** Nếu có, đó là vấn đề thể lực và tập trung, không phải kiến thức. Cách sửa: uống nước trước, ngồi thẳng, và biết trước rằng nó sẽ đến.
-- **Khi bí, tôi im lặng hay lấp bằng "uhm"?** Im lặng ba giây rồi nói câu có cấu trúc thì tốt hơn nhiều so với ậm ừ.
-- **Tôi có nhìn vào camera không?** Nhìn màn hình thì trên hình bạn đang nhìn xuống.
+**Truyền nó xuống tận tầng dưới** bằng `AsyncLocalStorage` — không phải bằng cách nhét thêm tham số vào mọi hàm:
+
+```ts
+import { AsyncLocalStorage } from 'node:async_hooks';
+export const ctx = new AsyncLocalStorage<{ requestId: string }>();
+
+app.addHook('onRequest', (req, _reply, done) => {
+  ctx.run({ requestId: req.id }, done);
+});
+
+// Ở bất cứ đâu sâu trong service hoặc repo:
+logger.info({ requestId: ctx.getStore()?.requestId, durationMs }, 'truy vấn xong');
+```
+
+`AsyncLocalStorage` là thứ đáng học riêng. Nó cho bạn cái mà React Context cho bạn ở phía client: giá trị theo ngữ cảnh, không phải truyền tay qua từng tầng. Đây là một trong những phép so sánh mobile-sang-backend hay nhất bạn có thể nói ra khi phỏng vấn.
+
+Cuối cùng, **trả mã về client** trong header phản hồi và **hiện nó ở màn hình lỗi**:
+
+```tsx
+<Text style={styles.muted}>Mã lỗi: {error.requestId}</Text>
+```
+
+Bây giờ người dùng chụp màn hình gửi bạn, và bạn dán một chuỗi vào ô tìm kiếm log để thấy chính xác chuyện gì đã xảy ra. Đó là khác biệt giữa "để tôi thử tái hiện" và "tôi thấy rồi".
+
+### 09:30–10:30 · Better Stack và ba truy vấn
+
+Nối pino vào Better Stack *(1 GB/tháng miễn phí)*. Rồi tự tạo một lỗi thật từ điện thoại và tìm nó bằng `requestId`.
+
+Ba truy vấn cần lưu sẵn:
+
+| Truy vấn | Trả lời câu hỏi gì |
+| --- | --- |
+| `requestId = "..."` | Chuyện gì xảy ra với **một** người dùng |
+| `level >= 50` trong 24 giờ | Đang có gì hỏng ngay bây giờ |
+| `durationMs > 1000` | Endpoint nào chậm |
+
+**Nguyên tắc phải nhớ khi ghi log:** không bao giờ ghi mật khẩu, token, hay email đầy đủ. Bạn đã cấu hình `redact` hôm 05/11 — hôm nay đọc thử log thật và **kiểm chứng** nó thật sự che. Đừng tin cấu hình mà chưa nhìn thấy đầu ra.
+
+```bash
+git add . && git commit -m "feat: requestId xuyên suốt client-server, log tập trung"
+```
 
 ---
 
-## CHẤM ĐIỂM · 13:30–16:00
+## KHỐI HỌC · 13:30–16:00
 
-### 13:30–15:00 · So sánh với buổi thứ Hai
+### 13:30–14:15 · Sentry ở đầu server
 
-Xem lại **cả video lẫn âm thanh**. Xem video khó chịu hơn nghe âm thanh, và cũng hữu ích hơn.
+```ts
+Sentry.init({
+  dsn: env.SENTRY_DSN,
+  tracesSampleRate: 0.1,          // 10% là đủ, và giữ trong hạn mức miễn phí
+  beforeSend(event) {
+    delete event.request?.headers?.authorization;   // đừng gửi token cho bên thứ ba
+    return event;
+  },
+});
+```
 
-| Trục | T2 23/11 | T6 27/11 | Đổi |
-| --- | --- | --- | --- |
-| Hình dạng quyết định | /5 | /5 | |
-| Ví dụ cụ thể | /5 | /5 | |
-| Trung thực | /5 | /5 | |
-| Kiểm soát thời gian | /5 | /5 | |
-| Sẵn sàng bị hỏi tiếp | /5 | /5 | |
-| **Tổng** | **/25** | **/25** | |
+**Quyết định quan trọng: cái gì nên báo cho Sentry?**
 
-**Thêm các chỉ số đếm được:**
-
-| | T2 | T6 |
+| Loại | Gửi Sentry? | Vì sao |
 | --- | --- | --- |
-| Số lần nói "uhm" | | |
-| Câu dài nhất (giây) | | |
-| Số lần lật cheatsheet | | |
-| Số câu trả lời có con số | | |
-| Số lần nói "em chưa làm thật" | | |
+| Lỗi 500 | **Có** | Bug của bạn |
+| Lỗi 400 xác thực dữ liệu | Không | Hành vi mong đợi, không phải lỗi |
+| 401 / 403 | Không | Hoạt động bình thường |
+| 429 | Không, nhưng **đếm** | Nhiều bất thường thì mới đáng xem |
+| Truy vấn quá 1 giây | Có, mức cảnh báo | Chưa hỏng nhưng đang xấu đi |
 
-> Nếu tổng điểm trên 20 và bạn nói "em chưa làm thật" ít nhất hai lần mà không hoảng, bạn đã sẵn sàng cho phỏng vấn thật. Không phải sẵn sàng để hoàn hảo — sẵn sàng để **không tự bắn vào chân mình**.
+Nếu gửi hết, Sentry thành đống rác và bạn ngừng đọc nó. **Cảnh báo mà không ai đọc còn tệ hơn không có cảnh báo** — vì nó tạo cảm giác an toàn giả.
+
+Gắn `requestId` vào tag của Sentry. Bây giờ từ một lỗi trong Sentry bạn nhảy thẳng sang toàn bộ log của request đó.
+
+Giãn cơ 5 phút lúc 14:15.
+
+### 14:15–15:00 · Phát hành v2.0.0
+
+**Vì sao là 2.0.0 chứ không phải 1.5.0:** backend đã đổi hoàn toàn. Không phải thêm tính năng — là thay nền móng. Số phiên bản nên nói thật về mức độ thay đổi.
+
+```bash
+# Kiểm tra trước khi phát hành
+npm run test && npm run test:integration     # API
+npx expo-doctor                              # mobile
+```
+
+- [ ] API trên Render, health check xanh
+- [ ] Migration đã chạy trên database sản xuất
+- [ ] Mobile trỏ vào URL API sản xuất, không phải localhost
+- [ ] **Đã thử luồng đăng ký → thêm bữa ăn → đăng xuất → đăng nhập lại trên máy thật**
+- [ ] Sentry nhận được sự kiện từ cả hai đầu
+
+```bash
+eas build --profile production --platform all
+eas submit --platform all
+```
+
+Viết ghi chú phát hành thật, cho người dùng đọc chứ không cho lập trình viên đọc:
+
+> **v2.0.0** — Dữ liệu của bạn giờ được đồng bộ giữa các thiết bị. Đăng nhập trên điện thoại khác và mọi bữa ăn vẫn ở đó. Nhắc bữa ăn hoạt động ngay cả khi ứng dụng đóng.
 
 ### 15:00–15:10 · Nghỉ
 
-### 15:10–16:00 · Tổng kết Tuần 13
+### 15:10–16:00 · Tổng kết tuần 13
 
-**Ba câu tự trả lời, viết ra:**
+**Tuần này bạn đã có:**
 
-1. Sau năm buổi phỏng vấn thử, câu nào tôi vẫn sợ nhất? Vì sao?
-2. Điều gì tôi tưởng mình yếu nhưng hóa ra ổn?
-3. Điều gì tôi tưởng mình mạnh nhưng nghe lại thấy nông?
-
-Câu số 3 là câu giá trị nhất. Chỗ bạn tưởng mạnh mà thật ra nông chính là chỗ bạn sẽ bị đào trúng trong phỏng vấn thật.
-
----
-
-## TÌM VIỆC · 16:00–16:30 — Tổng kết tháng 11
-
-| Chỉ số | Số |
+| Ngày | Kết quả |
 | --- | --- |
-| Tổng đơn nộp trong tháng 11 | |
-| Người đã nhắn | |
-| Có phản hồi | |
-| Đã phỏng vấn thật | |
-| Đang trong quy trình | |
-| Tỉ lệ phản hồi | __% |
+| T2 | Test tích hợp trên Postgres thật, 7 kịch bản bảo mật |
+| T3 | CI có nhánh database riêng cho mỗi PR |
+| T4 | Giới hạn tài nguyên đủ 6 loại, bảng OWASP đã điền hết |
+| T5 | Push notification gửi từ server, dọn token chết |
+| T6 | `requestId` xuyên suốt, Sentry hai đầu, **v2.0.0** |
 
-**Nếu đã có phỏng vấn thật đang diễn ra:** tuyệt vời, việc của bạn tuần sau là chuẩn bị riêng cho từng chỗ.
+**Bài viết thứ tư — viết trong 30 phút, đừng cầu toàn:**
 
-**Nếu chưa có phỏng vấn nào:** đừng coi đó là bản án về năng lực. Ba tuần và khoảng 25 đơn ở thị trường Việt Nam là mẫu còn nhỏ. Hai việc cần đổi:
-1. **Ưu tiên giới thiệu qua người quen hơn nộp lạnh.** Tỉ lệ khác nhau một trời một vực.
-2. **Dùng chính đoạn trả lời "6 tháng qua"** làm đoạn mở đầu email và tin nhắn — nó là thứ mạnh nhất bạn có, đừng giấu nó ở trang hai của CV.
+*"Tracing one request from a phone to Postgres and back"*
 
----
+Cấu trúc: vấn đề *(người dùng báo lỗi, bạn không tái hiện được)* → cách làm *(một mã định danh, ba chặng)* → `AsyncLocalStorage` và vì sao nó giống React Context → hiện mã lỗi cho người dùng → kết quả.
 
-## TIẾNG ANH · 16:30–17:00 — Nghe lại toàn bộ tháng 11
+**Bài này là bài dễ được chú ý nhất trong bốn bài**, vì rất ít người viết về truy vết xuyên client-server từ góc nhìn mobile.
 
-Nghe bản đầu tiên (`2026-11-02`) rồi bản hôm nay. Cách nhau bốn tuần.
+**Ba câu tự hỏi:**
+1. Test bảo mật của tôi có thật sự bắt được lỗi không, hay tôi chỉ tin là có? *(T3 đã kiểm chứng — có bằng chứng)*
+2. Nếu API sập lúc 3 giờ sáng, tôi biết bằng cách nào?
+3. Trong bốn câu hỏi phỏng vấn fullstack ở context tháng 12, tôi trả lời được mấy câu rồi?
 
-Ghi ba điều:
-1. Khác biệt rõ nhất:
-2. Thói quen vẫn còn:
-3. Tôi có nói được trôi chảy khi đang bị hỏi vặn không, hay chỉ trôi khi đọc bài đã chuẩn bị?
-
-Câu số 3 quan trọng nhất. Nói bài đã chuẩn bị thì dễ. Trả lời câu hỏi bất ngờ bằng tiếng Anh mới là năng lực thật.
+Câu 3 quan trọng. Đọc lại mục 6 của `Dec/00-context-dec.mdc` và tự chấm thẳng thắn.
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30 — Kiểm tra bộ hồ sơ
+## TÌM VIỆC · 16:00–16:30 — CV có mục Backend
 
-Đi qua mọi thứ người phỏng vấn sẽ nhìn thấy:
+Định vị lại dòng tiêu đề:
 
-- [ ] **CV** — có phần ba tháng vừa qua với kết quả cụ thể chưa?
-- [ ] **GitHub** — repo được ghim, README có ảnh chụp màn hình, biểu đồ commit đều
-- [ ] **README của dự án** — có link tải app, ảnh chụp, và phần "quyết định kỹ thuật"
-- [ ] **Ba bài viết kỹ thuật** — có link được từ README
-- [ ] **LinkedIn** — chức danh và phần giới thiệu khớp với CV
-- [ ] **App** — cài được, chạy được, không crash ở màn đầu
+> **Fullstack Mobile Engineer** — React Native · Node.js · PostgreSQL
 
-Mở CV và GitHub như một người lạ. Trong 30 giây đầu, người ta thấy gì?
+Thêm mục Backend, viết bằng **kết quả có số**, không viết bằng tên công nghệ:
+
+- Thiết kế và vận hành REST API bằng Fastify + PostgreSQL, phục vụ ứng dụng di động đang chạy trên App Store và Google Play
+- Tự viết xác thực có xoay refresh token và **phát hiện tái sử dụng token**
+- Test tích hợp chạy trên database thật, mỗi pull request được cấp một nhánh database riêng
+- Truy vết một request xuyên suốt từ client tới database bằng mã định danh chung
+
+Dòng thứ hai và thứ tư là hai dòng khiến người đọc CV dừng lại. Rất ít ứng viên mobile có chúng.
 
 ---
 
-## Checklist cuối ngày
+## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nghe lại
 
-- [ ] Chạy đủ 90 phút, **không tạm dừng**
-- [ ] Có cả video lẫn âm thanh
-- [ ] Đã xem lại toàn bộ video
-- [ ] Bảng so sánh T2 vs T6 đã điền đủ
-- [ ] **Tổng điểm trên 20**
-- [ ] Đã trả lời 3 câu tổng kết, đặc biệt câu "tưởng mạnh mà nông"
-- [ ] Tổng kết tháng 11 về tìm việc
-- [ ] Đã nghe lại bản ghi đầu và cuối tháng
-- [ ] Bộ hồ sơ đã kiểm tra đủ 6 mục
-- [ ] 21:30 lên giường
+Nghe `2026-11-02.m4a` *(ngày đầu tháng)* rồi nghe `2026-11-26.m4a`.
+
+| Đo | 02/11 | 26/11 |
+| --- | --- | --- |
+| Số lần "ừm" mỗi phút | | |
+| Nói được bao lâu không dừng | | |
+| Từ vựng backend dùng tự nhiên | | |
+
+Ghi âm 3 phút cuối cùng của tháng: *"What I built in November."*
+
+---
+
+## GHI CHÚ · 17:00–17:30
+
+- Đăng bài viết thứ tư
+- Cập nhật `docs/interview-cheatsheet.md`: thêm mục Backend
+- Viết `docs/observability.md`: ba truy vấn lưu sẵn, quy tắc cái gì báo Sentry
+
+---
+
+## Checklist cuối tuần
+
+- [ ] `requestId` sinh ở mobile, server dùng lại, **hiện trên màn hình lỗi**
+- [ ] `AsyncLocalStorage` truyền ngữ cảnh xuống tầng dưới
+- [ ] Nối được `AsyncLocalStorage` với React Context khi giải thích
+- [ ] Log tập trung, **đã kiểm chứng bằng mắt rằng `redact` che thật**
+- [ ] Ba truy vấn log đã lưu sẵn
+- [ ] Sentry hai đầu, **có quy tắc rõ cái gì báo cái gì không**
+- [ ] **v2.0.0 đã nộp cả hai kho**
+- [ ] Đã thử luồng đầy đủ trên máy thật trước khi nộp
+- [ ] Bài viết thứ tư đã đăng
+- [ ] CV định vị **Fullstack Mobile Engineer**, có 4 dòng backend
+- [ ] Đã tự chấm 4 câu hỏi phỏng vấn fullstack
+- [ ] Ghi âm `2026-11-27.m4a`
+- [ ] **Cuối tuần nghỉ hoàn toàn. Không mở máy.**

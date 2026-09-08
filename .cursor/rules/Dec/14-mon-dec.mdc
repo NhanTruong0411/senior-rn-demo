@@ -1,0 +1,78 @@
+---
+description: Thứ Hai 14/12/2026 — Tuần 16 Ngày 1. AI qua backend — khoá không nằm trong app, streaming an toàn.
+alwaysApply: false
+---
+
+# Thứ Hai · 14/12/2026 · Tuần 16 — Ngày 71/82
+
+> Tính năng AI chỉ được phép nếu **API key nằm trên server**. App chỉ gọi `/v1/ai/...` của bạn.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| **08:30** | **KHỐI XÂY** — Endpoint AI + Gemini/Groq free |
+| **13:30** | **KHỐI HỌC** — Streaming vào UI + giới hạn chi phí |
+| **16:00** | **TÌM VIỆC** — nhắn 3 người quen |
+| **16:30** | **TIẾNG ANH** — Standup |
+| **17:00** | **GHI CHÚ** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+Chọn **Google AI Studio (Gemini)** hoặc **Groq** — bậc miễn phí thật. Key chỉ trong `env` trên Render.
+
+```ts
+app.post('/v1/ai/meal-suggest', {
+  preHandler: authenticate,
+  config: { rateLimit: { max: 10, timeWindow: '1 hour' } },
+}, async (req, reply) => {
+  const input = mealSuggestSchema.parse(req.body);
+  const result = await aiService.suggestMeal(req.user.id, input);
+  return result; // JSON đã validate bằng Zod
+});
+```
+
+**Bắt buộc:**
+
+- Rate limit chặt hơn endpoint thường
+- Không log prompt đầy đủ nếu có PII
+- Output parse bằng Zod — model trả rác thì 502 có cấu trúc, không crash UI
+
+```bash
+git add . && git commit -m "feat: endpoint ai meal-suggest, key chỉ ở server"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### Streaming (tuỳ chọn nếu còn giờ)
+
+SSE hoặc chunked response từ backend → mobile hiển thị từng phần. Nếu phức tạp quá: JSON một phát cũng đủ Strong Middle — **đừng over-claim streaming nếu chưa làm**.
+
+### Mobile UI
+
+Nút "Gợi ý bữa ăn" → loading → hiện kết quả → user xác nhận trước khi tạo meal (không tự ghi DB từ AI không hỏi).
+
+Giãn cơ 14:30. Nghỉ 15:00. 15:10: ghi `docs/ai.md` — vì sao key không ở app, chi phí ước lượng.
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+> *"The model key never ships in the binary. The phone calls my API; my API calls Gemini under a tight rate limit; the response is Zod-parsed before it touches the UI. If the model returns garbage I fail closed, not with a half-parsed meal."*
+
+**5 từ:** `fail closed` · `binary` · `rate limit` · `garbage` · `Zod-parsed`
+
+---
+
+## Checklist
+
+- [ ] Không có API key trong repo mobile / EAS secrets client
+- [ ] Rate limit AI riêng
+- [ ] Output có schema
+- [ ] Ghi âm `2026-12-14.m4a`

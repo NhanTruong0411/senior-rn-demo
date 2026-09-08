@@ -1,13 +1,14 @@
 ---
-description: Thứ Hai 09/11/2026 — Tuần 11 Ngày 1. Push notification — token, quyền, và gửi thật qua FCM/APNs.
+description: Thứ Hai 09/11/2026 — Tuần 11 Ngày 1. SQL thật trước khi dùng ORM — thiết kế bảng, quan hệ, và viết truy vấn bằng tay.
 alwaysApply: false
 ---
 
-# Thứ Hai · 09/11/2026 · Tuần 11 — Ngày 46/61
+# Thứ Hai · 09/11/2026 · Tuần 11 — Ngày 46/82
 
-> Hôm 17/09 bạn làm **local notification** — app tự hẹn giờ trên máy. Tuần này làm **push thật** — server chủ động đẩy. Khác nhau hoàn toàn về hạ tầng.
+> **Tuần khó nhất tháng.** Đây là chỗ mobile developer hổng sâu nhất, và cũng là kỹ năng đứng hạng 3 trong 20 kỹ năng được tìm nhiều nhất ở Việt Nam — 149 tin tuyển dụng chỉ trên một sàn.
+> Hôm nay **không dùng ORM**. Viết SQL bằng tay. ORM là thứ để dùng sau khi hiểu, không phải thay cho hiểu.
 
-**Docs:** https://docs.expo.dev/push-notifications/overview/
+**Tài nguyên:** https://www.postgresqltutorial.com/ · https://use-the-index-luke.com/
 
 ---
 
@@ -23,18 +24,18 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Đăng ký token + xin quyền |
+| **08:30** | **KHỐI XÂY** — Neon + thiết kế schema trên giấy |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Gửi từ server, hiểu đường đi của push |
+| **13:30** | **KHỐI HỌC** — Viết SQL bằng tay |
 | 15:00 | Nghỉ 10 phút |
 | 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
+| **16:00** | **TÌM VIỆC** — nhắn 2 người quen |
 | **16:30** | **TIẾNG ANH** — Daily standup |
-| **17:00** | **ĐỌC SÁCH** — `qa-bank.mdc` Topic 5 |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -44,230 +45,210 @@ alwaysApply: false
 
 ---
 
-## KHỐI XÂY · 08:30–10:30 — Token và quyền
+## KHỐI XÂY · 08:30–10:30
 
-### 08:30–09:00 · Đường đi của một push — vẽ ra giấy
+### 08:30–08:50 · Neon
 
-```
-Server của bạn
-    │  POST https://exp.host/--/api/v2/push/send
-    ▼
-Expo Push Service
-    │
-    ├──► APNs  (Apple)   ──► iPhone
-    └──► FCM   (Google)  ──► Android
-```
+Tạo tài khoản tại https://neon.tech — miễn phí, 0,5 GB, **không cần thẻ**.
 
-**Ba điều phải hiểu:**
+Điểm khiến Neon đáng chọn hơn các lựa chọn khác: **branching**. Bạn tạo được một nhánh database chỉ trong vài giây, giống nhánh Git. Ngày 23/11 mỗi pull request sẽ có database riêng để chạy test — không thể làm được điều đó với Postgres thường mà không trả tiền.
 
-1. **Bạn không gửi thẳng tới thiết bị.** Luôn phải qua APNs hoặc FCM. Expo Push Service chỉ là lớp bọc để bạn không phải nói chuyện với hai hệ thống khác nhau.
-2. **Không có gì bảo đảm giao được.** Máy tắt nguồn, hết pin, người dùng tắt thông báo — push có thể không tới. **Đừng bao giờ dùng push làm cơ chế đồng bộ dữ liệu.** Đây là sai lầm kiến trúc mà người phỏng vấn hay dò.
-3. **Push token khác user ID.** Một người có thể có 3 thiết bị. Một thiết bị có thể được nhiều người đăng nhập. Bảng lưu token phải phản ánh đúng quan hệ này.
+Tạo hai nhánh ngay: `main` *(sản xuất)* và `dev`.
 
-### 09:00–09:30 · Đăng ký và lưu token
+### 08:50–10:30 · Thiết kế schema — trên giấy trước
 
-```ts
-async function registerForPush(): Promise<string | null> {
-  if (!Device.isDevice) return null;              // simulator không nhận được push
-
-  const { status: existing } = await Notifications.getPermissionsAsync();
-  let status = existing;
-  if (existing !== 'granted') {
-    ({ status } = await Notifications.requestPermissionsAsync());
-  }
-  if (status !== 'granted') return null;
-
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('reminders', {
-      name: 'Nhắc ghi bữa ăn',
-      importance: Notifications.AndroidImportance.DEFAULT,
-      vibrationPattern: [0, 250, 250, 250],
-    });
-  }
-
-  const token = (await Notifications.getExpoPushTokenAsync({
-    projectId: Constants.expoConfig?.extra?.eas?.projectId,
-  })).data;
-
-  return token;
-}
-```
-
-**Kênh thông báo trên Android là bắt buộc từ Android 8.** Không tạo kênh thì thông báo **không hiện** — im lặng, không lỗi. Đây là bẫy rất hay gặp.
-
-Giãn cơ 5 phút lúc 09:30.
-
-### 09:30–10:30 · Xin quyền đúng lúc
-
-**Đây là chi tiết sản phẩm mà người phỏng vấn giỏi sẽ hỏi.**
-
-Xin quyền thông báo ngay khi mở app lần đầu là cách chắc chắn nhất để bị từ chối — người dùng chưa biết app làm gì thì tại sao phải cho phép?
-
-**Cách đúng — xin sau khi có ngữ cảnh:**
+**Đừng mở editor.** Vẽ tay.
 
 ```
-Người dùng bật "Nhắc tôi ghi bữa tối"
-   ↓
-Hiện màn hình giải thích của app: "Để nhắc được, app cần quyền gửi thông báo"
-   ↓
-[Để sau]  [Cho phép]
-   ↓ (chỉ khi bấm Cho phép)
-Hộp thoại quyền của hệ điều hành
+users ──< meals
+  │
+  └──< refresh_tokens
 ```
 
-> **Vì sao phải có màn hình giải thích riêng trước:** trên iOS, hộp thoại quyền của hệ thống **chỉ hiện được một lần**. Người dùng bấm "Không cho phép" là xong — muốn đổi phải vào Cài đặt hệ thống, và gần như không ai làm. Màn hình giải thích của app thì hiện lại được bao nhiêu lần cũng được.
-
-Lưu token:
+Rồi viết SQL thật:
 
 ```sql
-create table push_tokens (
-  token      text primary key,
-  user_id    uuid references auth.users(id) on delete cascade,
-  platform   text not null,
-  updated_at timestamptz not null default now()
+create table users (
+  id            uuid primary key default gen_random_uuid(),
+  email         citext unique not null,
+  password_hash text not null,
+  daily_limit   int not null default 2000,
+  created_at    timestamptz not null default now()
+);
+
+create table meals (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references users(id) on delete cascade,
+  client_id  uuid not null,
+  name       text not null,
+  calories   int  not null check (calories >= 0),
+  protein    numeric(6,2) not null default 0,
+  eaten_at   timestamptz not null,
+  created_at timestamptz not null default now(),
+
+  unique (user_id, client_id)
 );
 ```
 
-Khóa chính là `token` chứ không phải `user_id` — vì một người có nhiều thiết bị. Xóa token khi đăng xuất.
+**Bảy quyết định trong đoạn này. Phải giải thích được từng cái:**
 
-```bash
-git checkout -b feat/push
-git add . && git commit -m "feat: đăng ký push token, xin quyền có ngữ cảnh"
-```
+| Quyết định | Vì sao |
+| --- | --- |
+| `uuid` chứ không `serial` | Client sinh ID được → ghi ngoại tuyến hoạt động *(nhớ 27/10)*. `serial` cũng lộ số lượng bản ghi |
+| `citext` cho email | So sánh không phân biệt hoa thường ở tầng database. Không phải nhớ `.toLowerCase()` ở mọi chỗ |
+| `timestamptz` chứ không `timestamp` | `timestamp` **không lưu múi giờ** → sai giờ khi người dùng đi nước ngoài. Sai lầm kinh điển |
+| `on delete cascade` | Xoá người dùng thì bữa ăn đi theo. Không để lại rác |
+| `check (calories >= 0)` | Ràng buộc ở tầng cuối. Zod chặn ở API, nhưng database là hàng phòng thủ cuối |
+| `numeric` cho protein, **không** `float` | `float` sai số. Với số lượng nhỏ thì không sao, nhưng tạo thói quen đúng — với tiền thì đây là lỗi nghiêm trọng |
+| `unique (user_id, client_id)` | **Đây là dòng quan trọng nhất.** Nó làm endpoint tạo bữa ăn bất biến ở tầng database |
+
+> Dòng cuối đáng nói riêng. Hôm 27/10 bạn giải bài toán bất biến ở phía client bằng UUID và upsert. Hôm nay bạn thấy nửa còn lại: **ràng buộc unique ở database là thứ thật sự đảm bảo điều đó**. Logic ứng dụng có thể sai; ràng buộc database thì không.
+>
+> Đây là một câu trả lời phỏng vấn rất mạnh, vì nó cho thấy bạn hiểu vấn đề ở cả hai đầu.
+
+**Chạy trực tiếp trên Neon SQL Editor.** Chưa dùng ORM.
 
 ---
 
 ## KHỐI HỌC · 13:30–16:00
 
-### 13:30–14:30 · Gửi từ server
+### 13:30–14:45 · Viết truy vấn bằng tay
 
-```ts
-// supabase/functions/send-reminder/index.ts
-const messages = tokens.map((t) => ({
-  to: t.token,
-  sound: 'default',
-  title: 'Bạn chưa ghi bữa tối',
-  body: 'Ghi nhanh trong 10 giây nhé.',
-  data: { type: 'meal-reminder', screen: '/add-meal' },   // dùng cho deep link ngày mai
-}));
-
-const res = await fetch('https://exp.host/--/api/v2/push/send', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(messages),          // gửi theo lô, tối đa 100 mỗi lần
-});
-```
-
-**Phải xử lý phản hồi lỗi, không được bỏ qua:**
-
-| Lỗi | Nghĩa | Việc phải làm |
-| --- | --- | --- |
-| `DeviceNotRegistered` | Người dùng gỡ app hoặc tắt thông báo | **Xóa token khỏi bảng** |
-| `MessageTooBig` | Payload quá 4KB | Cắt ngắn nội dung |
-| `MessageRateExceeded` | Gửi quá nhanh | Chờ rồi thử lại có giãn cách |
-| `InvalidCredentials` | Sai cấu hình FCM/APNs | Sửa credentials |
-
-> **Không dọn token chết là lỗi kinh điển.** Sau vài tháng bảng đầy token không dùng được, mỗi lần gửi tốn thời gian và tiền cho những thiết bị không còn tồn tại. Kể được điều này khi phỏng vấn cho thấy bạn nghĩ về vận hành lâu dài.
-
-### 14:30–15:00 · Lên lịch
-
-Supabase pg_cron chạy hàm mỗi tối:
+Không dùng công cụ sinh. Viết từng câu, chạy, đọc kết quả.
 
 ```sql
-select cron.schedule(
-  'evening-reminder', '0 12 * * *',        -- 19:00 giờ VN
-  $$ select net.http_post(
-       url := 'https://<project>.supabase.co/functions/v1/send-reminder',
-       headers := '{"Authorization": "Bearer <service_key>"}'::jsonb
-     ) $$
-);
+-- 1. Bữa ăn của một người trong một ngày
+select * from meals
+where user_id = $1
+  and eaten_at >= $2 and eaten_at < $3
+order by eaten_at desc;
+
+-- 2. Tổng calo theo ngày trong 7 ngày qua
+select date_trunc('day', eaten_at) as day,
+       sum(calories)               as total,
+       count(*)                    as meal_count
+from meals
+where user_id = $1 and eaten_at >= now() - interval '7 days'
+group by day
+order by day;
+
+-- 3. Người dùng kèm số bữa ăn — chú ý left join
+select u.id, u.email, count(m.id) as meal_count
+from users u
+left join meals m on m.user_id = u.id
+group by u.id;
 ```
 
-**Múi giờ là chỗ dễ sai.** `pg_cron` chạy theo UTC. 19:00 giờ Việt Nam là 12:00 UTC. Và nếu app có người dùng ở nhiều múi giờ, bạn phải lưu múi giờ của từng người rồi gửi theo giờ địa phương của họ — không thì có người nhận thông báo "ghi bữa tối" lúc 3 giờ sáng.
+**Ba điều phải hiểu, không được chép:**
+
+| Điều | Giải thích |
+| --- | --- |
+| `$1` là **tham số**, không phải nối chuỗi | Nối chuỗi = lỗ hổng SQL injection. Đây là lý do bạn **không bao giờ** ghép biến vào câu SQL |
+| `left join` vs `inner join` | `inner` mất người dùng chưa có bữa ăn nào. Đây là bug thật rất hay gặp |
+| `count(m.id)` chứ không `count(*)` | `count(*)` đếm cả dòng null từ left join → người chưa ăn gì cũng ra 1 |
+
+Điều thứ ba là câu hỏi phỏng vấn SQL kinh điển. Thử cả hai, xem khác nhau bằng mắt.
+
+Giãn cơ 5 phút lúc 14:45.
+
+### 14:45–15:00 · Bốn phép nối — vẽ ra giấy
+
+Vẽ bốn vòng tròn Venn: `inner`, `left`, `right`, `full`. Với mỗi cái viết một câu ứng dụng thật trong app của bạn.
+
+Rồi tự hỏi: *"Trong 7 câu truy vấn API của tôi, câu nào cần `left` mà tôi đang viết `inner`?"*
 
 ### 15:00–15:10 · Nghỉ
 
-### 15:10–16:00 · Thử ba trạng thái app
+### 15:10–16:00 · `EXPLAIN ANALYZE` — lần đầu
 
-Push hành xử **khác nhau** ở ba trạng thái, phải thử đủ:
+Thêm 10.000 dòng dữ liệu giả:
 
-| Trạng thái | Hành vi | Xử lý bằng |
+```sql
+insert into meals (user_id, client_id, name, calories, eaten_at)
+select
+  '<user-id>', gen_random_uuid(), 'Bữa ' || i,
+  (random() * 800)::int,
+  now() - (random() * interval '365 days')
+from generate_series(1, 10000) i;
+```
+
+Chạy truy vấn số 1 với `explain analyze` phía trước:
+
+```sql
+explain analyze
+select * from meals where user_id = $1 and eaten_at >= $2 and eaten_at < $3;
+```
+
+**Bạn sẽ thấy `Seq Scan`** — Postgres đọc toàn bộ 10.000 dòng để tìm vài dòng. Ghi lại con số `Execution Time`.
+
+Thêm index:
+
+```sql
+create index meals_user_eaten_idx on meals (user_id, eaten_at desc);
+```
+
+Chạy lại. Bây giờ là `Index Scan`. Ghi lại con số mới.
+
+| | Trước index | Sau index |
 | --- | --- | --- |
-| **Foreground** — app đang mở | Mặc định **không** hiện banner | `setNotificationHandler` để quyết định |
-| **Background** — app ở nền | Hiện banner | `addNotificationResponseReceivedListener` khi bấm |
-| **Killed** — app đã đóng hẳn | Hiện banner, bấm thì app khởi động | `getLastNotificationResponseAsync` |
+| Kiểu quét | Seq Scan | Index Scan |
+| Thời gian | __ ms | __ ms |
 
-```ts
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,      // hiện cả khi đang mở app
-    shouldPlaySound: false,
-    shouldSetBadge: true,
-  }),
-});
-```
+**Vì sao thứ tự cột trong index là `(user_id, eaten_at)` chứ không ngược lại:** index giống danh bạ sắp theo họ rồi mới tới tên. Tìm "tất cả người họ Nguyễn" thì nhanh; tìm "tất cả người tên Nhân" thì vô dụng. Cột lọc bằng dấu bằng đứng trước, cột lọc theo khoảng đứng sau.
 
-**Trạng thái thứ ba là trạng thái hay quên nhất và hay hỏng nhất.** Ngày mai bạn sẽ nối nó với deep link, và đó là chỗ mọi thứ dễ vỡ.
+> Đây là cùng tư duy đo-trước-khi-tối-ưu của tháng 10, áp dụng cho database. Bạn đã có thói quen đó rồi — chỉ đổi công cụ đo từ Flashlight sang `EXPLAIN ANALYZE`.
 
-```bash
-git add . && git commit -m "feat: gửi push từ server, dọn token chết, lịch nhắc hằng ngày"
-```
+Con số trước/sau này là câu chuyện phỏng vấn thứ chín trong kho của bạn.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+## TÌM VIỆC · 16:00–16:30 — Nhắn 2 người quen
 
-Tuần thứ hai. Tổng mục tiêu tuần này: 6 đơn + 2 tin nhắn.
+Tuần này bắt đầu chuyển từ "nối lại liên lạc" sang "cho họ biết mình đang tìm việc". Với người đã nhắn tuần trước:
 
-**Nếu tuần trước chưa có phản hồi nào:** bình thường. Tiếp tục.
-
-**Nếu có phản hồi:** ưu tiên trả lời ngay trong ngày, kể cả khi phải cắt vào khối học. Một buổi phỏng vấn được hẹn giá trị hơn một ngày học.
+> *"À anh/chị ơi, tiện đây — em đang tìm vị trí mobile hoặc fullstack. Nếu bên anh/chị hoặc chỗ nào anh/chị biết có tuyển thì cho em xin thông tin với ạ. Đây là app và repo của em: [link]."*
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily standup
 
-### 16:30–16:40 · Shadowing
+> *"Morning. This week is databases, which is the part I know least. I decided to write raw SQL before touching an ORM, because I didn't want the ORM to hide things I don't understand yet.*
+> *Today I designed the schema on paper first, then wrote the DDL by hand. The decision I care most about is a unique constraint on user ID plus client ID. Back in October I made writes idempotent on the mobile side using client-generated UUIDs — today I added the database constraint that actually enforces it. Application logic can have bugs; the constraint can't.*
+> *I also seeded ten thousand rows and ran EXPLAIN ANALYZE. Sequential scan, then I added a composite index and it became an index scan. I wrote down both numbers.*
+> *Tomorrow: Drizzle and migrations."*
 
-### 16:40–16:55 · Standup có ghi âm
-
-> *"Morning. Last week I shipped the AI features and released 1.2.0.*
-> *This week is push notifications and deep linking. Today I set up token registration and server-side sending through Expo's push service, which fans out to APNs and FCM.*
-> *Two things I paid attention to. First, permission timing — I don't ask on launch. I show my own explainer when the user turns on reminders, and only then trigger the system dialog, because on iOS that dialog only ever appears once. Second, I handle DeviceNotRegistered responses and delete dead tokens, otherwise the table fills up with devices that don't exist.*
-> *Tomorrow: deep linking, and wiring notification taps to the right screen."*
-
-### 16:55–17:00 · 5 từ mới
+**5 từ mới:**
 
 | Từ / cụm | Nghĩa | Câu mẫu |
 | --- | --- | --- |
-| `fan out to` | phân phối ra nhiều nơi | *It fans out to APNs and FCM.* |
-| `explainer` (n) | màn hình giải thích | *I show my own explainer first.* |
-| `dead token` | token không còn dùng được | *Delete dead tokens.* |
-| `best effort` | cố gắng hết mức, không bảo đảm | *Push delivery is best effort.* |
-| `cold start` | mở app từ trạng thái đã đóng | *Tapping it from a cold start.* |
+| `raw SQL` | SQL viết tay | *I wrote raw SQL before touching an ORM.* |
+| `enforce` (v) | cưỡng chế, đảm bảo | *The constraint enforces it.* |
+| `seed` (v) | đổ dữ liệu mẫu | *I seeded ten thousand rows.* |
+| `composite index` | index nhiều cột | *I added a composite index.* |
+| `hide things from me` | giấu đi | *I didn't want the ORM to hide things.* |
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## GHI CHÚ · 17:00–17:30
 
-**`qa-bank.mdc` — Topic 5 (Auth).**
-
-Bạn đã làm auth thật hôm 01–02/10. Viết lại toàn bộ topic này cho khớp với thứ bạn đã tự tay làm.
+Tạo `docs/database.md`:
+- Sơ đồ quan hệ vẽ tay, chụp lại
+- **Bảy quyết định schema, mỗi cái một dòng lý do**
+- Bảng đo trước/sau khi thêm index
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] **Vẽ được đường đi của push ra giấy**
-- [ ] Nhận được push thật trên máy Android và iOS thật
-- [ ] Kênh thông báo Android đã tạo
-- [ ] Xin quyền **có ngữ cảnh**, không xin lúc mở app
-- [ ] Token lưu đúng, xóa khi đăng xuất
-- [ ] Xử lý `DeviceNotRegistered`, dọn token chết
-- [ ] Lịch cron chạy đúng giờ Việt Nam
-- [ ] Đã thử đủ 3 trạng thái app
-- [ ] Đã nộp 3 đơn
-- [ ] **Có commit hôm nay**
+- [ ] Neon đã tạo, có nhánh `main` và `dev`
+- [ ] Schema vẽ tay **trước khi** viết SQL
+- [ ] Giải thích được cả 7 quyết định schema
+- [ ] Nói được vì sao `timestamptz` chứ không `timestamp`
+- [ ] Nói được vì sao ràng buộc unique là thứ thật sự đảm bảo tính bất biến
+- [ ] Viết được 3 truy vấn bằng tay, không dùng công cụ sinh
+- [ ] Thấy được khác biệt giữa `count(*)` và `count(m.id)` với left join
+- [ ] **Đã chạy `EXPLAIN ANALYZE` trước và sau khi thêm index, ghi cả hai con số**
+- [ ] Giải thích được vì sao thứ tự cột trong index quan trọng
+- [ ] Đã nhắn 2 người quen
 - [ ] Ghi âm `2026-11-09.m4a`
-- [ ] Đã sửa Topic 5 trong `qa-bank.mdc`
 - [ ] 21:30 lên giường

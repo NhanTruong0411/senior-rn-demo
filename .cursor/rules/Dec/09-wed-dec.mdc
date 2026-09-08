@@ -1,0 +1,90 @@
+---
+description: Thứ Tư 09/12/2026 — Tuần 15 Ngày 3. Cache — chỉ khi đã đo; ETag và Redis đúng chỗ.
+alwaysApply: false
+---
+
+# Thứ Tư · 09/12/2026 · Tuần 15 — Ngày 68/82
+
+> Luật tháng 10 vẫn đúng: **không cache thứ chưa đo.** Hôm nay đo p95, rồi mới quyết định Redis hay chỉ HTTP cache.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| **08:30** | **KHỐI XÂY** — Đo latency endpoint chính |
+| **13:30** | **KHỐI HỌC** — ETag / Cache-Control / Redis có điều kiện |
+| **16:00** | **TÌM VIỆC** — nhắn 2 người lạ chọn lọc |
+| **16:30** | **TIẾNG ANH** — Quyết định thiết kế |
+| **17:00** | **GHI CHÚ** |
+| *(các khối gia đình giữ lịch cố định)* | |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+Thêm middleware đo thời gian, log `durationMs` *(đã có từ Nov)*. Chạy 50 request thật:
+
+```bash
+autocannon -c 10 -d 20 https://.../v1/meals -H "Authorization: Bearer $TOKEN"
+```
+
+Điền bảng:
+
+| Endpoint | p50 | p95 | p99 | Quyết định |
+| --- | --- | --- | --- | --- |
+| GET /v1/meals | | | | |
+| GET /v1/me/stats | | | | |
+| POST /v1/meals | | | | *(không cache ghi)* |
+
+**Ngân sách bạn tự đặt** (ví dụ p95 < 300ms khi warm). Ghi vào `docs/perf-budget.md`.
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### Chỉ cache đọc nặng / ít đổi
+
+```ts
+// Ví dụ: daily stats
+const cacheKey = `stats:${userId}:${day}`;
+const hit = await redis.get(cacheKey);
+if (hit) return JSON.parse(hit);
+
+const stats = await statsService.forDay(userId, day);
+await redis.set(cacheKey, JSON.stringify(stats), { ex: 60 });
+return stats;
+```
+
+**Invalidation:** khi meal create/update/delete → `redis.del(cacheKey)`. Cache không có invalidation = bug trầm.
+
+### ETag cho list
+
+```ts
+const etag = `"${hash(mealsUpdatedAt)}"`;
+if (req.headers['if-none-match'] === etag) return reply.code(304).send();
+reply.header('ETag', etag);
+```
+
+Mobile ky/fetch: gửi lại ETag. Tiết kiệm băng thông hơn là "nhanh hơn DB" khi payload lớn.
+
+**Nếu p95 đã dưới ngân sách:** ghi rõ *"hôm nay không thêm Redis cho meals list"* — đó là quyết định đúng, không phải lười.
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+> *"I measured first. Meals list was already under budget when warm, so I didn't put it in Redis. I did cache daily stats for sixty seconds and invalidate on write. Caching without invalidation is how you ship lies to users."*
+
+**5 từ:** `under budget` · `invalidate on write` · `ETag` · `304` · `ship lies`
+
+---
+
+## Checklist
+
+- [ ] Bảng p50/p95/p99 đã điền
+- [ ] Ngân sách độ trễ đã viết
+- [ ] Cache chỉ nơi cần + có xoá khi ghi
+- [ ] Hoặc quyết định có chứng minh là không cần Redis
+- [ ] Ghi âm `2026-12-09.m4a`

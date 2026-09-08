@@ -1,0 +1,64 @@
+---
+description: Thứ Hai 28/12/2026 — Tuần 18 Ngày 1. Mock interview fullstack #1 — kiến trúc + request path.
+alwaysApply: false
+---
+
+# Thứ Hai · 28/12/2026 · Tuần 18 — Ngày 79/82
+
+> Ba buổi mock (28–30). Hôm nay: **kiến trúc + đường đi request**. Ghi âm như phỏng vấn thật 45 phút.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| **08:30** | **KHỐI XÂY** — Cheatsheet 1 trang + sơ đồ vẽ lại tay |
+| **13:30** | **KHỐI HỌC** — Mock 45 phút (tự hỏi / AI chấm) |
+| **16:00** | **TÌM VIỆC** — nhắn 3 người + xin giới thiệu |
+| **16:30** | **TIẾNG ANH** — Standup bằng EN cả buổi mock excerpt |
+| **17:00** | **GHI CHÚ** — chấm rubric |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+In / viết tay `docs/interview-cheatsheet.md` phiên bản fullstack:
+
+- 60s pitch
+- Sơ đồ mobile → API → Neon (+ jobs, SSE, Resend, Sentry)
+- Salary range + walkaway
+- 4 câu Dec context + gạch đầu dòng trả lời
+- 3 honest gaps
+
+Không mở laptop chỉnh feature.
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### Mock set A (45 phút)
+
+1. Tell me about yourself (fullstack angle)
+2. Walk a request finger → DB → back
+3. Why Fastify over Express in production?
+4. Refresh token reuse detection — why?
+5. Why leaving / why this company (behavioral ngắn)
+
+**Rubric** (mỗi câu 1–5 × 5 trục như coding-context): Decision · Example · Honesty · Time · Follow-up. Tổng <15 drill lại.
+
+Ghi âm cả buổi: `2026-12-28-mock.m4a`.
+
+---
+
+## TÌM VIỆC · 16:00–16:30
+
+Ưu tiên giới thiệu nội bộ. Dán link TestFlight/Play + 2 repo.
+
+---
+
+## Checklist
+
+- [ ] Cheatsheet in ra
+- [ ] Mock A ghi âm + tự chấm
+- [ ] Ghi âm standup `2026-12-28.m4a`

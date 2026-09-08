@@ -1,0 +1,68 @@
+---
+description: Thứ Ba 15/12/2026 — Tuần 16 Ngày 2. Quan sát được sâu hơn — requestId, slow query, câu hỏi "API chậm".
+alwaysApply: false
+---
+
+# Thứ Ba · 15/12/2026 · Tuần 16 — Ngày 72/82
+
+> Câu hỏi fullstack #3: *"API của anh chậm. Anh tìm nguyên nhân thế nào?"*
+> Hôm nay trả lời bằng quy trình có sẵn trong hệ thống của bạn.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| **08:30** | **KHỐI XÂY** — Dashboard truy vết 1 request |
+| **13:30** | **KHỐI HỌC** — Runbook 5 bước khi chậm |
+| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
+| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
+| **17:00** | **GHI CHÚ** |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+Checklist hệ thống (bổ sung Nov 27):
+
+1. Client gửi `x-request-id`
+2. Log mọi tầng có cùng id
+3. Sentry tag `requestId`
+4. Cờ slow query > 1s
+5. Màn lỗi app hiện mã để user gửi bạn
+
+**Bài tập:** cố tình làm chậm một endpoint (`pg_sleep(2)` chỉ trên nhánh dev), gọi từ app, tìm hết chuỗi log bằng một id trong <5 phút.
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### Runbook nói to được
+
+1. Xác nhận chậm là p95 hay một user *(trung bình nói dối)*
+2. Lấy `requestId` từ Sentry / màn lỗi
+3. Xem timeline log: auth → service → SQL
+4. `EXPLAIN ANALYZE` câu SQL trong log
+5. Chỉ khi đã hết N+1 / thiếu index mới bàn cache
+
+Viết `docs/runbook-slow-api.md` đúng 1 trang.
+
+Luyện câu #3 ≤90s.
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+> *"I don't start with Redis. I start with a request id, look at p95 not the mean, find the slow span, EXPLAIN the query, fix N+1 or the missing index, and only then consider a cache. Caching a bad query just hides the fire."*
+
+**5 từ:** `runbook` · `span` · `mean lies` · `hide the fire` · `N+1`
+
+---
+
+## Checklist
+
+- [ ] Tìm được 1 request chậm end-to-end bằng requestId
+- [ ] Runbook 1 trang
+- [ ] Câu #3 nói trôi
+- [ ] Ghi âm `2026-12-15.m4a`

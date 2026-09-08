@@ -1,12 +1,12 @@
 ---
-description: Thứ Năm 26/11/2026 — Tuần 13 Ngày 4. Phỏng vấn thử số 4 — vòng hành vi và đàm phán lương.
+description: Thứ Năm 26/11/2026 — Tuần 13 Ngày 4. Push notification gửi từ server của chính bạn — token, Expo Push API, và dọn token chết.
 alwaysApply: false
 ---
 
-# Thứ Năm · 26/11/2026 · Tuần 13 — Ngày 59/61
+# Thứ Năm · 26/11/2026 · Tuần 13 — Ngày 59/82
 
-> Vòng này quyết định nhiều hơn bạn tưởng. Rất nhiều ứng viên qua vòng kỹ thuật rồi rớt ở đây.
-> **Và đây cũng là ngày bạn luyện đàm phán — kỹ năng có giá trị bằng tiền mặt.**
+> Hầu hết lập trình viên mobile chỉ làm **một nửa** push notification: xin quyền, lấy token, gửi lên server của người khác.
+> Hôm nay bạn làm **nửa còn lại** — nửa mà đa số ứng viên mobile không nói được.
 
 ---
 
@@ -22,18 +22,18 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **PHỎNG VẤN THỬ 4** — hành vi + đàm phán |
+| **08:30** | **KHỐI XÂY** — Phía client: quyền + đăng ký token |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **NGHE LẠI + chốt con số lương** |
+| **13:30** | **KHỐI HỌC** — Phía server: gửi, gom lô, dọn token chết |
 | 15:00 | Nghỉ 10 phút |
-| 15:10 | Luyện kịch bản đàm phán |
-| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
-| **16:30** | **TIẾNG ANH** — Câu hỏi hành vi bằng tiếng Anh |
-| **17:00** | **ĐỌC SÁCH** — hoàn thiện cheatsheet |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — theo dõi lại đơn quá 7 ngày |
+| **16:30** | **TIẾNG ANH** — 3 câu phỏng vấn |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -43,161 +43,231 @@ alwaysApply: false
 
 ---
 
-## PHỎNG VẤN THỬ 4 · 08:30–10:30
+## KHỐI XÂY · 08:30–10:30
 
-### Phần A · 08:30–09:30 — Câu hỏi hành vi
+### 08:30–09:00 · Xin quyền đúng lúc
 
-**Tám câu:**
+```bash
+npx expo install expo-notifications expo-device
+```
 
-1. Kể về một lần anh bất đồng với đồng nghiệp hoặc quản lý.
-2. Kể về một lần anh làm hỏng việc.
-3. Điểm yếu lớn nhất của anh là gì?
-4. Kể về một lần anh phải học nhanh một thứ hoàn toàn mới.
-5. Anh xử lý thế nào khi bị giao deadline không hợp lý?
-6. Anh thích làm việc kiểu gì?
-7. Anh muốn ở đâu sau ba năm nữa?
-8. Vì sao chúng tôi nên chọn anh chứ không phải người khác?
+**Luật quan trọng nhất về quyền, và nó không phải chuyện kỹ thuật:** đừng xin quyền ở màn hình đầu tiên. Người dùng chưa biết app của bạn làm gì thì họ bấm Từ chối. Trên iOS, **từ chối một lần là vĩnh viễn** — bạn không hỏi lại được, chỉ có thể đẩy họ vào phần Cài đặt hệ thống.
 
-**Dùng cấu trúc STAR, nhưng dồn thời gian vào phần R (kết quả) và bài học.** Ứng viên yếu dành 80% thời gian tả tình huống. Người phỏng vấn không quan tâm bối cảnh — họ quan tâm bạn đã làm gì và học được gì.
+Cách đúng: xin ngay sau khi người dùng làm một hành động cho thấy họ quan tâm. Ở MacroZone là sau khi họ **bật tính năng nhắc bữa ăn**.
 
-### Câu số 3 — điểm yếu
+```tsx
+async function enableReminders() {
+  const { status: existing } = await Notifications.getPermissionsAsync();
+  let status = existing;
+  if (existing !== 'granted') {
+    ({ status } = await Notifications.requestPermissionsAsync());
+  }
+  if (status !== 'granted') {
+    // Không lặng lẽ bỏ qua — nói cho người dùng biết và chỉ đường
+    return showSettingsPrompt();
+  }
+  const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+  await api.post('v1/devices', { json: { token, platform: Platform.OS } });
+}
+```
 
-Đây là câu bị trả lời tệ nhất trong mọi buổi phỏng vấn.
+Android 13 trở lên cũng cần quyền tường minh, và cần khai báo **kênh thông báo** — không có kênh thì thông báo trên Android không hiện gì cả:
 
-> ❌ *"Em cầu toàn quá"* — ai cũng nói, không ai tin.
-> ❌ *"Em làm việc quá chăm"* — nghe như đùa.
-> ❌ Nêu một điểm yếu chí mạng cho đúng vị trí đang tuyển.
+```ts
+await Notifications.setNotificationChannelAsync('reminders', {
+  name: 'Nhắc bữa ăn',
+  importance: Notifications.AndroidImportance.DEFAULT,
+});
+```
 
-**Công thức:** một điểm yếu thật, có hại thật nhưng không chí mạng → một ví dụ cụ thể nó gây hại → cái bạn đang làm để sửa → bằng chứng đang tiến bộ.
+### 09:00–10:30 · Bảng thiết bị ở server
 
-> *"Em có xu hướng đi sâu vào một vấn đề kỹ thuật quá lâu trước khi hỏi. Ở Firegroup có lần em mất gần hai ngày cho một lỗi build iOS mà nếu hỏi anh làm native ngay từ đầu thì chắc mất hai mươi phút.*
-> *Cách em đang sửa là đặt luật cứng cho mình: một tiếng không tiến triển thì viết ra những gì đã thử rồi hỏi. Việc viết ra trước khi hỏi giúp cả hai — nhiều lần em tự ra đáp án ngay lúc viết.*
-> *Ba tháng vừa rồi em làm một mình nên không có ai để hỏi, nhưng em vẫn giữ luật đó bằng cách viết vào nhật ký kỹ thuật rồi mới tra cứu."*
+```ts
+export const devices = pgTable('devices', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),           // token là duy nhất toàn hệ thống
+  platform: text('platform').notNull(),
+  lastSeenAt: timestamptz('last_seen_at').notNull().defaultNow(),
+  createdAt: timestamptz('created_at').notNull().defaultNow(),
+});
+```
 
-### Câu số 2 — làm hỏng việc
+**Vì sao `token` là duy nhất toàn hệ thống chứ không phải duy nhất theo người dùng:** một chiếc điện thoại có thể đổi chủ. Anh A đăng xuất, chị B đăng nhập trên cùng máy. Nếu token gắn với cả hai, chị B nhận được thông báo của anh A. Đó là rò rỉ dữ liệu, không phải bug giao diện.
 
-**Phải là chuyện thật, phải có hậu quả thật.** Nếu "sai lầm" của bạn không gây hậu quả gì thì nó không phải sai lầm, và người phỏng vấn thấy ngay bạn đang né.
+Nên endpoint đăng ký phải **chuyển chủ**, không phải chèn thêm:
 
-Dùng câu chuyện lớp lưu trữ từ hôm 24/11, hoặc một chuyện thật ở Firegroup.
+```ts
+await db.insert(devices).values({ userId, token, platform })
+  .onConflictDoUpdate({
+    target: devices.token,
+    set: { userId, lastSeenAt: new Date() },   // đổi chủ sở hữu token
+  });
+```
 
-Giãn cơ 5 phút lúc 09:30.
+Và khi đăng xuất, **xoá token khỏi server** trước khi xoá phiên. Nhiều app quên bước này.
 
-### Phần B · 09:30–10:30 — Đàm phán lương
+Ba tình huống phải xử lý — đây là bộ câu hỏi kiểm tra bạn có nghĩ đủ không:
 
-**Sáu tình huống, luyện nói to từng cái:**
+| Tình huống | Đúng thì phải làm gì |
+| --- | --- |
+| Cùng người dùng, 2 thiết bị | Hai bản ghi. Gửi cho cả hai |
+| Cùng thiết bị, đổi người dùng | Một bản ghi, đổi `user_id` |
+| Đăng xuất | Xoá bản ghi ngay |
 
-**1. Hỏi lương trước khi bạn biết gì về công việc**
-> *"Em muốn hiểu rõ phạm vi công việc trước khi nói con số, để nó có ý nghĩa. Bên mình có khoảng ngân sách cho vị trí này không ạ? Em nói được ngay là em có nằm trong đó không."*
-
-**2. Hỏi lương cũ**
-
-Ở Việt Nam câu này rất hay gặp. Bạn không bắt buộc phải trả lời:
-> *"Lương cũ của em gắn với phạm vi công việc lúc đó và cũng đã hơn nửa năm. Em nghĩ nói về vị trí này thì hợp lý hơn. Với phạm vi như mô tả em nghĩ khoảng __ đến __ triệu."*
-
-**3. Họ đưa con số thấp hơn khoảng của bạn**
-
-Đừng đồng ý ngay, và đừng từ chối ngay:
-> *"Cảm ơn anh/chị. Con số đó thấp hơn khoảng em đang nhắm một chút. Em vẫn rất quan tâm vị trí này. Em muốn hỏi là con số này có linh hoạt không, hay là mức cố định cho bậc này ạ?"*
-
-Rồi **im lặng**. Đừng nói tiếp. Khoảng lặng ba giây làm nhiều nhà tuyển dụng tự nâng lên.
-
-**4. Họ ép chốt ngay**
-> *"Em rất hào hứng. Em xin hai ngày để xem kỹ toàn bộ gói và bàn với gia đình. Em sẽ trả lời trước [ngày cụ thể]."*
-
-Công ty tử tế luôn cho vài ngày. Công ty ép chốt trong 24 giờ là một tín hiệu đáng để ý.
-
-**5. Họ hỏi bạn có đang phỏng vấn chỗ khác không**
-
-Trả lời thật, ngắn, không kể tên:
-> *"Có ạ, em đang trong quy trình với vài nơi nữa. Nhưng vị trí này là chỗ em quan tâm nhất vì [lý do cụ thể về công ty]."*
-
-**6. Khoảng trống bị dùng để ép giá**
-
-Đây là chỗ bạn cần vững nhất:
-> *"Em hiểu vì sao anh/chị nêu điều đó. Nhưng ba tháng vừa rồi em không ngồi không — em có một sản phẩm đang chạy, một module native tự viết, và một quy trình tự động hóa mà công việc cũ chưa cho em cơ hội làm. Em nghĩ em vào việc còn nhanh hơn sáu tháng trước. Con số em nêu phản ánh năng lực hiện tại, không phải khoảng thời gian nghỉ."*
-
-> **Điều quan trọng nhất về đàm phán:** người ta không rút lời mời chỉ vì bạn hỏi. Nếu có nơi nào rút lời mời vì bạn thương lượng lịch sự một lần, đó là nơi bạn vừa may mắn tránh được.
+```bash
+git add . && git commit -m "feat: đăng ký thiết bị nhận push, có chuyển chủ token"
+```
 
 ---
 
-## NGHE LẠI · 13:30–16:00
+## KHỐI HỌC · 13:30–16:00
 
-### 13:30–14:30 · Chấm phần hành vi
+### 13:30–14:30 · Gửi từ server
 
-| Câu | Là chuyện thật? | Dành bao nhiêu thời gian cho phần R? | Có đổ lỗi ai không? | Điểm /25 |
-| --- | --- | --- | --- | --- |
+Expo Push Service là một endpoint HTTP. Không cần SDK:
 
-**Ba lỗi phải soi kỹ:**
-1. Có câu nào tôi nói xấu Firegroup hoặc đồng nghiệp cũ không? *(dù chỉ một câu — đây là tín hiệu xấu nhất trong phỏng vấn)*
-2. Câu điểm yếu của tôi có phải điểm yếu thật không?
-3. Tôi có dành quá nhiều thời gian tả bối cảnh không?
+```ts
+export async function sendPush(messages: PushMessage[]) {
+  // Expo nhận tối đa 100 tin mỗi lần gọi — phải chia lô
+  const chunks = chunk(messages, 100);
+  const tickets: Ticket[] = [];
+  for (const batch of chunks) {
+    const res = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(batch),
+    });
+    tickets.push(...(await res.json()).data);
+  }
+  return tickets;
+}
+```
 
-### 14:30–15:00 · Chốt con số
-
-Ba con số, viết ra giấy, để trên bàn khi phỏng vấn thật:
+**Điều quan trọng nhất về push, và nó làm nhiều người ngạc nhiên:** phản hồi 200 **không** có nghĩa là tin đã tới máy. Nó chỉ có nghĩa Expo đã nhận việc. Đây là hệ thống hai bước:
 
 ```
-Con số mong muốn:  __ triệu   (nói ra khi được hỏi, ở đầu trên của khoảng)
-Con số chấp nhận:  __ triệu   (đồng ý không do dự)
-Con số rời bàn:    __ triệu   (dưới mức này thì từ chối, không thương lượng)
+Bạn → Expo:  nhận ticket ngay lập tức
+Expo → APNs/FCM:  vài giây sau
+Bạn hỏi Expo bằng ticket id → nhận receipt  ← sự thật nằm ở đây
 ```
 
-**Con số rời bàn phải quyết định lúc bình tĩnh, không phải lúc đang trong cuộc gọi và đang cần việc.** Đó chính là lý do phải viết ra hôm nay.
+Nếu bạn chỉ đọc phản hồi 200 rồi coi như xong, bạn sẽ tích luỹ hàng nghìn token chết mà không biết.
 
-Tham chiếu từ `coding-context.mdc`: 22–32 triệu (công ty sản phẩm), 28–42 triệu (gia công có khách nước ngoài).
+### 14:30–15:00 · Dọn token chết
 
-**Cân nhắc thêm:** sau sáu tháng không lương, áp lực tài chính sẽ đẩy bạn về phía chấp nhận thấp. Nghĩ trước về điều đó. Nếu con số rời bàn của bạn thật sự thấp vì hoàn cảnh, hãy trung thực với chính mình — nhưng đừng để nó thấp hơn mức bạn thật sự đáng chỉ vì đang mệt.
+Giãn cơ 5 phút, rồi làm phần này — đây là phần phân biệt người đã vận hành push thật với người mới đọc tài liệu.
+
+Sau 15 phút, hỏi lại biên nhận:
+
+```ts
+const receipts = await fetchReceipts(ticketIds);
+for (const [id, receipt] of Object.entries(receipts)) {
+  if (receipt.status === 'error' && receipt.details?.error === 'DeviceNotRegistered') {
+    await db.delete(devices).where(eq(devices.token, tokenFor(id)));
+  }
+}
+```
+
+`DeviceNotRegistered` nghĩa là người dùng đã gỡ app hoặc tắt thông báo. **Phải xoá token.** Không xoá thì:
+
+- Bảng phình ra theo thời gian
+- Mỗi lần gửi tốn công cho token chết
+- Nếu tỉ lệ token chết cao, Apple và Google **giảm độ ưu tiên** cho toàn bộ app của bạn
+
+Điểm thứ ba là điểm ít ai biết và là điểm đáng nói khi phỏng vấn: token chết làm hại cả những người dùng thật.
+
+Các lỗi khác đáng xử lý:
+
+| Lỗi | Nghĩa | Làm gì |
+| --- | --- | --- |
+| `DeviceNotRegistered` | Gỡ app / tắt thông báo | Xoá token |
+| `MessageTooBig` | Tải trọng quá 4 KiB | Cắt nội dung, gửi lại |
+| `MessageRateExceeded` | Gửi quá nhanh | Lùi theo cấp số nhân |
+| `MismatchSenderId` | Cấu hình FCM sai | Sửa cấu hình, không thử lại |
+
+Dòng cuối quan trọng: **có lỗi không được thử lại**. Thử lại một lỗi cấu hình chỉ tốn tài nguyên và không bao giờ thành công. Phân biệt lỗi tạm thời và lỗi vĩnh viễn là kỹ năng cốt lõi khi làm việc nền — ngày 30/11 sẽ dùng lại đúng nguyên tắc này với hàng đợi việc.
 
 ### 15:00–15:10 · Nghỉ
 
-### 15:10–16:00 · Diễn lại kịch bản đàm phán
+### 15:10–16:00 · Gửi thật, thử đủ bốn trạng thái
 
-Chạy cả sáu tình huống một lần nữa, có ghe âm. Đặc biệt tình huống 3 và 6.
+Viết một endpoint tạm chỉ dành cho quản trị để tự gửi cho mình. Rồi thử đủ:
 
-**Luyện cả khoảng lặng.** Sau khi nói xong câu ở tình huống 3, ngậm miệng và đếm thầm đến ba. Việc này khó hơn bạn tưởng, và nó đáng tiền.
+| Trạng thái ứng dụng | Phải xảy ra gì |
+| --- | --- |
+| Đang mở (foreground) | Không hiện banner hệ thống. Cập nhật giao diện trong app |
+| Chạy nền (background) | Hiện banner. Chạm vào thì mở app |
+| Đã tắt hẳn (killed) | Hiện banner. Chạm vào thì **khởi động lạnh** và vẫn tới đúng màn hình |
+| Từ chối quyền | Không sập. Có giao diện giải thích |
+
+**Hàng thứ ba là hàng hay hỏng nhất.** Khi app khởi động lạnh từ thông báo, dữ liệu thông báo tới **trước khi** navigator sẵn sàng. Phải giữ nó lại và xử lý sau khi cây điều hướng đã dựng:
+
+```ts
+const response = Notifications.useLastNotificationResponse();
+useEffect(() => {
+  if (!response || !navigationReady) return;   // giữ lại cho tới khi sẵn sàng
+  router.push(response.notification.request.content.data.url);
+}, [response, navigationReady]);
+```
+
+Đây đúng là bài toán bạn sẽ gặp lại với deep link ngày 23/12. Cùng một hình dạng: sự kiện tới trước khi hệ thống sẵn sàng nhận.
+
+```bash
+git add . && git commit -m "feat: gửi push từ server, xử lý biên nhận và dọn token chết"
+```
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+## TÌM VIỆC · 16:00–16:30 — Theo dõi lại
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Câu hỏi hành vi bằng tiếng Anh
+## TIẾNG ANH · 16:30–17:00 — Thứ Năm: 3 câu phỏng vấn
 
-**Ba câu, ghi âm liền mạch:**
+**Q1. "Have you worked with push notifications?"**
+> *"Both sides, which is the part I'd emphasize. On the client it's permissions, tokens, and channels — that's the easy half. The interesting half is the server: batching into groups of a hundred, and understanding that a 200 response doesn't mean delivered. It means Expo accepted the job. You get a ticket, and fifteen minutes later you fetch a receipt, and the receipt is where the truth is."*
 
-**"What's your biggest weakness?"**
-> *"I go too deep on a problem before asking for help. At my last job I spent nearly two days on an iOS build error that the native developer on my team would have solved in twenty minutes.*
-> *What I do now is set a hard rule — one hour without progress and I write down what I've tried, then I ask. Writing it down first helps both sides, and honestly, about half the time I find the answer while writing it.*
-> *The last three months I've been working alone with nobody to ask, so I kept the rule by writing into a technical log before searching."*
+**Q2. "What happens to tokens when a user uninstalls?"**
+> *"The receipt comes back DeviceNotRegistered, and you delete the row. If you don't, three things go wrong. Your table grows forever, you waste work on every send, and — the one people miss — Apple and Google deprioritize your whole app if your invalid token rate is high. So dead tokens actively hurt your real users. Cleanup isn't housekeeping, it's deliverability."*
 
-**"Tell me about a time you disagreed with someone."**
+**Q3. "When do you ask for notification permission?"**
+> *"Never on first launch. On iOS a denial is permanent — you can't ask again, you can only send them to Settings. So I ask right after the user turns on meal reminders, because at that moment they've told me they want them. It costs nothing to wait and it roughly doubles the accept rate."*
 
-**"Why should we hire you over someone else?"**
-> *"I won't claim I'm the strongest React Native developer you'll talk to. What I'd say is this: I shipped something end to end this year, alone, including the parts most people avoid — the native module, the test suite, the pipeline, the store submission.*
-> *And I put it in front of real users and watched them get confused, which changed what I built.*
-> *So if what you need is someone who finishes things and can tell you honestly where the edges of their knowledge are, that's what I'm bringing."*
+**5 từ mới:**
+
+| Từ / cụm | Nghĩa | Câu mẫu |
+| --- | --- | --- |
+| `deliverability` | khả năng gửi tới nơi | *Cleanup isn't housekeeping, it's deliverability.* |
+| `deprioritize` (v) | giảm độ ưu tiên | *They deprioritize your whole app.* |
+| `the truth is in X` | sự thật nằm ở X | *The receipt is where the truth is.* |
+| `permanent denial` | từ chối vĩnh viễn | *On iOS a denial is permanent.* |
+| `cold start` | khởi động lạnh | *Tapping it cold starts the app.* |
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## GHI CHÚ · 17:00–17:30
 
-Hoàn thiện `docs/interview-cheatsheet.md`. Thêm ba con số lương và một dòng cho câu điểm yếu.
-
-**In ra giấy.** Không đọc trên màn hình lúc phỏng vấn — mắt liếc màn hình nhìn rất rõ qua camera.
+Tạo `docs/push-notifications.md`:
+- Sơ đồ hai bước: ticket rồi receipt
+- Ba tình huống vòng đời token
+- Bảng lỗi: cái nào thử lại, cái nào không
+- Ma trận 4 trạng thái ứng dụng
+- **Vì sao xin quyền muộn**
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] Đã trả lời hết 8 câu hành vi
-- [ ] Câu điểm yếu là điểm yếu **thật**, có ví dụ và cách sửa
-- [ ] Câu làm hỏng việc có **hậu quả thật**
-- [ ] **Không có câu nào nói xấu Firegroup** — nghe lại kỹ chỗ này
-- [ ] Đã luyện đủ 6 tình huống đàm phán
-- [ ] **Luyện được khoảng lặng 3 giây** sau câu hỏi lại về lương
-- [ ] Ba con số lương đã viết ra giấy
-- [ ] Đã nộp 3 đơn
-- [ ] Ghi âm 3 câu hành vi bằng tiếng Anh
-- [ ] **Cheatsheet đã in ra giấy**
+- [ ] Xin quyền **sau** hành động thể hiện ý định, không phải khi mở app
+- [ ] Kênh thông báo Android đã khai báo
+- [ ] Token là **duy nhất toàn hệ thống**, đăng ký thì chuyển chủ
+- [ ] Đăng xuất thì xoá token khỏi server
+- [ ] Gửi có **chia lô 100 tin**
+- [ ] **Đọc biên nhận sau 15 phút**, không tin phản hồi 200
+- [ ] `DeviceNotRegistered` thì xoá token
+- [ ] Phân biệt được lỗi nên thử lại và lỗi không nên
+- [ ] **Đã thử đủ 4 trạng thái ứng dụng**, kể cả khởi động lạnh
+- [ ] Nói được vì sao token chết làm hại người dùng thật
+- [ ] Ghi âm `2026-11-26.m4a`
 - [ ] 21:30 lên giường

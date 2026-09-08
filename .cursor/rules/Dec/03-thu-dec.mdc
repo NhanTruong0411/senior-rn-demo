@@ -1,0 +1,113 @@
+---
+description: Thứ Năm 03/12/2026 — Tuần 14 Ngày 4. Nhắc bữa ăn end-to-end — từ cài đặt trên điện thoại đến push thật.
+alwaysApply: false
+---
+
+# Thứ Năm · 03/12/2026 · Tuần 14 — Ngày 64/82
+
+> Ghép mọi thứ tuần 14 thành một vòng kín: bật nhắc trên app → server lịch → push/email → người dùng thấy đúng giờ.
+
+---
+
+## Lịch hôm nay
+
+| Giờ | Việc |
+| --- | --- |
+| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
+| 04:45 | Gym (30 phút cardio) |
+| 05:45 | Về nhà, tắm, cà phê |
+| 06:30 | Chuẩn bị bữa sáng cho bé |
+| 07:00 | Cho bé ăn, vitamin D |
+| 07:30 | Tắm nắng cùng bé |
+| 07:45 | Tắm cho bé |
+| 08:00 | Rửa bình sữa, dọn dẹp |
+| **08:30** | **KHỐI XÂY** — Màn cài đặt nhắc + API prefs |
+| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
+| 11:00 | Thư giãn |
+| 11:30 | Giữ bé cho bà nội ăn trưa |
+| 12:30 | Ăn trưa, dọn dẹp |
+| 13:00 | Ngủ 30 phút |
+| **13:30** | **KHỐI HỌC** — Chạy thử lịch thật + bảng đo |
+| 15:00 | Nghỉ 10 phút |
+| 15:10 | Tiếp tục |
+| **16:00** | **TÌM VIỆC** — theo dõi lại đơn > 7 ngày |
+| **16:30** | **TIẾNG ANH** — 3 câu phỏng vấn |
+| **17:00** | **GHI CHÚ** |
+| 17:30 | Trọn vẹn với con gái |
+| 19:00 | Ăn tối cùng vợ, dọn bếp |
+| 20:00 | Tắm con, ru con ngủ |
+| 20:30 | Thời gian với con |
+| 21:15 | Chuẩn bị đồ gym |
+| 21:30 | Ngủ |
+
+---
+
+## KHỐI XÂY · 08:30–10:30
+
+### API + màn hình
+
+```ts
+// PUT /v1/me/reminder-prefs
+app.put('/v1/me/reminder-prefs', { preHandler: authenticate }, async (req, reply) => {
+  const body = reminderPrefsSchema.parse(req.body);
+  await reminderService.upsert(req.user.id, body);
+  return reply.send({ ok: true });
+});
+```
+
+Mobile: form giờ nhắc + timezone tự điền + công tắc enabled. Sau khi bật → xin quyền push *(đúng luật 26/11)*.
+
+**DoD vòng kín hôm nay:**
+
+1. Bật nhắc 2–3 phút sau giờ hiện tại *(để không phải chờ đến trưa)*
+2. Đợi worker `dispatch-reminders` chạy
+3. Nhận push trên máy thật
+4. Mở app từ banner → đúng tab Home
+5. Tắt enabled → không còn nhận
+
+```bash
+git add . && git commit -m "feat: cài đặt nhắc bữa ăn đồng bộ server, vòng kín push"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:30 · Bảng chứng minh tuần 14
+
+Điền bằng số thật từ `notification_log` và log pg-boss:
+
+| Chỉ số | Giá trị |
+| --- | --- |
+| Số user có nhắc bật | |
+| Push gửi thành công / thất bại hôm nay | |
+| Số lần bị chặn bởi quiet hours | |
+| Số việc dead letter | |
+
+### 14:30–15:00 · Câu hỏi phỏng vấn #1 (tháng 12)
+
+Luyện nói to ≤3 phút: *"Một request đi từ ngón tay đến database rồi quay lại"* — thêm nhánh: *"và một việc nền nhắc bữa ăn không nằm trên đường request đó."*
+
+### 15:00–15:10 · Nghỉ
+
+### 15:10–16:00 · Sửa bug tìm được khi thử thật
+
+Ghi tối thiểu 1 bug bạn chỉ phát hiện khi chạy trên máy thật (timezone, permission, cold start Render…). Sửa + commit.
+
+---
+
+## TIẾNG ANH · 16:30–17:00
+
+**Q:** "How do meal reminders work in your app?"
+> *"Preferences live on the server: wall-clock times plus IANA timezone. A cron job every fifteen minutes finds due users, enqueues idempotent push jobs, respects quiet hours, and logs every send. The phone only registers the device token and shows the notification — the schedule is not trusted to the client."*
+
+---
+
+## Checklist cuối ngày
+
+- [ ] Prefs CRUD + màn cài đặt
+- [ ] Vòng kín push trên máy thật đã chạy
+- [ ] Bảng chỉ số đã điền
+- [ ] Nói được câu hỏi fullstack #1 kèm nhánh job nền
+- [ ] Ghi âm `2026-12-03.m4a`
+- [ ] 21:30 lên giường

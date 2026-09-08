@@ -1,12 +1,12 @@
 ---
-description: Thứ Sáu 20/11/2026 — Tuần 12 Ngày 5. Phát hành v1.4.0, viết bài về animation, tổng kết tuần cuối cùng của giai đoạn xây.
+description: Thứ Sáu 20/11/2026 — Tuần 12 Ngày 5. Viết bài về xác thực, tổng kết tuần, và vẽ lại sơ đồ kiến trúc toàn hệ thống.
 alwaysApply: false
 ---
 
-# Thứ Sáu · 20/11/2026 · Tuần 12 — Ngày 55/61
+# Thứ Sáu · 20/11/2026 · Tuần 12 — Ngày 55/82
 
-> **Hôm nay là ngày cuối cùng bạn viết tính năng mới.** Từ thứ Hai tuần sau, mọi thứ đều hướng về phỏng vấn.
-> Sản phẩm dừng ở đây. Nó đã đủ tốt. Đừng để việc "thêm một tính năng nữa" thành cái cớ để trì hoãn việc nộp đơn.
+> Hôm nay lần đầu bạn vẽ được sơ đồ **toàn bộ hệ thống do chính mình viết** — từ ngón tay người dùng đến database và quay lại.
+> Đó là bức tranh bạn sẽ vẽ trên bảng trắng trong buổi phỏng vấn.
 
 ---
 
@@ -22,18 +22,18 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Phát hành v1.4.0 |
+| **08:30** | **KHỐI XÂY** — Sơ đồ kiến trúc + tập kể |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Viết bài + chuẩn bị tuần phỏng vấn |
+| **13:30** | **KHỐI HỌC** — Bài viết số 5 + tổng kết tuần |
 | 15:00 | Nghỉ 10 phút |
-| 15:10 | Tổng kết tuần |
-| **16:00** | **TÌM VIỆC** — tổng kết 3 tuần nộp đơn |
-| **16:30** | **TIẾNG ANH** — Nghe lại 5 bản ghi trong tuần |
-| **17:00** | **ĐỌC SÁCH** — Chuẩn bị `interview-cheatsheet.md` |
+| 15:10 | Tự chấm |
+| **16:00** | **TÌM VIỆC** — cập nhật CV |
+| **16:30** | **TIẾNG ANH** — nghe lại 5 bản ghi |
+| **17:00** | **GHI CHÚ** |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -43,175 +43,164 @@ alwaysApply: false
 
 ---
 
-## KHỐI XÂY · 08:30–10:30 — Phát hành v1.4.0
+## KHỐI XÂY · 08:30–10:30
 
-### 08:30–09:00 · Kiểm tra trước phát hành
+### 08:30–09:30 · Vẽ toàn bộ hệ thống
 
-```bash
-npm run verify        # typecheck + lint + test
-npm run test:e2e      # Maestro
-node scripts/check-bundle-size.js
+Lấy giấy A4 ngang. **Vẽ tay, không dùng công cụ** — bạn cần luyện vẽ nó trên bảng trắng.
+
+```text
+[ Điện thoại ]
+   Expo Router · TanStack Query · SecureStore
+   Hàng đợi ghi ngoại tuyến · Hàng đợi refresh
+        │  HTTPS
+        ▼
+[ Render — Fastify ]
+   helmet · cors · xác thực · route · service · repo
+        │
+        ▼
+[ Neon — PostgreSQL ]
+   users · meals · sessions · password_resets
+
+Bên cạnh:  Sentry (lỗi) · Better Stack (log) · Resend (email)
 ```
 
-Nếu FPS sau khi thêm animation tụt dưới ngân sách đã đặt hôm 23/10 thì **không phát hành**. Ngân sách bạn tự đặt mà tự phá thì nó vô nghĩa.
+Rồi **đánh dấu vào sơ đồ**:
+- Chỗ nào dữ liệu được kiểm tra? *(Zod ở biên, ràng buộc ở database)*
+- Chỗ nào có thể hỏng? *(mạng, cold start, DB hết kết nối)*
+- Chỗ nào có trạng thái? *(SecureStore, database — không chỗ nào khác)*
+- Chỗ nào bạn **không** kiểm soát? *(mạng di động, Render, Neon)*
+
+Bốn câu này biến một sơ đồ hộp-và-mũi-tên thành một cuộc trò chuyện kỹ thuật.
 
 Giãn cơ 5 phút lúc 09:30.
 
-### 09:00–10:30 · Phát hành
+### 09:30–10:30 · Tập kể — 3 phút, nói to
 
-```bash
-git checkout main && git merge --no-ff feat/animations
-npm version minor            # 1.3.x → 1.4.0
-git push --follow-tags
-```
+Kể toàn hệ thống trong 3 phút, không nhìn giấy. Cấu trúc:
 
-Đường ống CI/CD dựng hôm 29/10 lo phần còn lại. Xem GitHub Actions chạy, kiểm tra EAS Build ra bản đúng.
+1. **Vấn đề** — theo dõi dinh dưỡng, dùng được khi mất mạng, nhiều thiết bị
+2. **Hình dạng** — app Expo, API Fastify, Postgres. Đơn khối, có chủ ý
+3. **Ba quyết định khó** — tính bất biến, xoay refresh token, cold start bậc miễn phí
+4. **Cái tôi không làm và vì sao** — microservice, GraphQL, tự vận hành database
 
-**Ghi chú phát hành v1.4.0:**
+Quay video. Xem lại. Ba tiêu chí tự chấm:
+- Có dưới 3 phút không?
+- Có bắt đầu bằng **vấn đề** thay vì bằng danh sách công nghệ không?
+- Có nói được ít nhất một cái giá đã trả không?
 
-```markdown
-## 1.4.0
-
-- Vuốt để xóa bữa ăn, kèm phản hồi rung
-- Thanh macro chạy mượt khi số liệu thay đổi
-- Chuyển màn có chia sẻ phần tử giữa danh sách và chi tiết
-- Tôn trọng cài đặt "giảm chuyển động" của hệ thống
-- Thông báo lỗi rõ ràng hơn ở mọi màn hình
-- Sửa lỗi bấm nhanh hai lần tạo trùng bữa ăn
-```
-
-Gửi bản mới cho 3–5 người đã thử app hôm 13/11. Hỏi một câu duy nhất: *"Có gì khác so với lần trước không?"*
+Mục thứ ba quan trọng nhất. Người kể chỉ toàn ưu điểm nghe như bán hàng.
 
 ---
 
 ## KHỐI HỌC · 13:30–16:00
 
-### 13:30–14:30 · Viết `docs/animation-that-earns-its-place.md`
+### 13:30–14:45 · Bài viết số 5
 
-Bài viết kỹ thuật thứ ba của bạn (sau bài TurboModule hôm 16/10 và bài AI hôm 06/11).
+**Tiêu đề:** *"Tôi tự viết xác thực để hiểu cái mình đã dùng ba năm"*
 
-**Dàn bài:**
+Dàn bài:
 
-1. **Thí nghiệm** — hai bản animation, chặn JS thread 2 giây, kết quả *(gắn video)*
-2. **Vì sao worklet giải quyết được** — 3 đoạn, không sao chép tài liệu
-3. **Bảng kiểm toán** — mọi animation và câu hỏi nó trả lời cho người dùng
-4. **Những gì tôi đã xóa và vì sao**
-5. **Giảm chuyển động** — không phải tùy chọn thẩm mỹ
-6. **Chi phí** — FPS trước/sau với 1000 mục
+| Phần | Nội dung |
+| --- | --- |
+| Mở | Ba năm dùng thư viện auth, không biết bên dưới có gì |
+| 1 | Vì sao access token không thu hồi được — và điều đó nghĩa gì với nút Đăng xuất |
+| 2 | Xoay refresh token, và **phát hiện tái sử dụng** |
+| 3 | Vì sao hàng đợi refresh ở client là bắt buộc, không phải tối ưu |
+| 4 | Tấn công đo thời gian: hai con số tôi đo được |
+| 5 | Phân quyền theo đối tượng: tôi tự tấn công API của mình |
+| Kết | **Vì sao tôi vẫn khuyên dùng nhà cung cấp trong sản phẩm thật** |
 
-Bài này khác hai bài trước ở chỗ nó có **một quyết định xóa bỏ**. Đó là điểm mạnh của nó.
+**Phần kết là phần khiến bài viết đáng tin.** Một bài "tôi tự viết auth và nó tuyệt vời" nghe thiếu chín chắn. Một bài kết bằng *"đây là cái tôi học được, và đây là vì sao tôi vẫn sẽ dùng thư viện"* nghe như người đã trưởng thành về kỹ thuật.
 
-### 14:30–15:00 · Chuẩn bị tuần phỏng vấn thử
+Phần 3 là phần độc đáo nhất — rất ít bài viết nào chỉ ra rằng phát hiện tái sử dụng làm hàng đợi client trở thành bắt buộc. Đó là hiểu biết chỉ có được khi xây cả hai đầu.
 
-Tuần sau có cấu trúc khác hẳn. Chuẩn bị trước hôm nay:
+Đăng lên dev.to hoặc Viblo.
 
-- [ ] Danh sách 8 topic trong `qa-bank.mdc` — đã rà hết trong tuần
-- [ ] Ứng dụng cài sẵn trên máy để mở ra chỉ khi được hỏi
-- [ ] Kho câu chuyện: liệt kê **8 câu chuyện cụ thể** với con số, mỗi cái dùng được cho nhiều câu hỏi
+### 14:45–15:00 · Nghỉ
 
-| Câu chuyện | Con số | Dùng cho câu hỏi nào |
-| --- | --- | --- |
-| Giảm bundle 45→28MB (Firegroup) | 38% | Hiệu năng, đo lường, tác động |
-| TurboModule tự viết cả hai nền tảng | — | Kiến trúc mới, native, tự học |
-| Thí nghiệm chặn JS thread | 2 giây | Animation, threading, cách xác minh |
-| Xóa animation trang trí | 4 cái | Đánh giá, đổi ý, kỷ luật |
-| Bộ test từ 0 lên đủ dùng | __% | Testing, chất lượng |
-| Đường ống CI/CD tự dựng | __ phút | Tự động hóa, quy trình |
-| Tính năng AI có chặn tần suất | $__/tháng | Chi phí, bảo mật, ranh giới |
-| Đưa app cho 5 người thật dùng | 5 người | Sản phẩm, phản hồi, khiêm tốn |
+### 15:00–16:00 · Tổng kết Tuần 12
 
-Điền hết cột "Con số" hôm nay. **Câu trả lời không có con số nghe như lý thuyết.**
+Tự chấm 1–5:
 
-### 15:00–15:10 · Nghỉ
+| Mục | Điểm |
+| --- | --- |
+| Giải thích được vì sao argon2 chứ không SHA-256 cho mật khẩu | |
+| Giải thích được vì sao SHA-256 chứ không argon2 cho refresh token | |
+| Nói được vì sao đăng xuất không huỷ access token ngay | |
+| Giải thích được xoay vòng và phát hiện tái sử dụng | |
+| Nói được vì sao hàng đợi refresh client là bắt buộc | |
+| Phân biệt được phân quyền theo vai và theo đối tượng | |
+| Kể được toàn hệ thống trong 3 phút, không nhìn giấy | |
 
-### 15:10–16:00 · Tổng kết Tuần 12
+**Rà nợ kỹ thuật trước khi sang tuần cuối:**
+- File nào vượt 250 dòng?
+- Endpoint nào chưa có kiểm tra quyền sở hữu?
+- Chỗ nào bắt lỗi rồi nuốt im lặng?
+- Biến môi trường nào có trong code mà thiếu trong `.env.example`?
 
-**Tự chấm 1–5:**
-
-| Mục | Điểm | Ghi chú |
-| --- | --- | --- |
-| Giải thích được worklet và UI thread mà không nhìn ghi chú | | |
-| Tự viết pan gesture, xử lý được xung đột | | |
-| Biết khi nào **không** nên animate | | |
-| Ứng dụng dùng được với cỡ chữ lớn + chế độ tối | | |
-| Thông báo lỗi hành động được | | |
-| Đã phát hành v1.4.0 | | |
-
-**Ba câu tự trả lời:**
-1. Lỗ hổng "chưa Reanimated / Gesture sâu" trong hồ sơ — giờ tôi viết lại câu đó thế nào?
-2. Việc đi hết ứng dụng bằng con mắt người lạ tìm ra bao nhiêu lỗi tôi chưa từng thấy?
-3. Tôi có đang trì hoãn việc nộp đơn bằng cách làm thêm tính năng không?
+Sửa hôm nay. Tuần sau là test và bảo mật — không nên bắt đầu trên nền còn nợ.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Tổng kết 3 tuần
+## TÌM VIỆC · 16:00–16:30 — Cập nhật CV
 
-| Chỉ số | Số |
-| --- | --- |
-| Tổng đơn đã nộp | |
-| Người đã nhắn | |
-| Có phản hồi | |
-| Đã phỏng vấn | |
-| Tỉ lệ phản hồi | __% |
+```
+Backend (Node.js) — từ 11/2026
+- API REST Fastify + TypeScript + Drizzle + PostgreSQL (Neon), triển khai Render
+- Xác thực tự viết: argon2, JWT, xoay refresh token có phát hiện tái sử dụng theo họ,
+  chống liệt kê tài khoản (cân bằng thời gian phản hồi, đã đo)
+- Phân quyền theo đối tượng nằm trong truy vấn; tự kiểm API theo OWASP API Top 10
+- Tối ưu truy vấn có đo đạc: EXPLAIN ANALYZE → index → [X]ms còn [Y]ms
+- Chuyển dữ liệu sản xuất từ BaaS sang database riêng, có đối chiếu, không mất dữ liệu
+```
 
-**Nếu tỉ lệ phản hồi dưới 10%,** vấn đề nằm ở hồ sơ hoặc ở cách chọn vị trí, không phải ở năng lực. Tuần sau dành 30 phút thứ Hai viết lại hoàn toàn phần tóm tắt đầu CV.
+**Định vị dòng tiêu đề CV — đổi từ hôm nay:**
 
-**Nếu trên 20%,** hồ sơ ổn. Vấn đề chuyển sang vòng phỏng vấn — và đó chính là việc của tuần sau.
+> *Fullstack Mobile Engineer — React Native + Node.js · 3+ năm sản xuất*
+
+Không ghi "Senior". Để người khác gọi bạn như vậy.
 
 ---
 
 ## TIẾNG ANH · 16:30–17:00 — Nghe lại 5 bản ghi
 
-Nghe `2026-11-16` đến `2026-11-20`. So với bản ghi đầu tháng 9.
+Nghe `2026-11-16` đến `2026-11-20`.
 
-Ghi ba điều:
-1. Điều tôi nói trôi chảy hơn hẳn so với tháng 9:
-2. Thói quen còn sót (nói "uhm", ngập ngừng, lặp từ):
-3. Một câu tôi sẽ dùng nguyên văn trong phỏng vấn thật:
+Tuần này từ vựng khó nhất trong tháng. Ghi:
+1. Từ bảo mật nào giờ nói tự nhiên rồi?
+2. Câu nào tôi vẫn phải dựng lại nhiều lần?
+3. Nghe lại đoạn giải thích "reuse detection" hôm 17/11 — nó có mạch lạc không?
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## GHI CHÚ · 17:00–17:30
 
-Bắt đầu `docs/interview-cheatsheet.md` — **một trang, không hơn**:
+Chụp sơ đồ kiến trúc vẽ tay, đưa vào **README của cả hai repo**.
 
-```markdown
-# Cheatsheet
+README phải trả lời được ba câu trong 30 giây đầu:
+1. Cái này là gì?
+2. Nó được xây thế nào?
+3. Tại sao lại xây như vậy?
 
-## Giới thiệu 60 giây
-[viết ra, đúng 150 từ]
-
-## Mức lương
-Khoảng: __ – __ triệu · Số rời bàn: __ triệu
-
-## Vì sao nghỉ việc cũ
-[2 câu, không chê ai]
-
-## Khoảng trống 6 tháng — trả lời thẳng
-[3 câu: tôi đã làm gì, kết quả cụ thể, vì sao nó làm tôi khá hơn]
-
-## 3 câu chuyện mạnh nhất
-1. 2. 3.
-
-## 3 câu hỏi tôi hỏi ngược
-1. 2. 3.
-```
+Người phỏng vấn mở GitHub của bạn trong 30 giây trước cuộc gọi. README là thứ họ đọc.
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] v1.4.0 đã lên TestFlight và Play Internal
-- [ ] Đã gửi bản mới cho 3–5 người thử
-- [ ] Bài `animation-that-earns-its-place.md` viết xong
-- [ ] **Bảng 8 câu chuyện đã điền đủ con số**
+- [ ] Sơ đồ kiến trúc **vẽ tay**, có đánh dấu 4 câu hỏi
+- [ ] Kể được toàn hệ thống trong 3 phút, không nhìn giấy, **có quay video**
+- [ ] Bài kể bắt đầu bằng **vấn đề**, không bắt đầu bằng công nghệ
+- [ ] Có nói ít nhất một cái giá đã trả
+- [ ] Bài viết số 5 đã đăng, **có phần kết thừa nhận nên dùng nhà cung cấp**
 - [ ] Tổng kết Tuần 12 xong
-- [ ] Tổng kết 3 tuần nộp đơn, biết tỉ lệ phản hồi
-- [ ] Đã nghe lại 5 bản ghi trong tuần
-- [ ] Đã bắt đầu `interview-cheatsheet.md`
+- [ ] Nợ kỹ thuật đã rà và sửa
+- [ ] CV đổi định vị thành Fullstack Mobile Engineer, **không ghi Senior**
+- [ ] Sơ đồ đã vào README cả hai repo
+- [ ] Đã nghe lại 5 bản ghi
 - [ ] 21:30 lên giường
 
 ---
 
-> **Hết giai đoạn xây.** Ba tháng trước bạn không có gì. Bây giờ bạn có một ứng dụng trên hai kho, một module native tự viết, một bộ test, một đường ống CI/CD, ba bài viết kỹ thuật, và năm người thật đang dùng.
-> Tuần sau bạn học cách **kể lại nó** cho người khác nghe.
+> Tuần cuối tháng 11: test backend, CI với nhánh database riêng cho mỗi PR, giới hạn tần suất, và gửi push notification từ server của bạn.

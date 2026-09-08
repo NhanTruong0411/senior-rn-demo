@@ -1,15 +1,12 @@
 ---
-description: Thứ Hai 02/11/2026 — Tuần 10 Ngày 1. AI SDK + Edge Function proxy — gọi LLM mà không lộ API key.
+description: Thứ Hai 02/11/2026 — Tuần 10 Ngày 1. Node từ gốc — event loop, HTTP server không framework, rồi mới tới Express.
 alwaysApply: false
 ---
 
-# Thứ Hai · 02/11/2026 · Tuần 10 — Ngày 41/61
+# Thứ Hai · 02/11/2026 · Tuần 10 — Ngày 41/82
 
-> **Tháng 11 bắt đầu.** Hai điều đổi so với hai tháng trước:
-> 1. Khối chiều cắt 30 phút cho việc **nộp đơn**. Bắt đầu từ hôm nay, không hoãn.
-> 2. Chủ đề tháng là thứ **nhìn thấy được** — AI, thông báo, animation.
-
-**Docs:** https://sdk.vercel.ai/docs/getting-started/expo · https://supabase.com/docs/guides/functions
+> **Bắt đầu tháng backend.** Hôm nay bạn không dùng framework. Bạn viết HTTP server bằng module `http` trần để hiểu framework đang giấu cái gì.
+> Sau ba năm gọi API, hôm nay bạn ở phía bên kia.
 
 ---
 
@@ -25,18 +22,18 @@ alwaysApply: false
 | 07:30 | Tắm nắng cùng bé |
 | 07:45 | Tắm cho bé |
 | 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Edge Function làm proxy |
+| **08:30** | **KHỐI XÂY** — Dựng repo + HTTP server không framework |
 | 10:30 | Giữ bé để bà nội chuẩn bị bữa |
 | 11:00 | Thư giãn |
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — AI SDK phía client |
+| **13:30** | **KHỐI HỌC** — Event loop + Express |
 | 15:00 | Nghỉ 10 phút |
 | 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC (30 phút)** — nộp 3 đơn |
+| **16:00** | **TÌM VIỆC** — nhắn 2 người quen |
 | **16:30** | **TIẾNG ANH** — Daily standup |
-| **17:00** | **ĐỌC SÁCH** — ch.21, xong cuốn 2 |
+| **17:00** | **GHI CHÚ** — bắt đầu `docs/api-design.md` |
 | 17:30 | Trọn vẹn với con gái |
 | 19:00 | Ăn tối cùng vợ, dọn bếp |
 | 20:00 | Tắm con, ru con ngủ |
@@ -46,213 +43,243 @@ alwaysApply: false
 
 ---
 
-## KHỐI XÂY · 08:30–10:30 — Proxy phía server
+## KHỐI XÂY · 08:30–10:30
 
-### 08:30–08:50 · Vấn đề bảo mật, hiểu cho kỹ
-
-**Đây là điểm quan trọng nhất cả tuần, và là câu hỏi phỏng vấn.**
-
-Bạn **không bao giờ** được đặt khóa API của OpenAI trong app di động. Kể cả trong biến môi trường. Kể cả có làm rối mã.
-
-| Cách sai | Vì sao sai |
-| --- | --- |
-| `EXPO_PUBLIC_OPENAI_KEY` | Nằm thẳng trong bundle. Giải nén APK là đọc được |
-| Biến môi trường không có tiền tố public | Vẫn được nhúng lúc build. Chỉ khác chỗ khó tìm hơn một chút |
-| Làm rối mã khóa | Chạy app rồi bắt gói mạng là thấy nguyên khóa |
-| Lấy khóa từ server lúc chạy | Vẫn nằm trong bộ nhớ và đi qua mạng. Bắt gói là thấy |
-
-**Chỉ có một cách đúng: khóa nằm trên server, app gọi vào server của bạn.**
-
-Nếu khóa lộ, người khác dùng hạn mức của bạn cho tới khi hết tiền. Đây không phải chuyện lý thuyết — nó xảy ra thường xuyên.
-
-### 08:50–09:30 · Viết Edge Function
+### 08:30–08:50 · Dựng repo thứ hai
 
 ```bash
-npx supabase functions new nutrition-chat
+mkdir ~/Dev/macrozone-api && cd ~/Dev/macrozone-api
+npm init -y
+npm i -D typescript tsx @types/node
+npx tsc --init
+git init && git checkout -b feat/first-server
 ```
 
-```ts
-// supabase/functions/nutrition-chat/index.ts
-import { streamText } from 'npm:ai';
-import { createOpenAI } from 'npm:@ai-sdk/openai';
+Trong `tsconfig.json` bật đúng ba thứ quan trọng:
 
-const openai = createOpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
-
-Deno.serve(async (req) => {
-  // 1. Xác thực — bắt buộc, không thì ai cũng gọi được và tiêu tiền của bạn
-  const authHeader = req.headers.get('Authorization');
-  const { data: { user } } = await supabase.auth.getUser(authHeader?.replace('Bearer ', ''));
-  if (!user) return new Response('Unauthorized', { status: 401 });
-
-  // 2. Giới hạn tần suất
-  const allowed = await checkRateLimit(user.id);
-  if (!allowed) return new Response('Rate limit exceeded', { status: 429 });
-
-  // 3. Gọi mô hình
-  const { messages } = await req.json();
-  const result = streamText({
-    model: openai('gpt-4o-mini'),
-    system: 'Bạn là trợ lý dinh dưỡng. Trả lời ngắn gọn, tối đa 3 câu. Không đưa lời khuyên y tế.',
-    messages,
-    maxTokens: 300,
-  });
-
-  return result.toDataStreamResponse();
-});
-```
-
-Giãn cơ 5 phút lúc 09:30.
-
-### 09:30–10:30 · Triển khai và kiểm chứng
-
-```bash
-npx supabase secrets set OPENAI_API_KEY=sk-...
-npx supabase functions deploy nutrition-chat
-```
-
-**Ba thứ phải kiểm chứng:**
-
-1. Gọi không kèm token → nhận 401
-2. Gọi có token hợp lệ → có phản hồi
-3. **Giải nén file APK và tìm khóa:**
-
-```bash
-unzip -o app.apk -d apk-contents
-grep -r "sk-" apk-contents/ || echo "Không tìm thấy khóa — đúng như mong đợi"
-```
-
-> Bước thứ ba đáng làm không phải vì bạn nghi ngờ, mà vì **kể được rằng bạn đã tự kiểm tra** là câu trả lời tốt hơn nhiều so với "tôi biết là không nên để khóa trong app."
-
-```bash
-git checkout -b feat/ai-assistant
-git add . && git commit -m "feat: edge function proxy có xác thực và giới hạn tần suất"
-```
-
----
-
-## KHỐI HỌC · 13:30–16:00 — AI SDK phía client
-
-### 13:30–14:15 · Cài đặt
-
-```bash
-npm install ai @ai-sdk/react
-npx expo install expo-crypto react-native-url-polyfill
-```
-
-```ts
-// polyfill cần cho streaming trong React Native
-import 'react-native-url-polyfill/auto';
-import { Platform } from 'react-native';
-import structuredClone from '@ungap/structured-clone';
-
-if (Platform.OS !== 'web') {
-  const setupPolyfills = async () => {
-    const { TextEncoderStream, TextDecoderStream } = await import('@stardazed/streams-text-encoding');
-    if (!('structuredClone' in global)) polyfillGlobal('structuredClone', () => structuredClone);
-    polyfillGlobal('TextEncoderStream', () => TextEncoderStream);
-    polyfillGlobal('TextDecoderStream', () => TextDecoderStream);
-  };
-  setupPolyfills();
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "es2023",
+    "outDir": "dist"
+  }
 }
 ```
 
-**Vì sao cần polyfill:** streaming của AI SDK dựa trên Web Streams API. Trình duyệt có sẵn, Hermes thì không. Thiếu polyfill là streaming im lặng không chạy — không báo lỗi, chỉ là không có gì hiện ra. Rất mất thời gian nếu không biết trước.
+Thêm `"type": "module"` vào `package.json`. Bạn dùng ESM, không dùng CommonJS — mọi thứ mới đều đi hướng này.
 
-### 14:15–15:00 · Hook `useChat`
+### 08:50–10:30 · HTTP server bằng tay
 
-```tsx
-const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
-  api: `${SUPABASE_URL}/functions/v1/nutrition-chat`,
-  headers: { Authorization: `Bearer ${session?.access_token}` },
-  onError: (err) => Sentry.captureException(err),
+**Hôm nay cấm dùng Express.** Viết bằng module `http` của Node:
+
+```ts
+import { createServer } from 'node:http';
+
+const meals = [{ id: '1', name: 'Phở bò', calories: 450 }];
+
+const server = createServer(async (req, res) => {
+  // 1. Định tuyến bằng tay
+  if (req.method === 'GET' && req.url === '/meals') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(meals));
+    return;
+  }
+
+  // 2. Đọc body bằng tay — nó là một stream, không phải object
+  if (req.method === 'POST' && req.url === '/meals') {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const raw = Buffer.concat(chunks).toString('utf8');
+
+    let body: unknown;
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'JSON không hợp lệ' }));
+      return;
+    }
+    // ...
+  }
+
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: 'Không tìm thấy' }));
 });
+
+server.listen(3000, () => console.log('Đang chạy ở cổng 3000'));
 ```
 
-Đây là lúc mọi thứ hai tháng qua ghép lại: phiên đăng nhập từ SecureStore (01/10), Sentry (29/09), giao diện đủ trạng thái (24/09).
+**Bốn điều bạn phải tự nhận ra khi viết cái này:**
+
+| Phát hiện | Vì sao quan trọng |
+| --- | --- |
+| Body là **stream**, phải gom từng mảnh | Đây là lý do `express.json()` tồn tại |
+| Không có gì tự đặt `Content-Type` | Framework làm hộ, và đó là lý do bạn hay quên |
+| Không định tuyến, chỉ có `req.url` dạng chuỗi | Query string, tham số động — tự parse hết |
+| Không xử lý lỗi — throw là **sập cả tiến trình** | Đây là điểm khác lớn nhất với client |
+
+Điểm cuối cùng quan trọng nhất. Trên mobile, một lỗi làm hỏng một màn hình. Trên server, một lỗi chưa bắt có thể làm sập tiến trình phục vụ **tất cả** người dùng.
+
+Thử: gọi `/meals` bằng `curl`, rồi bằng chính app mobile của bạn qua IP máy tính trong mạng LAN.
+
+```bash
+curl -i localhost:3000/meals
+curl -i -X POST localhost:3000/meals -d '{"name":"Cơm tấm"}' -H 'Content-Type: application/json'
+curl -i -X POST localhost:3000/meals -d 'không phải json'
+```
+
+Cờ `-i` in cả header. Nhìn kỹ header — ba năm qua bạn dùng chúng mà ít khi đọc.
+
+```bash
+git add . && git commit -m "feat: http server bằng module http trần"
+```
+
+---
+
+## KHỐI HỌC · 13:30–16:00
+
+### 13:30–14:30 · Event loop — câu hỏi phỏng vấn số một
+
+Đọc: https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick
+
+**Bạn đã biết một nửa rồi.** Node và trình duyệt dùng cùng mô hình: một luồng JavaScript, hàng đợi tác vụ, I/O không chặn. Cái bạn học hôm 22/10 về JS thread và UI thread áp dụng nguyên vẹn ở đây — chỉ khác là thay vì làm giật animation, chặn luồng ở server làm **mọi request đang chờ đều đứng**.
+
+Thí nghiệm chứng minh, làm thật:
+
+```ts
+if (req.url === '/block') {
+  const end = Date.now() + 5000;
+  while (Date.now() < end) {}          // chặn 5 giây
+  res.end('xong');
+}
+```
+
+Mở hai cửa sổ terminal. Cửa sổ 1 gọi `/block`. Cửa sổ 2 gọi `/meals` ngay lập tức.
+
+**Kết quả: `/meals` phải chờ hết 5 giây.** Một người dùng làm nghẽn tất cả.
+
+Đây là điều khác biệt căn bản nhất giữa backend và mobile, và là lý do tồn tại của `worker_threads`, của việc đẩy việc nặng sang hàng đợi *(bạn sẽ làm ngày 30/11)*, và của việc **không bao giờ dùng phiên bản đồng bộ của các hàm `fs`** trong request handler.
+
+Quay màn hình lại. Đây là thí nghiệm thứ hai trong bộ sưu tập của bạn, sau thí nghiệm chặn JS thread ở mobile.
+
+Giãn cơ 5 phút lúc 14:30.
+
+### 14:30–15:00 · Ba khái niệm phải phân biệt được
+
+| Khái niệm | Nghĩa | Bẫy |
+| --- | --- | --- |
+| `process` | Tiến trình Node. Một tiến trình = một event loop | Sập là chết hết |
+| `cluster` / nhiều instance | Nhiều tiến trình, mỗi cái một event loop | **Không** chia sẻ bộ nhớ — biến toàn cục không đồng bộ giữa chúng |
+| `worker_threads` | Nhiều luồng trong một tiến trình | Chỉ dùng cho việc nặng CPU, không dùng cho I/O |
+
+> Bẫy ở dòng giữa là chỗ nhiều người ngã. Nếu bạn lưu bộ đếm giới hạn tần suất trong một biến JavaScript và server chạy 2 instance, bộ đếm sai gấp đôi. Đây là lý do giới hạn tần suất phải nằm ở Redis hoặc Postgres — bạn sẽ gặp lại chuyện này ngày 27/11.
 
 ### 15:00–15:10 · Nghỉ
 
-### 15:10–16:00 · Giao diện chat
-
-- Tin nhắn hiện **từng chữ một** khi stream về, không chờ xong mới hiện
-- Tự cuộn xuống dưới khi có chữ mới
-- Nút dừng khi đang stream
-- Có lỗi → hiện thông báo + nút thử lại, không mất tin nhắn đã gõ
-
-**Vì sao streaming quan trọng:** đợi 8 giây rồi hiện cả đoạn cảm giác hỏng. Chữ chạy ra ngay sau 300ms cảm giác tức thì — dù tổng thời gian như nhau. Đây lại là hiệu năng nhận thức, giống bài học khung xương tải hôm 22/10.
+### 15:10–16:00 · Express — hiểu middleware
 
 ```bash
-git add . && git commit -m "feat: chat trợ lý dinh dưỡng có streaming"
+npm i express && npm i -D @types/express
+```
+
+Viết lại đúng server ban nãy bằng Express. Nó ngắn hơn ba lần. Nhưng câu hỏi phỏng vấn không phải "Express là gì" mà là **"middleware hoạt động thế nào"**:
+
+```ts
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    console.log(`${req.method} ${req.url} ${res.statusCode} ${Date.now() - start}ms`);
+  });
+  next();                       // không gọi next() = request treo mãi mãi
+});
+```
+
+**Ba điều phải nói được:**
+1. Middleware là **chuỗi hàm chạy tuần tự**, mỗi cái quyết định có đi tiếp hay không.
+2. Quên `next()` thì request **treo im lặng** — không lỗi, không phản hồi, client chờ tới timeout.
+3. Middleware xử lý lỗi có **4 tham số** `(err, req, res, next)` và phải đăng ký **cuối cùng**.
+
+Thứ tự đăng ký quyết định hành vi. Đây là điểm khác biệt với React nơi thứ tự component ít khi quan trọng như vậy.
+
+```bash
+git add . && git commit -m "feat: cùng server viết bằng express, thêm middleware log"
 ```
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+## TÌM VIỆC · 16:00–16:30 — Nhắn 2 người quen
 
-**Hôm nay là ngày đầu tiên. Bắt đầu bằng việc dựng bảng theo dõi.**
+Bắt đầu ngay tháng này, không đợi tháng 12. Quan hệ cần thời gian ủ.
 
-Tạo `docs/job-tracker.md`:
+Hôm nay nhắn hai người **bạn từng làm cùng ở Firegroup**. Chưa xin việc — chỉ nối lại liên lạc:
 
-```markdown
-| Ngày | Công ty | Vị trí | Nguồn | Thư riêng? | Trạng thái | Ghi chú |
-|---|---|---|---|---|---|---|
-| 02/11 | | | | | Đã nộp | |
-```
+> *"Chào anh/chị, lâu quá không gặp. Dạo này em đang làm một app cá nhân với React Native, tuần này bắt đầu viết luôn backend Node cho nó. Anh/chị vẫn ở [công ty] chứ ạ? Bên đó dạo này thế nào?"*
 
-**Luật viết thư ứng tuyển — 4 câu, không hơn:**
-
-1. Một câu về **một thứ cụ thể** ở công ty họ *(sản phẩm nào, tin gì mới đây, thử thách gì)*
-2. Một câu về kinh nghiệm liên quan nhất của bạn kèm số
-3. Một câu về dự án của bạn kèm **link**
-4. Một câu về việc bạn muốn đóng góp gì
-
-> **Nói thẳng về khoảng trống việc làm ngay từ đầu.** *"Tôi nghỉ việc từ tháng 3 và dùng thời gian đó xây một app end-to-end — CI/CD, testing, một native module tự viết. Code và tài liệu ở đây: [link]."*
->
-> Chủ động nói ra thì đó là **bối cảnh**. Để họ hỏi mới nói thì thành **lời bào chữa**. Khác nhau hoàn toàn.
+Đừng xin giới thiệu trong tin nhắn đầu tiên. Nối lại trước, xin sau — thường là hai đến ba tuần.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily standup
 
 ### 16:30–16:40 · Shadowing
 
+Đổi nguồn sang nội dung backend. Gợi ý: kênh của Fireship, hoặc talk của Matteo Collina *(tác giả Fastify và pino)* — giọng Ý nói tiếng Anh, tốt để luyện nghe giọng không bản xứ.
+
 ### 16:40–16:55 · Standup có ghi âm
 
-> *"Morning. Last week I finished offline support and the CI/CD pipeline, and shipped version 1.1.0 through it end to end.*
-> *This week I'm adding an AI feature — a nutrition assistant. Today I set up a Supabase Edge Function as a proxy so the model key never leaves the server, with auth and rate limiting in front of it. Then I wired up the AI SDK on the client with streaming.*
-> *One thing I did that I'd recommend to anyone: I unzipped the APK and grepped for the key prefix, just to confirm it genuinely isn't in the bundle. Knowing something is safe and verifying it are different things.*
-> *I've also started applying — three applications a day from now on."*
+> *"Morning. This week I'm starting backend work — Node and Postgres, with the goal of replacing Supabase with an API I write myself.*
+> *Today I deliberately built an HTTP server with no framework, just the http module. It's slower to write, but it made a few things concrete: the request body is a stream you have to assemble yourself, nothing sets Content-Type for you, and an uncaught error takes down the whole process rather than one screen.*
+> *That last one is the biggest mental shift coming from mobile. On the client a crash affects one user. On the server it affects everyone connected.*
+> *I also ran an experiment blocking the event loop for five seconds and watching a second request sit and wait. Same lesson as blocking the JS thread on mobile, but with worse consequences.*
+> *Tomorrow: REST design and input validation."*
 
 ### 16:55–17:00 · 5 từ mới
 
 | Từ / cụm | Nghĩa | Câu mẫu |
 | --- | --- | --- |
-| `never leaves the server` | không rời khỏi server | *The key never leaves the server.* |
-| `in front of` | đứng chắn phía trước | *Auth and rate limiting in front of it.* |
-| `grep for` | tìm chuỗi trong file | *I grepped for the key prefix.* |
-| `token` (LLM) | đơn vị tính của mô hình | *Capped at 300 output tokens.* |
-| `stream` (v) | truyền dần từng phần | *The response streams in.* |
+| `assemble` (v) | gom lại thành | *You assemble the body from chunks.* |
+| `uncaught error` | lỗi chưa bắt | *An uncaught error takes down the process.* |
+| `take down` | làm sập | *It takes down the whole process.* |
+| `mental shift` | thay đổi cách nghĩ | *That's the biggest mental shift.* |
+| `sit and wait` | nằm chờ | *The second request just sits and waits.* |
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## GHI CHÚ · 17:00–17:30
 
-**The Pragmatic Programmer** — chương 21. **Xong cuốn 2.**
+Tạo `docs/api-design.md` trong repo API. Hôm nay viết mục đầu:
 
-Viết 5 dòng vào `docs/reading-notes.md`: ba ý bạn thật sự áp dụng. Từ tuần sau chuyển sang đọc lại `qa-bank.mdc` của chính mình.
+```markdown
+# Quyết định thiết kế API
+
+## Vì sao viết backend riêng thay vì giữ Supabase
+- Supabase đủ tốt cho sản phẩm này. Lý do thay là để **học** và để **chứng minh**.
+- Cái tôi được: kiểm soát logic nghiệp vụ, tự làm xác thực, gửi push từ server,
+  chạy việc nền — những thứ BaaS làm được nhưng tôi không thấy bên trong.
+- Cái tôi mất: tốc độ. Supabase cho tôi những thứ này trong một ngày.
+  Tôi bỏ ra một tháng để tự làm.
+
+## Node thuần vs Express — tôi học được gì khi viết tay
+[điền hôm nay]
+```
+
+**Mục "cái tôi mất" là mục quan trọng nhất.** Người phỏng vấn giỏi sẽ hỏi *"sao không dùng Supabase cho nhanh?"* — và câu trả lời trung thực là *"với sản phẩm này thì Supabase đúng hơn; tôi tự viết vì tôi cần biết bên dưới có gì."*
 
 ---
 
 ## Checklist cuối ngày
 
-- [ ] Edge Function chạy, có xác thực và giới hạn tần suất
-- [ ] Gọi không token → 401
-- [ ] **Đã giải nén APK và xác nhận không tìm thấy khóa**
-- [ ] Polyfill streaming cài đúng, chữ chạy ra từng phần
-- [ ] Giao diện chat đủ trạng thái, có nút dừng
-- [ ] **`docs/job-tracker.md` đã tạo, 3 đơn đầu tiên đã nộp**
-- [ ] Thư ứng tuyển viết riêng, nói thẳng về khoảng trống
+- [ ] Repo `macrozone-api` đã dựng, TypeScript strict, ESM
+- [ ] Server chạy được bằng module `http` trần
+- [ ] Gọi được từ `curl` **và** từ app mobile qua LAN
+- [ ] Đã làm thí nghiệm chặn event loop, có quay màn hình
+- [ ] Nói được vì sao quên `next()` thì request treo
+- [ ] Nói được vì sao biến toàn cục không dùng làm bộ đếm khi có nhiều instance
+- [ ] Đã nhắn 2 người quen cũ
 - [ ] **Có commit hôm nay**
 - [ ] Ghi âm `2026-11-02.m4a`
-- [ ] **Đọc xong The Pragmatic Programmer**
+- [ ] `docs/api-design.md` đã có mục đầu tiên
 - [ ] 21:30 lên giường
