@@ -8,6 +8,9 @@ alwaysApply: false
 > Hôm nay bạn đổi framework — nhưng phần quan trọng không phải framework. Phần quan trọng là **ranh giới giữa HTTP và logic nghiệp vụ**.
 > Đây là cùng bài học hôm 16/09 khi bạn tách lớp lưu trữ khỏi giao diện. Tầng khác, nguyên tắc y hệt.
 
+
+> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
+
 ---
 
 ## Lịch hôm nay

@@ -8,6 +8,9 @@ alwaysApply: false
 > **Bắt đầu tháng backend.** Hôm nay bạn không dùng framework. Bạn viết HTTP server bằng module `http` trần để hiểu framework đang giấu cái gì.
 > Sau ba năm gọi API, hôm nay bạn ở phía bên kia.
 
+
+> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
+
 ---
 
 ## Lịch hôm nay

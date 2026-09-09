@@ -3,9 +3,12 @@ description: Thứ Ba 13/10/2026 — Tuần 7 Ngày 2. TurboModule phía Android
 alwaysApply: false
 ---
 
-# Thứ Ba · 13/10/2026 · Tuần 7 — Ngày 27/61
+# Thứ Ba · 13/10/2026 · Tuần 7 — Ngày 27/82
 
 > Hôm nay bạn viết **Kotlin thật**. Trong CV bạn đã ghi "Kotlin (Android) — wallet pass integration" — hôm nay làm dày thêm điều đó bằng một module tự viết từ đầu.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 **Hướng dẫn chính:** https://www.callstack.com/tutorials/implementing-an-android-turbomodule-with-kotlin
 

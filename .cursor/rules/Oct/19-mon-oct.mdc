@@ -3,10 +3,13 @@ description: Thứ Hai 19/10/2026 — Tuần 8 Ngày 1. Đo trước khi tối �
 alwaysApply: false
 ---
 
-# Thứ Hai · 19/10/2026 · Tuần 8 — Ngày 31/61
+# Thứ Hai · 19/10/2026 · Tuần 8 — Ngày 31/82
 
 > **Tuần hiệu năng.** Luật của tuần này: **không sửa một dòng nào trước khi có số đo.**
 > Tối ưu không có số đo là mê tín, và người phỏng vấn phân biệt được ngay hai loại người này.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 **Docs:** https://reactnative.dev/docs/performance · https://flashlight.dev
 

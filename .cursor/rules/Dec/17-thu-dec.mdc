@@ -7,6 +7,9 @@ alwaysApply: false
 
 > Mục tiêu: **Dockerfile chạy được trên máy bạn**. Không deploy K8s. Hiểu layer, env, và vì sao container khác `node index.js` trên laptop.
 
+
+> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+
 ---
 
 ## Lịch hôm nay

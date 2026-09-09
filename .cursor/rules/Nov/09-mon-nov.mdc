@@ -8,6 +8,9 @@ alwaysApply: false
 > **Tuần khó nhất tháng.** Đây là chỗ mobile developer hổng sâu nhất, và cũng là kỹ năng đứng hạng 3 trong 20 kỹ năng được tìm nhiều nhất ở Việt Nam — 149 tin tuyển dụng chỉ trên một sàn.
 > Hôm nay **không dùng ORM**. Viết SQL bằng tay. ORM là thứ để dùng sau khi hiểu, không phải thay cho hiểu.
 
+
+> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
+
 **Tài nguyên:** https://www.postgresqltutorial.com/ · https://use-the-index-luke.com/
 
 ---

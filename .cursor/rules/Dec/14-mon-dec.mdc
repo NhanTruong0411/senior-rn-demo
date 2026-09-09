@@ -1,78 +1,52 @@
 ---
-description: Thứ Hai 14/12/2026 — Tuần 16 Ngày 1. AI qua backend — khoá không nằm trong app, streaming an toàn.
+description: Thứ Hai 14/12/2026 — Tuần 16 Ngày 1. AI Application — khóa AI SDK/LangChain trên Node, key không trong app.
 alwaysApply: false
 ---
 
 # Thứ Hai · 14/12/2026 · Tuần 16 — Ngày 71/82
 
-> Tính năng AI chỉ được phép nếu **API key nằm trên server**. App chỉ gọi `/v1/ai/...` của bạn.
+> **AI Application Developer** trên MacroZone có sẵn. Học theo khóa (AI SDK / LangChain.js free) — ship vào `/v1/ai/*`. RN không giữ key.
+> **Engineer mode:** Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
 
 ---
 
-## Lịch hôm nay
+## Lịch
 
 | Giờ | Việc |
 | --- | --- |
-| **08:30** | **KHỐI XÂY** — Endpoint AI + Gemini/Groq free |
-| **13:30** | **KHỐI HỌC** — Streaming vào UI + giới hạn chi phí |
-| **16:00** | **TÌM VIỆC** — nhắn 3 người quen |
-| **16:30** | **TIẾNG ANH** — Standup |
-| **17:00** | **GHI CHÚ** |
+| **08:30** | XÂY — Endpoint `meal-suggest` + rate limit + Zod output |
+| **13:30** | HỌC — Vercel AI SDK **hoặc** LangChain.js beginners (ray khóa free) — hiểu generateObject/stream |
+| **16:00** | Tìm việc — 3 người |
+| **16:30** | EN — Standup AI boundary |
+| **17:00** | Decision note |
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## KHỐI XÂY
 
-Chọn **Google AI Studio (Gemini)** hoặc **Groq** — bậc miễn phí thật. Key chỉ trong `env` trên Render.
-
-```ts
-app.post('/v1/ai/meal-suggest', {
-  preHandler: authenticate,
-  config: { rateLimit: { max: 10, timeWindow: '1 hour' } },
-}, async (req, reply) => {
-  const input = mealSuggestSchema.parse(req.body);
-  const result = await aiService.suggestMeal(req.user.id, input);
-  return result; // JSON đã validate bằng Zod
-});
-```
-
-**Bắt buộc:**
-
-- Rate limit chặt hơn endpoint thường
-- Không log prompt đầy đủ nếu có PII
-- Output parse bằng Zod — model trả rác thì 502 có cấu trúc, không crash UI
+- Key chỉ `env` Render
+- Rate limit chặt (vd 10/giờ/user)
+- Output `z.object({...})` — model rác → 502 có cấu trúc
+- Mobile: nút gợi ý → **xác nhận** trước khi tạo meal
 
 ```bash
-git add . && git commit -m "feat: endpoint ai meal-suggest, key chỉ ở server"
+git commit -m "feat: ai meal-suggest via server, zod-parsed"
 ```
 
----
-
-## KHỐI HỌC · 13:30–16:00
-
-### Streaming (tuỳ chọn nếu còn giờ)
-
-SSE hoặc chunked response từ backend → mobile hiển thị từng phần. Nếu phức tạp quá: JSON một phát cũng đủ Strong Middle — **đừng over-claim streaming nếu chưa làm**.
-
-### Mobile UI
-
-Nút "Gợi ý bữa ăn" → loading → hiện kết quả → user xác nhận trước khi tạo meal (không tự ghi DB từ AI không hỏi).
-
-Giãn cơ 14:30. Nghỉ 15:00. 15:10: ghi `docs/ai.md` — vì sao key không ở app, chi phí ước lượng.
+**Cấm:** copy tutorial “OpenAI key in Expo app”.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00
+## KHỐI HỌC
 
-> *"The model key never ships in the binary. The phone calls my API; my API calls Gemini under a tight rate limit; the response is Zod-parsed before it touches the UI. If the model returns garbage I fail closed, not with a half-parsed meal."*
+Làm **bài trong khóa**, rồi map vào service của bạn (không giữ demo tách đời sống).
 
-**5 từ:** `fail closed` · `binary` · `rate limit` · `garbage` · `Zod-parsed`
+Decision note: *vì sao AI SDK vs fetch thuần / vì sao chưa agent*.
 
 ---
 
 ## Checklist
 
-- [ ] Không có API key trong repo mobile / EAS secrets client
-- [ ] Rate limit AI riêng
-- [ ] Output có schema
+- [ ] Không key trong EAS/client
+- [ ] Streaming UI nếu khóa dạy — qua API bạn
 - [ ] Ghi âm `2026-12-14.m4a`

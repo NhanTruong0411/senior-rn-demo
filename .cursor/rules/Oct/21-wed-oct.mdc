@@ -3,9 +3,12 @@ description: Thứ Tư 21/10/2026 — Tuần 8 Ngày 3. Bundle size và thời g
 alwaysApply: false
 ---
 
-# Thứ Tư · 21/10/2026 · Tuần 8 — Ngày 33/61
+# Thứ Tư · 21/10/2026 · Tuần 8 — Ngày 33/82
 
 > Trong CV bạn đã có "bundle 45MB → 28MB" từ Firegroup. Hôm nay bạn làm lại quy trình đó trên dự án của mình, **có tài liệu công khai** để chỉ tay vào.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 **Docs:** https://reactnative.dev/docs/performance · https://reactnative.dev/docs/hermes
 

@@ -3,9 +3,12 @@ description: Thứ Sáu 30/10/2026 — Tuần 9 Ngày 5. Phát hành v1.1.0, t�
 alwaysApply: false
 ---
 
-# Thứ Sáu · 30/10/2026 · Tuần 9 — Ngày 40/61
+# Thứ Sáu · 30/10/2026 · Tuần 9 — Ngày 40/82
 
 > **Ngày cuối tháng 10.** Hôm nay chạy pipeline vừa dựng từ đầu tới cuối, rồi nhìn lại hai tháng.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 ---
 
@@ -149,10 +152,11 @@ github.com/<user>/macrozone
 ### Định nghĩa hoàn thành
 - [ ] Auth thật, token trong SecureStore, hiểu hàng đợi refresh
 - [ ] ___ test đơn vị + ___ component + 3 luồng E2E
-- [ ] TurboModule tự viết, chạy cả 2 nền tảng, 2 cách triển khai
+- [ ] TurboModule theo tutorial Callstack **một lần** E2E + giải thích được (không rebuild native 2 lần cho thuộc)
 - [ ] Case study hiệu năng có số đo đầy đủ
 - [ ] Offline-first: đọc và ghi đều được
 - [ ] CI/CD tự động, main được bảo vệ
+- [ ] `docs/ai-boundaries-mobile.md` — LLM không gọi từ app
 - [ ] ___/22 file ghi âm tiếng Anh
 - [ ] ___/22 ngày có commit
 
@@ -229,7 +233,7 @@ Hôm nay dài hơn thường lệ vì tổng kết cả tháng:
 
 ---
 
-## Ngày 40/61 — hai phần ba chặng đường
+## Ngày 40/82 — hai phần ba chặng đường
 
 Hai tháng trước bạn có 6 tháng thất nghiệp và không có gì để chỉ vào.
 

@@ -3,10 +3,13 @@ description: Thứ Tư 28/10/2026 — Tuần 9 Ngày 3. GitHub Actions — CI ch
 alwaysApply: false
 ---
 
-# Thứ Tư · 28/10/2026 · Tuần 9 — Ngày 38/61
+# Thứ Tư · 28/10/2026 · Tuần 9 — Ngày 38/82
 
 > Lỗ hổng cuối cùng trong danh sách của bạn: *"CI/CD ngoài EAS basic — GitHub Actions cho RN tôi đọc, chưa setup."*
 > Hai ngày này bịt nó.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 **Docs:** https://docs.github.com/en/actions/quickstart · https://github.com/expo/expo-github-action
 

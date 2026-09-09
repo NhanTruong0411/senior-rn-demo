@@ -3,11 +3,17 @@ description: Context tháng 11/2026 — Tháng BACKEND. Node + Postgres + Auth t
 alwaysApply: false
 ---
 
-# Tháng 11/2026 — Tháng 3: BACKEND
+# Tháng 11/2026 — Tháng 3: BACKEND (+ nền AI Application)
 
-> **Mục tiêu tháng:** Từ người **gọi** API thành người **viết** API.
-> Cuối tháng, ứng dụng MacroZone không còn nói chuyện với Supabase nữa. Nó nói chuyện với một API Node do bạn viết, chạy trên máy chủ thật, có xác thực tự làm, có test, có CI.
-> **21 ngày làm việc** · Thứ 2 → Thứ 6 · T7 + CN nghỉ hoàn toàn.
+> **Mục tiêu tháng:** Từ người **gọi** API thành người **viết** API — và **chỗ duy nhất** LLM được gọi (chuẩn bị Dec).
+> MacroZone nói chuyện với API Node của bạn (Render + Neon), auth tự làm, test, CI.
+> **21 ngày** · T2–T6 · T7+CN nghỉ.
+
+### Luật Engineer (thừa kế Sep)
+
+- Không gõ lại Express “cho thuộc” — **hiểu HTTP + middleware**, rồi ship Fastify.
+- AI được dùng để scaffold route/service; bạn review như PR; mọi endpoint trả lời 3 câu: *ai gọi / gọi 2 lần thì sao / chậm 5s thì client thấy gì*.
+- **Cấm** gọi OpenAI/Gemini từ React Native. Key chỉ trên server.
 
 ---
 
@@ -69,8 +75,10 @@ Không phải "mobile dev biết chút backend", cũng không phải "senior ful
 | **10** | 02–06/11 | Node, HTTP thật, Express → Fastify, thiết kế REST, Zod, xử lý lỗi | API đầu tiên chạy trên Render, gọi được từ điện thoại |
 | **11** | 09–13/11 | SQL và Postgres, thiết kế schema, index, Drizzle, migration | App đọc dữ liệu từ API của bạn, không qua Supabase client |
 | **12** | 16–20/11 | Xác thực tự viết: argon2, JWT, xoay refresh token, thu hồi, RBAC | Đăng nhập chạy hoàn toàn trên backend của bạn |
-| **13** | 23–27/11 | Test backend, CI, giới hạn tài nguyên, push từ server, truy vết | **v2.0.0** — app chạy 100% trên API của bạn |
-| **14** | 30/11 → | Việc chạy nền *(bắt đầu nội dung tháng 12)* | Xem `Dec/00-context-dec.mdc` |
+| **13** | 23–27/11 | Test, CI, rate limit, push server, tracing | **v2.0.0** · chiều 27/11: đọc AI SDK / chỗ gắn `/v1/ai` |
+| **14** | 30/11 → | Jobs nền *(Dec)* | `Dec/00-context-dec.mdc` — RAG + AI app vào tuần 16 |
+
+**AI tháng 11:** chưa RAG đầy đủ. Chỉ **chốt kiến trúc**: client → your API → model. Học LangChain.js / AI SDK khi API đã có auth (cuối tháng / đầu Dec) — theo khóa free, không invent agent platform.
 
 ---
 

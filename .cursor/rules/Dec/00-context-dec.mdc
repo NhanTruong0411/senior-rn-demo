@@ -3,11 +3,17 @@ description: Context tháng 12/2026 — Tháng FULLSTACK THẬT. Việc nền, r
 alwaysApply: false
 ---
 
-# Tháng 12/2026 — Tháng 4: FULLSTACK THẬT
+# Tháng 12/2026 — Tháng 4: FULLSTACK THẬT + AI Application
 
-> **Mục tiêu tháng:** Tháng 11 bạn viết được API. Tháng 12 bạn biến nó thành **hệ thống**.
-> Việc chạy nền, real-time, cache, quan sát được, tài liệu. Và song song: đây là tháng bạn **đi xin việc thật**, không phải tập.
-> **21 ngày làm việc** · Thứ 2 → Thứ 6 · Nghỉ 24–25/12 · T7 + CN nghỉ hoàn toàn.
+> API → **hệ thống** (jobs, realtime, cache, observability) + **AI Application Developer** trên product MacroZone có sẵn.
+> Không invent app AI mới. Không train model. Không Intern AI.
+> Xin việc thật song song. **21 ngày** · Nghỉ 24–25/12 · T7+CN nghỉ.
+
+### Luật Engineer
+
+- Hiểu → Ship (khóa/docs có ray) → Harden (cost, rate limit, Zod output, eval tay).
+- LangChain.js / AI SDK chạy trên **Node**, RN chỉ stream UI.
+- Tutorial YouTube “RN + OpenAI trực tiếp” = **tài liệu phản giáo khoa** — chỉ học streaming UI pattern, key vẫn server.
 
 ---
 
@@ -64,11 +70,20 @@ Giống tháng 11, trừ **khối 16:00–16:30 đổi vai trò**. Tháng 12 vi�
 
 | Tuần | Ngày | Chủ đề | Kết quả |
 | --- | --- | --- | --- |
-| **14** | 30/11 – 04/12 | Việc chạy nền: pg-boss, cron, email, nhắc lịch | Nhắc bữa ăn chạy tự động từ server |
-| **15** | 07–11/12 | Real-time, cache, tối ưu truy vấn, đo p95 | Cập nhật tức thời, API dưới ngân sách độ trễ |
-| **16** | 14–18/12 | AI qua backend riêng, quan sát được, tài liệu API, Docker | Tính năng AI không lộ khoá, có log truy vết được |
-| **17** | 21–23/12 | Deep link, animation nén, đánh bóng lần cuối | v2.1.0. Nghỉ 24–25/12 |
-| **18** | 28–31/12 | Phỏng vấn thử fullstack, tổng kết 4 tháng, kế hoạch 2027 | Sẵn sàng đi phỏng vấn thật |
+| **14** | 30/11 – 04/12 | Jobs: pg-boss, cron, email, nhắc | Nhắc tự động từ server |
+| **15** | 07–11/12 | SSE, cold start, cache có đo, optimistic lock | p95 + realtime |
+| **16** | 14–18/12 | **AI Application:** API proxy model, **RAG** (khóa JS free), eval tay, OpenAPI, Docker, runbook | Gợi ý meal + chat theo tài liệu user — **key server-only** |
+| **17** | 21–23/12 | Deep link, animation nén, polish | v2.1.0 · nghỉ 24–25 |
+| **18** | 28–31/12 | Mock fullstack (+ câu AI applied), tổng kết 82 ngày | Sẵn sàng PV thật |
+
+### Khóa AI có thực hành (ray → gắn MacroZone)
+
+| Khóa | Dùng khi |
+| --- | --- |
+| DeepLearning.AI Prompt Eng *(đã Sep)* | Ôn trước khi viết system prompt |
+| LangChain.js beginners / freeCodeCamp LangChain | 14–15/12 — orchestration trên API |
+| freeCodeCamp — Build RAG Chatbot with JavaScript | 15–16/12 — RAG; vector: ưu tiên **pgvector trên Neon** (đỡ thêm dịch vụ) thay DataStax nếu free tier đủ |
+| Vercel AI SDK docs — streaming | 14/12 — stream về RN |
 
 ---
 
@@ -166,7 +181,8 @@ Ngày 31/12 nghe lại bản ghi đầu tiên của ngày 07/09. Đó là thư�
 - [ ] v2.1.0 trên cả hai kho
 - [ ] Nhắc bữa ăn tự động chạy từ server, tôn trọng giờ yên lặng
 - [ ] Cập nhật real-time khi dữ liệu đổi
-- [ ] Tính năng AI qua backend của bạn, khoá không nằm trong app
+- [ ] Tính năng AI qua backend, RAG có eval tay 5 câu, khoá không nằm trong app
+- [ ] `docs/rag.md` + prompt playbook nối Dec
 
 **Kỹ thuật**
 - [ ] Hàng đợi việc có thử lại và hàng đợi chết

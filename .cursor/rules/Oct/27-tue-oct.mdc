@@ -3,10 +3,13 @@ description: Thứ Ba 27/10/2026 — Tuần 9 Ngày 2. Hàng đợi ghi khi ngo�
 alwaysApply: false
 ---
 
-# Thứ Ba · 27/10/2026 · Tuần 9 — Ngày 37/61
+# Thứ Ba · 27/10/2026 · Tuần 9 — Ngày 37/82
 
 > Hôm qua app **đọc** được khi ngoại tuyến. Hôm nay nó **ghi** được — thao tác lúc mất mạng được xếp hàng và tự gửi khi có mạng lại.
 > Đây là bài toán có chiều sâu thật, và là chủ đề tốt để kể khi phỏng vấn.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 ---
 

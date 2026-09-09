@@ -3,9 +3,12 @@ description: Thứ Tư 14/10/2026 — Tuần 7 Ngày 3. TurboModule phía iOS �
 alwaysApply: false
 ---
 
-# Thứ Tư · 14/10/2026 · Tuần 7 — Ngày 28/61
+# Thứ Tư · 14/10/2026 · Tuần 7 — Ngày 28/82
 
 > Hôm nay phía iOS. Khó hơn Android một bậc vì Swift **không nói chuyện trực tiếp được với C++** — phải qua một lớp Objective-C++ ở giữa. Hiểu được chỗ này là hiểu được phần lắt léo nhất của native trong React Native.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 ---
 

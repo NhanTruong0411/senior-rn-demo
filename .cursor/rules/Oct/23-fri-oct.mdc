@@ -3,9 +3,12 @@ description: Thứ Sáu 23/10/2026 — Tuần 8 Ngày 5. Ngân sách hiệu năn
 alwaysApply: false
 ---
 
-# Thứ Sáu · 23/10/2026 · Tuần 8 — Ngày 35/61
+# Thứ Sáu · 23/10/2026 · Tuần 8 — Ngày 35/82
 
 > Tối ưu xong rồi thì giữ được bao lâu? Hôm nay dựng **hàng rào chống thoái lui** — để ba tháng sau app không âm thầm chậm lại.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 ---
 

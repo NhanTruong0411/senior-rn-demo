@@ -8,6 +8,9 @@ alwaysApply: false
 > Hôm nay bạn thiết kế API mà **chính bạn của ba năm trước** sẽ thấy dễ chịu khi phải gọi.
 > Đây là lợi thế lớn nhất của bạn so với người học backend thuần: bạn đã chịu đựng API tệ đủ lâu để biết cái gì làm người dùng API khổ.
 
+
+> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
+
 ---
 
 ## Lịch hôm nay

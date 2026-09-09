@@ -3,9 +3,12 @@ description: Thứ Năm 01/10/2026 — Tuần 5 Ngày 1. Supabase Auth thật �
 alwaysApply: false
 ---
 
-# Thứ Năm · 01/10/2026 · Tuần 5 — Ngày 19/61
+# Thứ Năm · 01/10/2026 · Tuần 5 — Ngày 19/82
 
 > Tháng 10 bắt đầu. Chủ đề đầu tiên: **auth thật**. Đây là câu hỏi xuất hiện ở ~80% buổi phỏng vấn RN, và bạn đã làm ở Firegroup — tháng này làm lại để nói được mạch lạc và chỉ tay vào code.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 **Docs:** https://supabase.com/docs/guides/auth/quickstarts/react-native · https://docs.expo.dev/versions/latest/sdk/securestore/
 

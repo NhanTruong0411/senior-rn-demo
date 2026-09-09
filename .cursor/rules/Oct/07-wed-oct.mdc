@@ -3,9 +3,12 @@ description: Thứ Tư 07/10/2026 — Tuần 6 Ngày 3. MSW giả lập API, tes
 alwaysApply: false
 ---
 
-# Thứ Tư · 07/10/2026 · Tuần 6 — Ngày 23/61
+# Thứ Tư · 07/10/2026 · Tuần 6 — Ngày 23/82
 
 > Hôm nay học cách test phần **gọi mạng** mà không cần mạng thật. Đây là kỹ năng khiến bộ test chạy nhanh và ổn định — thứ mọi team có CI đều cần.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 **Docs:** https://mswjs.io · https://tanstack.com/query/latest/docs/framework/react/guides/testing
 

@@ -3,9 +3,12 @@ description: Thứ Sáu 02/10/2026 — Tuần 5 Ngày 2. Protected route, xử l
 alwaysApply: false
 ---
 
-# Thứ Sáu · 02/10/2026 · Tuần 5 — Ngày 20/61
+# Thứ Sáu · 02/10/2026 · Tuần 5 — Ngày 20/82
 
 > Hôm nay phần khó nhất của auth: **hàng đợi refresh token**. Đây là câu hỏi phân loại Middle với Strong Middle — vì nó đòi hỏi bạn nghĩ về trường hợp nhiều request cùng hỏng một lúc.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 ---
 

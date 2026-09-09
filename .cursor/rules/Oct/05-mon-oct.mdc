@@ -3,10 +3,13 @@ description: Thứ Hai 05/10/2026 — Tuần 6 Ngày 1. Jest 30 — test hàm th
 alwaysApply: false
 ---
 
-# Thứ Hai · 05/10/2026 · Tuần 6 — Ngày 21/61
+# Thứ Hai · 05/10/2026 · Tuần 6 — Ngày 21/82
 
 > **Tuần testing.** Đây là lỗ hổng bạn tự nhận từ đầu: *"Firegroup không có culture test mạnh."*
 > Năm ngày này biến câu đó từ lời thú nhận thành câu chuyện: *"đó là lý do tôi tự xây test mindset, và đây là code."*
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 **Hướng dẫn chính:** https://reactnativerelay.com/article/complete-guide-testing-react-native-apps-2026-unit-tests-e2e-maestro
 

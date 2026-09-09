@@ -3,9 +3,12 @@ description: Thứ Ba 20/10/2026 — Tuần 8 Ngày 2. Sửa render thừa — m
 alwaysApply: false
 ---
 
-# Thứ Ba · 20/10/2026 · Tuần 8 — Ngày 32/61
+# Thứ Ba · 20/10/2026 · Tuần 8 — Ngày 32/82
 
 > Hôm qua đo. Hôm nay sửa — **mỗi lần một thay đổi, đo lại sau mỗi lần**. Sửa 5 thứ cùng lúc rồi thấy nhanh hơn thì bạn không biết thứ nào có tác dụng.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 ---
 

@@ -3,10 +3,13 @@ description: Thứ Hai 12/10/2026 — Tuần 7 Ngày 1. New Architecture — JSI
 alwaysApply: false
 ---
 
-# Thứ Hai · 12/10/2026 · Tuần 7 — Ngày 26/61
+# Thứ Hai · 12/10/2026 · Tuần 7 — Ngày 26/82
 
 > **Tuần khó nhất tháng.** Đến cuối tuần bạn chuyển từ *"tôi hiểu khái niệm New Architecture"* sang *"tôi đã tự viết một TurboModule chạy trên cả hai nền tảng."*
 > Đó là khác biệt giữa Middle và Strong Middle.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 **Tài liệu chính:** https://github.com/reactwg/react-native-new-architecture
 **Series video:** https://www.callstack.com/tutorials/implementing-an-android-turbomodule-with-kotlin

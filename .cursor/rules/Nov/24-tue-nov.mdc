@@ -7,6 +7,9 @@ alwaysApply: false
 
 > Bạn đã dựng CI cho mobile hôm 28/10. Hôm nay làm cho backend — với một thứ mobile không có: **mỗi pull request được cấp một database riêng**.
 
+
+> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
+
 ---
 
 ## Lịch hôm nay

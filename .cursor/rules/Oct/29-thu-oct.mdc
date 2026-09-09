@@ -3,9 +3,12 @@ description: Thứ Năm 29/10/2026 — Tuần 9 Ngày 4. CD — EAS Build và EA
 alwaysApply: false
 ---
 
-# Thứ Năm · 29/10/2026 · Tuần 9 — Ngày 39/61
+# Thứ Năm · 29/10/2026 · Tuần 9 — Ngày 39/82
 
 > Hôm qua CI kiểm tra code. Hôm nay CD **phát hành** code. Xong hôm nay, merge một PR vào `main` là app tự lên tay người thử.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 **Docs:** https://docs.expo.dev/build/building-on-ci/ · https://github.com/expo/expo-github-action
 

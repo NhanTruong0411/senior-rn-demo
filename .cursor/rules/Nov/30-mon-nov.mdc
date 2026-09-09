@@ -8,6 +8,9 @@ alwaysApply: false
 > Đây là ngày mở đầu tháng 12 về mặt nội dung *(tuần 14 bắt đầu hôm nay)*.
 > Câu hỏi hôm nay: **việc gì đó phải xảy ra, nhưng không phải bây giờ và không phải trong request này.** Bạn để nó ở đâu?
 
+
+> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
+
 ---
 
 ## Lịch hôm nay

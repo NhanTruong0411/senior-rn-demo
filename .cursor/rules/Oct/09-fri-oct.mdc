@@ -3,9 +3,12 @@ description: Thứ Sáu 09/10/2026 — Tuần 6 Ngày 5. TDD thực chiến, ho�
 alwaysApply: false
 ---
 
-# Thứ Sáu · 09/10/2026 · Tuần 6 — Ngày 25/61
+# Thứ Sáu · 09/10/2026 · Tuần 6 — Ngày 25/82
 
 > Ngày cuối tuần testing. Sáng nay thử **viết test trước khi viết code** — không phải để theo giáo phái TDD, mà để cảm nhận nó thay đổi cách bạn thiết kế hàm như thế nào.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 ---
 

@@ -3,9 +3,12 @@ description: Thứ Ba 06/10/2026 — Tuần 6 Ngày 2. React Native Testing Libr
 alwaysApply: false
 ---
 
-# Thứ Ba · 06/10/2026 · Tuần 6 — Ngày 22/61
+# Thứ Ba · 06/10/2026 · Tuần 6 — Ngày 22/82
 
 > Hôm qua test hàm thuần. Hôm nay test giao diện — nhưng theo **cách người dùng nhìn thấy**, không theo cách component được viết.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 **Docs:** https://callstack.github.io/react-native-testing-library/
 

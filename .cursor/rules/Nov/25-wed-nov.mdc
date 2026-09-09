@@ -8,6 +8,9 @@ alwaysApply: false
 > Ô còn trống trong bảng OWASP hôm 18/11: **tiêu thụ tài nguyên không giới hạn**.
 > Hôm nay bạn tự tấn công API của mình bằng tải, xem nó gãy ở đâu, rồi vá.
 
+
+> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
+
 ---
 
 ## Lịch hôm nay

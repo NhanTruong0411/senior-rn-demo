@@ -3,9 +3,12 @@ description: Thứ Hai 26/10/2026 — Tuần 9 Ngày 1. Offline-first — lưu c
 alwaysApply: false
 ---
 
-# Thứ Hai · 26/10/2026 · Tuần 9 — Ngày 36/61
+# Thứ Hai · 26/10/2026 · Tuần 9 — Ngày 36/82
 
 > **Tuần cuối tháng 10.** Offline-first không phải tính năng phụ — ở Việt Nam, mạng 4G chập chờn trong thang máy, hầm gửi xe, hay vùng ngoại ô là chuyện hằng ngày.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 **Docs:** https://tanstack.com/query/latest/docs/framework/react/plugins/persistQueryClient
 

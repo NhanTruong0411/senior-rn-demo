@@ -7,6 +7,9 @@ alwaysApply: false
 
 > Bạn đã học test ở mobile hồi tháng 10. Backend đảo ngược tỉ lệ: ở đây **test tích hợp đáng giá hơn test đơn vị**, vì phần lớn bug nằm ở chỗ code gặp database.
 
+
+> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
+
 **Tài nguyên:** https://vitest.dev/ · https://github.com/ladjs/supertest
 
 ---

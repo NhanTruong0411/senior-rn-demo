@@ -7,6 +7,9 @@ alwaysApply: false
 
 > Luật tháng 10 vẫn đúng: **không cache thứ chưa đo.** Hôm nay đo p95, rồi mới quyết định Redis hay chỉ HTTP cache.
 
+
+> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+
 ---
 
 ## Lịch hôm nay

@@ -3,10 +3,13 @@ description: Thứ Năm 15/10/2026 — Tuần 7 Ngày 4. Expo Modules API — c�
 alwaysApply: false
 ---
 
-# Thứ Năm · 15/10/2026 · Tuần 7 — Ngày 29/61
+# Thứ Năm · 15/10/2026 · Tuần 7 — Ngày 29/82
 
 > Hai ngày qua bạn làm theo cách "thô" để hiểu cơ chế. Hôm nay làm lại **cùng một module** bằng Expo Modules API — ít code hơn nhiều — rồi so sánh.
 > Biết cả hai cách và giải thích được khi nào chọn cái nào là câu trả lời của một người có kinh nghiệm thật.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 **Docs:** https://docs.expo.dev/modules/overview/
 

@@ -3,10 +3,13 @@ description: Thứ Sáu 16/10/2026 — Tuần 7 Ngày 5. Tích hợp module vào
 alwaysApply: false
 ---
 
-# Thứ Sáu · 16/10/2026 · Tuần 7 — Ngày 30/61
+# Thứ Sáu · 16/10/2026 · Tuần 7 — Ngày 30/82
 
-> **Nửa chặng đường.** Ngày 30 trên 61.
+> **Nửa chặng đường.** Ngày 30 trên 82.
 > Hôm nay biến module vừa viết thành **tính năng thật người dùng thấy được**, và viết lại quá trình thành một bài kỹ thuật — thứ bạn gửi kèm khi apply.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 ---
 
@@ -28,7 +31,7 @@ alwaysApply: false
 | 11:30 | Giữ bé cho bà nội ăn trưa |
 | 12:30 | Ăn trưa, dọn dẹp |
 | 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Viết bài kỹ thuật + tổng kết tuần |
+| **13:30** | **KHỐI HỌC** — Bài kỹ thuật New Arch + **đọc Vercel AI SDK overview** (chuẩn bị Dec; không code AI vào app) |
 | 15:00 | Nghỉ 10 phút |
 | 15:10 | Tiếp tục |
 | **16:30** | **TIẾNG ANH** — Nhìn lại tuần |
@@ -185,7 +188,7 @@ Trả lời ra giấy. Nếu câu nào bí, đó là câu cần đọc lại cu�
 Ngày khó nhất tuần:
 Mất bao lâu để qua được:
 
-## NỬA CHẶNG ĐƯỜNG — ngày 30/61
+## NỬA CHẶNG ĐƯỜNG — ngày 30/82
 
 Ngày 07/09 tôi chưa có gì. Hôm nay tôi có:
 - App trên Google Play Internal Testing

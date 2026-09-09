@@ -7,6 +7,9 @@ alwaysApply: false
 
 > Ba buổi mock (28–30). Hôm nay: **kiến trúc + đường đi request**. Ghi âm như phỏng vấn thật 45 phút.
 
+
+> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+
 ---
 
 ## Lịch hôm nay
@@ -39,10 +42,10 @@ Không mở laptop chỉnh feature.
 
 ### Mock set A (45 phút)
 
-1. Tell me about yourself (fullstack angle)
+1. Tell me about yourself (fullstack + AI application angle)
 2. Walk a request finger → DB → back
 3. Why Fastify over Express in production?
-4. Refresh token reuse detection — why?
+4. How do you add LLM features without putting keys on the phone? (+ RAG boundary)
 5. Why leaving / why this company (behavioral ngắn)
 
 **Rubric** (mỗi câu 1–5 × 5 trục như coding-context): Decision · Example · Honesty · Time · Follow-up. Tổng <15 drill lại.

@@ -8,6 +8,9 @@ alwaysApply: false
 > **Tuần có lợi thế lớn nhất của bạn.** Hôm 02/10 bạn xây hàng đợi refresh token ở phía client. Tuần này bạn viết đầu còn lại — và bạn là một trong số ít ứng viên Middle hiểu được cả hai.
 > Cảnh báo trước: tự viết xác thực trong sản phẩm thương mại thật thường là quyết định sai. Ở đây bạn viết **để hiểu**. Ngày 20/11 sẽ nói rõ ranh giới đó.
 
+
+> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
+
 **Tài nguyên:** https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
 
 ---

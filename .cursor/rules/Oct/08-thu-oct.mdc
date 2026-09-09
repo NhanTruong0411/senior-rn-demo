@@ -3,10 +3,13 @@ description: Thứ Năm 08/10/2026 — Tuần 6 Ngày 4. Maestro — test E2E b�
 alwaysApply: false
 ---
 
-# Thứ Năm · 08/10/2026 · Tuần 6 — Ngày 24/61
+# Thứ Năm · 08/10/2026 · Tuần 6 — Ngày 24/82
 
 > Hôm nay tầng cao nhất của kim tự tháp test: **chạy app thật trên máy thật, bấm như người dùng**.
 > Maestro cài trong 1 lệnh và có test đầu tiên trong 15 phút — khác hẳn Detox cần 1–3 ngày cấu hình.
+
+
+> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
 
 **Docs:** https://maestro.mobile.dev
 
