@@ -3,87 +3,50 @@ description: Thứ Năm 17/12/2026 — Tuần 16 Ngày 4. Docker cục bộ — 
 alwaysApply: false
 ---
 
-# Thứ Năm · 17/12/2026 · Tuần 16 — Ngày 74/82
+# Thứ Năm 17/12/2026 — Docker Local API + DB
 
-> Mục tiêu: **Dockerfile chạy được trên máy bạn**. Không deploy K8s. Hiểu layer, env, và vì sao container khác `node index.js` trên laptop.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** `docker compose up` chạy API + Postgres (pgvector) local; hiểu image/layer/env — không K8s, không cluster cosplay.
+> **Tư duy:** AI scaffold Dockerfile → bạn tấn công secret trong image & volume → đo cold container start → defend Compose vs cloud.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | **KHỐI XÂY** — Dockerfile multi-stage |
-| **13:30** | **KHỐI HỌC** — docker compose API + Postgres local |
-| **16:00** | **TÌM VIỆC** — theo dõi lại |
-| **16:30** | **TIẾNG ANH** — 3 câu phỏng vấn |
-| **17:00** | **GHI CHÚ** |
+- **System Prompt / Requirements:**
+  - Yêu cầu: `Dockerfile` API multi-stage; `docker-compose.yml` service `api` + `db` (pgvector image); `.env.example` không secret thật; migrate on start hoặc docs migrate tay.
+  - Ranh giới: không đẩy image public kèm key; không cần orchestrator.
+- **Scaffold Code:** Dockerfile, compose, `docs/docker-local.md` 15 dòng cách chạy.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-```dockerfile
-FROM node:22-alpine AS deps
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-
-FROM node:22-alpine AS build
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN npm run build
-
-FROM node:22-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV=production
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
-COPY package*.json ./
-USER node
-EXPOSE 3000
-CMD ["node", "dist/index.js"]
-```
-
-`.dockerignore`: `node_modules`, `.env`, `test`.
-
-```bash
-docker build -t macrozone-api .
-docker run --rm -p 3000:3000 --env-file .env.docker macrozone-api
-```
+- **Kịch bản tấn công 1:** Copy `.env` vào image layer — phải dùng runtime env; scan Dockerfile.
+- **Kịch bản tấn công 2:** DB port expose 0.0.0.0 không password trên máy public Wi-Fi — bind localhost, password bắt buộc.
+- **Bằng chứng khắc phục:** checklist; compose không commit secret.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-`docker-compose.yml`: service `api` + `postgres:16`. Migration chạy khi start (script entrypoint hoặc docs tay).
-
-**Nói được:**
-
-- Image vs container
-- Vì sao không commit `.env` vào image
-- Vì sao Render build giống tinh thần Docker dù bạn có thể không đẩy image lên registry
-
-Câu #4: *"Vì sao không Kubernetes?"* — 1 dev, 1 service, free tier. K8s giải bài toán bạn chưa có.
+- **Công cụ:** thời gian `compose up` → health green; so latency API local vs Render warm.
+- **Kết quả:** ready in …s; ghi khác biệt để debug “chỉ sai trên cloud”.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-**Q:** "Do you know Docker?"
-> *"Yes at the level I need: multi-stage build, don't bake secrets into the image, compose with Postgres locally so my machine matches CI closer. I don't run Kubernetes for a single Fastify process — that would be resume-driven design."*
-
-**5 từ:** `multi-stage` · `bake secrets` · `compose` · `resume-driven` · `match CI`
+- **Decision Note:**
+  - *Claim:* Docker local để parity DB/extension; production vẫn Render/Neon managed.
+  - *Evidence:* pgvector local = staging behavior.
+  - *Boundary:* K8s khi multi-service + team ops — chưa phải MacroZone 1 người.
+- **60s Defense Pitch:**
+  > "Docker giúp mình tái tạo Postgres+pgvector giống prod, không biến mình thành platform engineer. Compose hai service đủ. Không K8s vì chưa có bài toán. Hiểu layer và secret — đủ để trả lời phỏng vấn container trung thực."
 
 ---
 
-## Checklist
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] `docker build` + `docker run` healthz OK
-- [ ] compose lên được API+DB local
-- [ ] Nói được vì sao không K8s
-- [ ] Ghi âm `2026-12-17.m4a`
+- [ ] `docker compose up` → API health + migrate + 1 request RAG/list ok
+- [ ] Không secret trong image
+- [ ] 60s pitch trôi

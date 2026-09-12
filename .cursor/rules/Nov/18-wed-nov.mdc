@@ -1,234 +1,64 @@
 ---
-description: Thứ Tư 18/11/2026 — Tuần 12 Ngày 3. Phân quyền — ai được đọc gì, và vì sao kiểm tra quyền sở hữu phải nằm trong truy vấn.
+description: Thứ Tư 18/11/2026 — Tuần 12 Ngày 3. RBAC + ownership trong query — vì sao không check sau khi fetch.
 alwaysApply: false
 ---
 
-# Thứ Tư · 18/11/2026 · Tuần 12 — Ngày 53/82
+# Thứ Tư 18/11/2026 — RBAC + Ownership Trong Query
 
-> Hôm qua trả lời "anh là ai". Hôm nay trả lời **"anh được làm gì"**.
-> Đây là chỗ lỗi bảo mật nghiêm trọng nhất trong API thường xảy ra — và nó đứng số một trong OWASP API Security Top 10.
-
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
-**Tài nguyên:** https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/
+> **Mục tiêu kỹ sư:** Phân quyền rõ; **ownership nằm trong SQL/query** — không fetch rồi mới `if (meal.userId !== me)` kiểu sót lỗ.
+> **Tư duy:** AI gắn preHandler authz → Bạn tấn công IDOR, đo overhead auth, defend query-level ownership.
+> **Bản đồ tháng:** Tuần 12 — AuthZ.
+> **Sản phẩm:** User chỉ đụng meal của mình; role `user|admin` tối thiểu.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Tự tấn công API của mình |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Phân quyền theo vai + rò rỉ qua trường dữ liệu |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
-| **16:30** | **TIẾNG ANH** — Quyết định thiết kế |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. JWT access → `request.user` (id, role).
+    2. Meals routes require auth; mọi `WHERE id = $id AND user_id = $userId`.
+    3. Admin-only endpoint ví dụ `GET /v1/admin/meals` (hoặc 403 nếu chưa cần UI).
+    4. 401 vs 403 vs 404 policy: không leak tồn tại resource người khác (chọn 404 hoặc 403 — document nhất quán).
+  - **Ranh giới:** Không ABAC phức tạp; 2 role đủ.
+- **Scaffold Code:** AI sinh auth plugin hooks + sửa services.
+
+**Intent 3 dòng:**
+1. Làm gì: RBAC + ownership in queries.
+2. Không làm gì: password reset (→ 19).
+3. Xong khi: user B không đọc/sửa meal user A (IDOR test fail = pass security).
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 08:30–09:15 · Tự tấn công API của mình
-
-Tạo hai tài khoản: A và B. Đăng nhập A, lấy token. Lấy `id` một bữa ăn của B.
-
-Rồi thử **bằng token của A**:
-
-```bash
-curl -H "Authorization: Bearer $TOKEN_A" .../v1/meals/$MEAL_ID_CUA_B
-curl -X PATCH -H "Authorization: Bearer $TOKEN_A" .../v1/meals/$MEAL_ID_CUA_B -d '{"name":"bị chiếm"}'
-curl -X DELETE -H "Authorization: Bearer $TOKEN_A" .../v1/meals/$MEAL_ID_CUA_B
-```
-
-**Nếu có bất kỳ cái nào thành công, bạn vừa tìm ra lỗ hổng nghiêm trọng nhất trong API — Broken Object Level Authorization.** Nó đứng số một trong OWASP API Top 10 vì nó cực kỳ phổ biến và cực kỳ dễ khai thác: kẻ tấn công chỉ cần đổi một số trong URL.
-
-Ghi kết quả từng cái. Sửa cái nào lọt.
-
-### 09:15–10:30 · Cách sửa đúng
-
-**Sai — kiểm tra rồi mới thao tác:**
-
-```ts
-const meal = await mealRepo.byId(id);
-if (meal.userId !== userId) throw forbidden();     // hai lượt đi database, có khe hở
-await mealRepo.delete(id);
-```
-
-**Đúng — quyền sở hữu nằm trong chính truy vấn:**
-
-```ts
-const [deleted] = await db.delete(meals)
-  .where(and(eq(meals.id, id), eq(meals.userId, userId)))
-  .returning();
-
-if (!deleted) throw notFound('bữa ăn');            // không phân biệt "của người khác" và "không tồn tại"
-```
-
-**Ba lý do cách thứ hai đúng hơn:**
-
-| Lý do | Giải thích |
-| --- | --- |
-| Không có khe hở tranh chấp | Kiểm tra và thao tác là **một** câu lệnh nguyên tử |
-| Ít đi database hơn | Một lượt thay vì hai |
-| Không rò rỉ thông tin | Trả 404 cho cả hai trường hợp — kẻ tấn công không biết bản ghi có tồn tại hay không |
-
-**Áp dụng cho mọi endpoint không có ngoại lệ.** Rà lại toàn bộ bảng endpoint hôm 03/11 và đánh dấu từng cái.
-
-> **Luật để nhớ suốt đời:** `userId` **luôn** lấy từ token, **không bao giờ** từ body hay query. Nếu client gửi được `userId` thì client tự chọn được mình là ai. Rà kỹ: có endpoint nào của bạn nhận `userId` từ đầu vào không?
-
-```bash
-git add . && git commit -m "fix: quyền sở hữu nằm trong truy vấn cho mọi endpoint"
-```
+- **Kịch bản 1 (IDOR):** Đổi UUID meal trong URL sang của user khác với token hợp lệ.
+- **Kịch bản 2:** AI tool path sau này (20/11) phải tái sử dụng cùng ownership — không bypass.
+- **Bằng chứng:** Bảng IDOR tests (method/path/expected status).
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### 13:30–14:15 · Phân quyền theo vai — chỉ làm phần cần
-
-```sql
-alter table users add column role text not null default 'user'
-  check (role in ('user', 'admin'));
-```
-
-```ts
-export function requireRole(...allowed: Role[]) {
-  return async (req: FastifyRequest) => {
-    if (!allowed.includes(req.user.role)) {
-      throw new AppError(403, 'FORBIDDEN', 'Không đủ quyền');
-    }
-  };
-}
-
-app.get('/v1/admin/users', { onRequest: [app.authenticate, requireRole('admin')] }, handler);
-```
-
-**Đừng làm hệ thống phân quyền phức tạp.** Bạn có hai vai. Đừng xây RBAC đầy đủ với quyền chi tiết và kế thừa vai — người phỏng vấn sẽ hỏi *"vì sao"* và bạn không có câu trả lời thật.
-
-**Phân biệt hai tầng, câu này hay bị hỏi:**
-
-| Tầng | Câu hỏi | Ví dụ |
-| --- | --- | --- |
-| Theo **vai** | Loại người này được gọi endpoint này không? | Admin xem được danh sách người dùng |
-| Theo **đối tượng** | Người cụ thể này được đụng bản ghi cụ thể này không? | Chỉ được xoá bữa ăn của mình |
-
-**Kiểm tra theo vai không thay thế được kiểm tra theo đối tượng.** Người dùng thường được gọi `DELETE /v1/meals/:id` — đó là vai. Nhưng chỉ với bữa ăn của họ — đó là đối tượng. Rất nhiều API làm đúng tầng đầu và quên tầng thứ hai.
-
-Giãn cơ 5 phút lúc 14:15.
-
-### 14:15–15:00 · Rò rỉ qua trường dữ liệu
-
-Kiểu rò rỉ tinh vi hơn: quyền đúng nhưng **trả về quá nhiều**.
-
-```ts
-// SAI — trả cả object
-return db.select().from(users).where(eq(users.id, id));
-// → passwordHash, role, email nội bộ đều lộ
-
-// ĐÚNG — chọn tường minh
-return db.select({
-  id: users.id,
-  email: users.email,
-  dailyLimit: users.dailyLimit,
-}).from(users).where(eq(users.id, id));
-```
-
-**Hai lớp phòng vệ, dùng cả hai:**
-1. Chọn cột tường minh ở tầng repo
-2. `response` schema của Fastify từ 04/11 — nó cắt bỏ trường không khai báo
-
-Kiểm tra thật: tạm thêm `select()` toàn bộ vào một endpoint, xem `response` schema có chặn không. Kiểm chứng lớp phòng vệ chứ đừng giả định nó hoạt động.
-
-**Đây là lý do `response` schema đáng công viết ra.** Hôm 04/11 nó trông như thủ tục thừa. Hôm nay nó là thứ chặn rò rỉ khi bạn vô tình viết `select()`.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Danh sách kiểm tra bảo mật
-
-Đọc lướt https://owasp.org/API-Security/editions/2023/en/0x11-t10/ và tự chấm:
-
-| # | Rủi ro | Bạn ổn chưa? | Đã làm gì |
-| --- | --- | --- | --- |
-| 1 | Phân quyền theo đối tượng bị hỏng | | Quyền sở hữu trong truy vấn |
-| 2 | Xác thực bị hỏng | | argon2, xoay token, phát hiện tái sử dụng |
-| 3 | Phân quyền theo thuộc tính bị hỏng | | Chọn cột tường minh + response schema |
-| 4 | Tiêu thụ tài nguyên không giới hạn | | **Chưa — làm ngày 27/11** |
-| 5 | Phân quyền cấp chức năng bị hỏng | | `requireRole` |
-| 8 | Cấu hình sai bảo mật | | helmet, CORS, biến môi trường kiểm tra |
-| 9 | Quản lý tồn kho API kém | | Có `/v1`, tài liệu OpenAPI làm 17/12 |
-
-Điền cột thứ ba trung thực. Ô nào trống là việc phải làm.
-
-**Bảng này in ra mang đi phỏng vấn được.** Rất ít ứng viên Middle tự chấm API của mình theo OWASP.
+- **Công cụ:** k6 authenticated GETs; so sánh trước/sau thêm auth hook (overhead).
+- **Kịch bản:** 30 VU × 20s với token hợp lệ.
+- **Kết quả:** p95 ___ ms · % 401 do token hết hạn trong test?
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note:**
+  - *Claim:* Ownership trong query là bắt buộc; check-after-fetch là anti-pattern dễ sót.
+  - *Evidence:* IDOR table + p95.
+  - *Boundary:* Admin break-glass có audit log — chưa build UI.
+- **60s Defense Pitch:**
+  > "Mọi query meal kèm user_id từ JWT. Không lấy row rồi mới so sánh — dễ sót một endpoint. 401/403/404 có policy viết rõ để khỏi leak. Cùng rule sẽ khóa Function Calling ngày kia. RBAC tối thiểu user/admin — đủ MacroZone, không invent IAM."
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Quyết định thiết kế
+## 5. Definition of Done (DoD kỹ thuật)
 
-> *"The decision I want to explain is putting ownership checks inside the query instead of before it.*
-> *The obvious way is: fetch the record, compare the owner ID to the user ID, then act. That works, but it has three problems. It's two round trips. There's a window between the check and the action. And when it fails you have to decide what to return — and if you return 403, you've just confirmed the record exists, which leaks information.*
-> *So instead the ownership condition goes in the WHERE clause. Delete where ID matches and user ID matches. If nothing comes back, I return 404 — same response whether the record belongs to someone else or doesn't exist at all.*
-> *The rule I follow is that the user ID always comes from the token, never from the request body. If the client can send a user ID, the client can choose who to be.*
-> *I tested this by creating two accounts and trying to read, update, and delete each other's records. That's the OWASP number one API risk, and the only way to know you don't have it is to try it."*
-
-**5 từ mới:**
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `round trip` | một lượt đi về | *It's two round trips.* |
-| `window` (giữa hai thao tác) | khe hở thời gian | *There's a window between the check and the action.* |
-| `confirm it exists` | xác nhận sự tồn tại | *You've just confirmed the record exists.* |
-| `WHERE clause` | mệnh đề where | *The condition goes in the WHERE clause.* |
-| `choose who to be` | tự chọn mình là ai | *The client can choose who to be.* |
-
----
-
-## GHI CHÚ · 17:00–17:30
-
-Thêm vào `docs/auth-design.md`:
-- Kết quả tự tấn công: đã thử gì, cái nào lọt, sửa ra sao
-- Phân biệt phân quyền theo vai và theo đối tượng
-- **Bảng tự chấm OWASP đã điền**
-
----
-
-## Checklist cuối ngày
-
-- [ ] Đã tạo 2 tài khoản và **tự tấn công API của mình**
-- [ ] Không endpoint nào cho phép đụng dữ liệu người khác
-- [ ] Quyền sở hữu nằm trong `where`, không phải kiểm tra riêng
-- [ ] Trả 404 chứ không 403 cho tài nguyên của người khác
-- [ ] **Đã rà: không endpoint nào nhận `userId` từ body hay query**
-- [ ] `requireRole` chạy, chỉ có 2 vai, không phức tạp hoá
-- [ ] Nói được khác biệt giữa phân quyền theo vai và theo đối tượng
-- [ ] Repo chọn cột tường minh, không `select()` toàn bộ
-- [ ] **Đã kiểm chứng `response` schema thật sự chặn được trường thừa**
-- [ ] Bảng OWASP đã điền trung thực
-- [ ] Ghi âm `2026-11-18.m4a`
-- [ ] 21:30 lên giường
+- [ ] IDOR tests đỏ→xanh; ownership trong query.
+- [ ] Có p95 authenticated.
+- [ ] 60s pitch trôi.

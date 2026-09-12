@@ -1,83 +1,53 @@
 ---
-description: Thứ Năm 10/12/2026 — Tuần 15 Ngày 4. Hai người sửa một bản ghi — optimistic lock + real-time conflict.
+description: Thứ Năm 10/12/2026 — Tuần 15 Ngày 4. Hai người sửa một bản ghi — optimistic lock + realtime conflict.
 alwaysApply: false
 ---
 
-# Thứ Năm · 10/12/2026 · Tuần 15 — Ngày 69/82
+# Thứ Năm 10/12/2026 — Optimistic Lock + Realtime Conflict
 
-> Câu hỏi fullstack #2 trong Dec context: *"Hai người dùng cùng sửa một bản ghi. Chuyện gì xảy ra?"*
-> Hôm nay bạn phải trả lời được bằng demo, không bằng định nghĩa.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Hai editor (web admin + mobile, hoặc hai device) sửa cùng meal/booking → version check → conflict UX; SSE báo version mới.
+> **Tư duy:** AI scaffold `version` column → bạn tấn công lost update → đo under concurrency → defend vs pessimistic lock.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | **KHỐI XÂY** — Cột version + 409 Conflict |
-| **13:30** | **KHỐI HỌC** — Client merge UI + SSE báo conflict |
-| **16:00** | **TÌM VIỆC** — theo dõi lại |
-| **16:30** | **TIẾNG ANH** — 3 câu phỏng vấn |
-| **17:00** | **GHI CHÚ** |
+- **System Prompt / Requirements:**
+  - Yêu cầu: cột `version INT`; `UPDATE ... WHERE id=$1 AND version=$2` → nếu 0 row → 409 `{ code: 'VERSION_CONFLICT', current }`.
+  - Client: gửi `version` từ GET; khi 409 → fetch mới + UI merge/discard; SSE `meal.updated` kèm version để invalidate.
+  - Ranh giới: không silent overwrite; không “last write wins” cho macro quan trọng.
+- **Scaffold Code:** service update có version; RN/web conflict modal; test concurrency.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-Nhắc lại pattern Nov 11 — siết cho meal update:
-
-```ts
-const [updated] = await db.update(meals)
-  .set({ ...patch, version: sql`${meals.version} + 1` })
-  .where(and(
-    eq(meals.id, id),
-    eq(meals.userId, userId),
-    eq(meals.version, expectedVersion),
-  ))
-  .returning();
-
-if (!updated) throw conflict('Bản ghi đã đổi. Tải lại rồi thử lại.');
-```
-
-API trả **409** + body có `current` (bản mới nhất) để client không đoán mù.
-
-Viết integration test: hai update song song cùng version → đúng một cái 200, một cái 409.
-
-```bash
-git add . && git commit -m "feat: optimistic lock meal update trả 409 kèm bản hiện tại"
-```
+- **Kịch bản tấn công 1:** Hai PATCH song song cùng version — đúng một success, một 409.
+- **Kịch bản tấn công 2:** Client bỏ qua version (không gửi) — API reject; không fallback LWW.
+- **Bằng chứng khắc phục:** integration test 2 client; SSE sau success.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### Client
-
-- Form edit giữ `version` từ GET
-- Mutation gửi `expectedVersion`
-- 409 → hiện dialog: giữ bản local / lấy bản server (không im lặng ghi đè)
-
-SSE `meals-changed` trong lúc đang edit → banner nhẹ "Dữ liệu đã đổi trên thiết bị khác".
-
-### Luyện nói câu #2 ≤90s
-
-Claim → version column → why not lock row forever → 409 + reload → boundary (last-write-wins chỉ khi chấp nhận mất dữ liệu).
+- **Công cụ:** k6 20 VU PATCH cùng id; đếm 200 vs 409; latency.
+- **Kết quả:** tỉ lệ conflict đúng kỳ vọng; không corrupt row (đọc lại field).
 
 ---
 
-## TIẾNG ANH · 16:30–17:00
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-**Q:** "Two users edit the same meal."
-> *"Each row has a version. Updates succeed only if the version still matches. The loser gets 409 with the current row and has to reload. I don't hold a DB lock for the whole edit session — that would block the other phone for minutes."*
+- **Decision Note:**
+  - *Claim:* Optimistic lock đủ scale MacroZone; pessimistic khi inventory slot cực nóng (booking race) có thể dùng transaction/unique.
+  - *Evidence:* test 409 + booking unique nếu có.
+  - *Boundary:* collab document real-time OT/CRDT — out of scope.
+- **60s Defense Pitch:**
+  > "Lost update là bug fullstack cổ điển. MacroZone dùng version column: update có điều kiện, 409 khi lệch, SSE đẩy version mới để client không ngồi trên dữ liệu chết. Booking slot nóng có thể cần unique/transaction — khác bài toán edit meal. Nói được ranh giới đó là Tech Lead, không phải thuộc định nghĩa lock."
 
 ---
 
-## Checklist
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] 409 + test tích hợp race
-- [ ] UI xử lý conflict rõ ràng
-- [ ] Nói được câu hỏi #2 trôi
-- [ ] Ghi âm `2026-12-10.m4a`
+- [ ] 409 path + UI conflict demo được
+- [ ] Concurrency test pass; có số k6
+- [ ] 60s pitch trôi

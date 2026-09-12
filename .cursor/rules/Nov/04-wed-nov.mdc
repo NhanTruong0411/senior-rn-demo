@@ -1,241 +1,64 @@
 ---
-description: Thứ Tư 04/11/2026 — Tuần 10 Ngày 3. Chuyển sang Fastify, tách route khỏi service, và kiến trúc backend không rối.
+description: Thứ Tư 04/11/2026 — Tuần 10 Ngày 3. Fastify plugins; route thin / service thick; shape-audit file size.
 alwaysApply: false
 ---
 
-# Thứ Tư · 04/11/2026 · Tuần 10 — Ngày 43/82
+# Thứ Tư 04/11/2026 — Fastify Plugins + Shape-Audit
 
-> Hôm nay bạn đổi framework — nhưng phần quan trọng không phải framework. Phần quan trọng là **ranh giới giữa HTTP và logic nghiệp vụ**.
-> Đây là cùng bài học hôm 16/09 khi bạn tách lớp lưu trữ khỏi giao diện. Tầng khác, nguyên tắc y hệt.
-
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Chuyển sang Fastify |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Tách route và service, so sánh framework |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
-| **16:30** | **TIẾNG ANH** — Quyết định thiết kế |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+> **Mục tiêu kỹ sư:** Tổ chức Fastify bằng plugins; giữ route mỏng / service dày; `/shape-audit` cắt file phình — kiến trúc Gateway không rối trước khi deploy.
+> **Tư duy:** AI refactor theo spec → Bạn tấn công circular dep & god-file, đo cold require time, defend plugin boundary.
+> **Bản đồ tháng:** Tuần 10 — AI Gateway · hôm nay = xương sống code organization.
+> **Sản phẩm:** `macrozone-api` sẵn sàng gắn auth/DB/AI plugins tuần sau.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-### 08:30–09:30 · Vì sao đổi sang Fastify
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Plugin: `app.ts` đăng ký `healthPlugin`, `mealsPlugin`, `aiPlugin` (prefix `/v1`).
+    2. Shared: `errorHandlerPlugin`, `requestIdPlugin` (header `x-request-id` — generate nếu thiếu).
+    3. Mỗi domain: `routes/*.ts` mỏng + `services/*.ts` dày.
+    4. Chạy `/shape-audit`: không file > ~250 dòng không lý do; tách nếu AI nhồi một file.
+  - **Ranh giới:** Chưa Neon; chưa JWT; `requestId` log vào pino child logger.
+- **Scaffold Code:** AI refactor cấu trúc hiện có — không viết lại từ zero nếu đã có từ 02–03.
 
-```bash
-npm i fastify @fastify/cors @fastify/helmet fastify-type-provider-zod
-npm remove express @types/express
-```
-
-**Đừng đổi chỉ vì nó mới.** Bốn lý do cụ thể, và bạn phải nói được cả bốn:
-
-| Lý do | Chi tiết |
-| --- | --- |
-| Kiểu dữ liệu chạy xuyên suốt | Với type provider của Zod, `request.body` **đã có kiểu đúng** trong handler. Express phải ép kiểu bằng tay |
-| Kiểm tra đầu vào là công dân hạng nhất | Schema gắn vào route, không phải middleware rời |
-| Tài liệu OpenAPI tự sinh | Từ chính schema đó. Bạn được tài liệu miễn phí ngày 17/12 |
-| Nhanh hơn | Có thật nhưng **không phải lý do chính** — sản phẩm của bạn không bị nghẽn ở đây |
-
-> Khi phỏng vấn, nếu bạn nói "tôi chọn Fastify vì nó nhanh hơn Express", người hỏi giỏi sẽ hỏi *"nhanh hơn bao nhiêu, và điều đó có quan trọng với ứng dụng của anh không?"* — và bạn sẽ đứt. Lý do thật là **an toàn kiểu và tài liệu tự sinh**. Nói lý do thật.
-
-```ts
-// src/routes/meals.ts
-const app = Fastify().withTypeProvider<ZodTypeProvider>();
-
-app.post('/v1/meals', {
-  schema: {
-    body: createMealSchema,
-    response: { 201: mealSchema },
-  },
-}, async (req, reply) => {
-  const meal = await mealService.create(req.user.id, req.body);   // req.body đã có kiểu
-  return reply.code(201).header('Location', `/v1/meals/${meal.id}`).send(meal);
-});
-```
-
-**Chú ý `response` schema.** Nó kiểm tra cả đầu ra — nghĩa là bạn không thể vô tình trả về trường `passwordHash`. Đây là một lớp bảo vệ thật, không phải trang trí.
-
-### 09:30–10:30 · Chuyển toàn bộ endpoint
-
-Chuyển hết bảng endpoint hôm qua sang Fastify. Giữ nguyên hành vi, chỉ đổi khung.
-
-Thêm hai plugin ngay hôm nay:
-
-```ts
-await app.register(helmet);                       // header bảo mật
-await app.register(cors, {
-  origin: ['http://localhost:8081'],              // chỉ Metro dev server
-});
-```
-
-`helmet` đặt các header như `X-Content-Type-Options` và `Strict-Transport-Security`. Với API thuần JSON gọi từ mobile, phần lớn header này không tác dụng nhiều — nhưng nó miễn phí và nó là thứ người review bảo mật tìm.
-
-**Về CORS:** app mobile **không** bị ràng buộc CORS *(chỉ trình duyệt mới có)*. Bạn cấu hình CORS cho Metro dev server và cho một web admin sau này. Nói được điều này khi phỏng vấn là dấu hiệu bạn hiểu chứ không chép.
-
-```bash
-git add . && git commit -m "refactor: chuyển sang fastify với type provider zod"
-```
+**Intent 3 dòng:**
+1. Làm gì: plugin architecture + shape-audit.
+2. Không làm gì: deploy, DB, LLM thật.
+3. Xong khi: tree rõ; mọi request có requestId trong log.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:45 · Tách route khỏi service — luật quan trọng nhất tháng này
-
-**Sai:**
-
-```ts
-app.post('/v1/meals', async (req, reply) => {
-  const user = await db.select().from(users).where(eq(users.id, req.user.id));
-  if (!user) return reply.code(401).send({ error: 'không có quyền' });
-  if (req.body.calories > user.dailyLimit) { /* logic nghiệp vụ trong route */ }
-  const meal = await db.insert(meals).values({ ...req.body }).returning();
-  return reply.code(201).send(meal);
-});
-```
-
-**Đúng:**
-
-```ts
-// routes/meals.ts — chỉ làm 3 việc: đọc, gọi, định dạng
-app.post('/v1/meals', { schema: { body: createMealSchema } }, async (req, reply) => {
-  const meal = await mealService.create(req.user.id, req.body);
-  return reply.code(201).header('Location', `/v1/meals/${meal.id}`).send(meal);
-});
-
-// services/meal.ts — không biết HTTP là gì
-export const mealService = {
-  async create(userId: string, input: CreateMealInput): Promise<Meal> {
-    const user = await userRepo.byId(userId);
-    if (!user) throw notFound('người dùng');
-    if (input.calories > user.dailyLimit) throw conflict('Vượt giới hạn calo hằng ngày');
-    return mealRepo.insert(userId, input);
-  },
-};
-```
-
-**Ba thứ bạn được từ việc tách này:**
-
-1. **Service test được không cần HTTP server.** Gọi hàm, kiểm kết quả. Bạn sẽ thấy giá trị này ngày 23/11.
-2. **Logic dùng lại được.** Việc chạy nền ngày 30/11 gọi cùng service, không phải gọi HTTP vào chính mình.
-3. **Route đọc là hiểu.** Không cần đọc để biết nó làm gì.
-
-**Luật kiểm tra nhanh:** nếu trong file `services/` xuất hiện chữ `reply`, `req`, hoặc một mã trạng thái HTTP, bạn đã làm sai. Service ném `AppError`, route dịch nó thành HTTP.
-
-> Đây chính là bài học "sâu chứ không rộng" của *A Philosophy of Software Design* mà bạn đọc xong hôm 02/10. Service có giao diện hẹp *(một hàm, tham số rõ ràng)* nhưng chứa nhiều thứ bên trong. Route thì mỏng.
-
-Giãn cơ 5 phút lúc 14:45.
-
-### 14:45–15:00 · Repository — tách thêm một tầng?
-
-Câu hỏi thật: có cần tầng `repo` riêng không, hay service gọi thẳng Drizzle?
-
-| Có tầng repo | Không có |
-| --- | --- |
-| Đổi ORM dễ hơn | Ít file hơn, đọc nhanh hơn |
-| Test service không cần DB | Test service phải có DB |
-| Thêm một lớp gián tiếp | Truy vấn phức tạp bị ép qua giao diện chật |
-
-**Quyết định cho dự án này: có, nhưng mỏng.** Repo chỉ chứa truy vấn, không chứa logic. Lý do: bạn muốn test service bằng repo giả, và đó là cách nhanh nhất để có bộ test chạy trong mili giây.
-
-Ghi quyết định và **cả lý do phản đối** vào `api-design.md`. Người phỏng vấn thích thấy bạn biết mặt trái của lựa chọn mình.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Bảng so sánh framework
-
-Viết vào `docs/api-design.md` — đây là câu hỏi phỏng vấn gần như chắc chắn có:
-
-| | Express | Fastify | Hono | NestJS |
-| --- | --- | --- | --- | --- |
-| Nhiều tin tuyển VN nhất | **Có** | Đang tăng | Ít | Có, mảng doanh nghiệp |
-| An toàn kiểu | Kém, phải ép tay | **Tốt** | Tốt | Tốt |
-| Kiểm tra đầu vào sẵn | Không | **Có** | Có | Có (class-validator) |
-| Chạy được ở edge | Không | Không | **Có** | Không |
-| Áp đặt cấu trúc | Không | Nhẹ | Nhẹ | **Nặng** (DI, decorator) |
-| Hợp khi nào | Đội đã quen, hệ sinh thái lớn | API mới, TypeScript nặng | Cloudflare Workers | Đội lớn cần khuôn cứng |
-
-**Câu trả lời phỏng vấn 60 giây:**
-
-> *"Em học Express trước vì phần lớn tin tuyển ở Việt Nam ghi Express, và vì hiểu mô hình middleware của nó thì đọc được mọi framework khác. Nhưng dự án thật em dùng Fastify, lý do chính là kiểu chạy xuyên suốt từ schema Zod vào handler và tài liệu OpenAPI sinh tự động — em không phải duy trì tài liệu bằng tay. Tốc độ Fastify nhanh hơn thật nhưng không phải lý do em chọn; sản phẩm của em không nghẽn ở đó. NestJS em chưa dùng thật — em hiểu nó áp đặt cấu trúc để đội đông người viết giống nhau, nhưng với một người thì cái giá lớn hơn cái được."*
-
-Câu này mạnh vì có **so sánh, lý do thật, lý do bị loại, và một ranh giới trung thực** ở cuối.
-
-```bash
-git add . && git commit -m "refactor: tách route, service, repo"
-```
+- **Kịch bản 1:** Service import route / circular dependency — phát hiện và phá.
+- **Kịch bản 2:** Plugin register order sai → error handler không bắt được; requestId mất giữa middleware.
+- **Bằng chứng:** `tree src/` + danh sách file >250 dòng (trước/sau).
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-Đơn đầu tiên trong đợt này. Dùng từ khoá mở rộng: `Mobile Developer`, `Fullstack Developer`, `NodeJS`, không chỉ `React Native`.
-
-Trong CV, thêm ngay một dòng vào phần dự án — **đừng đợi hoàn hảo mới cập nhật:**
-*"Đang xây API Node/Fastify/Postgres thay thế lớp BaaS của ứng dụng."*
-
----
-
-## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Quyết định thiết kế
-
-Nói to bản 60 giây về Express vs Fastify ở trên, **bằng tiếng Anh**, có ghi âm.
-
-Ba câu hỏi vặn tự chuẩn bị:
-1. *"How much faster is Fastify?"* → *"Roughly two to three times on synthetic benchmarks, but my bottleneck is the database, not the framework. It wasn't the reason I chose it."*
-2. *"Why not NestJS?"* → *"It imposes structure so a large team writes the same way. I'm one person — the cost is higher than the benefit."*
-3. *"Would you use Express on a new project?"* → *"If the team already knows it, yes. Familiarity beats a marginal technical edge."*
-
-Câu thứ ba là câu quan trọng nhất. Nó cho thấy bạn không phải người theo mốt.
+- **Công cụ:** `node --cpu-prof` nhẹ hoặc đơn giản đo startup time `time curl` sau restart; autocannon `/v1/ping`.
+- **Kịch bản:** So sánh startup trước/sau tách plugin (có chậm hơn không — thường OK).
+- **Kết quả:** startup ___ ms · p95 `/health` ___ ms · số file >250: ___ → ___
 
 ---
 
-## GHI CHÚ · 17:00–17:30
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Thêm vào `docs/api-design.md`:
-- Bảng so sánh 4 framework
-- Quyết định tầng repo, **kèm lý do phản đối**
-- Sơ đồ vẽ tay: `route → service → repo → db`, chụp lại
+- **Decision Note:**
+  - *Claim:* Fastify plugin = bounded context nhẹ; shape-audit là gate trước merge.
+  - *Evidence:* File size + requestId xuất hiện 100% log sample.
+  - *Boundary:* Không Nest-style module hell; plugin đủ cho monolith MacroZone.
+- **60s Defense Pitch:**
+  > "Plugin Fastify giúp gắn auth, DB, AI gateway sau này mà không phá app. Route mỏng để đọc trong PR 30 giây. Shape-audit chống AI nhồi god-file. requestId hôm nay là nền tracing tuần 13. Boundary: chưa distributed tracing full — đủ correlation id một process."
 
 ---
 
-## Checklist cuối ngày
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] Toàn bộ endpoint chạy trên Fastify
-- [ ] `request.body` có kiểu đúng, không ép tay
-- [ ] Có `response` schema chặn rò rỉ trường nhạy cảm
-- [ ] `helmet` và `cors` đã đăng ký
-- [ ] Nói được vì sao app mobile không bị CORS ràng buộc
-- [ ] **Không có chữ `reply` nào trong thư mục `services/`**
-- [ ] Bảng so sánh 4 framework đã viết
-- [ ] Nói được lý do **thật** khi chọn Fastify, không nói "vì nhanh"
-- [ ] Đã nộp 3 đơn, CV đã thêm dòng backend
-- [ ] Ghi âm `2026-11-04.m4a`
-- [ ] 21:30 lên giường
+- [ ] Plugins đăng ký rõ; requestId trên mọi log request.
+- [ ] Không god-file vô lý; có số đo startup/p95.
+- [ ] 60s pitch trôi.

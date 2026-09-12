@@ -3,91 +3,53 @@ description: Thứ Tư 09/12/2026 — Tuần 15 Ngày 3. Cache — chỉ khi đ�
 alwaysApply: false
 ---
 
-# Thứ Tư · 09/12/2026 · Tuần 15 — Ngày 68/82
+# Thứ Tư 09/12/2026 — Cache / ETag / Redis Chỉ Sau Khi Đo
 
-> Luật tháng 10 vẫn đúng: **không cache thứ chưa đo.** Hôm nay đo p95, rồi mới quyết định Redis hay chỉ HTTP cache.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Không thêm Redis vì “best practice”. Đo bottleneck → chọn ETag hoặc Redis có lý do; biết khi nào cache sai hơn miss.
+> **Tư duy:** AI scaffold ETag middleware → bạn chứng minh trước/sau bằng số → defend.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | **KHỐI XÂY** — Đo latency endpoint chính |
-| **13:30** | **KHỐI HỌC** — ETag / Cache-Control / Redis có điều kiện |
-| **16:00** | **TÌM VIỆC** — nhắn 2 người lạ chọn lọc |
-| **16:30** | **TIẾNG ANH** — Quyết định thiết kế |
-| **17:00** | **GHI CHÚ** |
-| *(các khối gia đình giữ lịch cố định)* | |
+- **System Prompt / Requirements:**
+  - Yêu cầu: với endpoint đọc nặng (meal list / stats): hỗ trợ `ETag` / `If-None-Match` → 304; optional Redis cache GET theo key `userId+resource+version` TTL ngắn.
+  - Invalidation: mutation meal → bump version / del key; không cache response đã auth nhầm user.
+  - Ranh giới: chưa đo thì **không** bật Redis production; feature flag.
+- **Scaffold Code:** `cache/etag.ts`, `cache/redis.ts` (Upstash), invalidate hooks trong service.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-Thêm middleware đo thời gian, log `durationMs` *(đã có từ Nov)*. Chạy 50 request thật:
-
-```bash
-autocannon -c 10 -d 20 https://.../v1/meals -H "Authorization: Bearer $TOKEN"
-```
-
-Điền bảng:
-
-| Endpoint | p50 | p95 | p99 | Quyết định |
-| --- | --- | --- | --- | --- |
-| GET /v1/meals | | | | |
-| GET /v1/me/stats | | | | |
-| POST /v1/meals | | | | *(không cache ghi)* |
-
-**Ngân sách bạn tự đặt** (ví dụ p95 < 300ms khi warm). Ghi vào `docs/perf-budget.md`.
+- **Kịch bản tấn công 1:** Cache key thiếu `userId` → leak cross-user. Fail ngay.
+- **Kịch bản tấn công 2:** Stale sau update — client thấy meal cũ; thiếu invalidate trên mọi write path.
+- **Bằng chứng khắc phục:** test isolation + invalidate; TTL ceiling.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### Chỉ cache đọc nặng / ít đổi
-
-```ts
-// Ví dụ: daily stats
-const cacheKey = `stats:${userId}:${day}`;
-const hit = await redis.get(cacheKey);
-if (hit) return JSON.parse(hit);
-
-const stats = await statsService.forDay(userId, day);
-await redis.set(cacheKey, JSON.stringify(stats), { ex: 60 });
-return stats;
-```
-
-**Invalidation:** khi meal create/update/delete → `redis.del(cacheKey)`. Cache không có invalidation = bug trầm.
-
-### ETag cho list
-
-```ts
-const etag = `"${hash(mealsUpdatedAt)}"`;
-if (req.headers['if-none-match'] === etag) return reply.code(304).send();
-reply.header('ETag', etag);
-```
-
-Mobile ky/fetch: gửi lại ETag. Tiết kiệm băng thông hơn là "nhanh hơn DB" khi payload lớn.
-
-**Nếu p95 đã dưới ngân sách:** ghi rõ *"hôm nay không thêm Redis cho meals list"* — đó là quyết định đúng, không phải lười.
+- **Công cụ:** autocannon / k6 trước và sau ETag; EXPLAIN query gốc.
+- **Kịch bản đo:** 80% request lặp cùng resource; đo p95 và %304.
+- **Quyết định cứng:** nếu p95 giảm <10% và DB không nóng → **tắt Redis**, giữ ETag hoặc không cache.
+- **Kết quả:** bảng before/after; quyết định bật/tắt ghi Decision Note.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-> *"I measured first. Meals list was already under budget when warm, so I didn't put it in Redis. I did cache daily stats for sixty seconds and invalidate on write. Caching without invalidation is how you ship lies to users."*
-
-**5 từ:** `under budget` · `invalidate on write` · `ETag` · `304` · `ship lies`
+- **Decision Note:**
+  - *Claim:* (điền sau đo) ETag đủ / Redis cần vì X.
+  - *Evidence:* p95, hit ratio, EXPLAIN.
+  - *Boundary:* cache không chữa N+1 — chữa query trước.
+- **60s Defense Pitch:**
+  > "Cache là tối ưu có điều kiện. Mình đo p95 và EXPLAIN trước. ETag rẻ và đúng cho mobile revalidate. Redis chỉ khi hit ratio và DB chứng minh. Sai cache isolation nguy hiểm hơn miss. MacroZone ưu tiên đúng dữ liệu user hơn milliseconds ảo."
 
 ---
 
-## Checklist
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] Bảng p50/p95/p99 đã điền
-- [ ] Ngân sách độ trễ đã viết
-- [ ] Cache chỉ nơi cần + có xoá khi ghi
-- [ ] Hoặc quyết định có chứng minh là không cần Redis
-- [ ] Ghi âm `2026-12-09.m4a`
+- [ ] Có số before/after; quyết định cache ghi rõ
+- [ ] Không leak cross-user trong cache key
+- [ ] 60s pitch trôi

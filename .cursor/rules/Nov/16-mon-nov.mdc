@@ -1,271 +1,66 @@
 ---
-description: Thứ Hai 16/11/2026 — Tuần 12 Ngày 1. Tự viết xác thực — băm mật khẩu bằng argon2, đăng ký, đăng nhập, ký JWT.
+description: Thứ Hai 16/11/2026 — Tuần 12 Ngày 1. argon2 register/login + ký JWT.
 alwaysApply: false
 ---
 
-# Thứ Hai · 16/11/2026 · Tuần 12 — Ngày 51/82
+# Thứ Hai 16/11/2026 — Auth: argon2 Register/Login + JWT
 
-> **Tuần có lợi thế lớn nhất của bạn.** Hôm 02/10 bạn xây hàng đợi refresh token ở phía client. Tuần này bạn viết đầu còn lại — và bạn là một trong số ít ứng viên Middle hiểu được cả hai.
-> Cảnh báo trước: tự viết xác thực trong sản phẩm thương mại thật thường là quyết định sai. Ở đây bạn viết **để hiểu**. Ngày 20/11 sẽ nói rõ ranh giới đó.
+> **Mục tiêu kỹ sư:** Tự viết đăng ký/đăng nhập — băm mật khẩu argon2, ký JWT access — trên `macrozone-api`, không phụ thuộc Supabase Auth.
+> **Tư duy:** AI scaffold auth → Bạn tấn công timing leak & plaintext, đo login latency, defend JWT short-lived.
+> **Bản đồ tháng:** Tuần 12 — Auth + Function Calling (nền auth hôm nay).
+> **Sản phẩm:** `/v1/auth/register`, `/v1/auth/login`.
 
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
-**Tài nguyên:** https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Băm mật khẩu + đăng ký |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — JWT: ký, xác minh, và chọn thời hạn |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nhắn 2 người quen |
-| **16:30** | **TIẾNG ANH** — Daily standup |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+**Cấm:** Lưu password plaintext; trả password_hash trong JSON; JWT secret trong repo.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-### 08:30–09:15 · Băm mật khẩu
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. `POST /v1/auth/register` — email+password Zod; argon2 hash; unique email → 409.
+    2. `POST /v1/auth/login` — verify hash; trả access JWT (short TTL, vd 15m) + refresh stub hoặc full nếu kịp (full rotate → 17/11).
+    3. `password_hash` cột users; không select hash ra ngoài service.
+    4. `JWT_SECRET` env; algorithm rõ (HS256 đủ học; document).
+  - **Ranh giới:** Chưa refresh rotate đầy đủ; chưa email verify.
+- **Scaffold Code:** AI sinh `services/auth.ts` + routes + migration nếu thiếu cột.
 
-```bash
-npm i @node-rs/argon2
-```
-
-```ts
-import { hash, verify } from '@node-rs/argon2';
-
-const OPTIONS = {
-  memoryCost: 19456,     // 19 MiB — khuyến nghị của OWASP
-  timeCost: 2,
-  parallelism: 1,
-};
-
-export const hashPassword = (plain: string) => hash(plain, OPTIONS);
-export const verifyPassword = (stored: string, plain: string) => verify(stored, plain, OPTIONS);
-```
-
-**Bốn điều phải trả lời được — đây là bộ câu hỏi phỏng vấn bảo mật kinh điển:**
-
-| Câu hỏi | Trả lời |
-| --- | --- |
-| Vì sao **băm** chứ không **mã hoá**? | Mã hoá thì giải mã lại được. Bạn không bao giờ cần đọc lại mật khẩu — chỉ cần kiểm tra khớp |
-| Vì sao argon2 chứ không SHA-256? | SHA-256 thiết kế để **nhanh**. GPU thử được hàng tỷ lần mỗi giây. argon2 cố ý chậm và ngốn bộ nhớ |
-| Salt ở đâu? | argon2 **tự sinh salt** và nhúng vào chuỗi kết quả. Không phải tự quản lý |
-| Vì sao ngốn bộ nhớ lại quan trọng? | GPU có nhiều lõi nhưng ít bộ nhớ mỗi lõi. Ngốn bộ nhớ triệt tiêu lợi thế của GPU |
-
-Câu thứ tư là câu phân biệt người hiểu và người thuộc lòng.
-
-Đo thử: băm một mật khẩu, in ra thời gian. **Phải rơi vào khoảng 50–150 ms.** Nếu chỉ 2 ms, tham số của bạn quá yếu. Nếu tới 2 giây, đăng nhập sẽ chậm khó chịu.
-
-Ghi con số vào ghi chú — đây là *đo đạc*, không phải sao chép cấu hình từ blog.
-
-### 09:15–10:30 · Đăng ký
-
-```ts
-async register(input: { email: string; password: string }) {
-  const passwordHash = await hashPassword(input.password);
-  try {
-    const [user] = await db.insert(users)
-      .values({ email: input.email.toLowerCase(), passwordHash })
-      .returning({ id: users.id, email: users.email });
-    return user;
-  } catch (e) {
-    if (isUniqueViolation(e)) throw conflict('Không tạo được tài khoản');
-    throw e;
-  }
-}
-```
-
-**Ba chi tiết cố ý:**
-
-1. **`returning` chỉ lấy trường an toàn.** Không bao giờ để `passwordHash` rời khỏi tầng repo. Kết hợp với `response` schema của Fastify từ 04/11, bạn có hai lớp chặn.
-
-2. **Thông báo lỗi mơ hồ.** *"Không tạo được tài khoản"* chứ không phải *"Email đã tồn tại"*. Câu thứ hai cho kẻ tấn công biết ai đã đăng ký — đó là **liệt kê tài khoản** (user enumeration). Bạn sẽ xử lý đầy đủ ngày 19/11.
-
-3. **Để database bắt trùng, không tự kiểm tra trước.** Kiểm tra rồi mới chèn tạo ra khe hở tranh chấp: hai request cùng qua bước kiểm tra rồi cùng chèn. Ràng buộc unique thì không bị tranh chấp. *Cùng bài học ngày 09/11.*
-
-Yêu cầu mật khẩu — theo OWASP, **không** theo thói quen cũ:
-
-```ts
-password: z.string().min(8).max(128)
-```
-
-Chỉ vậy. **Không** bắt buộc ký tự đặc biệt, không bắt chữ hoa. Nghiên cứu cho thấy quy tắc phức tạp đẩy người dùng tới `Password1!` và ghi ra giấy. Độ dài quan trọng hơn độ phức tạp. Kiểm tra danh sách mật khẩu rò rỉ phổ biến thì giá trị hơn nhiều.
-
-> Nói được điều này khi phỏng vấn là dấu hiệu bạn đọc nguồn gốc, không chép quy ước.
-
-```bash
-git add . && git commit -m "feat: băm mật khẩu argon2 và endpoint đăng ký"
-```
+**Intent 3 dòng:**
+1. Làm gì: register/login argon2 + access JWT.
+2. Không làm gì: refresh theft detection hoàn chỉnh.
+3. Xong khi: register→login→gọi endpoint có Bearer thành công.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:30 · JWT — nay từ phía người ký
-
-Bạn đã biết cấu trúc JWT từ Day 06. Nay bạn là người tạo ra nó.
-
-```ts
-import { SignJWT, jwtVerify } from 'jose';
-
-const secret = new TextEncoder().encode(env.JWT_SECRET);
-
-export async function signAccessToken(userId: string) {
-  return new SignJWT({ sub: userId })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('15m')
-    .setIssuer('macrozone-api')
-    .setAudience('macrozone-app')
-    .sign(secret);
-}
-```
-
-**Vì sao 15 phút:**
-
-| Thời hạn | Hệ quả |
-| --- | --- |
-| Quá dài (7 ngày) | Token bị lộ thì kẻ tấn công dùng được 7 ngày. **Không thu hồi được** |
-| Quá ngắn (1 phút) | Refresh liên tục, tốn pin và mạng di động |
-| **15 phút** | Cửa sổ thiệt hại chấp nhận được, tần suất refresh hợp lý |
-
-**Điểm mấu chốt phải hiểu: access token không thu hồi được.** Không có danh sách để xoá — server chỉ kiểm tra chữ ký và hạn dùng. Đó chính là **lý do tồn tại** của refresh token: nó lưu trong database nên thu hồi được. Đăng xuất nghĩa là xoá refresh token; access token vẫn sống cho tới khi hết 15 phút.
-
-> Đây là câu trả lời phỏng vấn hay bị sai nhất về JWT. Người nói "đăng xuất thì xoá token là xong" chưa hiểu. Bạn nói được cửa sổ 15 phút đó — và nói được rằng nếu cần thu hồi tức thì thì phải có danh sách chặn, mà danh sách chặn thì làm mất đi lợi thế không cần tra database của JWT.
-
-`setIssuer` và `setAudience` không phải trang trí: chúng ngăn token của hệ thống khác được chấp nhận nhầm ở hệ thống này.
-
-Giãn cơ 5 phút lúc 14:30.
-
-### 14:30–15:00 · Đăng nhập
-
-```ts
-async login(email: string, password: string) {
-  const user = await userRepo.byEmail(email.toLowerCase());
-
-  // Luôn băm, kể cả khi không có người dùng — chống tấn công đo thời gian
-  const stored = user?.passwordHash ?? DUMMY_HASH;
-  const ok = await verifyPassword(stored, password);
-
-  if (!user || !ok) throw new AppError(401, 'INVALID_CREDENTIALS', 'Email hoặc mật khẩu không đúng');
-  return { accessToken: await signAccessToken(user.id), user: publicUser(user) };
-}
-```
-
-**Dòng `DUMMY_HASH` là dòng quan trọng nhất.** Nếu bạn thoát sớm khi không tìm thấy email, phản hồi cho email không tồn tại sẽ **nhanh hơn rõ rệt** — vì nó bỏ qua bước băm tốn 100 ms. Kẻ tấn công đo thời gian phản hồi và liệt kê được tài khoản nào tồn tại.
-
-Đo và chứng minh:
-
-```bash
-time curl -X POST .../login -d '{"email":"cothat@x.com","password":"sai"}'
-time curl -X POST .../login -d '{"email":"khongco@x.com","password":"sai"}'
-```
-
-**Hai con số phải gần bằng nhau.** Ghi lại cả hai. Đây là bằng chứng bạn không chỉ đọc về tấn công đo thời gian mà đã tự đo.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Middleware xác thực
-
-```ts
-app.decorate('authenticate', async (req: FastifyRequest) => {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) throw new AppError(401, 'UNAUTHENTICATED', 'Thiếu token');
-
-  try {
-    const { payload } = await jwtVerify(header.slice(7), secret, {
-      issuer: 'macrozone-api',
-      audience: 'macrozone-app',
-    });
-    req.user = { id: payload.sub as string };
-  } catch {
-    throw new AppError(401, 'TOKEN_INVALID', 'Token không hợp lệ hoặc đã hết hạn');
-  }
-});
-```
-
-**Mặc định phải là chặn, không phải cho qua.** Đăng ký `onRequest` toàn cục, rồi mở ngoại lệ cho `/healthz`, `/v1/auth/*`. Nếu làm ngược lại — mở mặc định rồi thêm bảo vệ từng route — thì sớm muộn bạn quên một route.
-
-> Đây là cùng nguyên tắc "làm cho trạng thái sai không biểu diễn được". Đừng dựa vào trí nhớ khi thiết kế có thể làm hộ.
-
-Kiểm tra: gọi `GET /v1/meals` không kèm token → **401**. Có token → 200.
-
-```bash
-git add . && git commit -m "feat: đăng nhập chống đo thời gian, middleware xác thực chặn mặc định"
-```
+- **Kịch bản 1:** Login email không tồn tại vs sai password — message không enumeration (cùng message chung).
+- **Kịch bản 2:** Brute force chưa rate limit (nợ 25/11) — document; JWT trong localStorage web? Mobile → SecureStore only.
+- **Bằng chứng:** Response register/login sample (redact) + không có hash trong body.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Nhắn 2 người quen
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** autocannon login (cẩn thận CPU argon2); đo cost hash.
+- **Kịch bản:** 10 VU login — quan sát CPU; không đặt memory cost argon2 quá cao trên free Render.
+- **Kết quả:** p95 login ___ ms · chọn params argon2 và ghi lại.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily standup
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-> *"Morning. This week is authentication, written from scratch. I want to say up front that I know rolling your own auth is usually the wrong call for a commercial product — I'm doing it to understand what the libraries are doing for me.*
-> *Today: password hashing with argon2, registration, login, and access token signing. Two things I want to highlight.*
-> *First, I always run the hash even when the email doesn't exist. If you return early, the response for a non-existent account is a hundred milliseconds faster, and an attacker can time that and enumerate your users. I measured both paths and they're within a few milliseconds.*
-> *Second, the access token is fifteen minutes and it can't be revoked — there's no list to remove it from, the server just checks the signature. That's exactly why refresh tokens exist, and that's tomorrow.*
-> *The nice part is that I built the client half of this in October. I'm writing the other end of something I already had to consume."*
-
-**5 từ mới:**
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `roll your own` | tự làm thay vì dùng thư viện | *Rolling your own auth is usually the wrong call.* |
-| `up front` | nói rõ ngay từ đầu | *I want to say up front.* |
-| `return early` | thoát sớm khỏi hàm | *If you return early, it's faster.* |
-| `enumerate users` | liệt kê tài khoản có thật | *An attacker can enumerate your users.* |
-| `revoke` (v) | thu hồi | *The access token can't be revoked.* |
+- **Decision Note:**
+  - *Claim:* argon2id + short access JWT; secret chỉ server.
+  - *Evidence:* p95 + anti-enumeration message.
+  - *Boundary:* Chưa refresh rotation — ngày mai; MFA out of scope.
+- **60s Defense Pitch:**
+  > "Auth MacroZone tự host: argon2 băm mật khẩu, JWT access ngắn hạn. Không Supabase Auth trên path này. Message login không tiết lộ email tồn tại. Params argon2 cân CPU free tier. Ngày mai xoay refresh và thu hồi — vì access token alone không đủ mobile."
 
 ---
 
-## GHI CHÚ · 17:00–17:30
+## 5. Definition of Done (DoD kỹ thuật)
 
-Tạo `docs/auth-design.md`:
-- Vì sao argon2, kèm **thời gian băm đo được**
-- Vì sao 15 phút, và điều đó nghĩa là gì với việc đăng xuất
-- Tấn công đo thời gian: **hai con số bạn đo được**
-- Yêu cầu mật khẩu theo OWASP, và vì sao không bắt ký tự đặc biệt
-
----
-
-## Checklist cuối ngày
-
-- [ ] argon2 chạy, **đã đo thời gian băm và ghi lại**
-- [ ] Trả lời được cả 4 câu hỏi về băm mật khẩu
-- [ ] Đăng ký không bao giờ trả `passwordHash`
-- [ ] Lỗi đăng ký mơ hồ, không tiết lộ email đã tồn tại
-- [ ] Để ràng buộc unique bắt trùng, không tự kiểm tra trước
-- [ ] Ký được JWT, giải thích được vì sao 15 phút
-- [ ] **Nói được vì sao đăng xuất không huỷ được access token ngay**
-- [ ] `DUMMY_HASH` đã có, **đã đo hai đường và hai con số gần nhau**
-- [ ] Middleware chặn mặc định, mở ngoại lệ có chủ đích
-- [ ] Ghi âm `2026-11-16.m4a`
-- [ ] 21:30 lên giường
+- [ ] Register/login hoạt động; hash không lộ.
+- [ ] Có p95 login + params argon2 ghi chú.
+- [ ] 60s pitch trôi.

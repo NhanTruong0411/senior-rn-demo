@@ -1,99 +1,56 @@
 ---
-description: Thứ Ba 08/12/2026 — Tuần 15 Ngày 2. Cold start Render — cron đánh thức, client chịu được ngủ.
+description: Thứ Ba 08/12/2026 — Tuần 15 Ngày 2. Render cold start — cron đánh thức, client chịu được ngủ.
 alwaysApply: false
 ---
 
-# Thứ Ba · 08/12/2026 · Tuần 15 — Ngày 67/82
+# Thứ Ba 08/12/2026 — Render Cold Start & Client Resilience
 
-> Free tier Render ngủ sau ~15 phút. Đó không phải lỗi cấu hình — đó là ràng buộc bạn phải thiết kế quanh nó.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Coi cold start là điều kiện bình thường free tier; cron wake + UX client không “vỡ” khi TTFB 5–30s.
+> **Tư duy:** Không giả vờ luôn warm. AI scaffold retry/backoff → bạn đo cold vs warm → defend.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy … *(lịch cố định Dec context)* |
-| **08:30** | **KHỐI XÂY** — Cron đánh thức + đo cold start |
-| 10:30–13:30 | Giữ bé / ăn / ngủ *(như lịch cố định)* |
-| **13:30** | **KHỐI HỌC** — Client UX khi API đang thức dậy |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nộp 3 đơn có thư riêng |
-| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
-| **17:00** | **GHI CHÚ** |
-| 17:30–21:30 | Gia đình + ngủ |
+- **System Prompt / Requirements:**
+  - Yêu cầu: endpoint `GET /health` nhẹ; cron (GitHub Actions hoặc pg-boss schedule) ping định kỳ; mobile HTTP client: timeout dài hơn cho request đầu, retry 1–2 lần exponential, UI copy “server đang thức…”.
+  - SSE: auto-reconnect với backoff; không spam reconnect mỗi 100ms.
+  - Ranh giới: không trả tiền upgrade chỉ để tránh bài học; không che lỗi mạng thật bằng spinner vô hạn.
+- **Scaffold Code:** `client/api.ts` resilience helpers; health cron workflow; empty/error component cold-start aware.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### Đo trước
-
-```bash
-# Để service ngủ ≥15 phút, rồi:
-time curl -s -o /dev/null -w "%{time_total}\n" https://macrozone-api.onrender.com/healthz
-```
-
-Ghi: thời gian cold start thực tế (thường 15–60s).
-
-### Cron đánh thức (GitHub Actions)
-
-```yaml
-name: Keep API warm
-on:
-  schedule:
-    - cron: '*/10 * * * *'   # mỗi 10 phút — trong hạn mức Actions
-jobs:
-  ping:
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf --max-time 30 https://macrozone-api.onrender.com/healthz || exit 0
-```
-
-**Trung thực khi phỏng vấn:** ping chỉ giảm tần suất ngủ, không đảm bảo 0 cold start. Client vẫn phải chịu được.
-
-**Phương án B (không tốn Actions):** `boss.schedule('ping-self', '*/10 * * * *')` gọi `/healthz` — nhưng khi process đã chết thì cron trong process cũng chết. Vì vậy Actions bên ngoài vẫn cần nếu muốn warm.
-
-```bash
-git add . && git commit -m "chore: github actions ping giữ api warm"
-```
+- **Kịch bản tấn công 1:** Health cron bị abuse → rate limit `/health` vẫn ok; không expose stack trace.
+- **Kịch bản tấn công 2:** Token hết hạn đúng lúc cold start dài — refresh queue không tạo storm.
+- **Bằng chứng khắc phục:** log `cold_start_ms` ước lượng; refresh single-flight vẫn giữ từ Oct/Nov.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### Client chịu cold start
-
-| Triệu chứng | UX đúng |
-| --- | --- |
-| Timeout / 502 lần đầu | Skeleton + copy "Đang kết nối máy chủ…" |
-| Retry | TanStack Query: `retry: 3`, `retryDelay` tăng dần, lần đầu có thể 5–10s |
-| SSE đứt | `onerror` → đóng → đợi → mở lại; tạm thời `refetchInterval` 30s |
-
-**Không** hiện toast đỏ "Lỗi mạng" ngay giây đầu sau khi mở app buổi sáng — đó là cold start, không phải wifi chết.
-
-Viết hook `useApiWarmup()`: ping `/healthz` khi app foreground, trước mutation quan trọng nếu lần cuối fail.
-
-Giãn cơ 14:30. 15:10: tài liệu hóa số đo cold start vào `docs/ops.md`.
+- **Công cụ:** tắt service 15 phút → đo TTFB request đầu vs request sau; k6 1 VU cold.
+- **Kết quả:**
+  - Cold TTFB p95: …s
+  - Warm TTFB p95: …ms
+  - UX: user thấy trạng thái rõ trong ≤1s (perceived)
 
 ---
 
-## TIẾNG ANH · 16:30–17:00
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-> *"On the free tier the API sleeps after idle time. Cold start can take half a minute. I mitigate with an external cron ping, but I don't pretend that removes the problem. The client shows a connecting state and retries with longer delays instead of screaming network error on the first request of the day."*
-
-**5 từ:** `cold start` · `idle` · `mitigate` · `scream` *(metaphor)* · `warmup`
+- **Decision Note:**
+  - *Claim:* Cron wake + resilient client; ngân sách p95 tách cold/warm.
+  - *Evidence:* số đo hai chế độ.
+  - *Boundary:* SLA production trả tiền → always-on; vẫn giữ client resilience.
+- **60s Defense Pitch:**
+  > "Free tier ngủ là bài toán thiết kế, không phải xấu hổ. MacroZone tách số cold/warm, ping health, và mobile chịu TTFB dài bằng copy + retry có kiểm soát. Không đổ lỗi mạng khi server đang cold. Khi có SLA thật mới mua always-on — đúng lúc, không sớm."
 
 ---
 
-## Checklist
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] Đã đo cold start bằng số
-- [ ] Cron ping đã bật
-- [ ] Client có trạng thái "đang kết nối" + retry dài
-- [ ] SSE reconnect + fallback poll
-- [ ] Ghi âm `2026-12-08.m4a`
+- [ ] Health cron chạy; client retry/backoff merge
+- [ ] Có số cold vs warm
+- [ ] 60s pitch trôi

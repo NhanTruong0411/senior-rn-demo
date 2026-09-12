@@ -1,28 +1,53 @@
 ---
-description: Thứ Tư 16/12/2026 — Tuần 16 Ngày 3. OpenAPI + chốt AI docs; không drift schema.
+description: Thứ Tư 16/12/2026 — Tuần 16 Ngày 3. OpenAPI từ Zod; không drift schema.
 alwaysApply: false
 ---
 
-# Thứ Tư · 16/12/2026 · Tuần 16 — Ngày 73/82
+# Thứ Tư 16/12/2026 — OpenAPI từ Zod · Không Schema Drift
 
-> OpenAPI/Scalar từ Zod (kể cả `/v1/ai/*`). Tài liệu = cùng source of truth với validate.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Sinh OpenAPI từ Zod (hoặc schema dùng chung); Scalar/UI đọc cùng nguồn. Tay sửa YAML song song code = cấm.
+> **Tư duy:** AI scaffold generator → bạn tấn công route thiếu schema → đo CI check drift → defend.
 
 ---
 
-## Lịch
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — Swagger/Scalar; ẩn docs prod hoặc basic auth |
-| **13:30** | HỌC — README AI: prompt playbook nối RAG + cost |
-| **16:30** | EN — “Why not call the model from the phone?” |
-| **17:00** | Decision note |
+- **System Prompt / Requirements:**
+  - Yêu cầu: mọi public route Fastify có body/query/response Zod; script `openapi:gen` xuất `openapi.json`; Scalar serve docs.
+  - CI job: fail nếu `openapi.json` diff sau gen (drift).
+  - Ranh giới: không duy trì Swagger tay; internal admin route có thể tag riêng.
+- **Scaffold Code:** plugin swagger từ Zod; GitHub Action drift check.
 
-## Checklist
+---
 
-- [ ] `/docs` có AI routes
-- [ ] Mobile types sync hoặc copy schema
-- [ ] Ghi âm `2026-12-16.m4a`
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
+
+- **Kịch bản tấn công 1:** Thêm field response nhưng quên Zod — CI phải đỏ.
+- **Kịch bản tấn công 2:** Docs lộ schema internal / env — filter path; không publish secret example.
+- **Bằng chứng khắc phục:** PR giả drift fail; review tags.
+
+---
+
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** thời gian gen OpenAPI; kích thước spec; (optional) contract test 1 route từ spec.
+- **Kết quả:** gen < …s; CI check ổn định.
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note:**
+  - *Claim:* Zod là single source of truth cho runtime validate + OpenAPI.
+  - *Evidence:* drift CI.
+  - *Boundary:* proto/gRPC khác stack — không áp dụng.
+- **60s Defense Pitch:**
+  > "Schema drift giết tin cậy giữa mobile và API. MacroZone validate bằng Zod và gen OpenAPI từ cùng schema; CI đỏ khi lệch. Docs không phải tài liệu trang trí — nó là contract. Đó là thói quen fullstack chịu được review Tech Lead."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] `openapi.json` gen từ code; Scalar xem được
+- [ ] CI drift check bật
+- [ ] 60s pitch trôi

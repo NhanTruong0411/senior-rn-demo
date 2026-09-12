@@ -1,244 +1,64 @@
 ---
-description: Thứ Hai 23/11/2026 — Tuần 13 Ngày 1. Test backend — test service nhanh, test tích hợp có database thật.
+description: Thứ Hai 23/11/2026 — Tuần 13 Ngày 1. Vitest service + integration tests với Neon branch.
 alwaysApply: false
 ---
 
-# Thứ Hai · 23/11/2026 · Tuần 13 — Ngày 56/82
+# Thứ Hai 23/11/2026 — Vitest Service + Integration (Neon Branch)
 
-> Bạn đã học test ở mobile hồi tháng 10. Backend đảo ngược tỉ lệ: ở đây **test tích hợp đáng giá hơn test đơn vị**, vì phần lớn bug nằm ở chỗ code gặp database.
-
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
-**Tài nguyên:** https://vitest.dev/ · https://github.com/ladjs/supertest
+> **Mục tiêu kỹ sư:** Test service thuần nhanh + integration có DB thật trên **Neon branch** — không mock DB cho logic sở hữu/conflict.
+> **Tư duy:** AI sinh test → Bạn tấn công flaky & test sai tầng, đo thời gian suite, defend pyramid.
+> **Bản đồ tháng:** Tuần 13 — reliability trước v2.0.0.
+> **Sản phẩm:** `test/` xanh local với `DATABASE_URL` branch.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Vitest + test service |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Test tích hợp với database thật |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nhắn 2 người quen |
-| **16:30** | **TIẾNG ANH** — Daily standup |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Vitest: unit `authService` hash/verify; `mealsService` ownership (memory hoặc DB).
+    2. Integration: supertest/light Fastify inject → register→create meal→IDOR expect fail.
+    3. Optimistic lock test: 409 path.
+    4. Neon branch URL trong `.env.test` (không commit secret).
+  - **Ranh giới:** Không E2E Maestro hôm nay; không cần full AI tool live trong CI unit.
+- **Scaffold Code:** AI sinh `vitest.config.ts` + tests cốt lõi.
+
+**Intent 3 dòng:**
+1. Làm gì: pyramid service + integration Neon.
+2. Không làm gì: GHA full (→ 24).
+3. Xong khi: `pnpm test` xanh trên branch DB.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 08:30–09:00 · Test cái gì ở backend
-
-Đảo ngược so với mobile. Ở mobile bạn ưu tiên test component. Ở đây:
-
-| Loại | Test gì | Tốc độ | Tỉ lệ |
-| --- | --- | --- | --- |
-| Đơn vị | Hàm thuần: tính toán, ánh xạ, kiểm tra | mili giây | 20% |
-| **Tích hợp** | **Route + service + database thật** | trăm mili giây | **70%** |
-| Đầu-cuối | Client thật gọi API thật | giây | 10% |
-
-**Vì sao tích hợp chiếm phần lớn:** bug backend hiếm khi nằm trong logic thuần. Nó nằm ở chỗ code gặp database — truy vấn sai, transaction thiếu, ràng buộc không như bạn tưởng, phân quyền lọt. Test đơn vị với database giả **không bắt được** những thứ đó, vì database giả không có ràng buộc thật.
-
-**Không test cái gì** *(giống nguyên tắc 05/10)*:
-- Không test Drizzle sinh SQL đúng — đó là việc của Drizzle
-- Không test Zod kiểm tra đúng — đó là việc của Zod
-- Không test framework định tuyến đúng
-
-Test **hành vi hệ thống của bạn**, không test thư viện của người khác.
-
-### 09:00–10:30 · Test service — nhanh, không cần database
-
-Đây là phần thưởng của việc tách route/service/repo hôm 04/11:
-
-```ts
-describe('mealService.create', () => {
-  it('từ chối khi vượt giới hạn calo hằng ngày', async () => {
-    const repo = { byId: async () => ({ id: 'u1', dailyLimit: 2000 }) };
-    const service = makeMealService({ userRepo: repo, mealRepo: fakeMealRepo });
-
-    await expect(service.create('u1', { calories: 2500, ...base }))
-      .rejects.toMatchObject({ code: 'CONFLICT' });
-  });
-});
-```
-
-**Chạy trong vài mili giây** vì không chạm database. Đây là lý do bạn tách tầng — hôm nay bạn nhận lãi.
-
-Để làm được điều này, service phải nhận phụ thuộc qua tham số chứ không import trực tiếp:
-
-```ts
-export function makeMealService(deps: { userRepo: UserRepo; mealRepo: MealRepo }) {
-  return { async create(...) { /* dùng deps */ } };
-}
-```
-
-Đây là **tiêm phụ thuộc** — không cần framework, chỉ cần một hàm nhận tham số. Nói được điều này khi phỏng vấn về NestJS: *"em hiểu DI, em chỉ không cần framework để làm nó với quy mô này."*
-
-```bash
-git add . && git commit -m "test: test service với repo giả"
-```
+- **Kịch bản 1:** Test chỉ assert 200 — thiếu negative IDOR/validation → ép thêm.
+- **Kịch bản 2:** Test dùng production DATABASE_URL → FAIL process; guard env.
+- **Bằng chứng:** Danh sách test cases security-critical.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### 13:30–14:45 · Test tích hợp với database thật
-
-**Đừng giả lập database.** Dùng Postgres thật — đây là lúc branching của Neon trả lãi.
-
-```ts
-// test/setup.ts
-beforeAll(async () => {
-  process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;   // nhánh Neon riêng
-  await migrate(db, { migrationsFolder: './drizzle' });
-});
-
-beforeEach(async () => {
-  await db.execute(sql`truncate table meals, sessions, users restart identity cascade`);
-});
-```
-
-Test một luồng thật, đi hết đường:
-
-```ts
-it('không cho người dùng xoá bữa ăn của người khác', async () => {
-  const a = await createTestUser('a@x.com');
-  const b = await createTestUser('b@x.com');
-  const meal = await createTestMeal(b.id);
-
-  const res = await request(app.server)
-    .delete(`/v1/meals/${meal.id}`)
-    .set('Authorization', `Bearer ${a.accessToken}`);
-
-  expect(res.status).toBe(404);                          // 404, không phải 403
-  expect(await mealRepo.byId(meal.id)).toBeTruthy();     // vẫn còn đó
-});
-```
-
-**Test này là test có giá trị nhất trong toàn bộ bộ test.** Nó chốt chặn lỗ hổng OWASP số một. Bạn tìm ra nó bằng tay hôm 18/11; hôm nay bạn làm cho nó không thể quay lại.
-
-Viết đủ bộ test bảo mật:
-
-| Test | Kỳ vọng |
-| --- | --- |
-| Không có token → mọi endpoint | 401 |
-| Token hết hạn | 401 |
-| Đọc/sửa/xoá bản ghi người khác | 404, và bản ghi không đổi |
-| Người dùng thường gọi endpoint admin | 403 |
-| Refresh token dùng lại lần hai | 401 và **cả họ bị thu hồi** |
-| Đăng ký email đã tồn tại | Thông báo giống hệt lần đầu |
-| Phản hồi **không chứa** `passwordHash` | Luôn đúng |
-
-**Bảy test này là thứ bạn chỉ tay vào khi phỏng vấn.** Bộ test bảo mật đáng giá hơn nhiều so với độ phủ 80%.
-
-Giãn cơ 5 phút lúc 14:45.
-
-### 14:45–15:00 · Dữ liệu test — factory, không dùng fixture
-
-```ts
-export async function createTestUser(email = `${randomUUID()}@test.com`) {
-  const [user] = await db.insert(users)
-    .values({ email, passwordHash: await hashPassword('test1234') })
-    .returning();
-  return { ...user, accessToken: await signAccessToken(user.id) };
-}
-```
-
-**Vì sao factory chứ không file fixture cố định:** mỗi test tự tạo dữ liệu nó cần, nên test không phụ thuộc nhau và **chạy song song được**. File fixture dùng chung sinh ra kiểu bug tệ nhất — test chạy một mình thì đậu, chạy cả bộ thì rớt.
-
-Một cảnh báo: `hashPassword` mất ~100 ms. Trong test dùng tham số argon2 yếu hơn để bộ test không chậm lê thê:
-
-```ts
-const OPTIONS = process.env.NODE_ENV === 'test'
-  ? { memoryCost: 8, timeCost: 1, parallelism: 1 }
-  : PRODUCTION_OPTIONS;
-```
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Đo bộ test
-
-| Chỉ số | Con số |
-| --- | --- |
-| Số test | |
-| Thời gian chạy toàn bộ | |
-| Test chậm nhất | |
-| Đã chạy song song chưa? | |
-
-**Nếu toàn bộ vượt 60 giây, bạn sẽ ngừng chạy nó.** Đó là quy luật con người, không phải kỹ thuật. Tối ưu ngay hôm nay: chạy song song, tham số băm yếu trong test, dọn bảng bằng `truncate` thay vì migrate lại.
-
-```bash
-git add . && git commit -m "test: bộ test tích hợp với database thật, có test bảo mật"
-```
+- **Công cụ:** Thời gian chạy suite; số test.
+- **Kịch bản:** Chạy 3 lần — flaky?
+- **Kết quả:** duration ___ s · flaky count ___ · tách unit vs integration time
 
 ---
 
-## TÌM VIỆC · 16:00–16:30
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note:**
+  - *Claim:* Integration với Neon branch > mock SQL cho ownership/race; unit cho pure functions.
+  - *Evidence:* Suite timing + case list.
+  - *Boundary:* Không 90% coverage vanity — ưu tiên authz/race/parse validation.
+- **60s Defense Pitch:**
+  > "Service test nhanh không cần HTTP. Integration trên Neon branch bắt IDOR và 409 thật. Không trỏ test vào production DB. Đo thời gian suite để khỏi chậm CI. Pyramid thực dụng — không cult coverage."
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily standup
+## 5. Definition of Done (DoD kỹ thuật)
 
-> *"Morning. Last week of the backend month — testing, CI, and rate limiting.*
-> *Today was testing, and the ratio is the opposite of what I do on mobile. On mobile I lean on component tests. On the backend most of my tests are integration tests hitting a real Postgres, because almost every backend bug I've had is at the boundary where my code meets the database. A mocked database doesn't have real constraints, so it can't catch the bugs that matter.*
-> *The most valuable test I wrote today: user A tries to delete user B's record and gets a 404, and the record is still there afterwards. I found that class of bug by hand last week. Today I made it impossible for it to come back.*
-> *I'm using Neon's branching so tests run against a separate database branch rather than a mock. Whole suite is [N] seconds — I care about that number, because if it gets past a minute I'll stop running it.*
-> *Tomorrow: wiring this into CI."*
-
-**5 từ mới:**
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `lean on` | dựa vào chủ yếu | *On mobile I lean on component tests.* |
-| `boundary where X meets Y` | chỗ giáp ranh | *The boundary where my code meets the database.* |
-| `that class of bug` | loại bug đó | *I found that class of bug by hand.* |
-| `come back` (về bug) | tái xuất hiện | *I made it impossible for it to come back.* |
-| `whole suite` | toàn bộ bộ test | *The whole suite is thirty seconds.* |
-
----
-
-## GHI CHÚ · 17:00–17:30
-
-Tạo `docs/testing-strategy.md`:
-- Tỉ lệ ở backend khác mobile ra sao, và **vì sao**
-- Cái gì không test và lý do
-- **Bảy test bảo mật, liệt kê tên**
-- Con số bộ test
-
----
-
-## Checklist cuối ngày
-
-- [ ] Vitest chạy, có tách script test đơn vị và test tích hợp
-- [ ] Test service chạy **không cần database**, tính bằng mili giây
-- [ ] Service nhận phụ thuộc qua tham số, không import trực tiếp
-- [ ] Test tích hợp chạy trên **Postgres thật** qua nhánh Neon riêng
-- [ ] **Đủ 7 test bảo mật, tất cả đều đậu**
-- [ ] Test "A xoá bữa của B" trả 404 và bản ghi vẫn còn
-- [ ] Dùng factory, không dùng fixture dùng chung
-- [ ] Tham số argon2 yếu hơn trong môi trường test
-- [ ] **Toàn bộ bộ test dưới 60 giây**
-- [ ] Ghi âm `2026-11-23.m4a`
-- [ ] 21:30 lên giường
+- [ ] Unit + integration xanh trên Neon branch.
+- [ ] Có duration + security cases.
+- [ ] 60s pitch trôi.

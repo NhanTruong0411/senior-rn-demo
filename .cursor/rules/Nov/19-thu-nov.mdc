@@ -1,254 +1,66 @@
 ---
-description: Thứ Năm 19/11/2026 — Tuần 12 Ngày 4. Đặt lại mật khẩu qua email, chống liệt kê tài khoản, và gỡ Supabase Auth.
+description: Thứ Năm 19/11/2026 — Tuần 12 Ngày 4. Password reset email queue-safe; chống enumeration; gỡ Supabase Auth.
 alwaysApply: false
 ---
 
-# Thứ Năm · 19/11/2026 · Tuần 12 — Ngày 54/82
+# Thứ Năm 19/11/2026 — Password Reset Queue-Safe + Anti-Enumeration
 
-> Hôm nay hoàn thiện vòng đời tài khoản — phần mà mọi người đều quên cho tới khi có người dùng thật quên mật khẩu.
-> Và bạn gỡ Supabase Auth ra. Từ chiều nay, xác thực của app chạy hoàn toàn trên code của bạn.
+> **Mục tiêu kỹ sư:** Đặt lại mật khẩu qua email **không gửi email trong request path** (queue-safe); chống liệt kê tài khoản; gỡ nốt Supabase Auth nếu còn.
+> **Tư duy:** AI scaffold reset flow → Bạn tấn công enum & token leak, đo latency request (phải nhanh dù email chậm), defend async email.
+> **Bản đồ tháng:** Tuần 12 — Auth hoàn thiện trước tools.
+> **Sản phẩm:** `/v1/auth/forgot-password`, `/v1/auth/reset-password`.
 
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Luồng đặt lại mật khẩu |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Chống liệt kê tài khoản + gỡ Supabase Auth |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — theo dõi lại |
-| **16:30** | **TIẾNG ANH** — 3 câu hỏi phỏng vấn |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+**Cấm:** `await sendEmail()` block request; tiết lộ “email không tồn tại”.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-### 08:30–08:50 · Gửi email — Resend
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Forgot: luôn 200 message chung; nếu user tồn tại → tạo reset token hash + enqueue job gửi mail (bảng `outbox`/`email_jobs` hoặc pg-boss sớm — tối thiểu outbox poll).
+    2. Reset: token one-time, TTL ngắn; đổi password argon2; revoke refresh families.
+    3. Resend (hoặc SMTP fake/log) — production Resend env trên server.
+    4. Mobile/settings: chỉ gọi API bạn; xóa Supabase Auth SDK nếu còn.
+  - **Ranh giới:** Chưa worker hoàn hảo như 30/11 — outbox + cron/GHA hoặc process interval chấp nhận được nếu document.
+- **Scaffold Code:** AI sinh routes + outbox + template email text.
 
-Đăng ký https://resend.com — 3.000 email mỗi tháng miễn phí.
-
-```ts
-export async function sendPasswordReset(email: string, token: string) {
-  await resend.emails.send({
-    from: 'MacroZone <noreply@yourdomain.com>',
-    to: email,
-    subject: 'Đặt lại mật khẩu',
-    html: `<p>Nhấn vào liên kết để đặt lại mật khẩu. Liên kết hết hạn sau 15 phút.</p>
-           <a href="macrozone://reset?token=${token}">Đặt lại mật khẩu</a>`,
-  });
-}
-```
-
-**Chú ý liên kết dùng deep link scheme của app.** Bạn đã có `macrozone://` từ tháng 9. Nhấn từ email sẽ mở thẳng app — bạn sẽ hoàn thiện phần này ngày 23/12.
-
-Nếu chưa có tên miền riêng, Resend cho dùng miền thử nghiệm của họ. Đủ để học.
-
-### 08:50–10:30 · Luồng đặt lại mật khẩu
-
-```ts
-async requestReset(email: string) {
-  const user = await userRepo.byEmail(email.toLowerCase());
-
-  if (user) {
-    const raw = crypto.randomBytes(32).toString('base64url');
-    await resetRepo.create({
-      userId: user.id,
-      tokenHash: sha256(raw),                          // băm, giống refresh token
-      expiresAt: new Date(Date.now() + 15 * 60_000),
-    });
-    await sendPasswordReset(user.email, raw);
-  }
-
-  // LUÔN trả về giống nhau, dù email có tồn tại hay không
-  return { message: 'Nếu email tồn tại, chúng tôi đã gửi liên kết đặt lại.' };
-}
-```
-
-**Năm luật cho token đặt lại mật khẩu:**
-
-| Luật | Vì sao |
-| --- | --- |
-| Ngẫu nhiên bằng bộ sinh an toàn mật mã | `Math.random()` **đoán được**. Phải dùng `crypto.randomBytes` |
-| Lưu **băm**, không lưu token thô | Database rò rỉ thì token vẫn không dùng được |
-| Hạn ngắn — 15 phút | Cửa sổ tấn công hẹp |
-| **Chỉ dùng một lần** | Đánh dấu đã dùng ngay sau khi đổi thành công |
-| Đổi mật khẩu → **thu hồi mọi phiên** | Nếu tài khoản bị chiếm, đổi mật khẩu phải đá kẻ tấn công ra |
-
-Luật cuối cùng hay bị quên và là ý hay để nêu khi phỏng vấn:
-
-```ts
-await db.transaction(async (tx) => {
-  await userRepo.updatePassword(tx, userId, await hashPassword(newPassword));
-  await resetRepo.markUsed(tx, tokenId);
-  await sessionRepo.revokeAllForUser(tx, userId);      // đá mọi thiết bị ra
-});
-```
-
-```bash
-git add . && git commit -m "feat: đặt lại mật khẩu, thu hồi mọi phiên sau khi đổi"
-```
+**Intent 3 dòng:**
+1. Làm gì: reset password async + anti-enum + bỏ Supabase Auth.
+2. Không làm gì: Function Calling (→ 20).
+3. Xong khi: forgot luôn cùng response time/message; reset đổi pass được.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:15 · Chống liệt kê tài khoản — làm cho triệt để
-
-Rà lại **mọi** đường mà kẻ tấn công có thể biết một email đã đăng ký hay chưa:
-
-| Đường | Rò rỉ thế nào | Cách bịt |
-| --- | --- | --- |
-| Thông báo lỗi đăng ký | *"Email đã tồn tại"* | Thông báo mơ hồ *(đã làm 16/11)* |
-| Thông báo lỗi đăng nhập | *"Không tìm thấy tài khoản"* vs *"Sai mật khẩu"* | Một thông báo duy nhất |
-| **Thời gian phản hồi** | Đường không có user nhanh hơn | `DUMMY_HASH` *(đã làm 16/11)* |
-| Phản hồi đặt lại mật khẩu | *"Đã gửi email"* vs *"Không tìm thấy"* | Một thông báo duy nhất |
-| **Thời gian phản hồi đặt lại** | Có gửi email thì chậm hơn | **Gửi email bất đồng bộ** |
-| Mã trạng thái | 404 vs 200 | Luôn 200 |
-
-Dòng thứ năm là dòng tinh vi nhất và ít người nghĩ tới. Nếu bạn `await` việc gửi email, đường có tài khoản chậm hơn 200 ms. Đo được. Sửa: xếp việc gửi email vào hàng đợi và trả lời ngay.
-
-Hôm nay tạm dùng `setImmediate`. Ngày 30/11 bạn sẽ làm tử tế bằng pg-boss.
-
-**Đo và chứng minh:**
-
-```bash
-time curl -X POST .../auth/reset-request -d '{"email":"cothat@x.com"}'
-time curl -X POST .../auth/reset-request -d '{"email":"khongco@x.com"}'
-```
-
-Ghi cả hai con số. Phải gần bằng nhau.
-
-Giãn cơ 5 phút lúc 14:15.
-
-### 14:15–15:00 · Gỡ Supabase Auth
-
-Trong app mobile:
-1. Đổi đăng nhập, đăng ký, đăng xuất sang API của bạn
-2. Đổi `AuthProvider` — nguồn sự thật giờ là refresh token trong `SecureStore`
-3. Bảo vệ route: giữ nguyên logic từ 02/10, chỉ đổi nguồn
-4. **Gỡ `@supabase/supabase-js` khỏi `package.json`**
-
-Kiểm tra đầy đủ trên máy thật:
-
-| Tình huống | Phải thấy gì |
-| --- | --- |
-| Mở app lần đầu | Màn hình đăng nhập |
-| Đăng nhập đúng | Vào thẳng, có dữ liệu |
-| Đăng nhập sai | Thông báo chung, không nói sai chỗ nào |
-| Đóng app rồi mở lại | Vẫn đăng nhập *(refresh token còn)* |
-| Access token hết hạn | Tự refresh, người dùng không thấy gì |
-| Đăng xuất | Về màn hình đăng nhập, token bị xoá |
-| Quên mật khẩu | Nhận email, đặt lại được, **mọi thiết bị bị đăng xuất** |
-| Xoá app cài lại | Phải đăng nhập lại |
-
-**Đo kích thước bundle trước và sau khi gỡ Supabase.** Bạn thường tiết kiệm được vài trăm KB. Đây là con số cụ thể cho CV.
-
-| | Trước | Sau |
-| --- | --- | --- |
-| Kích thước bundle | __ MB | __ MB |
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Ranh giới trung thực — chuẩn bị trước cho phỏng vấn
-
-Người phỏng vấn giỏi sẽ hỏi: *"Vì sao anh tự viết auth thay vì dùng Auth0 hay Supabase?"*
-
-Câu trả lời sai: *"Vì em muốn kiểm soát hoàn toàn."* Nghe như biện hộ.
-
-**Câu trả lời đúng, tập nói to:**
-
-> *"Vì em muốn hiểu. Trong sản phẩm thương mại thật em sẽ không tự viết — đây là chỗ mà lỗi rất đắt và các nhà cung cấp đã giải đúng rồi.*
-> *Nhưng em từng dùng thư viện auth ba năm mà không thật sự biết bên dưới có gì. Bây giờ em biết: vì sao access token không thu hồi được, vì sao refresh token phải xoay vòng, vì sao phải luôn băm kể cả khi không có người dùng.*
-> *Cái em được không phải là code auth. Cái em được là biết đặt câu hỏi gì khi review code auth của người khác — và biết khi nào một triển khai có vấn đề."*
-
-Câu trả lời này biến một điểm yếu tiềm tàng thành điểm mạnh. Nó cho thấy sự tự nhận thức, và đó là thứ người phỏng vấn cấp cao thật sự tìm kiếm.
-
-Viết nguyên văn vào `docs/interview-cheatsheet.md`.
-
-```bash
-git add . && git commit -m "feat: gỡ supabase auth, xác thực chạy hoàn toàn trên api riêng"
-```
+- **Kịch bản 1:** So sánh timing forgot email có/không tồn tại — thu hẹp lệch (hash dummy / constant path).
+- **Kịch bản 2:** Token reset lộ trong log URL? Chỉ gửi mail; không log raw token.
+- **Bằng chứng:** Response bodies giống nhau + raw token không vào pino.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Theo dõi lại
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-Thêm một câu cụ thể khi nhắc lại:
-
-> *"Tuần này em vừa hoàn thiện phần xác thực tự viết cho app: xoay refresh token có phát hiện tái sử dụng, chống liệt kê tài khoản bằng cách cân bằng thời gian phản hồi. Code ở đây: [link]."*
-
----
-
-## TIẾNG ANH · 16:30–17:00 — Thứ Năm: 3 câu hỏi phỏng vấn
-
-**Q1. "Walk me through your password reset flow."**
-> *"Request comes in with an email. If the account exists I generate 32 random bytes with a cryptographic RNG, store the hash of it with a fifteen minute expiry, and email the raw value. Either way — account or no account — I return the same message and the same status code.*
-> *The token is single use. When it's redeemed I update the password, mark the token used, and revoke every session for that user, all in one transaction. That last part matters: if the reset was triggered because someone else got into the account, changing the password has to kick them out."*
-
-**Q2. "How do you prevent user enumeration?"**
-> *"There are six paths and I went through all of them. Same message on registration, same message on login, same message on reset. Same status code everywhere. And two timing paths — I always run the password hash even when there's no user, and I send the reset email asynchronously so the response time doesn't depend on whether an email went out. I measured both and they're within a few milliseconds."*
-
-**Q3. "Why write auth yourself?"**
-> *[Nói bản đã tập ở trên. Đây là câu quan trọng nhất trong ba câu.]*
-
-**5 từ mới:**
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `redeem` (v) | dùng, đổi lấy | *When the token is redeemed.* |
-| `single use` | dùng một lần | *The token is single use.* |
-| `trigger` (v) | kích hoạt, gây ra | *If the reset was triggered by someone else.* |
-| `timing path` | đường có khác biệt thời gian | *There are two timing paths.* |
-| `within a few milliseconds` | chênh nhau vài mili giây | *They're within a few milliseconds.* |
+- **Công cụ:** Đo p95 `forgot-password` với/không enqueue.
+- **Kịch bản:** 20 VU forgot — request không được chậm theo SMTP.
+- **Kết quả:** p95 ___ ms · queue depth ___
 
 ---
 
-## GHI CHÚ · 17:00–17:30
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Hoàn thiện `docs/auth-design.md`:
-- Sơ đồ luồng đặt lại mật khẩu
-- **Bảng sáu đường rò rỉ liệt kê tài khoản, kèm số đo cả hai đường**
-- Bảng so sánh bundle trước/sau khi gỡ Supabase
-- Đoạn "vì sao tự viết auth" — chép nguyên văn sang cheatsheet
+- **Decision Note:**
+  - *Claim:* Email transactional = async; anti-enumeration bằng message+timing; auth 100% self-host.
+  - *Evidence:* p95 + enum test.
+  - *Boundary:* Outbox tối thiểu hôm nay; pg-boss chuẩn hóa 30/11.
+- **60s Defense Pitch:**
+  > "Forgot password luôn trả lời giống nhau và không chờ SMTP — job gửi mail chạy sau. Reset token one-time, đổi pass xong thu hồi refresh. Supabase Auth gỡ khỏi app. Timing và message chống enumeration. Đây là auth production-minded trên free stack."
 
 ---
 
-## Checklist cuối ngày
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] Gửi email chạy qua Resend
-- [ ] Token đặt lại sinh bằng `crypto.randomBytes`, **không** `Math.random()`
-- [ ] Lưu băm, hạn 15 phút, chỉ dùng một lần
-- [ ] **Đổi mật khẩu thu hồi mọi phiên**
-- [ ] Đã rà đủ **6 đường** rò rỉ liệt kê tài khoản
-- [ ] Gửi email bất đồng bộ, **đã đo hai đường và hai số gần nhau**
-- [ ] `@supabase/supabase-js` đã gỡ khỏi `package.json`
-- [ ] Đã kiểm đủ **8 tình huống** xác thực trên máy thật
-- [ ] Đã đo bundle trước và sau
-- [ ] Tập nói to câu "vì sao tự viết auth", đã chép vào cheatsheet
-- [ ] Ghi âm `2026-11-19.m4a`
-- [ ] 21:30 lên giường
+- [ ] Reset flow async; anti-enum; Supabase Auth gỡ khỏi path auth.
+- [ ] Có p95 forgot.
+- [ ] 60s pitch trôi.

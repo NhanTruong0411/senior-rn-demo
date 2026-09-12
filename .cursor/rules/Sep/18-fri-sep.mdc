@@ -1,40 +1,91 @@
 ---
-description: Thứ Sáu 18/09/2026 — Tuần 2 Ngày 5. Audit MacroZone + tổng kết — KHÔNG dựng lại từ 0.
+description: Thứ Sáu 18/09/2026 — Tuần 2 Ngày 5. Harden voice+Zod+stream E2E; decision notes.
 alwaysApply: false
 ---
 
-# Thứ Sáu · 18/09/2026 · Tuần 2 — Ngày 10/82
+# Thứ Sáu 18/09/2026 — Week 2 Harden (Voice · Zod · Stream)
 
-> **Cấm** “dựng lại MacroZone từ số 0”. Audit Engineer + demo + plan tuần 3.
+> **Mục tiêu kỹ sư:** Audit E2E Tuần 2 — voice/text → Zod (single + batch) → persist → coach stream; chốt decision notes, **không** dựng feature mới.
+> **Tư duy:** Bạn là Tech Lead review PR tuần — tấn công regression, đo lại hot path, viết defense gộp.
+> **Bản đồ tháng:** Tháng 9 PRODUCER · kết thúc Tuần 2.
+> **Sản phẩm:** MacroZone AI-Native.
 
----
-
-## Lịch
-
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — Audit 4 state mọi màn chính + quay demo 3 phút |
-| **13:30** | HỌC — Dọn README + debt list tuần 3 (theme/Query/Zod) |
-| **16:30** | EN — Review tuần |
-| **17:00** | Tổng kết |
+**Cấm:** Refactor lớn / theme / Query sâu (Tuần 3). Không nhét LLM key.
 
 ---
 
-## Audit bảng
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Màn | Loading | Empty | Error | Success |
-| --- | --- | --- | --- | --- |
-| Home | | | | |
-| Add | | | | |
-| … | | | | |
+*Hôm nay scaffold = checklist + patch, không greenfield.*
 
-Nói to: 3 quyết định tuần 2 + 1 chỗ AI bị reject.
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Script/checklist E2E thủ công 8 bước (voice, text, batch, persist, stream, fail schema, deny mic, corrupt storage).
+    2. AI chỉ được sinh **patch nhỏ** cho bug tìm thấy — mỗi patch kèm lý do.
+    3. Gom decision notes 14–17 vào mục "Week 2 rollup" trong `docs/decisions/2026-09-18.md`.
+  - **Ranh giới:** Không thêm màn mới; không đổi schema breaking nếu chưa có migration note.
+- **Scaffold Code:** Tối đa diff nhỏ; reject rewrite.
+
+**Intent 3 dòng:**
+1. Làm gì: E2E audit + vá lỗ hổng + rollup decisions.
+2. Không làm gì: Zustand machine, EAS, theme.
+3. Xong khi: 8/8 checklist pass hoặc có ticket carry rõ.
 
 ---
 
-## Checklist
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-- [ ] Không rebuild from scratch
-- [ ] Demo video / TestFlight internal nếu kịp
-- [ ] **T7–CN nghỉ**
-- [ ] Ghi âm `2026-09-18.m4a`
+- **Kịch bản tấn công 1 (E2E regression):**
+  1. Text → single MealLog → save → Home.
+  2. Voice/mock STT → cùng schema → form.
+  3. Batch 2 món → review → save.
+  4. Coach stream 100 tokens không giật tab.
+  5. Zod fail → error, không ghi DB.
+  6. Mic deny → UI.
+  7. Corrupt storage → app không trắng.
+  8. Prompt injection trong text/voice → bị schema/`strip` chặn.
+- **Kịch bản tấn công 2 (Secret sweep):**
+  - `rg` / search: `OPENAI|ANTHROPIC|apiKey|sk-` trong app, `.env*`, `app.json`, eas config.
+  - Ép: zero hit secret thật; mock only.
+- **Bằng chứng:** Checklist tick + secret sweep log trong decision note.
+
+---
+
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** Profiler trên 3 hot path — parse fill, batch review, stream bubble.
+- **Kịch bản đo:** Chạy lại số đo 14/15/17; ghi bảng Before (đầu tuần nếu có) vs After harden.
+- **Kết quả đo:**
+  | Path | Metric | Đầu tuần / trước vá | Sau harden |
+  | --- | --- | --- | --- |
+  | Parse+fill | re-render | ___ | ___ |
+  | Batch save 5 | ms | ___ | ___ |
+  | Stream 200 tok | parent commits | ___ | ___ |
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note (Week 2 rollup):**
+  - *Claim:* Một cổng Zod cho mọi NL input; stream UI tách khỏi meal tree; storage qua repository.
+  - *Evidence:* Checklist E2E + bảng Profiler.
+  - *Boundary:* Chưa Abort cứng, chưa Zustand session, chưa Query server — Tuần 3.
+- **60s Defense Pitch:**
+  > "Tuần 2 MacroZone khóa đường ngôn ngữ tự nhiên vào dữ liệu: text và voice cùng MealLogSchema, batch có review, coach stream không đốt cả cây render. Tôi audit E2E tám case — fail schema không vào DB, secret sweep sạch client. Số Profiler sau harden cho thấy parse và stream không kéo tab navigator. Trade-off tuần này: mock model/STT để ship UX; tháng 11 mới có gateway. Tuần sau: Zustand session + AbortController + ranh giới TanStack Query."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] Checklist E2E 8 bước hoàn tất hoặc carry-forward có ID rõ.
+- [ ] Secret sweep sạch (ĐẬP 1).
+- [ ] Bảng đo 3 hot path ghi note (ĐẬP 2).
+- [ ] Week 2 rollup + 60s pitch (ĐẬP 3).
+- [ ] Không feature mới ngoài vá bug.
+
+---
+
+## 6. Carry-forward
+
+- **21/09:** Zustand store cho AI session (chunks + status machine).
+- **Carry bugs:** liệt kê ___ (nếu còn).

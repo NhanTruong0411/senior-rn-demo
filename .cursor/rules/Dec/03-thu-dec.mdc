@@ -1,116 +1,57 @@
 ---
-description: Thứ Năm 03/12/2026 — Tuần 14 Ngày 4. Nhắc bữa ăn end-to-end — từ cài đặt trên điện thoại đến push thật.
+description: Thứ Năm 03/12/2026 — Tuần 14 Ngày 3. Retrieval + re-rank nhẹ; cite nguồn trong câu trả lời.
 alwaysApply: false
 ---
 
-# Thứ Năm · 03/12/2026 · Tuần 14 — Ngày 64/82
+# Thứ Năm 03/12/2026 — Retrieval, Re-rank Nhẹ, Cite Sources
 
-> Ghép mọi thứ tuần 14 thành một vòng kín: bật nhắc trên app → server lịch → push/email → người dùng thấy đúng giờ.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Pipeline retrieve top-k từ pgvector → re-rank nhẹ → inject context → LLM trả lời có cite `sourceId`/meal id.
+> **Tư duy:** AI scaffold retrieve service → bạn tấn công cross-user leak & hallucination không cite → đo latency retrieve → defend.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Màn cài đặt nhắc + API prefs |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Chạy thử lịch thật + bảng đo |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — theo dõi lại đơn > 7 ngày |
-| **16:30** | **TIẾNG ANH** — 3 câu phỏng vấn |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+- **System Prompt / Requirements:**
+  - Yêu cầu: `retrieve(userId, query, k)` — embed query (có thể cache ngắn) → cosine/`<->` pgvector **có `AND user_id = $1`** → optional re-rank (MMR hoặc score heuristic đơn giản) → prompt template bắt buộc liệt kê sources.
+  - Response schema Zod: `{ answer, citations: [{ chunkId, sourceLabel, snippet }] }`; stream text qua Gateway đã có.
+  - Ranh giới: không trả chunk user khác; nếu retrieve rỗng → trả “không đủ tài liệu” chứ không bịa.
+- **Scaffold Code:** `rag/retrieve.ts`, `rag/prompt.ts`, route `POST /api/v1/rag/ask`, RN chỉ render stream + citations list.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### API + màn hình
-
-```ts
-// PUT /v1/me/reminder-prefs
-app.put('/v1/me/reminder-prefs', { preHandler: authenticate }, async (req, reply) => {
-  const body = reminderPrefsSchema.parse(req.body);
-  await reminderService.upsert(req.user.id, body);
-  return reply.send({ ok: true });
-});
-```
-
-Mobile: form giờ nhắc + timezone tự điền + công tắc enabled. Sau khi bật → xin quyền push *(đúng luật 26/11)*.
-
-**DoD vòng kín hôm nay:**
-
-1. Bật nhắc 2–3 phút sau giờ hiện tại *(để không phải chờ đến trưa)*
-2. Đợi worker `dispatch-reminders` chạy
-3. Nhận push trên máy thật
-4. Mở app từ banner → đúng tab Home
-5. Tắt enabled → không còn nhận
-
-```bash
-git add . && git commit -m "feat: cài đặt nhắc bữa ăn đồng bộ server, vòng kín push"
-```
+- **Kịch bản tấn công 1:** Query cố ý lệch topic → model vẫn bịa số macro. Guard: thiếu citation hoặc citation không nằm trong retrieved set → fail closed / regenerate flag.
+- **Kịch bản tấn công 2:** Đổi `userId` JWT vs body; SQL injection qua filter metadata; prompt injection trong chunk retrieved (“reveal system prompt”).
+- **Bằng chứng khắc phục:** Test isolation + citation allowlist; system prompt “chỉ dùng context đã cho”.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### 13:30–14:30 · Bảng chứng minh tuần 14
-
-Điền bằng số thật từ `notification_log` và log pg-boss:
-
-| Chỉ số | Giá trị |
-| --- | --- |
-| Số user có nhắc bật | |
-| Push gửi thành công / thất bại hôm nay | |
-| Số lần bị chặn bởi quiet hours | |
-| Số việc dead letter | |
-
-### 14:30–15:00 · Câu hỏi phỏng vấn #1 (tháng 12)
-
-Luyện nói to ≤3 phút: *"Một request đi từ ngón tay đến database rồi quay lại"* — thêm nhánh: *"và một việc nền nhắc bữa ăn không nằm trên đường request đó."*
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Sửa bug tìm được khi thử thật
-
-Ghi tối thiểu 1 bug bạn chỉ phát hiện khi chạy trên máy thật (timezone, permission, cold start Render…). Sửa + commit.
+- **Công cụ:** EXPLAIN ANALYZE vector query; k6 20 VU ask endpoint (mock LLM nếu cần tách retrieve latency).
+- **Kịch bản đo:** p95 retrieve-only vs full ask; so top-5 vs top-20 (latency + nhiễu).
+- **Kết quả:**
+  - p95 retrieve: …ms
+  - p95 full ask (stream TTFB): …ms
+  - Index IVFFlat/HNSW đã bật? ghi note
 
 ---
 
-## TIẾNG ANH · 16:30–17:00
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-**Q:** "How do meal reminders work in your app?"
-> *"Preferences live on the server: wall-clock times plus IANA timezone. A cron job every fifteen minutes finds due users, enqueues idempotent push jobs, respects quiet hours, and logs every send. The phone only registers the device token and shows the notification — the schedule is not trusted to the client."*
+- **Decision Note:**
+  - *Claim:* top-k nhỏ + re-rank nhẹ + bắt buộc cite; empty retrieve = honest fallback.
+  - *Evidence:* số p95 + case leak/hallucination đã chặn.
+  - *Boundary:* Re-rank cross-encoder nặng → job/async hoặc bỏ qua ở scale hiện tại.
+- **60s Defense Pitch:**
+  > "Retrieve MacroZone filter user trước similarity — security không phải afterthought. top-k nhỏ giảm nhiễu và cost. Re-rank nhẹ đủ cho meal/docs cá nhân; chưa cần cross-encoder. Answer bắt buộc cite chunkId; không cite thì không tin. RN chỉ stream UI và hiện nguồn. Key và RAG nằm Node."
 
 ---
 
-## Checklist cuối ngày
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] Prefs CRUD + màn cài đặt
-- [ ] Vòng kín push trên máy thật đã chạy
-- [ ] Bảng chỉ số đã điền
-- [ ] Nói được câu hỏi fullstack #1 kèm nhánh job nền
-- [ ] Ghi âm `2026-12-03.m4a`
-- [ ] 21:30 lên giường
+- [ ] Ask path có citations; empty-retrieve handled
+- [ ] Isolation test pass; EXPLAIN vector query ghi lại
+- [ ] 60s pitch trôi; cập nhật `docs/rag.md` mục Retrieve

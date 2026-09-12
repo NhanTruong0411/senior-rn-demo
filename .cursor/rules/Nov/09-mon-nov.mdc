@@ -1,257 +1,63 @@
 ---
-description: Thứ Hai 09/11/2026 — Tuần 11 Ngày 1. SQL thật trước khi dùng ORM — thiết kế bảng, quan hệ, và viết truy vấn bằng tay.
+description: Thứ Hai 09/11/2026 — Tuần 11 Ngày 1. SQL schema meals/users viết tay trước ORM.
 alwaysApply: false
 ---
 
-# Thứ Hai · 09/11/2026 · Tuần 11 — Ngày 46/82
+# Thứ Hai 09/11/2026 — SQL Thật: Schema Meals / Users
 
-> **Tuần khó nhất tháng.** Đây là chỗ mobile developer hổng sâu nhất, và cũng là kỹ năng đứng hạng 3 trong 20 kỹ năng được tìm nhiều nhất ở Việt Nam — 149 tin tuyển dụng chỉ trên một sàn.
-> Hôm nay **không dùng ORM**. Viết SQL bằng tay. ORM là thứ để dùng sau khi hiểu, không phải thay cho hiểu.
-
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
-**Tài nguyên:** https://www.postgresqltutorial.com/ · https://use-the-index-luke.com/
+> **Mục tiêu kỹ sư:** Thiết kế bảng `users` / `meals` bằng SQL tay trên Neon — quan hệ, PK/FK, index — **trước** khi dùng Drizzle.
+> **Tư duy:** AI giúp viết SQL nhưng bạn phải giải thích từng constraint → tấn công schema lỗ hổng, đo EXPLAIN đơn giản, defend vì sao học SQL trước ORM.
+> **Bản đồ tháng:** Tuần 11 — Postgres + pgvector + Drizzle (nền tảng schema).
+> **Sản phẩm:** DB MacroZone sẵn cho API thật.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Neon + thiết kế schema trên giấy |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Viết SQL bằng tay |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nhắn 2 người quen |
-| **16:30** | **TIẾNG ANH** — Daily standup |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. SQL file: `users` (id UUID, email unique, password_hash nullable hôm nay, timestamps).
+    2. `meals` (id, user_id FK, name, calories, protein, carbs, fat, meal_type, logged_at, created_at).
+    3. Index: `meals(user_id, logged_at DESC)`; unique email.
+    4. Chạy trên Neon SQL editor hoặc `psql` — **không** Drizzle hôm nay.
+  - **Ranh giới:** Chưa pgvector column (→ 13/11); chưa auth hash thật (→ 16/11).
+- **Scaffold Code:** AI sinh `.sql`; bạn review từng dòng.
+
+**Intent 3 dòng:**
+1. Làm gì: schema SQL tay users/meals.
+2. Không làm gì: ORM, migrate data app, vector.
+3. Xong khi: INSERT/SELECT join chạy; giải thích được FK + index.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 08:30–08:50 · Neon
-
-Tạo tài khoản tại https://neon.tech — miễn phí, 0,5 GB, **không cần thẻ**.
-
-Điểm khiến Neon đáng chọn hơn các lựa chọn khác: **branching**. Bạn tạo được một nhánh database chỉ trong vài giây, giống nhánh Git. Ngày 23/11 mỗi pull request sẽ có database riêng để chạy test — không thể làm được điều đó với Postgres thường mà không trả tiền.
-
-Tạo hai nhánh ngay: `main` *(sản xuất)* và `dev`.
-
-### 08:50–10:30 · Thiết kế schema — trên giấy trước
-
-**Đừng mở editor.** Vẽ tay.
-
-```
-users ──< meals
-  │
-  └──< refresh_tokens
-```
-
-Rồi viết SQL thật:
-
-```sql
-create table users (
-  id            uuid primary key default gen_random_uuid(),
-  email         citext unique not null,
-  password_hash text not null,
-  daily_limit   int not null default 2000,
-  created_at    timestamptz not null default now()
-);
-
-create table meals (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid not null references users(id) on delete cascade,
-  client_id  uuid not null,
-  name       text not null,
-  calories   int  not null check (calories >= 0),
-  protein    numeric(6,2) not null default 0,
-  eaten_at   timestamptz not null,
-  created_at timestamptz not null default now(),
-
-  unique (user_id, client_id)
-);
-```
-
-**Bảy quyết định trong đoạn này. Phải giải thích được từng cái:**
-
-| Quyết định | Vì sao |
-| --- | --- |
-| `uuid` chứ không `serial` | Client sinh ID được → ghi ngoại tuyến hoạt động *(nhớ 27/10)*. `serial` cũng lộ số lượng bản ghi |
-| `citext` cho email | So sánh không phân biệt hoa thường ở tầng database. Không phải nhớ `.toLowerCase()` ở mọi chỗ |
-| `timestamptz` chứ không `timestamp` | `timestamp` **không lưu múi giờ** → sai giờ khi người dùng đi nước ngoài. Sai lầm kinh điển |
-| `on delete cascade` | Xoá người dùng thì bữa ăn đi theo. Không để lại rác |
-| `check (calories >= 0)` | Ràng buộc ở tầng cuối. Zod chặn ở API, nhưng database là hàng phòng thủ cuối |
-| `numeric` cho protein, **không** `float` | `float` sai số. Với số lượng nhỏ thì không sao, nhưng tạo thói quen đúng — với tiền thì đây là lỗi nghiêm trọng |
-| `unique (user_id, client_id)` | **Đây là dòng quan trọng nhất.** Nó làm endpoint tạo bữa ăn bất biến ở tầng database |
-
-> Dòng cuối đáng nói riêng. Hôm 27/10 bạn giải bài toán bất biến ở phía client bằng UUID và upsert. Hôm nay bạn thấy nửa còn lại: **ràng buộc unique ở database là thứ thật sự đảm bảo điều đó**. Logic ứng dụng có thể sai; ràng buộc database thì không.
->
-> Đây là một câu trả lời phỏng vấn rất mạnh, vì nó cho thấy bạn hiểu vấn đề ở cả hai đầu.
-
-**Chạy trực tiếp trên Neon SQL Editor.** Chưa dùng ORM.
+- **Kịch bản 1:** Meal không có user_id / orphan delete — ON DELETE CASCADE hay RESTRICT? Chốt và defend.
+- **Kịch bản 2:** Email case-sensitivity; calo âm — CHECK constraint? PII trong log SQL?
+- **Bằng chứng:** Schema SQL cuối + 3 câu INSERT/SELECT chứng minh constraint chặn được.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### 13:30–14:45 · Viết truy vấn bằng tay
-
-Không dùng công cụ sinh. Viết từng câu, chạy, đọc kết quả.
-
-```sql
--- 1. Bữa ăn của một người trong một ngày
-select * from meals
-where user_id = $1
-  and eaten_at >= $2 and eaten_at < $3
-order by eaten_at desc;
-
--- 2. Tổng calo theo ngày trong 7 ngày qua
-select date_trunc('day', eaten_at) as day,
-       sum(calories)               as total,
-       count(*)                    as meal_count
-from meals
-where user_id = $1 and eaten_at >= now() - interval '7 days'
-group by day
-order by day;
-
--- 3. Người dùng kèm số bữa ăn — chú ý left join
-select u.id, u.email, count(m.id) as meal_count
-from users u
-left join meals m on m.user_id = u.id
-group by u.id;
-```
-
-**Ba điều phải hiểu, không được chép:**
-
-| Điều | Giải thích |
-| --- | --- |
-| `$1` là **tham số**, không phải nối chuỗi | Nối chuỗi = lỗ hổng SQL injection. Đây là lý do bạn **không bao giờ** ghép biến vào câu SQL |
-| `left join` vs `inner join` | `inner` mất người dùng chưa có bữa ăn nào. Đây là bug thật rất hay gặp |
-| `count(m.id)` chứ không `count(*)` | `count(*)` đếm cả dòng null từ left join → người chưa ăn gì cũng ra 1 |
-
-Điều thứ ba là câu hỏi phỏng vấn SQL kinh điển. Thử cả hai, xem khác nhau bằng mắt.
-
-Giãn cơ 5 phút lúc 14:45.
-
-### 14:45–15:00 · Bốn phép nối — vẽ ra giấy
-
-Vẽ bốn vòng tròn Venn: `inner`, `left`, `right`, `full`. Với mỗi cái viết một câu ứng dụng thật trong app của bạn.
-
-Rồi tự hỏi: *"Trong 7 câu truy vấn API của tôi, câu nào cần `left` mà tôi đang viết `inner`?"*
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · `EXPLAIN ANALYZE` — lần đầu
-
-Thêm 10.000 dòng dữ liệu giả:
-
-```sql
-insert into meals (user_id, client_id, name, calories, eaten_at)
-select
-  '<user-id>', gen_random_uuid(), 'Bữa ' || i,
-  (random() * 800)::int,
-  now() - (random() * interval '365 days')
-from generate_series(1, 10000) i;
-```
-
-Chạy truy vấn số 1 với `explain analyze` phía trước:
-
-```sql
-explain analyze
-select * from meals where user_id = $1 and eaten_at >= $2 and eaten_at < $3;
-```
-
-**Bạn sẽ thấy `Seq Scan`** — Postgres đọc toàn bộ 10.000 dòng để tìm vài dòng. Ghi lại con số `Execution Time`.
-
-Thêm index:
-
-```sql
-create index meals_user_eaten_idx on meals (user_id, eaten_at desc);
-```
-
-Chạy lại. Bây giờ là `Index Scan`. Ghi lại con số mới.
-
-| | Trước index | Sau index |
-| --- | --- | --- |
-| Kiểu quét | Seq Scan | Index Scan |
-| Thời gian | __ ms | __ ms |
-
-**Vì sao thứ tự cột trong index là `(user_id, eaten_at)` chứ không ngược lại:** index giống danh bạ sắp theo họ rồi mới tới tên. Tìm "tất cả người họ Nguyễn" thì nhanh; tìm "tất cả người tên Nhân" thì vô dụng. Cột lọc bằng dấu bằng đứng trước, cột lọc theo khoảng đứng sau.
-
-> Đây là cùng tư duy đo-trước-khi-tối-ưu của tháng 10, áp dụng cho database. Bạn đã có thói quen đó rồi — chỉ đổi công cụ đo từ Flashlight sang `EXPLAIN ANALYZE`.
-
-Con số trước/sau này là câu chuyện phỏng vấn thứ chín trong kho của bạn.
+- **Công cụ:** `EXPLAIN ANALYZE` trên `SELECT meals WHERE user_id = ? ORDER BY logged_at DESC LIMIT 20`.
+- **Kịch bản:** Không index vs có index (tạo bảng tạm hoặc drop index thử).
+- **Kết quả:** Seq scan vs Index scan — thời gian ___ ms → ___ ms.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Nhắn 2 người quen
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Tuần này bắt đầu chuyển từ "nối lại liên lạc" sang "cho họ biết mình đang tìm việc". Với người đã nhắn tuần trước:
-
-> *"À anh/chị ơi, tiện đây — em đang tìm vị trí mobile hoặc fullstack. Nếu bên anh/chị hoặc chỗ nào anh/chị biết có tuyển thì cho em xin thông tin với ạ. Đây là app và repo của em: [link]."*
-
----
-
-## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily standup
-
-> *"Morning. This week is databases, which is the part I know least. I decided to write raw SQL before touching an ORM, because I didn't want the ORM to hide things I don't understand yet.*
-> *Today I designed the schema on paper first, then wrote the DDL by hand. The decision I care most about is a unique constraint on user ID plus client ID. Back in October I made writes idempotent on the mobile side using client-generated UUIDs — today I added the database constraint that actually enforces it. Application logic can have bugs; the constraint can't.*
-> *I also seeded ten thousand rows and ran EXPLAIN ANALYZE. Sequential scan, then I added a composite index and it became an index scan. I wrote down both numbers.*
-> *Tomorrow: Drizzle and migrations."*
-
-**5 từ mới:**
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `raw SQL` | SQL viết tay | *I wrote raw SQL before touching an ORM.* |
-| `enforce` (v) | cưỡng chế, đảm bảo | *The constraint enforces it.* |
-| `seed` (v) | đổ dữ liệu mẫu | *I seeded ten thousand rows.* |
-| `composite index` | index nhiều cột | *I added a composite index.* |
-| `hide things from me` | giấu đi | *I didn't want the ORM to hide things.* |
+- **Decision Note:**
+  - *Claim:* SQL tay trước ORM để không bị Drizzle che mental model index/FK.
+  - *Evidence:* EXPLAIN trước/sau index.
+  - *Boundary:* Schema tối thiểu MacroZone; chưa booking multi-tenant phức tạp.
+- **60s Defense Pitch:**
+  > "Tôi thiết kế users/meals bằng SQL trước Drizzle vì interviewer hỏi index và FK, không hỏi cú pháp ORM. Index (user_id, logged_at) phục vụ list bữa ăn theo ngày. Constraint chặn dữ liệu rác từ AI parse. Ngày mai mới map Drizzle — ORM là lớp tiện, không thay SQL."
 
 ---
 
-## GHI CHÚ · 17:00–17:30
+## 5. Definition of Done (DoD kỹ thuật)
 
-Tạo `docs/database.md`:
-- Sơ đồ quan hệ vẽ tay, chụp lại
-- **Bảy quyết định schema, mỗi cái một dòng lý do**
-- Bảng đo trước/sau khi thêm index
-
----
-
-## Checklist cuối ngày
-
-- [ ] Neon đã tạo, có nhánh `main` và `dev`
-- [ ] Schema vẽ tay **trước khi** viết SQL
-- [ ] Giải thích được cả 7 quyết định schema
-- [ ] Nói được vì sao `timestamptz` chứ không `timestamp`
-- [ ] Nói được vì sao ràng buộc unique là thứ thật sự đảm bảo tính bất biến
-- [ ] Viết được 3 truy vấn bằng tay, không dùng công cụ sinh
-- [ ] Thấy được khác biệt giữa `count(*)` và `count(m.id)` với left join
-- [ ] **Đã chạy `EXPLAIN ANALYZE` trước và sau khi thêm index, ghi cả hai con số**
-- [ ] Giải thích được vì sao thứ tự cột trong index quan trọng
-- [ ] Đã nhắn 2 người quen
-- [ ] Ghi âm `2026-11-09.m4a`
-- [ ] 21:30 lên giường
+- [ ] Schema trên Neon chạy; có EXPLAIN trước/sau index.
+- [ ] Decision note + 60s pitch trôi.

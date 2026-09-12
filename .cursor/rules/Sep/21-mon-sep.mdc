@@ -1,26 +1,87 @@
 ---
-description: Thứ Hai 21/09/2026 — Tuần 3 Ngày 1. Theme + dark mode (harden MacroZone).
+description: Thứ Hai 21/09/2026 — Tuần 3 Ngày 1. Zustand store AI session (streaming chunks, status machine).
 alwaysApply: false
 ---
 
-# Thứ Hai · 21/09/2026 · Tuần 3 — Ngày 11/82
+# Thứ Hai 21/09/2026 — Zustand AI Session Store
 
-> Harden theo ray có sẵn — không invent design system từ đầu. Theme tokens đủ dùng.
+> **Mục tiêu kỹ sư:** Đưa streaming AI vào **Zustand store** với **status machine** rõ (idle → streaming → done/error/cancelled); chunks là single source of truth cho UI coach.
+> **Tư duy:** AI scaffold store + selectors → Bạn tấn công stale closure / multi-subscriber, đo re-render theo selector, defend vì sao không nhét stream vào React Query.
+> **Bản đồ tháng:** Tháng 9 PRODUCER · Tuần 3 — Zustand async AI stream + Abort/Cancel.
+> **Sản phẩm:** MacroZone AI-Native.
+
+**Cấm:** LLM key trên client. AbortController đầy đủ = 22/09 (hôm nay có thể giữ `cancelRequested` flag stub).
 
 ---
 
-## Lịch
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — Theme light/dark + áp dụng màn chính |
-| **13:30** | HỌC — Docs theming Expo / quyết định Context vs Zustand cho theme |
-| **16:30** | EN — Standup |
-| **17:00** | Decision note |
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. `useAiSessionStore`: `{ status, chunks[], error, mealContextId, startStream, appendChunk, complete, fail, reset }`.
+    2. Status enum: `idle | streaming | done | error | cancelled`.
+    3. Coach UI chỉ `select` `status` + derived `text = chunks.join('')` (hoặc selector memo).
+    4. Meal list / form **không** subscribe toàn store.
+  - **Ranh giới:**
+    - Không persist chunks vào AsyncStorage (ephemeral session).
+    - Không đưa server meal cache vào store này (Query = 24/09).
+- **Scaffold Code:** AI migrate 17/09 stream state → Zustand; bạn reject `useAiSessionStore()` không selector.
 
-**DoD:** Đổi hệ thống / in-app → màu đúng, không flash sai. Commit `feat: theme dark mode`.
+**Intent 3 dòng:**
+1. Làm gì: Zustand AI session + status machine + selectors hẹp.
+2. Không làm gì: Abort wire hoàn chỉnh, FlashList, Zod refine.
+3. Xong khi: 2 component subscribe khác slice — chỉ slice đổi mới re-render.
 
-## Checklist
+---
 
-- [ ] Dark mode OK máy thật
-- [ ] Ghi âm `2026-09-21.m4a`
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
+
+- **Kịch bản tấn công 1 (State machine):**
+  - `complete` khi đang `idle`; `appendChunk` sau `done`; start khi đang `streaming`.
+  - Ép: transition table cứng; illegal transition → no-op hoặc assert dev-only.
+- **Kịch bản tấn công 2 (Subscriber / Leak):**
+  - Unmount coach giữa stream — store còn append? UI zombie?
+  - Ép: listener cleanup; optional `sessionId` để ignore stale chunks.
+- **Bằng chứng:** Bảng transition + stale chunk test trong `docs/decisions/2026-09-21.md`.
+
+---
+
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** Profiler · why-did-you-render nếu có · Flashlight optional.
+- **Kịch bản đo:**
+  1. Component A chỉ `status`, B chỉ `text` — khi append chunk, A có re-render không?
+  2. Home meal list mở khi stream — list có re-render theo chunk không? (phải Không)
+  3. 500 chunks — memory chunks[] có cần cap/window không?
+- **Kết quả đo:**
+  - Re-render Home khi stream: ___ (target: 0)
+  - Re-render status-only component / 100 chunks: ___
+  - Memory cảm nhận sau 3 streams: ___
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note:**
+  - *Claim:* AI streaming session = **client ephemeral UI state** → Zustand; không phải server cache.
+  - *Evidence:* Selector isolation Profiler; illegal transition tests.
+  - *Boundary:* Chưa abort wire; meal list persistence không nằm store này.
+- **60s Defense Pitch:**
+  > "Stream AI là trạng thái UI tạm — status machine idle/streaming/done/error/cancelled — nên tôi để Zustand, không nhét React Query. Chunks append trong store; component dùng selector hẹp để Home không re-render mỗi token. Illegal transitions bị chặn; unmount không để zombie update nếu có sessionId. Trade-off: chưa wire AbortController đầy đủ — ngày mai. Boundary rõ: Query cho meal list server-ish, Zustand cho AI session."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] Store + status machine chạy với mock stream.
+- [ ] Illegal transitions & stale session xử lý (ĐẬP 1).
+- [ ] Profiler: Home không re-render theo chunk (ĐẬP 2).
+- [ ] Decision Note Zustand-vs-temporary-state + 60s pitch (ĐẬP 3).
+- [ ] Không LLM secret.
+
+---
+
+## 6. Carry-forward
+
+- **22/09:** AbortController cancel mid-stream + FlashList meal history.
+- **Không mang:** Theme dark mode làm task chính.

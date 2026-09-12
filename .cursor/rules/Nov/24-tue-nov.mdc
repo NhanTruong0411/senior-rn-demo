@@ -1,254 +1,64 @@
 ---
-description: Thứ Ba 24/11/2026 — Tuần 13 Ngày 2. CI cho backend — mỗi pull request có database riêng, và cổng chất lượng tự động.
+description: Thứ Ba 24/11/2026 — Tuần 13 Ngày 2. GitHub Actions CI — mỗi PR một database Neon.
 alwaysApply: false
 ---
 
-# Thứ Ba · 24/11/2026 · Tuần 13 — Ngày 57/82
+# Thứ Ba 24/11/2026 — GHA CI + DB Per PR
 
-> Bạn đã dựng CI cho mobile hôm 28/10. Hôm nay làm cho backend — với một thứ mobile không có: **mỗi pull request được cấp một database riêng**.
-
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Workflow CI + nhánh database theo PR |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Cổng chất lượng + triển khai tự động |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nhắn 2 người ở công ty mục tiêu |
-| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+> **Mục tiêu kỹ sư:** Mỗi pull request chạy lint/typecheck/test với **database riêng** (Neon branch) — cổng chất lượng tự động cho `macrozone-api`.
+> **Tư duy:** AI scaffold workflow → Bạn tấn công secret leak & flake CI, đo thời gian pipeline, defend DB-per-PR.
+> **Bản đồ tháng:** Tuần 13 — CI thật.
+> **Sản phẩm:** `.github/workflows/ci.yml` xanh.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-### 08:30–09:30 · Workflow cơ bản
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. GHA: install → lint → typecheck → migrate → vitest.
+    2. Tạo/xóa Neon branch theo PR (Neon GH integration hoặc API action).
+    3. Secrets: `DATABASE_URL` / Neon API key chỉ trong GitHub Secrets.
+    4. Fail PR nếu test đỏ.
+  - **Ranh giới:** Chưa CD EAS hôm nay; chưa deploy auto Render bắt buộc.
+- **Scaffold Code:** AI sinh workflow + docs “cách gắn Neon”.
 
-```yaml
-name: API CI
-on:
-  pull_request:
-    branches: [main]
-
-concurrency:
-  group: api-ci-${{ github.ref }}
-  cancel-in-progress: true          # huỷ lần chạy cũ khi push mới
-
-jobs:
-  verify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test:unit
-```
-
-`concurrency` với `cancel-in-progress` là chi tiết nhỏ nhưng đáng nói: push ba lần liên tiếp thì chỉ lần cuối chạy tới cùng. Tiết kiệm giờ chạy — mà bậc miễn phí chỉ có 2.000 phút mỗi tháng.
-
-### 09:30–10:30 · Nhánh database cho mỗi PR
-
-Đây là phần đáng giá nhất hôm nay:
-
-```yaml
-  integration:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: neondatabase/create-branch-action@v5
-        id: branch
-        with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
-          branch_name: ci-pr-${{ github.event.number }}
-          api_key: ${{ secrets.NEON_API_KEY }}
-      - run: npm ci && npm run db:migrate && npm run test:integration
-        env:
-          TEST_DATABASE_URL: ${{ steps.branch.outputs.db_url }}
-```
-
-**Ba điều bạn được:**
-
-| Được gì | Vì sao quan trọng |
-| --- | --- |
-| Test chạy trên **Postgres thật**, không phải giả lập | Ràng buộc, kiểu dữ liệu, hành vi transaction đều thật |
-| Mỗi PR **cô lập** | Hai PR chạy cùng lúc không giẫm lên nhau |
-| **Migration được kiểm tra** trên mỗi PR | Migration hỏng bị bắt ở PR, không bị bắt ở sản xuất |
-
-Điều thứ ba là điều quan trọng nhất và ít người nghĩ tới. Migration là loại thay đổi nguy hiểm nhất trong backend, và đây là cách duy nhất kiểm tra nó tự động mà không tốn tiền.
-
-Nhớ thêm bước xoá nhánh khi PR đóng, kẻo hết hạn mức miễn phí:
-
-```yaml
-  cleanup:
-    if: github.event.action == 'closed'
-    steps:
-      - uses: neondatabase/delete-branch-action@v3
-```
-
-```bash
-git add . && git commit -m "ci: workflow api với nhánh database riêng cho mỗi pr"
-```
+**Intent 3 dòng:**
+1. Làm gì: CI + DB per PR.
+2. Không làm gì: load test trong CI (→ 25 local/k6).
+3. Xong khi: PR mở → check xanh/đỏ thật.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:30 · Cổng chất lượng
-
-Thêm ba cổng nữa. Mỗi cái phải **chặn được merge**, không chỉ cảnh báo:
-
-```yaml
-      # 1. Migration phải áp dụng sạch từ đầu
-      - run: npm run db:migrate
-      # 2. Schema và migration không được lệch nhau
-      - run: npx drizzle-kit check
-      # 3. Không có bí mật lọt vào code
-      - uses: gitleaks/gitleaks-action@v2
-```
-
-**Cổng thứ hai đáng giải thích.** `drizzle-kit check` phát hiện khi bạn sửa `schema.ts` mà quên sinh migration. Không có nó, code chạy ngon trên máy bạn *(vì database máy bạn đã có cột đó từ lần thử tay)* rồi sập ở sản xuất. Đây là bug rất khó chịu và cổng này chặn được hoàn toàn.
-
-**Cổng thứ ba — quét bí mật — cứu bạn một lần trong đời là đủ hoàn vốn.** Khoá API lọt vào lịch sử Git thì gỡ ra rất khó, và bot quét GitHub công khai trong vài phút.
-
-Bật bảo vệ nhánh `main`: bắt buộc PR, bắt buộc mọi cổng đậu.
-
-> **Vì sao tự bắt mình làm PR khi chỉ có một người:** nó buộc bạn đọc lại diff của chính mình trước khi merge, và nó tạo ra thói quen đúng khi vào đội. Nó cũng để lại dấu vết cho người phỏng vấn mở GitHub xem.
-
-Giãn cơ 5 phút lúc 14:30.
-
-### 14:30–15:00 · Triển khai tự động có phanh
-
-```yaml
-name: Deploy API
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    steps:
-      - run: npm ci && npm run test          # test lại lần nữa trên main
-      - run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
-      - name: Chờ health check
-        run: |
-          for i in {1..30}; do
-            if curl -sf https://macrozone-api.onrender.com/healthz; then exit 0; fi
-            sleep 10
-          done
-          exit 1                              # thất bại thì báo đỏ
-```
-
-**Bước chờ health check là cái phanh.** Không có nó, workflow báo xanh trong khi dịch vụ đang sập. Báo xanh sai còn tệ hơn không có CI, vì bạn tin nó.
-
-**Thứ tự migration và triển khai — câu hỏi phỏng vấn hay:**
-
-| Cách | Rủi ro |
-| --- | --- |
-| Migration **trước**, rồi triển khai code | Code cũ chạy trên schema mới trong vài giây |
-| Triển khai code trước, migration sau | Code mới chạy trên schema cũ — **sập ngay** |
-
-**Chọn cách một**, và đó chính là lý do luật "chỉ thêm, không xoá" từ ngày 10/11 tồn tại. Nếu migration chỉ thêm cột, code cũ chạy được trên schema mới hoàn toàn bình thường.
-
-Bây giờ bạn thấy hai bài học nối vào nhau. Nói ra được mối nối này khi phỏng vấn là dấu hiệu hiểu hệ thống chứ không thuộc quy trình.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Thử phá CI có chủ ý
-
-Kiểm chứng cổng chứ đừng tin. Mở 4 PR nháp, mỗi cái hỏng một kiểu:
-
-| PR | Cố tình làm gì | Cổng nào phải bắt |
-| --- | --- | --- |
-| 1 | Lỗi kiểu TypeScript | `typecheck` |
-| 2 | Sửa `schema.ts`, không sinh migration | `drizzle-kit check` |
-| 3 | Bỏ kiểm tra quyền sở hữu ở một endpoint | test bảo mật |
-| 4 | Thêm chuỗi giống khoá API vào code | `gitleaks` |
-
-**Cái nào không bị bắt là một lỗ hổng thật trong CI của bạn.** Sửa hôm nay.
-
-PR số 3 là bài kiểm tra quan trọng nhất — nó xác nhận bộ test bảo mật hôm qua thật sự bảo vệ được.
-
-Đóng cả bốn PR nháp sau khi kiểm xong.
+- **Kịch bản 1:** Workflow `echo` secret? Cấm. Log URL có password?
+- **Kịch bản 2:** Branch Neon không xóa → cost/quota — cleanup on close PR.
+- **Bằng chứng:** Workflow file review + 1 PR sample check.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** GitHub Actions timing.
+- **Kịch bản:** 2–3 runs — p50 duration.
+- **Kết quả:** CI wall time ___ min · bottleneck step ___
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-**Chủ đề: một database riêng cho mỗi pull request.**
-
-> *"The thing I set up today that I'm most pleased with: every pull request gets its own database.*
-> *Neon supports branching — you branch a database the way you branch Git, and it takes about a second. So the CI job creates a branch named after the PR, runs migrations against it, runs the integration suite, and deletes it when the PR closes.*
-> *Three things that gives me. Tests run against real Postgres, so real constraints and real transaction behavior — a mocked database can't catch a bug where I forgot a unique constraint. Concurrent PRs don't interfere. And most importantly, every migration gets applied from scratch on every PR, so a broken migration fails in review instead of in production.*
-> *That last one matters because migrations are the most dangerous change you can make on a backend. On mobile a bad deploy means a crash. On the backend it can mean permanent data loss.*
-> *I also deliberately broke CI four different ways to check each gate actually catches what it's supposed to. One of them didn't."*
-
-Câu cuối là câu hay nhất — nó cho thấy bạn kiểm chứng chứ không giả định.
-
-**5 từ mới:**
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `branch a database` | tạo nhánh database | *You branch a database the way you branch Git.* |
-| `interfere` (v) | giẫm lên nhau | *Concurrent PRs don't interfere.* |
-| `from scratch` | từ đầu, từ số không | *Every migration is applied from scratch.* |
-| `fail in review` | rớt ở khâu review | *A broken migration fails in review.* |
-| `deliberately break` | cố tình làm hỏng | *I deliberately broke CI four ways.* |
+- **Decision Note:**
+  - *Claim:* DB per PR = integration tin được mà không đụng shared staging.
+  - *Evidence:* CI duration + cleanup policy.
+  - *Boundary:* Free minutes GHA — giữ suite gọn (23/11).
+- **60s Defense Pitch:**
+  > "Mỗi PR có Neon branch riêng, migrate và test integration thật. Secret chỉ nằm GitHub Secrets. Cleanup khi đóng PR. CI chậm thì cắt test kém giá trị, không bỏ DB. Đây là cổng chất lượng backend MacroZone."
 
 ---
 
-## GHI CHÚ · 17:00–17:30
+## 5. Definition of Done (DoD kỹ thuật)
 
-Thêm vào `docs/testing-strategy.md`:
-- Sơ đồ pipeline CI
-- **Bảng 4 cách phá CI và cổng bắt được**
-- Thứ tự migration và triển khai, kèm lý do nối với luật "chỉ thêm"
-
----
-
-## Checklist cuối ngày
-
-- [ ] CI chạy trên mọi PR, có `concurrency` huỷ lần cũ
-- [ ] **Mỗi PR có nhánh database riêng**, xoá khi PR đóng
-- [ ] `drizzle-kit check` chặn được schema lệch migration
-- [ ] Quét bí mật đã bật
-- [ ] Bảo vệ nhánh `main` đã bật, bắt buộc PR
-- [ ] Triển khai tự động **có chờ health check**, thất bại thì báo đỏ
-- [ ] Nói được vì sao migration chạy trước triển khai
-- [ ] Nối được luật này với luật "chỉ thêm, không xoá" hôm 10/11
-- [ ] **Đã thử phá CI 4 cách, mọi cổng đều bắt được**
-- [ ] Ghi âm `2026-11-24.m4a`
-- [ ] 21:30 lên giường
+- [ ] Workflow chạy trên PR; DB branch tách.
+- [ ] Có số duration CI.
+- [ ] 60s pitch trôi.

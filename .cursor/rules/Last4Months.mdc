@@ -1,0 +1,155 @@
+---
+description: Master Context trùng tu lộ trình 4 tháng (Sep-Dec) — Chuyển dịch từ Thợ Code sang AI-Native Fullstack Architect (3 Không - 3 Đập).
+alwaysApply: false
+---
+
+# Master Context: Trùng tu 4 Tháng (Sep – Dec) — AI-Native Fullstack Architect
+
+> **Tôn chỉ cốt lõi:** Chấm dứt tư duy "Thợ gõ code / Học vẹt cú pháp". Chuyển dịch 100% sang vị thế **AI-Native Fullstack Architect / System Builder** — người ra lệnh cho AI sinh mã nguồn, sau đó tấn công, đo đạc, thẩm định và tích hợp hệ thống ở đẳng cấp chuyên gia.
+> **Phạm vi:** Đây là kim chỉ nam duy nhất để tái cấu trúc toàn bộ các file trong `.cursor/rules/Sep/`, `Oct/`, `Nov/`, `Dec/`. Loại bỏ toàn bộ lịch trình sinh hoạt (gym, tiếng Anh, gia đình, việc vặt); **100% dung lượng dành cho chiều sâu kỹ thuật, tư duy hệ thống và năng lực AI thực chiến.**
+
+---
+
+## 1. Triết lý "3 Không — 3 Đập" (Bắt buộc áp dụng cho mọi ngày học)
+
+```
+       CÁCH LÀM CŨ (THỢ GÕ BOILERPLATE)                  CÁCH LÀM MỚI (AI-NATIVE ARCHITECT)
+ ┌─────────────────────────────────────────┐       ┌───────────────────────────────────────────────┐
+ │ • Gõ từng dòng code theo tutorial/docs  │       │ • Ra lệnh cho AI sinh 100% scaffold trong 30s │
+ │ • Học thuộc cú pháp thư viện/framework  │ ───>  │ • ĐẬP 1: Tấn công bảo mật, logic, race cond   │
+ │ • Chạy thử xem code có chạy được không  │       │ • ĐẬP 2: Bắn tải k6, đo FPS, p95 latency      │
+ │ • Làm app CRUD tĩnh, thiếu bài toán thật│       │ • ĐẬP 3: Thẩm định kiến trúc & 60s defense    │
+ └─────────────────────────────────────────┘       └───────────────────────────────────────────────┘
+```
+
+### 🚫 3 KHÔNG (Triệt tiêu lãng phí thời gian):
+1. **KHÔNG tự tay gõ boilerplate/CRUD cú pháp cơ bản:** Để AI (Claude 3.7 / Cursor / GPT) tạo trong vài giây.
+2. **KHÔNG học thuộc lòng API docs hay cú pháp thư viện:** Chỉ cần hiểu mô hình nhận thức (*mental model*) và ranh giới hoạt động.
+3. **KHÔNG làm bài tập "đồ chơi" tĩnh:** Mọi tính năng đều phải gắn liền với sản phẩm hoàn chỉnh, chịu tải thật và tương tác với AI.
+
+### 💥 3 ĐẬP (Tập trung toàn bộ năng lực trí tuệ):
+1. **ĐẬP 1 — Red-Teaming & Logic/Security Audit (Tấn công hệ thống):**
+   - Đặt câu hỏi bẫy và dồn ép code do AI sinh ra: *"Nếu 1.000 user gửi request cùng mili-giây thì có bị race condition không?"*, *"Token hết hạn giữa lúc streaming thì xử lý thế nào?"*, *"Prompt injection có thể làm lộ dữ liệu cá nhân của user khác không?"*.
+2. **ĐẬP 2 — Stress Test, Benchmarking & Profiling (Đo lường bằng dữ liệu thực):**
+   - **Backend:** Dùng `k6` / `autocannon` bắn tải $\to$ soi `EXPLAIN ANALYZE` tìm câu truy vấn chậm, phát hiện bottleneck CPU/Memory/Connection Pool.
+   - **Mobile:** Dùng `Flashlight` / `React DevTools Profiler` $\to$ đo frame rate (FPS), re-render thừa, memory leak khi nhận AI streaming data.
+3. **ĐẬP 3 — Architectural Taste & System Defense (Thẩm định và Bảo vệ giải pháp):**
+   - Viết **Decision Note** ngắn gọn (Claim $\to$ Evidence $\to$ Boundary).
+   - Nói to giải thích trade-off trong **60 giây** (Vì sao chọn Fastify thay vì Express? Vì sao SSE thay vì WebSocket? Vì sao SQLite Vector thay vì cloud vector?).
+
+---
+
+## 2. Bản đồ 4 Tháng: Tiến hóa AI-Native Fullstack
+
+```
+┌──────────────────────────────┬──────────────────────────────┬──────────────────────────────┬──────────────────────────────┐
+│  THÁNG 9: PRODUCER           │  THÁNG 10: AUDITOR           │  THÁNG 11: ORCHESTRATOR      │  THÁNG 12: BUILDER           │
+├──────────────────────────────┼──────────────────────────────┼──────────────────────────────┼──────────────────────────────┤
+│ • AI-Native Mobile UX        │ • Mobile Security Audit      │ • Fastify AI Gateway / Proxy │ • Production RAG Pipeline    │
+│ • Streaming UI (Text/Action) │ • Local SQLite Vector Search │ • Function Calling/Tool Use  │ • Real-Time SSE & Resilience │
+│ • Voice-to-Action (Zod JSON) │ • AI Evals & Maestro Tests   │ • Postgres + pgvector        │ • Distributed Tracing (p95)  │
+│ • Async State (Zustand)      │ • Offline Sync & Conflicts   │ • Background Jobs (pg-boss)  │ • Tech Lead System Defense   │
+│ 🎯 Ship TestFlight / Play    │ 🎯 Harden App & Zero Leak    │ 🎯 AI-Enabled Backend API    │ 🎯 Micro-SaaS & Tech Lead PV │
+└──────────────────────────────┴──────────────────────────────┴──────────────────────────────┴──────────────────────────────┘
+```
+
+### • Tháng 9 — PRODUCER: AI-Native Mobile & Streaming Interfaces
+- **Trọng tâm:** Biến app mobile tĩnh thành ứng dụng thông minh có tương tác ngôn ngữ tự nhiên.
+- **Tuần 1:** Prompt Spec cho AI scaffold base app; Xây dựng **Streaming UI** mượt mà từng từ (không re-render toàn màn hình).
+- **Tuần 2:** **Voice-to-Action & Structured Output:** Chuyển giọng nói/text tự do thành JSON chuẩn xác thông qua Zod Schema để tự động điền dữ liệu.
+- **Tuần 3:** Quản lý State bất đồng bộ với Zustand khi nhận luồng dữ liệu AI liên tục; cơ chế Abort/Cancel an toàn.
+- **Tuần 4:** Đóng gói bản build đầu tiên lên TestFlight / Google Play Internal có tính năng AI thật.
+
+### • Tháng 10 — AUDITOR: Mobile Security, Performance & On-Device Intelligence
+- **Trọng tâm:** Thẩm định độ an toàn, hiệu năng và khả năng hoạt động ngoại tuyến của ứng dụng di động.
+- **Tuần 5:** **Security Boundary:** Xoay vòng Refresh Token an toàn trong SecureStore; kiểm tra dịch ngược binary (.apk/.ipa) để đảm bảo không rò rỉ API key.
+- **Tuần 6:** **AI Evals & Automation Testing:** Xây dựng bộ test đánh giá chất lượng phản hồi của LLM (*Evals*) và test luồng E2E với Maestro.
+- **Tuần 7:** **On-Device Semantic Search:** Tích hợp SQLite với Vector Embeddings cục bộ ngay trên điện thoại để tìm kiếm ngữ nghĩa khi mất mạng.
+- **Tuần 8:** **Performance Profiling:** Dùng Flashlight đo pin, CPU, RAM và giật lag khung hình khi AI xử lý tác vụ nặng.
+- **Tuần 9:** **Offline Sync & Conflict Resolution:** Hàng đợi ghi dữ liệu khi offline, tự động đồng bộ và giải quyết xung đột khi có mạng lại.
+
+### • Tháng 11 — ORCHESTRATOR: AI-Native Backend & Agent Gateway
+- **Trọng tâm:** Xây dựng Backend API tốc độ cao, đóng vai trò Gateway bảo vệ mô hình và điều phối các tác vụ Agent.
+- **Tuần 10:** **Fastify AI Gateway:** Kiến trúc Gateway làm proxy che giấu API key, kiểm soát chi phí token (*Rate Limiting & Cost Tracking*), log request có cấu trúc.
+- **Tuần 11:** **Postgres + pgvector Database:** Thiết kế schema với Drizzle ORM, kích hoạt extension `pgvector` để lưu trữ và truy vấn vector ngữ nghĩa.
+- **Tuần 12:** **Function Calling & Tool Use:** Cung cấp API endpoint làm "công cụ" cho AI tự gọi để truy xuất và cập nhật dữ liệu người dùng.
+- **Tuần 13:** **Background Jobs & Worker Queue:** Sử dụng `pg-boss` để xử lý ngầm các tác vụ AI tốn thời gian (tổng hợp báo cáo, phân tích hành vi, push notification thông minh).
+
+### • Tháng 12 — BUILDER: Production RAG, Real-Time Systems & Tech Lead Readiness
+- **Trọng tâm:** Hoàn thiện sản phẩm Fullstack có thể thương mại hóa và làm chủ các câu hỏi phỏng vấn kiến trúc cấp cao.
+- **Tuần 14:** **Production RAG Pipeline:** Xây dựng luồng RAG hoàn chỉnh (Chunking, Embedding, Vector Search, Re-ranking, Context Injection).
+- **Tuần 15:** **Real-Time SSE & Cold Start Resilience:** Tối ưu hóa Server-Sent Events cho luồng hai chiều, xử lý bài toán Render Cold Start.
+- **Tuần 16:** **Observability & Distributed Tracing:** Gắn `requestId` xuyên suốt Mobile $\to$ Fastify $\to$ LLM Provider $\to$ Postgres; đo p95 latency.
+- **Tuần 17–18:** **System Defense & Phỏng vấn Tech Lead:** Bảo vệ 4 bài toán hóc búa (Đường đi của 1 request, Race condition, Phân tích log/sự cố hệ thống chậm, Trade-off kiến trúc).
+
+---
+
+## 3. Template chuẩn cho từng File ngày (`DD-*-*.mdc`)
+
+Mọi file ngày trong `Sep/`, `Oct/`, `Nov/`, `Dec/` khi trùng tu **bắt buộc tuân theo cấu trúc 4 phần chuẩn hóa này**:
+
+```markdown
+---
+description: <Thứ, Ngày/Tháng/Năm> — <Tiêu đề bài học ngắn gọn, mang tính kỹ thuật cao>
+alwaysApply: false
+---
+
+# <Thứ Ngày/Tháng/Năm> — <Chủ đề Kỹ thuật>
+
+> **Mục tiêu kỹ sư:** <1 câu ngắn gọn về năng lực hệ thống/AI đạt được hôm nay>
+> **Tư duy:** Không gõ code thủ công. AI sinh scaffold $\to$ Bạn tấn công, đo đạc và thẩm định.
+
+---
+
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
+*Đưa prompt spec cho AI sinh toàn bộ mã nguồn ban đầu (không viết tay).*
+- **System Prompt / Requirements:**
+  - Yêu cầu chức năng: ...
+  - Ranh giới kỹ thuật (Zod schema / Route Fastify / Component Mobile): ...
+- **Scaffold Code:** Yêu cầu AI sinh toàn bộ code vào vị trí xác định.
+
+---
+
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
+*Tấn công mã nguồn do AI tạo ra để tìm lỗi tiềm ẩn, race condition và lỗ hổng bảo mật.*
+- **Kịch bản tấn công 1 (Edge Cases / Race Condition):** <Chi tiết bài test và cách ép AI sửa>
+- **Kịch bản tấn công 2 (Security / Token / Prompt Injection):** <Chi tiết kiểm thử bảo mật>
+- **Bằng chứng khắc phục:** <Code sau khi đã vá lỗ hổng>
+
+---
+
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+*Đo lường hiệu năng bằng công cụ thực tế, không đoán mò.*
+- **Công cụ sử dụng:** (k6 / Autocannon / Flashlight / React DevTools / EXPLAIN ANALYZE)
+- **Kịch bản đo:** Bắn bao nhiêu request? Thao tác UI nào gây drop FPS?
+- **Kết quả đo lường (Trước vs Sau tối ưu):**
+  - p95 latency: ...ms $\to$ ...ms
+  - Frame rate (FPS) / Memory: ...
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+*Đúc kết thành Decision Note và chuẩn bị phản xạ phỏng vấn.*
+- **Decision Note:**
+  - *Claim:* Quyết định kỹ thuật đã chọn.
+  - *Evidence:* Dữ liệu từ đợt đo đạc và audit ở Khối 1 & 2.
+  - *Boundary:* Khi nào giải pháp này không còn hiệu quả?
+- **60s Defense Pitch (Luyện nói to):**
+  > "<Đoạn văn 100-120 từ giải thích súc tích lý do chọn giải pháp và trade-off cho Tech Lead/Interviewer>"
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+- [ ] Code scaffold hoàn chỉnh và đã vượt qua bài test Khối 1.
+- [ ] Có số liệu đo đạc thực tế từ Khối 2 ghi lại trong log.
+- [ ] Trả lời trôi chảy bài 60s Defense Pitch ở Khối 3.
+```
+
+---
+
+## 4. Nguyên tắc thực thi khi AI trùng tu các file
+
+1. **Đọc lại `Last4Months.mdc` trước khi sửa mỗi file** để đảm bảo không bị trôi ngữ cảnh.
+2. **Loại bỏ triệt để:** Bảng thời gian biểu hàng ngày (gym, ăn uống, ru con, học tiếng Anh). Chỉ giữ lại phần lõi kỹ thuật.
+3. **Mỗi ngày là 1 bài toán thực tế:** Không tạo bài tập lý thuyết suông; toàn bộ bài học phải đóng góp trực tiếp vào sản phẩm hoàn chỉnh (MacroZone AI-Native Fullstack).
+4. **Giữ vững ngôn phong:** Thẳng thắn, ngắn gọn, kỷ luật, tư duy kỹ sư cấp cao (*Tech Lead / Architect mode*).

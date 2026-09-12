@@ -1,276 +1,66 @@
 ---
-description: Thứ Năm 26/11/2026 — Tuần 13 Ngày 4. Push notification gửi từ server của chính bạn — token, Expo Push API, và dọn token chết.
+description: Thứ Năm 26/11/2026 — Tuần 13 Ngày 4. Expo push từ server bạn; dọn dead token.
 alwaysApply: false
 ---
 
-# Thứ Năm · 26/11/2026 · Tuần 13 — Ngày 59/82
+# Thứ Năm 26/11/2026 — Expo Push Từ Server + Dead Token Cleanup
 
-> Hầu hết lập trình viên mobile chỉ làm **một nửa** push notification: xin quyền, lấy token, gửi lên server của người khác.
-> Hôm nay bạn làm **nửa còn lại** — nửa mà đa số ứng viên mobile không nói được.
+> **Mục tiêu kỹ sư:** Push notification gửi từ **`macrozone-api`** qua Expo Push API — lưu token trên DB bạn; dọn token chết.
+> **Tư duy:** AI scaffold push service → Bạn tấn công spam & token người khác, đo latency gửi, defend server-owned tokens.
+> **Bản đồ tháng:** Tuần 13 — server owns messaging.
+> **Sản phẩm:** `POST /v1/devices`, job/endpoint send test push.
 
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Phía client: quyền + đăng ký token |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Phía server: gửi, gom lô, dọn token chết |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — theo dõi lại đơn quá 7 ngày |
-| **16:30** | **TIẾNG ANH** — 3 câu phỏng vấn |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+**Cấm:** Client gọi trực tiếp logic “nhắc lịch” mà không qua server khi cần dữ liệu user server-side. Token không commit.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-### 08:30–09:00 · Xin quyền đúng lúc
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Bảng `device_tokens` (user_id, expo_push_token, platform, last_seen).
+    2. Mobile đăng ký token → API (auth required).
+    3. Server gửi Expo Push (https://exp.host/--/api/v2/push/send) với receipt check.
+    4. Cleanup: DeviceNotRegistered → xóa/revoke token.
+  - **Ranh giới:** Chưa reminder scheduler đầy đủ (Dec jobs); hôm nay send test + cleanup path.
+- **Scaffold Code:** AI sinh schema + `pushService` + mobile register.
 
-```bash
-npx expo install expo-notifications expo-device
-```
-
-**Luật quan trọng nhất về quyền, và nó không phải chuyện kỹ thuật:** đừng xin quyền ở màn hình đầu tiên. Người dùng chưa biết app của bạn làm gì thì họ bấm Từ chối. Trên iOS, **từ chối một lần là vĩnh viễn** — bạn không hỏi lại được, chỉ có thể đẩy họ vào phần Cài đặt hệ thống.
-
-Cách đúng: xin ngay sau khi người dùng làm một hành động cho thấy họ quan tâm. Ở MacroZone là sau khi họ **bật tính năng nhắc bữa ăn**.
-
-```tsx
-async function enableReminders() {
-  const { status: existing } = await Notifications.getPermissionsAsync();
-  let status = existing;
-  if (existing !== 'granted') {
-    ({ status } = await Notifications.requestPermissionsAsync());
-  }
-  if (status !== 'granted') {
-    // Không lặng lẽ bỏ qua — nói cho người dùng biết và chỉ đường
-    return showSettingsPrompt();
-  }
-  const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-  await api.post('v1/devices', { json: { token, platform: Platform.OS } });
-}
-```
-
-Android 13 trở lên cũng cần quyền tường minh, và cần khai báo **kênh thông báo** — không có kênh thì thông báo trên Android không hiện gì cả:
-
-```ts
-await Notifications.setNotificationChannelAsync('reminders', {
-  name: 'Nhắc bữa ăn',
-  importance: Notifications.AndroidImportance.DEFAULT,
-});
-```
-
-### 09:00–10:30 · Bảng thiết bị ở server
-
-```ts
-export const devices = pgTable('devices', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  token: text('token').notNull().unique(),           // token là duy nhất toàn hệ thống
-  platform: text('platform').notNull(),
-  lastSeenAt: timestamptz('last_seen_at').notNull().defaultNow(),
-  createdAt: timestamptz('created_at').notNull().defaultNow(),
-});
-```
-
-**Vì sao `token` là duy nhất toàn hệ thống chứ không phải duy nhất theo người dùng:** một chiếc điện thoại có thể đổi chủ. Anh A đăng xuất, chị B đăng nhập trên cùng máy. Nếu token gắn với cả hai, chị B nhận được thông báo của anh A. Đó là rò rỉ dữ liệu, không phải bug giao diện.
-
-Nên endpoint đăng ký phải **chuyển chủ**, không phải chèn thêm:
-
-```ts
-await db.insert(devices).values({ userId, token, platform })
-  .onConflictDoUpdate({
-    target: devices.token,
-    set: { userId, lastSeenAt: new Date() },   // đổi chủ sở hữu token
-  });
-```
-
-Và khi đăng xuất, **xoá token khỏi server** trước khi xoá phiên. Nhiều app quên bước này.
-
-Ba tình huống phải xử lý — đây là bộ câu hỏi kiểm tra bạn có nghĩ đủ không:
-
-| Tình huống | Đúng thì phải làm gì |
-| --- | --- |
-| Cùng người dùng, 2 thiết bị | Hai bản ghi. Gửi cho cả hai |
-| Cùng thiết bị, đổi người dùng | Một bản ghi, đổi `user_id` |
-| Đăng xuất | Xoá bản ghi ngay |
-
-```bash
-git add . && git commit -m "feat: đăng ký thiết bị nhận push, có chuyển chủ token"
-```
+**Intent 3 dòng:**
+1. Làm gì: push từ server + dead token cleanup.
+2. Không làm gì: full cron meal reminder UX (nối Dec).
+3. Xong khi: nhận 1 push test; giả receipt chết → token bị xóa.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:30 · Gửi từ server
-
-Expo Push Service là một endpoint HTTP. Không cần SDK:
-
-```ts
-export async function sendPush(messages: PushMessage[]) {
-  // Expo nhận tối đa 100 tin mỗi lần gọi — phải chia lô
-  const chunks = chunk(messages, 100);
-  const tickets: Ticket[] = [];
-  for (const batch of chunks) {
-    const res = await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(batch),
-    });
-    tickets.push(...(await res.json()).data);
-  }
-  return tickets;
-}
-```
-
-**Điều quan trọng nhất về push, và nó làm nhiều người ngạc nhiên:** phản hồi 200 **không** có nghĩa là tin đã tới máy. Nó chỉ có nghĩa Expo đã nhận việc. Đây là hệ thống hai bước:
-
-```
-Bạn → Expo:  nhận ticket ngay lập tức
-Expo → APNs/FCM:  vài giây sau
-Bạn hỏi Expo bằng ticket id → nhận receipt  ← sự thật nằm ở đây
-```
-
-Nếu bạn chỉ đọc phản hồi 200 rồi coi như xong, bạn sẽ tích luỹ hàng nghìn token chết mà không biết.
-
-### 14:30–15:00 · Dọn token chết
-
-Giãn cơ 5 phút, rồi làm phần này — đây là phần phân biệt người đã vận hành push thật với người mới đọc tài liệu.
-
-Sau 15 phút, hỏi lại biên nhận:
-
-```ts
-const receipts = await fetchReceipts(ticketIds);
-for (const [id, receipt] of Object.entries(receipts)) {
-  if (receipt.status === 'error' && receipt.details?.error === 'DeviceNotRegistered') {
-    await db.delete(devices).where(eq(devices.token, tokenFor(id)));
-  }
-}
-```
-
-`DeviceNotRegistered` nghĩa là người dùng đã gỡ app hoặc tắt thông báo. **Phải xoá token.** Không xoá thì:
-
-- Bảng phình ra theo thời gian
-- Mỗi lần gửi tốn công cho token chết
-- Nếu tỉ lệ token chết cao, Apple và Google **giảm độ ưu tiên** cho toàn bộ app của bạn
-
-Điểm thứ ba là điểm ít ai biết và là điểm đáng nói khi phỏng vấn: token chết làm hại cả những người dùng thật.
-
-Các lỗi khác đáng xử lý:
-
-| Lỗi | Nghĩa | Làm gì |
-| --- | --- | --- |
-| `DeviceNotRegistered` | Gỡ app / tắt thông báo | Xoá token |
-| `MessageTooBig` | Tải trọng quá 4 KiB | Cắt nội dung, gửi lại |
-| `MessageRateExceeded` | Gửi quá nhanh | Lùi theo cấp số nhân |
-| `MismatchSenderId` | Cấu hình FCM sai | Sửa cấu hình, không thử lại |
-
-Dòng cuối quan trọng: **có lỗi không được thử lại**. Thử lại một lỗi cấu hình chỉ tốn tài nguyên và không bao giờ thành công. Phân biệt lỗi tạm thời và lỗi vĩnh viễn là kỹ năng cốt lõi khi làm việc nền — ngày 30/11 sẽ dùng lại đúng nguyên tắc này với hàng đợi việc.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Gửi thật, thử đủ bốn trạng thái
-
-Viết một endpoint tạm chỉ dành cho quản trị để tự gửi cho mình. Rồi thử đủ:
-
-| Trạng thái ứng dụng | Phải xảy ra gì |
-| --- | --- |
-| Đang mở (foreground) | Không hiện banner hệ thống. Cập nhật giao diện trong app |
-| Chạy nền (background) | Hiện banner. Chạm vào thì mở app |
-| Đã tắt hẳn (killed) | Hiện banner. Chạm vào thì **khởi động lạnh** và vẫn tới đúng màn hình |
-| Từ chối quyền | Không sập. Có giao diện giải thích |
-
-**Hàng thứ ba là hàng hay hỏng nhất.** Khi app khởi động lạnh từ thông báo, dữ liệu thông báo tới **trước khi** navigator sẵn sàng. Phải giữ nó lại và xử lý sau khi cây điều hướng đã dựng:
-
-```ts
-const response = Notifications.useLastNotificationResponse();
-useEffect(() => {
-  if (!response || !navigationReady) return;   // giữ lại cho tới khi sẵn sàng
-  router.push(response.notification.request.content.data.url);
-}, [response, navigationReady]);
-```
-
-Đây đúng là bài toán bạn sẽ gặp lại với deep link ngày 23/12. Cùng một hình dạng: sự kiện tới trước khi hệ thống sẵn sàng nhận.
-
-```bash
-git add . && git commit -m "feat: gửi push từ server, xử lý biên nhận và dọn token chết"
-```
+- **Kịch bản 1:** User A đăng ký token rồi user B gửi vào token A qua API — ownership bắt buộc.
+- **Kịch bản 2:** Spam push loop — rate limit gửi.
+- **Bằng chứng:** IDOR token test + cleanup unit/integration.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Theo dõi lại
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** Đo thời gian send 1–N tokens; không flood Expo.
+- **Kịch bản:** Batch nhỏ 10 token (fake OK) — latency.
+- **Kết quả:** p95 send ___ ms · cleanup xóa đúng?
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Năm: 3 câu phỏng vấn
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-**Q1. "Have you worked with push notifications?"**
-> *"Both sides, which is the part I'd emphasize. On the client it's permissions, tokens, and channels — that's the easy half. The interesting half is the server: batching into groups of a hundred, and understanding that a 200 response doesn't mean delivered. It means Expo accepted the job. You get a ticket, and fifteen minutes later you fetch a receipt, and the receipt is where the truth is."*
-
-**Q2. "What happens to tokens when a user uninstalls?"**
-> *"The receipt comes back DeviceNotRegistered, and you delete the row. If you don't, three things go wrong. Your table grows forever, you waste work on every send, and — the one people miss — Apple and Google deprioritize your whole app if your invalid token rate is high. So dead tokens actively hurt your real users. Cleanup isn't housekeeping, it's deliverability."*
-
-**Q3. "When do you ask for notification permission?"**
-> *"Never on first launch. On iOS a denial is permanent — you can't ask again, you can only send them to Settings. So I ask right after the user turns on meal reminders, because at that moment they've told me they want them. It costs nothing to wait and it roughly doubles the accept rate."*
-
-**5 từ mới:**
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `deliverability` | khả năng gửi tới nơi | *Cleanup isn't housekeeping, it's deliverability.* |
-| `deprioritize` (v) | giảm độ ưu tiên | *They deprioritize your whole app.* |
-| `the truth is in X` | sự thật nằm ở X | *The receipt is where the truth is.* |
-| `permanent denial` | từ chối vĩnh viễn | *On iOS a denial is permanent.* |
-| `cold start` | khởi động lạnh | *Tapping it cold starts the app.* |
+- **Decision Note:**
+  - *Claim:* Push token sống trên DB bạn; gửi từ server — khớp AI/job sau này.
+  - *Evidence:* Test push + cleanup.
+  - *Boundary:* Expo free limits; không tự host FCM raw trừ khi cần.
+- **60s Defense Pitch:**
+  > "Mobile chỉ đăng ký Expo token lên API của tôi. Server gửi push và đọc receipt — DeviceNotRegistered thì xóa. Có ownership để không gửi nhầm user. Nền tảng để job nhắc bữa ăn tháng 12 không phụ thuộc client đang mở app."
 
 ---
 
-## GHI CHÚ · 17:00–17:30
+## 5. Definition of Done (DoD kỹ thuật)
 
-Tạo `docs/push-notifications.md`:
-- Sơ đồ hai bước: ticket rồi receipt
-- Ba tình huống vòng đời token
-- Bảng lỗi: cái nào thử lại, cái nào không
-- Ma trận 4 trạng thái ứng dụng
-- **Vì sao xin quyền muộn**
-
----
-
-## Checklist cuối ngày
-
-- [ ] Xin quyền **sau** hành động thể hiện ý định, không phải khi mở app
-- [ ] Kênh thông báo Android đã khai báo
-- [ ] Token là **duy nhất toàn hệ thống**, đăng ký thì chuyển chủ
-- [ ] Đăng xuất thì xoá token khỏi server
-- [ ] Gửi có **chia lô 100 tin**
-- [ ] **Đọc biên nhận sau 15 phút**, không tin phản hồi 200
-- [ ] `DeviceNotRegistered` thì xoá token
-- [ ] Phân biệt được lỗi nên thử lại và lỗi không nên
-- [ ] **Đã thử đủ 4 trạng thái ứng dụng**, kể cả khởi động lạnh
-- [ ] Nói được vì sao token chết làm hại người dùng thật
-- [ ] Ghi âm `2026-11-26.m4a`
-- [ ] 21:30 lên giường
+- [ ] Push test thành công; dead token cleanup có.
+- [ ] Có số latency gửi.
+- [ ] 60s pitch trôi.

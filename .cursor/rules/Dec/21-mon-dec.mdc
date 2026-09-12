@@ -1,71 +1,52 @@
 ---
-description: Thứ Hai 21/12/2026 — Tuần 17 Ngày 1. Animation nén — Reanimated preset, không custom gesture phức tạp.
+description: Thứ Hai 21/12/2026 — Tuần 17 Ngày 1. Animation nén — Reanimated preset, polish motion khi AI stream.
 alwaysApply: false
 ---
 
-# Thứ Hai · 21/12/2026 · Tuần 17 — Ngày 76/82
+# Thứ Hai 21/12/2026 — Reanimated Preset · AI Stream Motion Polish
 
-> Đánh đổi đã chốt ở Dec context: Reanimated **2 ngày**, không 5. Hôm nay: animation cảm nhận được, không over-claim gesture custom.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Motion nhẹ khi token stream / trạng thái AI — preset Reanimated, không custom gesture phức tạp.
+> **Tư duy:** AI scaffold animation wrapper → bạn đo FPS khi stream → defend “đủ dùng product, không portfolio gesture”.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | **KHỐI XÂY** — Layout animation list + skeleton |
-| **13:30** | **KHỐI HỌC** — Shared element / press feedback có đo |
-| **16:00** | **TÌM VIỆC** — nhắn 3 người quen |
-| **16:30** | **TIẾNG ANH** — Standup |
-| **17:00** | **GHI CHÚ** |
+- **System Prompt / Requirements:**
+  - Yêu cầu: fade/slide preset cho bubble AI; skeleton → content; giảm re-render (memo phần list đã ổn định).
+  - Ranh giới: không tự viết panGesture graph phức tạp; không claim Reanimated expert.
+- **Scaffold Code:** `components/ai/StreamingText.tsx` polish; dùng API Reanimated cơ bản.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-```bash
-npx expo install react-native-reanimated
-```
-
-Làm **3 chỗ** thôi:
-
-1. Enter/exit item trong FlashList (LayoutAnimation hoặc Reanimated entering)
-2. Skeleton shimmer khi loading meals
-3. Nút primary: scale nhẹ khi press (` co nhấn`)
-
-**Boundary nói trong PV:** *"Preset và entering/exiting tôi dùng được; pan gesture custom phức tạp là gap trung thực."*
-
-Không viết gesture handler 200 dòng hôm nay.
-
-```bash
-git add . && git commit -m "feat: reanimated entering/skeleton/press feedback"
-```
+- **Kịch bản tấn công 1:** Stream dài 2k token — memory/FPS có chết không?
+- **Kịch bản tấn công 2:** Abort giữa animation — không setState trên unmounted.
+- **Bằng chứng khắc phục:** abort cleanup; ảo hóa list nếu cần.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-Đọc lại mental model: UI thread vs JS thread (Day 16/39 June). Nói được vì sao animation nặng trên JS bị giật.
-
-Nếu còn giờ: một `useSharedValue` + `withSpring` cho progress daily calories.
-
-Ghi `docs/animation.md` nửa trang: cái đã làm + cái chưa làm.
+- **Công cụ:** Flashlight / RN Profiler khi stream.
+- **Kết quả:** FPS before/after; JS thread busy %.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-> *"I keep animations on the UI thread with Reanimated presets. I'm honest that I haven't built complex custom pan gestures end-to-end — for this product the list enter/exit and press feedback were the highest user-visible wins."*
-
-**5 từ:** `UI thread` · `preset` · `user-visible` · `pan gesture` · `honest gap`
+- **Decision Note:**
+  - *Claim:* Preset motion > custom gesture cho MacroZone AI UX.
+  - *Evidence:* FPS số.
+  - *Boundary:* Gesture-heavy editor khác product — học sau khi có offer.
+- **60s Defense Pitch:**
+  > "Animation phục vụ perceived latency khi LLM chậm, không phải khoe worklet. Mình dùng preset, đo FPS khi stream, abort sạch. Trade-off đã chọn từ đầu tháng: backend/RAG > Reanimated sâu. Honest Middle."
 
 ---
 
-## Checklist
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] 3 animation đã ship trên máy thật
-- [ ] Không over-claim gesture
-- [ ] Ghi âm `2026-12-21.m4a`
+- [ ] Stream UI có motion nhẹ, không jank rõ trên device thật
+- [ ] Có số FPS
+- [ ] 60s pitch trôi

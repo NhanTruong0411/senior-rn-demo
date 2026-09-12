@@ -1,45 +1,48 @@
 ---
-description: Thứ Tư 30/12/2026 — Tuần 18 Ngày 3. Mock interview fullstack #3 — behavioral + system trade-offs.
+description: Thứ Tư 30/12/2026 — Tuần 18 Ngày 3. Mock #3 behavioral + system trade-offs AI-era.
 alwaysApply: false
 ---
 
-# Thứ Tư · 30/12/2026 · Tuần 18 — Ngày 81/82
+# Thứ Tư 30/12/2026 — Mock #3: Behavioral + System Trade-offs (AI-era)
 
-> Mock C: behavioral + "vì sao không…". Nhiều vòng VN fail ở đây dù code ổn.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Defend trade-off kiến trúc AI-era + behavioral kỹ thuật (failure, conflict team, weakness honest gaps) — không lifestyle storytelling dài.
+> **Tư duy:** Own gaps (native sâu, GraphQL, Reanimated custom, K8s) kèm “what next”.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | **KHỐI XÂY** — Salary script + why leaving (không bad-mouth) |
-| **13:30** | **KHỐI HỌC** — Mock 45 phút set C |
-| **16:00** | **TÌM VIỆC** — theo dõi lại mọi thread |
-| **16:30** | **TIẾNG ANH** — Pitch 60s EN |
-| **17:00** | **GHI CHÚ** |
+- **System Prompt / Requirements:**
+  - AI hỏi mix: vì sao monolith Fastify; SSE vs WS; vì sao không microservice; vì sao RAG trên Node; failure production; disagreement kỹ thuật; weakness.
+  - Mỗi câu ≤60s; cấm bad-mouth công ty cũ; cấm over-claim native/Reanimated/K8s.
+- **Scaffold:** `docs/mock-w18-3.md`.
 
 ---
 
-## Mock set C
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-1. Why leave Firegroup / employment gap narrative (trung thực, ngắn)
-2. Conflict with teammate or PM
-3. Salary expectation (range + walkaway)
-4. Why not GraphQL / microservices / K8s?
-5. Where do you want to be in 2 years? (Strong Middle → deepen fullstack, không "staff")
-
-Ghi âm `2026-12-30-mock.m4a`.
-
-**Cấm:** số lương một mốc; đổ lỗi công ty cũ; nhận Senior nếu chưa sẵn sàng defend.
+- **Kịch bản tấn công 1:** “Anh tự nhận Strong Middle nhưng chưa GraphQL — sao không junior?”
+- **Kịch bản tấn công 2:** “Đưa key vào app cho nhanh được không?” — phải từ chối có lý do bảo mật + cost + abuse.
+- **Bằng chứng:** phrasing honest gap đã luyện.
 
 ---
 
-## Checklist
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-- [ ] Salary range + walkaway viết trên giấy
-- [ ] Mock C xong
-- [ ] Ghi âm `2026-12-30.m4a`
+- Rubric 5 trục; trục **Honesty** trọng số tinh thần — over-claim = trừ nặng tự giác.
+- **Kết quả:** tổng …/25; danh sách “Don't say” cập nhật `docs/red-flags.md` nếu có.
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **60s Defense Pitch (AI-era trade-off):**
+  > "MacroZone chọn modular monolith Fastify + Postgres/pgvector + pg-boss + SSE. Đủ cho một product dinh dưỡng AI-assisted. Không K8s/microservice vì chưa có tải và team ops. LLM sau gateway: key, rate, cost, RAG, Zod. RN stream UI. Trade-off: cold start free tier chấp nhận và thiết kế client chịu được. Đó là architectural taste — chọn theo bài toán."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] Mock #3 ghi điểm
+- [ ] Honest gaps nói trôi không đổ thừa
+- [ ] Pitch trade-off AI-era thuộc lòng

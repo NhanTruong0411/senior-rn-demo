@@ -1,243 +1,87 @@
 ---
-description: Thứ Sáu 02/10/2026 — Tuần 5 Ngày 2. Protected route, xử lý 401 và hàng đợi refresh token.
+description: Thứ Sáu 02/10/2026 — Tuần 5 Ngày 2. 401 refresh queue + quét APK/IPA / env rò key.
 alwaysApply: false
 ---
 
-# Thứ Sáu · 02/10/2026 · Tuần 5 — Ngày 20/82
+# Thứ Sáu 02/10/2026 — 401 Refresh Queue + Binary/Env Leak Scan
 
-> Hôm nay phần khó nhất của auth: **hàng đợi refresh token**. Đây là câu hỏi phân loại Middle với Strong Middle — vì nó đòi hỏi bạn nghĩ về trường hợp nhiều request cùng hỏng một lúc.
+> **Mục tiêu kỹ sư:** Single-flight refresh khi 401; quét binary/env để chứng minh **zero LLM key leak** trên MacroZone client.
+> **Tư duy:** AI sinh interceptor + queue → Bạn tấn công stampede refresh, đo p95 retry, defend “secret chỉ server”.
+> **Bản đồ tháng:** Tháng 10 AUDITOR · Tuần 5 — Security Boundary (chốt tuần).
+> **Sản phẩm:** MacroZone AI-Native.
 
-
-> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Protected route + điều hướng theo phiên |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Hàng đợi refresh token + tổng kết tuần |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:30** | **TIẾNG ANH** — Nhìn lại tuần |
-| **17:00** | **ĐỌC SÁCH** — ch.20–21, xong cuốn 1 |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ. **Nghỉ trọn vẹn T7 + CN** |
+**Cấm:** Hardcode refresh endpoint secret; commit `.env` có key; “tạm” nhét provider key vào IPA để demo.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30 — Protected route
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-**Docs:** https://docs.expo.dev/router/reference/authentication/
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. HTTP client (fetch wrapper hoặc axios): gắn `Authorization` từ SecureStore.
+    2. Khi **401**: một refresh in-flight; request khác **queue** chờ; refresh OK → retry; fail → logout.
+    3. AI parse calls đi qua cùng client **nhưng** trỏ mock/proxy — không đọc LLM env trên device.
+    4. Script/checklist quét: `strings` trên artifact build hoặc grep `eas.json` / env templates / `app.config` — báo cáo “không có sk-/OPENAI”.
+  - **Ranh giới:** Không multi-device revoke phức tạp; không refresh song song; không log token full ra console production.
+- **Scaffold Code:** AI sinh `api/client.ts`, `auth/refreshQueue.ts`, doc scan `docs/security/leak-scan-2026-10-02.md`.
 
-### Cấu trúc route
-
-```
-app/
-  _layout.tsx          ← quyết định điều hướng theo phiên
-  (auth)/
-    _layout.tsx
-    sign-in.tsx
-    sign-up.tsx
-  (app)/
-    _layout.tsx        ← tabs
-    (tabs)/index.tsx  stats.tsx  settings.tsx
-```
-
-```tsx
-// app/_layout.tsx
-function RootNavigator() {
-  const { session, isLoading } = useSession();
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isLoading) return;
-    const inAuthGroup = segments[0] === '(auth)';
-    if (!session && !inAuthGroup) router.replace('/(auth)/sign-in');
-    else if (session && inAuthGroup) router.replace('/(app)/(tabs)');
-  }, [session, isLoading, segments]);
-
-  if (isLoading) return null;      // splash vẫn đang hiện
-  return <Slot />;
-}
-```
-
-### Ba chi tiết dễ sai
-
-1. **Giữ splash screen cho tới khi biết trạng thái phiên.** Không thì người dùng thấy chớp qua màn đăng nhập rồi mới nhảy vào app — trông rất nghiệp dư.
-2. **`router.replace` chứ không `router.push`.** Dùng `push` thì nút back đưa ngược về màn đăng nhập sau khi đã đăng nhập.
-3. **Đăng xuất phải xóa cache của TanStack Query:** `queryClient.clear()`. Không thì người kế tiếp đăng nhập sẽ thấy dữ liệu của người trước — đây là lỗi bảo mật thật, không phải lỗi giao diện.
-
-Giãn cơ 5 phút lúc 09:30.
-
-```bash
-git add . && git commit -m "feat: protected route và điều hướng theo trạng thái phiên"
-```
+**Intent 3 dòng:**
+1. Làm gì: 401 queue + leak scan.
+2. Không làm gì: backend refresh thật production; Maestro E2E (Tuần 6).
+3. Xong khi: 5 request song song 401 chỉ 1 refresh; scan report sạch LLM key.
 
 ---
 
-## KHỐI HỌC · 13:30–16:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:45 · Hàng đợi refresh token
-
-Supabase làm tự động phần này, nhưng **bạn phải hiểu cơ chế** vì phỏng vấn sẽ hỏi, và công ty tiếp theo có thể dùng REST tự viết.
-
-**Bài toán:** access token hết hạn. App đang mở màn hình có 5 request chạy song song. Cả 5 đều nhận 401 cùng lúc. Nếu mỗi request tự gọi refresh → **5 lần refresh song song**. Đa số backend thu hồi refresh token cũ ngay khi cấp cái mới, nên 4 request sau nhận token đã bị thu hồi → người dùng bị đá ra ngoài dù vừa mới đăng nhập.
-
-**Lời giải — chỉ refresh một lần, các request còn lại xếp hàng chờ:**
-
-```ts
-let refreshPromise: Promise<string> | null = null;
-let isRefreshing = false;
-
-async function getValidToken(): Promise<string> {
-  const token = await readToken();
-  if (!isExpired(token)) return token;
-
-  if (isRefreshing && refreshPromise) return refreshPromise;   // xếp hàng
-
-  isRefreshing = true;
-  refreshPromise = doRefresh()
-    .then((newToken) => { saveToken(newToken); return newToken; })
-    .catch((err) => { forceSignOut(); throw err; })
-    .finally(() => { isRefreshing = false; refreshPromise = null; });
-
-  return refreshPromise;
-}
-```
-
-**Vẽ ra giấy sơ đồ này** — bạn sẽ cần vẽ nó trên bảng trắng khi phỏng vấn:
-
-```
-5 request  →  401
-              ↓
-        Đã refresh chưa?
-         ├─ Chưa → gọi refresh, lưu promise
-         └─ Rồi  → chờ chính promise đó
-              ↓
-        Có token mới → gửi lại cả 5 request
-        Refresh hỏng  → đăng xuất, về màn login
-```
-
-**Thử thật:** trong Supabase, hạ thời hạn JWT xuống 60 giây (Authentication → Settings). Mở app, để yên 2 phút, rồi thao tác. Phải tự refresh trong im lặng, người dùng không nhận ra gì.
-
-### 14:45–15:00 · Xóa dữ liệu khi đăng xuất
-
-```ts
-async function signOut() {
-  await supabase.auth.signOut();
-  queryClient.clear();
-  useSettingsStore.persist.clearStorage();   // tùy: giữ hay xóa cài đặt
-  router.replace('/(auth)/sign-in');
-}
-```
-
-Đăng nhập bằng tài khoản A, đăng xuất, đăng nhập bằng tài khoản B — **không được thấy một mẩu dữ liệu nào của A**.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Cập nhật README
-
-```markdown
-## Authentication
-
-Email and password auth via Supabase. Sessions are stored in Expo SecureStore,
-which maps to the iOS Keychain and Android Keystore, so tokens are encrypted
-at the OS level rather than sitting in a plain file.
-
-Routing is driven by session state: unauthenticated users are redirected into
-the `(auth)` group, authenticated users into `(app)`. The splash screen is held
-until the session is resolved, so there's no flash of the wrong screen.
-
-On sign-out the query cache is cleared so no data leaks between accounts.
-
-**Token refresh.** Access tokens are short-lived. When several requests fail
-with 401 at once, only the first triggers a refresh — the rest await the same
-promise. This avoids parallel refresh calls, which would invalidate each other
-on backends that rotate refresh tokens.
-```
-
-### 16:00–16:30 · Tổng kết tuần 5
-
-```text
-## Tổng kết tuần 5 (01–02/10) — 2 ngày
-
-Xong:
-- [ ] Đăng ký / đăng nhập / đăng xuất
-- [ ] SecureStore giữ phiên
-- [ ] Protected route, không chớp màn hình sai
-- [ ] Không rò dữ liệu giữa hai tài khoản
-- [ ] Hiểu và vẽ được sơ đồ hàng đợi refresh
-
-Chỗ còn mơ hồ:
-Số ngày có commit: ___/2
-```
+- **Kịch bản tấn công 1 (Race):**
+  - Giả lập 10 request cùng nhận 401 trong 1 tick → phải **1** refresh, không 10.
+  - Refresh fail giữa chừng; token xoay (rotation) — request cũ không dùng refresh đã revoke.
+  - Ép: mutex/single-flight; clear queue + logout khi refresh fail.
+- **Kịch bản tấn công 2 (Leak):**
+  - Quét: source, `.env*`, `app.json`/`app.config.*`, build metadata, mock fixtures có key thật không.
+  - Nếu có preview build: `strings` APK/IPA (hoặc tương đương) tìm `sk-`, `AIza`, provider host + key.
+  - Ép: xóa mọi artifact leak; document “LLM key chỉ GH Secrets / server Nov”.
+- **Bằng chứng:** Log số lần refresh dưới stampede + file scan report.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nhìn lại tuần
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### 16:30–16:40 · Shadowing
-
-### 16:40–17:00 · Nói to có ghi âm — 3 phút
-
-> **1. What I did**
-> *"Short week — two days. I added real authentication to my app: email and password sign-up, sessions stored in SecureStore, and route protection so the navigation follows the session state."*
->
-> **2. The interesting part**
-> *"The part I found most interesting was the token refresh queue. If five requests hit a 401 at the same time and each one triggers its own refresh, most backends will rotate the refresh token and invalidate the others, so the user gets kicked out. The fix is to let only the first request refresh and have the rest await the same promise."*
->
-> **3. What I struggled with**
-> *"___"*
->
-> **4. Next week**
-> *"Next week is testing week. Jest and React Native Testing Library for the logic, and Maestro for end-to-end flows. This is the area I've been weakest in, so I'm giving it a full five days."*
-
-**Kiêm buổi họp một mình.** Ghi âm xong tự hỏi bằng tiếng Việt: tuần này vai trò nào bị bỏ rơi?
+- **Công cụ:** Console counters · React Profiler trên màn đang fetch · timing refresh+retry.
+- **Kịch bản đo:**
+  1. Bắn 20 request giả 401 liên tiếp — số lần gọi `/refresh`.
+  2. UI: trong lúc refresh, có spam re-render / flicker Auth không?
+  3. Sau refresh OK: queue drain latency cảm nhận.
+- **Kết quả đo:**
+  - Số refresh dưới 20×401: ___ (target = 1)
+  - Queue drain p95: ___ ms
+  - Flicker logout sai? Có / Không
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-**A Philosophy of Software Design** — chương 20–21. **Xong cuốn 1.**
-
-Viết 5 dòng vào `docs/reading-notes.md`: ba ý bạn thật sự sẽ áp dụng. Tuần sau bắt đầu *The Pragmatic Programmer*.
-
----
-
-## Checklist cuối ngày
-
-- [ ] Protected route chạy, không chớp màn hình sai lúc mở app
-- [ ] Nút back không đưa về màn đăng nhập sau khi đã đăng nhập
-- [ ] Đăng nhập A → đăng xuất → đăng nhập B: không thấy dữ liệu của A
-- [ ] Đã hạ JWT xuống 60 giây và kiểm chứng refresh tự động
-- [ ] **Vẽ được sơ đồ hàng đợi refresh ra giấy**
-- [ ] README có phần Authentication
-- [ ] **Có commit hôm nay**
-- [ ] Ghi âm `2026-10-02.m4a`
-- [ ] **Đọc xong cuốn A Philosophy of Software Design**
+- **Decision Note** (`docs/decisions/2026-10-02.md`):
+  - *Claim:* Single-flight refresh queue bắt buộc; LLM secrets không nằm client — đã quét.
+  - *Evidence:* Stampede test + leak-scan report.
+  - *Boundary:* Chưa device revocation list; proxy AI thật → Nov Gateway.
+- **60s Defense Pitch:**
+  > "Khi nhiều request cùng 401, MacroZone chỉ refresh một lần — các request khác xếp hàng, fail thì logout sạch SecureStore. Tôi đo stampede: hai mươi 401 chỉ một refresh. Song song tôi quét source và artifact build: không có OpenAI hay Anthropic key trong binary. User token khác LLM secret. Trade-off: refresh endpoint vẫn mock/staging. Boundary: log production không in full Bearer; key model chỉ server tháng 11."
 
 ---
 
-## Cuối tuần 03–04/10: NGHỈ HOÀN TOÀN
+## 5. Definition of Done (DoD kỹ thuật)
 
-Tuần sau: **testing** — lỗ hổng lớn nhất bạn tự nhận. Năm ngày để bịt nó.
+- [ ] 401 → single refresh + queue + retry; fail → logout.
+- [ ] Stampede test chứng minh 1 refresh.
+- [ ] Leak-scan report: không LLM key trên client/artifact.
+- [ ] Số liệu queue/refresh trong decision note.
+- [ ] 60s pitch trôi; Tuần 5 Security Boundary chốt.
+
+---
+
+## 6. Carry-forward
+
+- **05/10:** Jest pure eval harness MealLog structured output.
+- **Không mang sang:** Viết lại auth từ đầu; nhét key vào app “cho Maestro dễ”.

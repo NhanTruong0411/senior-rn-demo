@@ -1,68 +1,56 @@
 ---
-description: Thứ Sáu 18/12/2026 — Tuần 16 Ngày 5. Chốt AI + quan sát + docs + Docker; tổng kết tuần.
+description: Thứ Sáu 18/12/2026 — Tuần 16 Ngày 5. Chốt observability + docs + Docker; RAG harden; DoD tuần 16.
 alwaysApply: false
 ---
 
-# Thứ Sáu · 18/12/2026 · Tuần 16 — Ngày 75/82
+# Thứ Sáu 18/12/2026 — Observability · Docs · Docker · Week 16 DoD
 
-> Không feature mới. Vá lỗ hổng tuần 16. Tự chấm 4 câu hỏi fullstack.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Siết `requestId` xuyên Mobile→Fastify→LLM→DB; chốt docs RAG/OpenAPI/Docker; eval RAG harden lại; đóng tuần 16.
+> **Tư duy:** Không feature mới. ĐẬP bằng đo p95 và checklist.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | **KHỐI XÂY** — Dọn nợ (AI rate limit, docs prod, Docker README) |
-| **13:30** | **KHỐI HỌC** — Tự chấm 4 câu + bài ngắn nếu thiếu |
-| **16:00** | **TÌM VIỆC** — cập nhật CV fullstack |
-| **16:30** | **TIẾNG ANH** — Nghe lại |
-| **17:00** | **GHI CHÚ** |
+- **System Prompt / Requirements:**
+  - Yêu cầu: middleware đảm bảo mọi log có `requestId`; mobile gửi/nhận header; span log cho retrieve/LLM; dashboard tối thiểu = Better Stack / log search by id.
+  - Re-run `rag:eval` 5 câu; cập nhật `docs/rag.md` hoàn chỉnh.
+  - Ranh giới: chưa bắt buộc full OpenTelemetry nếu hết giờ — tối thiểu correlation id + p95.
+- **Scaffold Code:** log fields chuẩn; checklist W16 trong `docs/dod-w16.md`.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-- [ ] AI: không key trong client, có rate limit, Zod output
-- [ ] Runbook slow API trong repo
-- [ ] OpenAPI không lộ trên prod không auth
-- [ ] README: `docker compose up` 5 bước
-- [ ] Sentry + Better Stack còn nhận event
+- **Kịch bản tấn công 1:** Log có nhét raw prompt chứa PII không? — redact.
+- **Kịch bản tấn công 2:** Eval regression so với 04/12 — case nào fail phải fix cùng ngày hoặc ghi nợ rõ.
+- **Bằng chứng khắc phục:** sample log redacted; eval table mới.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### Tự chấm (1–5)
-
-| # | Câu | Điểm | Chỗ vấp |
-| --- | --- | --- | --- |
-| 1 | Request ngón tay → DB | | |
-| 2 | Hai người sửa 1 bản ghi | | |
-| 3 | API chậm thì sao | | |
-| 4 | Vì sao không K8s/GraphQL/microservice | | |
-
-Tổng < 14 → cuối tuần 18 drill lại, không tự phong senior.
-
-Cập nhật sơ đồ kiến trúc tháng 12 (thêm SSE, jobs, AI, Redis optional).
+- **Công cụ:** k6 p95 warm; trace 1 request chậm bằng requestId end-to-end (làm đúng runbook).
+- **Kết quả:** p95 vs budget W15; 1 case slow giải được bằng runbook (ghi note).
 
 ---
 
-## TÌM VIỆC
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Định vị CV chốt:
-
-> **Fullstack Mobile Engineer** — React Native · Node.js · PostgreSQL  
-> App trên TestFlight/Play + API tự host (auth, jobs, realtime, AI proxy).
+- **Decision Note:**
+  - *Claim:* Observability tối thiểu = requestId + structured log + p95 + runbook.
+  - *Evidence:* case chậm đã lần ra.
+  - *Boundary:* full APM khi có traffic trả tiền.
+- **60s Defense Pitch:**
+  > "API chậm thì không đoán — cầm requestId đi từ mobile tới DB và provider. MacroZone có p95 budget, OpenAPI không drift, Docker local để tái hiện, RAG eval không tuột. Tuần 16 là tuần hệ thống chịu trách nhiệm, không phải tuần nhồi thư viện."
 
 ---
 
-## Checklist cuối tuần
+## 5. Definition of Done (DoD kỹ thuật) — Tuần 16
 
-- [ ] 4 câu tự chấm xong
-- [ ] Sơ đồ kiến trúc cập nhật
-- [ ] **T7–CN nghỉ** (21/12 mới làm tiếp)
-- [ ] Ghi âm `2026-12-18.m4a`
+- [ ] Gateway AI hardened + abort/cost
+- [ ] RAG E2E + runbook chậm + eval lại
+- [ ] OpenAPI gen + CI drift
+- [ ] Docker compose local ok
+- [ ] requestId E2E chứng minh được
+- [ ] 60s pitch tuần 16 trôi

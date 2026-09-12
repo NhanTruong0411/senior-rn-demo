@@ -1,210 +1,65 @@
 ---
-description: Thứ Sáu 13/11/2026 — Tuần 11 Ngày 5. Tối ưu truy vấn có đo đạc, viết bài kỹ thuật, tổng kết tuần database.
+description: Thứ Sáu 13/11/2026 — Tuần 11 Ngày 5. EXPLAIN ANALYZE + bật pgvector + thiết kế cột embed.
 alwaysApply: false
 ---
 
-# Thứ Sáu · 13/11/2026 · Tuần 11 — Ngày 50/82
+# Thứ Sáu 13/11/2026 — EXPLAIN ANALYZE + pgvector + Embed Column Design
 
-> Nửa chặng đường. Ngày 50 trên 82.
-> Hôm nay đóng lại tuần database bằng thứ có sức nặng nhất khi phỏng vấn: **những con số bạn tự đo được**.
-
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Đo và tối ưu 3 truy vấn chậm nhất |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Viết bài kỹ thuật + tổng kết tuần |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tự chấm |
-| **16:00** | **TÌM VIỆC** — cập nhật CV |
-| **16:30** | **TIẾNG ANH** — nghe lại 5 bản ghi |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+> **Mục tiêu kỹ sư:** Đo query chậm bằng EXPLAIN ANALYZE; `CREATE EXTENSION vector`; thiết kế cột embedding cho meals — **chưa** bắt buộc embed production (job → 30/11).
+> **Tư duy:** AI giúp SQL/extension → Bạn tấn công chiều vector sai & index chọn ẩu, đo trước/sau index, defend thiết kế lưu vector trên Postgres.
+> **Bản đồ tháng:** Kết thúc Tuần 11 — nền RAG Dec.
+> **Sản phẩm:** DB sẵn semantic search server-side.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-### 08:30–09:00 · Đo trước — tìm truy vấn chậm thật
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Migration: `CREATE EXTENSION IF NOT EXISTS vector`.
+    2. Cột `meals.embedding vector(N)` — chọn N theo model embed sẽ dùng (document model + N).
+    3. Nullable embedding; status `embed_status` enum/text: `pending|ready|failed` (optional nhưng khuyến nghị).
+    4. Doc: khi nào IVFFlat/HNSW — **chưa** tạo index lớn nếu < vài nghìn row (tránh premature).
+    5. EXPLAIN ANALYZE lại query list meals tuần này — ghi p95/plan vào note.
+  - **Ranh giới:** Không gọi embed API hàng loạt hôm nay; không RAG chat đầy đủ.
+- **Scaffold Code:** AI sinh migration + short `docs/decisions/2026-11-13-pgvector.md`.
 
-Bật ghi log truy vấn chậm:
-
-```ts
-const client = postgres(env.DATABASE_URL, {
-  onnotice: () => {},
-  debug: (_c, query, params, types) => {
-    const start = performance.now();
-    queueMicrotask(() => {
-      const ms = performance.now() - start;
-      if (ms > 50) logger.warn({ query, ms }, 'truy vấn chậm');
-    });
-  },
-});
-```
-
-Chạy app 10 phút, làm mọi thao tác. Đọc log. **Lấy 3 truy vấn chậm nhất.**
-
-> Quy tắc y hệt tháng 10: đo trước, sửa sau. Bạn đã có thói quen này với Flashlight rồi. Đừng đoán truy vấn nào chậm — bạn sẽ đoán sai.
-
-### 09:00–10:30 · `EXPLAIN ANALYZE` từng cái
-
-Với mỗi truy vấn, làm đủ bốn bước:
-
-1. Chạy `explain analyze`, ghi thời gian và kiểu quét
-2. Tìm nguyên nhân — thường là một trong bốn thứ dưới đây
-3. Sửa
-4. **Đo lại**, ghi con số mới
-
-| Dấu hiệu trong kế hoạch thực thi | Nguyên nhân thường gặp | Cách sửa |
-| --- | --- | --- |
-| `Seq Scan` trên bảng lớn | Thiếu index | Thêm index đúng cột và đúng thứ tự |
-| `Rows Removed by Filter` rất lớn | Index sai cột | Đổi thứ tự cột trong index |
-| `Nested Loop` với số vòng lớn | N+1 hoặc thiếu index bên phía join | Join lại, hoặc thêm index vào khoá ngoại |
-| `Sort` tốn nhiều thời gian | Sắp xếp không có index hỗ trợ | Thêm index có cùng thứ tự sắp xếp |
-
-Ghi vào bảng:
-
-| Truy vấn | Trước | Sau | Đã làm gì |
-| --- | --- | --- | --- |
-| Danh sách bữa ăn theo ngày | __ ms | __ ms | |
-| Thống kê 7 ngày | __ ms | __ ms | |
-| | __ ms | __ ms | |
-
-**Bảng này là tài sản phỏng vấn.** Nó là bằng chứng bạn đo, sửa, đo lại — chứ không tối ưu theo cảm giác.
-
-**Một cảnh báo về index:** mỗi index làm câu `INSERT` chậm đi một chút và tốn dung lượng. Đừng thêm index cho mọi cột. Chỉ thêm khi có truy vấn thật cần nó. Nói được điều này khi phỏng vấn cho thấy bạn hiểu cả cái giá.
-
-```bash
-git add . && git commit -m "perf: thêm index cho 3 truy vấn chậm nhất, có số đo"
-```
+**Intent 3 dòng:**
+1. Làm gì: extension + cột embed design + EXPLAIN.
+2. Không làm gì: pipeline embed/RAG production.
+3. Xong khi: `\dx` có vector; schema có cột; có số EXPLAIN.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:45 · Viết bài kỹ thuật số 4
-
-**Tiêu đề:** *"Một mobile developer học database: năm điều tôi hiểu sai"*
-
-Đây là góc nhìn ít người viết, và nó đúng với bạn. Dàn bài:
-
-| Điều tôi hiểu sai | Sự thật |
-| --- | --- |
-| "ORM lo hết, không cần biết SQL" | ORM sinh SQL, và bạn phải đọc được nó khi chậm |
-| "Index là thứ thêm vào lúc nào cũng được" | Thứ tự cột quyết định index có dùng được hay không |
-| "Transaction chỉ dành cho ngân hàng" | Bất kỳ chỗ nào ghi hai bảng đều cần |
-| "Ràng buộc unique chỉ để tránh trùng" | Nó là thứ **thật sự** đảm bảo tính bất biến |
-| "Phân trang là `limit` và `offset`" | `offset` vừa chậm vừa sai trên danh sách đang đổi |
-
-Mỗi mục: nhận thức cũ, cái gì làm bạn đổi ý, **con số hoặc đoạn code thật**.
-
-Đăng lên dev.to hoặc Viblo. Bài này phục vụ hai mục đích: nó là bằng chứng công khai *(thứ tấn công trực tiếp cơ chế gây ra hình phạt khoảng trống thất nghiệp)*, và nó là dàn bài sẵn cho câu trả lời phỏng vấn.
-
-Giãn cơ 5 phút lúc 14:45.
-
-### 14:45–15:00 · Nghỉ sớm hơn thường lệ
-
-### 15:00–16:00 · Tổng kết Tuần 11
-
-Tự chấm 1–5:
-
-| Mục | Điểm |
-| --- | --- |
-| Thiết kế được schema và giải thích từng quyết định | |
-| Viết được truy vấn SQL bằng tay, không cần công cụ | |
-| Đọc được `EXPLAIN ANALYZE` và biết phải sửa gì | |
-| Giải thích được vì sao thứ tự cột index quan trọng | |
-| Nói được transaction dùng khi nào và bẫy `db` vs `tx` | |
-| Nói được khoá lạc quan vs bi quan và lý do chọn | |
-| Chuyển dữ liệu thật an toàn, có đối chiếu | |
-
-**Ba câu tự trả lời:**
-1. Tuần này chỗ nào tôi thấy khó nhất, và vì sao?
-2. Chỗ nào tôi vẫn đang làm theo mà chưa thật hiểu?
-3. Kể tuần này cho một Tech Lead trong 2 phút, tôi nói gì?
-
-Câu 3 tập nói to. Đó gần như chắc chắn là một câu hỏi phỏng vấn.
-
-**Kiểm tra hình dạng code:** file nào vượt 250 dòng? Có logic nghiệp vụ nào lọt vào route không? Sửa ngay hôm nay.
+- **Kịch bản 1:** Dimension mismatch (1536 vs 768) — app phải fail rõ khi insert sai chiều.
+- **Kịch bản 2:** Embedding trong response API list mặc định? **Không** — nặng và không cần mobile. Chỉ internal/job.
+- **Bằng chứng:** Migration applied + API list không trả vector blob.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Cập nhật CV
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-Mở rộng mục Backend:
-
-```
-Backend (Node.js) — từ 11/2026
-- API REST Fastify + TypeScript + Drizzle + PostgreSQL (Neon)
-- Thiết kế schema: ràng buộc unique đảm bảo tính bất biến cho ghi ngoại tuyến,
-  khoá lạc quan bằng version xử lý sửa đồng thời từ nhiều thiết bị
-- Tối ưu truy vấn có đo đạc: EXPLAIN ANALYZE → thêm index → [X]ms còn [Y]ms
-- Chuyển dữ liệu sản xuất từ BaaS sang database riêng, có kiểm tra đối chiếu, không mất dữ liệu
-```
-
-**Dòng thứ ba là dòng mạnh nhất** — nó có con số thật.
+- **Công cụ:** EXPLAIN ANALYZE trên Neon.
+- **Kịch bản:** List by user+date; hypothetical `ORDER BY embedding <=> $1` trên dataset nhỏ (seed vài row fake vector).
+- **Kết quả:** plan list ___ · note chi phí seq scan chấp nhận được đến bao nhiêu row.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Nghe lại 5 bản ghi
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Nghe từ `2026-11-09` đến `2026-11-13`.
-
-So với tuần trước:
-1. Từ vựng database nào giờ nói tự nhiên rồi?
-2. Chỗ nào còn phải dừng lại nghĩ?
-3. Một câu dùng nguyên văn được trong phỏng vấn:
-
----
-
-## GHI CHÚ · 17:00–17:30
-
-Hoàn thiện `docs/database.md`. Nó phải có:
-- Sơ đồ quan hệ
-- Bảy quyết định schema kèm lý do
-- Bảng đo hiệu năng trước/sau
-- Transaction, N+1, khoá lạc quan — mỗi mục một đoạn ngắn
-- Nhật ký chuyển dữ liệu
+- **Decision Note:**
+  - *Claim:* pgvector trên Neon đủ giai học + Micro-SaaS nhỏ; embed async qua queue sau.
+  - *Evidence:* EXPLAIN + extension enabled.
+  - *Boundary:* Dataset lớn / QPS cao → xét dedicated vector service; chưa phải hôm nay.
+- **60s Defense Pitch:**
+  > "Tuần 11 kết thúc với Postgres thật, Drizzle, conflict version, data path khỏi Supabase, và pgvector sẵn. Cột embedding nullable — job 30/11 mới fill. Tôi không trả vector xuống mobile. Đo EXPLAIN trước khi tạo index. Đây là nền RAG tháng 12 trên chính DB MacroZone."
 
 ---
 
-## Checklist cuối ngày
+## 5. Definition of Done (DoD kỹ thuật) — Tuần 11
 
-- [ ] Đã **đo** để tìm 3 truy vấn chậm nhất, không đoán
-- [ ] Mỗi truy vấn có `EXPLAIN ANALYZE` trước và sau
-- [ ] **Bảng trước/sau đã điền số thật**
-- [ ] Nói được cái giá của việc thêm index
-- [ ] Bài viết số 4 đã đăng, có link
-- [ ] Tổng kết Tuần 11 xong, có trả lời câu "chỗ nào chỉ làm theo"
-- [ ] Tập kể tuần này trong 2 phút, nói to
-- [ ] Không file nào vượt 250 dòng vô cớ
-- [ ] CV có con số hiệu năng thật
-- [ ] Đã nghe lại 5 bản ghi
-- [ ] 21:30 lên giường
-
----
-
-> Tuần sau: xác thực tự viết. Đây là tuần bạn có lợi thế lớn nhất — bạn đã xây hàng đợi refresh token ở phía client hôm 02/10. Tuần tới bạn viết đầu còn lại.
+- [ ] pgvector on; embed column designed; EXPLAIN recorded.
+- [ ] Meal path qua API; không leak embedding ra list API.
+- [ ] 60s pitch tuần 11 trôi.

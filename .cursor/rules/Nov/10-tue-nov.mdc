@@ -1,252 +1,64 @@
 ---
-description: Thứ Ba 10/11/2026 — Tuần 11 Ngày 2. Drizzle ORM, migration có kiểm soát, và pool kết nối.
+description: Thứ Ba 10/11/2026 — Tuần 11 Ngày 2. Drizzle ORM, migration có kiểm soát, connection pool.
 alwaysApply: false
 ---
 
-# Thứ Ba · 10/11/2026 · Tuần 11 — Ngày 47/82
+# Thứ Ba 10/11/2026 — Drizzle + Migrations + Pool
 
-> Hôm qua bạn viết SQL bằng tay. Hôm nay thêm ORM — nhưng là loại ORM **không giấu SQL đi**.
-> Và học một thứ mà mobile developer không bao giờ gặp: **pool kết nối**.
-
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
-**Tài nguyên:** https://orm.drizzle.team/docs/overview
+> **Mục tiêu kỹ sư:** Map schema SQL sang Drizzle; migration có kiểm soát; cấu hình pool Neon đúng — API đọc/ghi meals qua DB.
+> **Tư duy:** AI scaffold Drizzle → Bạn tấn công migrate lệch & pool exhaustion, đo latency query, defend migration discipline.
+> **Bản đồ tháng:** Tuần 11 — Postgres + Drizzle.
+> **Sản phẩm:** `macrozone-api` persistence thật.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Drizzle schema + migration đầu tiên |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Migration an toàn + pool kết nối |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nhắn 2 người ở công ty mục tiêu |
-| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. `src/db/schema.ts` khớp SQL 09/11.
+    2. Drizzle Kit migrations trong git; lệnh migrate documented.
+    3. `db` client với pool (`max` hợp lý cho Neon free — đừng 100).
+    4. Services meals dùng Drizzle thay in-memory.
+  - **Ranh giới:** Chưa vector; `DATABASE_URL` chỉ env.
+- **Scaffold Code:** AI sinh schema + migration + wire services.
+
+**Intent 3 dòng:**
+1. Làm gì: Drizzle + migrate + pool + meals CRUD DB.
+2. Không làm gì: full auth, pgvector.
+3. Xong khi: POST meal persist; restart API vẫn còn data.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 08:30–09:00 · Vì sao Drizzle chứ không Prisma
-
-```bash
-npm i drizzle-orm postgres
-npm i -D drizzle-kit
-```
-
-Bạn phải trả lời được câu này khi phỏng vấn, vì Prisma phổ biến hơn:
-
-| | Drizzle | Prisma |
-| --- | --- | --- |
-| Cú pháp | Gần SQL — `select().from().where()` | Ngôn ngữ riêng, trừu tượng hơn |
-| Ngôn ngữ schema | TypeScript | File `.prisma` riêng |
-| Sinh code | Không cần | Cần chạy `prisma generate` |
-| Kích thước runtime | Rất nhỏ | Có engine nhị phân |
-| Tin tuyển dụng | Đang tăng | **Nhiều hơn** |
-| Truy vấn phức tạp | Viết SQL thô dễ dàng | Thường phải thoát ra `$queryRaw` |
-
-**Câu trả lời 60 giây:**
-
-> *"Em chọn Drizzle vì cú pháp nó gần SQL — em đang học SQL nên em không muốn một lớp trừu tượng che mất thứ mình cần hiểu. Khi em viết `select().from(meals).where(eq(...))`, em hình dung được câu SQL sinh ra. Với Prisma em sẽ không.*
-> *Prisma phổ biến hơn và có Studio tiện hơn. Nếu vào một đội đang dùng Prisma thì em học trong vài ngày — mô hình giống nhau, khác cú pháp. Cái không đổi được nhanh là hiểu SQL, và đó là cái em ưu tiên."*
-
-Câu này mạnh vì bạn thừa nhận lựa chọn kia phổ biến hơn và nêu tiêu chí thật của mình.
-
-### 09:00–10:30 · Schema và migration
-
-```ts
-// src/db/schema.ts
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  email: text('email').unique().notNull(),
-  passwordHash: text('password_hash').notNull(),
-  dailyLimit: integer('daily_limit').notNull().default(2000),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const meals = pgTable('meals', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  clientId: uuid('client_id').notNull(),
-  name: text('name').notNull(),
-  calories: integer('calories').notNull(),
-  eatenAt: timestamp('eaten_at', { withTimezone: true }).notNull(),
-}, (t) => ({
-  userClientUnique: unique().on(t.userId, t.clientId),
-  userEatenIdx: index('meals_user_eaten_idx').on(t.userId, t.eatenAt.desc()),
-}));
-
-export type Meal = typeof meals.$inferSelect;
-export type NewMeal = typeof meals.$inferInsert;
-```
-
-**Hai dòng cuối là phần thưởng lớn nhất:** type sinh thẳng từ schema. Đổi cột thì TypeScript báo lỗi ở mọi chỗ dùng. Không có nguồn sự thật thứ hai.
-
-```bash
-npx drizzle-kit generate      # sinh file SQL migration
-npx drizzle-kit migrate       # áp dụng
-```
-
-**Mở file SQL vừa sinh ra và đọc.** Đừng chạy mù. Đây là thói quen bảo vệ bạn khỏi tai nạn — công cụ sinh migration thỉnh thoảng đề xuất xoá cột khi bạn chỉ định đổi tên.
-
-```bash
-git add . && git commit -m "feat: drizzle schema và migration đầu tiên"
-```
+- **Kịch bản 1:** Sửa schema.ts nhưng quên generate migration — phát hiện drift. Quy trình: schema → generate → review SQL → migrate.
+- **Kịch bản 2:** Mở quá nhiều connection (loop tạo client mỗi request) → ép singleton pool. Không log `DATABASE_URL`.
+- **Bằng chứng:** Migration file trong git + proof pool singleton.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### 13:30–14:30 · Migration an toàn — bài học đắt nhất của backend
-
-Trên mobile, đổi hình dạng dữ liệu sai thì app crash. Trên backend, **bạn mất dữ liệu người dùng vĩnh viễn**.
-
-Ba luật, không có ngoại lệ:
-
-| Luật | Vì sao |
-| --- | --- |
-| **Chỉ thêm, không xoá** trong một lần triển khai | Code cũ vẫn đang chạy khi migration chạy xong. Nó cần cột cũ |
-| Đổi tên cột = **ba lần triển khai** | Thêm cột mới → ghi cả hai → đọc cột mới → sau đó mới xoá cột cũ |
-| Migration phải **chạy lại được** | Nếu nó chạy nửa chừng rồi lỗi, chạy lại không được hỏng thêm |
-
-Luật thứ hai — quy trình mở rộng rồi thu hẹp (expand/contract) — là câu hỏi phỏng vấn backend rất hay gặp. Diễn tập trên giấy: đổi `name` thành `title` mất bao nhiêu lần triển khai, mỗi lần làm gì?
-
-**Đặc biệt với mobile:** người dùng có thể chạy phiên bản app từ ba tháng trước. API của bạn phải phục vụ cả phiên bản cũ. Điều này làm mọi thay đổi phá vỡ tương thích trở nên đắt hơn nhiều so với web — nơi bạn ép làm mới trang là xong.
-
-> Đây chính là lý do bạn đặt tiền tố `/v1` từ ngày 03/11. Hôm nay bạn thấy nó không phải hình thức.
-
-Giãn cơ 5 phút lúc 14:30.
-
-### 14:30–15:00 · Pool kết nối — khái niệm mobile không có
-
-```ts
-const client = postgres(env.DATABASE_URL, {
-  max: 10,                    // tối đa 10 kết nối
-  idle_timeout: 20,
-  connect_timeout: 10,
-});
-export const db = drizzle(client, { schema });
-```
-
-**Vì sao cần pool:** mở kết nối Postgres tốn khoảng vài chục mili giây và tốn bộ nhớ phía server. Mở một cái cho mỗi request là tự sát. Pool giữ sẵn vài kết nối và cho request mượn.
-
-**Bẫy chết người:** nếu `max` lớn hơn giới hạn của database, bạn sẽ gặp lỗi *"too many connections"* dưới tải — và nó chỉ xuất hiện ở sản xuất, không bao giờ ở máy bạn.
-
-Bậc miễn phí của Neon giới hạn khoảng 100 kết nối. Nếu chạy 2 instance × `max: 10` thì bạn dùng 20. An toàn. Nhưng phải **biết** con số, không đoán.
-
-Tra và ghi lại:
-- Giới hạn kết nối của Neon free: ____
-- Số instance Render của bạn: ____
-- `max` của bạn: ____
-- Tổng: ____ / giới hạn
-
-Bảng bốn dòng này là câu trả lời phỏng vấn tốt hơn bất kỳ định nghĩa nào về pool.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Tầng repo
-
-```ts
-// src/db/repos/meal.ts
-export const mealRepo = {
-  async byUserAndRange(userId: string, from: Date, to: Date) {
-    return db.select().from(meals)
-      .where(and(eq(meals.userId, userId), gte(meals.eatenAt, from), lt(meals.eatenAt, to)))
-      .orderBy(desc(meals.eatenAt));
-  },
-
-  async upsert(userId: string, input: CreateMealInput) {
-    const [row] = await db.insert(meals)
-      .values({ userId, ...input })
-      .onConflictDoUpdate({
-        target: [meals.userId, meals.clientId],       // dùng đúng ràng buộc unique hôm qua
-        set: { name: input.name, calories: input.calories },
-      })
-      .returning();
-    return row;
-  },
-};
-```
-
-**Hàm `upsert` là chỗ mọi thứ khớp lại.** Ràng buộc unique hôm qua, UUID sinh từ client hôm 27/10, và hàng đợi ghi ngoại tuyến — cả ba gặp nhau ở dòng `onConflictDoUpdate`. Gửi lại cùng một bữa ăn mười lần vẫn chỉ có một bản ghi.
-
-Đây là câu chuyện phỏng vấn mạnh nhất tuần này. Tập kể trong 60 giây.
-
-```bash
-git add . && git commit -m "feat: tầng repo với upsert bất biến"
-```
+- **Công cụ:** k6/autocannon `POST/GET /v1/meals` + Neon metrics/connections.
+- **Kịch bản:** 20 VU × 30s; quan sát lỗi connection nếu `max` quá thấp/cao.
+- **Kết quả:** p95 GET ___ ms · errors ___ · peak connections ___
 
 ---
 
-## TÌM VIỆC · 16:00–16:30
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Nhắn 2 người ở công ty mục tiêu. Ưu tiên các công ty sản phẩm có app di động thật: Momo, ZaloPay, Tiki, Be, ELSA, Coolmate, Sky Mavis.
-
----
-
-## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
-
-**Chủ đề: idempotency — từ điện thoại đến ràng buộc database.**
-
-> *"Idempotency means doing something twice has the same effect as doing it once. It matters for mobile more than for web, because phones lose connectivity mid-request. The user taps save, the request goes out, the network drops before the response comes back. The app doesn't know whether it worked, so it retries — and now you might have two records.*
-> *I solved this in two layers. On the client, the app generates a UUID for each meal before sending, so a retry carries the same ID. On the server, there's a unique constraint on user ID plus client ID, and the insert uses ON CONFLICT DO UPDATE.*
-> *The reason I need both: the client-generated ID makes retries identifiable, but only the database constraint actually guarantees uniqueness. Application logic can have bugs — two requests can race past a check. The constraint can't be raced.*
-> *I built the client half in October and the server half today, which is the first time I've seen a whole problem from both ends."*
-
-**5 từ mới:**
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `mid-request` | giữa lúc request đang chạy | *The network drops mid-request.* |
-| `race past a check` | hai luồng vượt qua kiểm tra cùng lúc | *Two requests can race past a check.* |
-| `guarantee` (v) | đảm bảo chắc chắn | *Only the constraint guarantees it.* |
-| `identifiable` | nhận dạng được | *The client ID makes retries identifiable.* |
-| `from both ends` | từ cả hai phía | *I've seen the problem from both ends.* |
+- **Decision Note:**
+  - *Claim:* Drizzle vì gần SQL + migration SQL review được; pool nhỏ cho serverless/free Postgres.
+  - *Evidence:* Số p95 + connection peak.
+  - *Boundary:* Không Prisma “magic”; raw SQL vẫn OK cho query khó.
+- **60s Defense Pitch:**
+  > "Drizzle map đúng schema SQL hôm qua. Migration commit vào git — không sửa production bằng tay. Pool giới hạn vì Neon free dễ hết connection. Đo p95 dưới tải nhẹ trước khi tối ưu. ORM không thay thế hiểu biết SQL."
 
 ---
 
-## GHI CHÚ · 17:00–17:30
+## 5. Definition of Done (DoD kỹ thuật)
 
-Thêm vào `docs/database.md`:
-- So sánh Drizzle và Prisma, kèm tiêu chí chọn
-- Quy trình mở rộng rồi thu hẹp cho đổi tên cột, vẽ 3 bước
-- **Bảng tính kết nối 4 dòng ở trên**
-
----
-
-## Checklist cuối ngày
-
-- [ ] Drizzle schema khớp với SQL viết tay hôm qua
-- [ ] Migration đã sinh, **đã đọc file SQL trước khi chạy**
-- [ ] Type `Meal` sinh từ schema, không định nghĩa tay
-- [ ] Nói được vì sao chọn Drizzle, và thừa nhận Prisma phổ biến hơn
-- [ ] Vẽ được 3 bước đổi tên cột an toàn
-- [ ] Nói được vì sao mobile làm thay đổi phá vỡ tương thích đắt hơn web
-- [ ] **Bảng tính kết nối đã điền số thật, không đoán**
-- [ ] `upsert` chạy đúng: gửi 10 lần vẫn 1 bản ghi
-- [ ] Kể được câu chuyện bất biến hai tầng trong 60 giây
-- [ ] Ghi âm `2026-11-10.m4a`
-- [ ] 21:30 lên giường
+- [ ] Meals persist qua Drizzle; migrations trong repo.
+- [ ] Có số p95 + peak connections.
+- [ ] 60s pitch trôi.

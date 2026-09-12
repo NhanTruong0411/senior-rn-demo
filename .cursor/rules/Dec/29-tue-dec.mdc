@@ -3,49 +3,45 @@ description: Thứ Ba 29/12/2026 — Tuần 18 Ngày 2. Mock interview fullstack
 alwaysApply: false
 ---
 
-# Thứ Ba · 29/12/2026 · Tuần 18 — Ngày 80/82
+# Thứ Ba 29/12/2026 — Mock #2: Data · Conflict · Perf
 
-> Mock B: database, conflict, API chậm. Đây là vòng dễ lộ người chỉ học framework.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Defend optimistic lock, booking/meal race, và cách soi API chậm (p95, EXPLAIN, requestId, cache chỉ sau đo).
+> **Tư duy:** Số liệu từ tuần 15–16 là evidence — không bịa benchmark.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | **KHỐI XÂY** — Ôn EXPLAIN + bảng OWASP + notification_log |
-| **13:30** | **KHỐI HỌC** — Mock 45 phút set B |
-| **16:00** | **TÌM VIỆC** — nộp 3 đơn chất lượng |
-| **16:30** | **TIẾNG ANH** — 3 câu khó bằng EN |
-| **17:00** | **GHI CHÚ** |
+- **System Prompt / Requirements:**
+  - AI = Tech Lead data/perf: 5 câu — conflict 2 writers, isolation, chậm API, cache sai, vector query.
+  - Bạn phải nêu số thật đã đo (hoặc nói “chưa đo / sẽ đo thế này” — honesty).
+- **Scaffold:** `docs/mock-w18-2.md`.
 
 ---
 
-## Mock set B
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-1. Design schema meals + sessions (nói, không code)
-2. Two users edit same row
-3. API is slow — your steps
-4. Rate limit login vs other routes
-5. Weakness + what you did in 4 months
-
-Chấm rubric. Câu yếu nhất → viết lại claim→evidence→boundary 10 dòng, nói lại 3 lần.
-
-Ghi âm `2026-12-29-mock.m4a`.
+- **Kịch bản tấn công 1:** “Hai user book cùng slot — optimistic đủ không?”
+- **Kịch bản tấn công 2:** “Cache làm lộ meal user khác — bạn kiểm gì?”
+- **Bằng chứng:** trả lời có tách bài toán edit version vs inventory unique/transaction.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-Luyện câu #2 và #3 bằng English full, không xen Việt.
+- Rubric 5 trục như 28/12; bắt buộc 1 câu có **số p95 hoặc EXPLAIN**.
+- **Kết quả:** tổng …/25; so với mock #1.
 
 ---
 
-## Checklist
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-- [ ] Mock B ≥15 điểm hoặc có plan drill
-- [ ] Đã nộp 3 đơn
-- [ ] Ghi âm `2026-12-29.m4a`
+- **60s Defense Pitch:**
+  > "Conflict: version column + 409 + SSE invalidate. Slot nóng: unique/transaction, không LWW. API chậm: requestId → p95 không average → EXPLAIN → chữa N+1 → mới ETag/Redis nếu đo cần. Cache key luôn có userId. Đó là thứ tự kỹ sư, không phải checklist blog."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] Mock #2 ghi điểm + 2 improvement
+- [ ] Pitch conflict/perf thuộc lòng

@@ -1,259 +1,67 @@
 ---
-description: Thứ Hai 30/11/2026 — Tuần 14 Ngày 1. Hàng đợi việc với pg-boss — thử lại, hàng đợi chết, và vì sao không dùng setTimeout.
+description: Thứ Hai 30/11/2026 — Tuần 14 Ngày 1. pg-boss queue embed/report; retry/dead letter; cầu sang Dec.
 alwaysApply: false
 ---
 
-# Thứ Hai · 30/11/2026 · Tuần 14 — Ngày 61/82
+# Thứ Hai 30/11/2026 — pg-boss AI Jobs (Cầu Dec)
 
-> Đây là ngày mở đầu tháng 12 về mặt nội dung *(tuần 14 bắt đầu hôm nay)*.
-> Câu hỏi hôm nay: **việc gì đó phải xảy ra, nhưng không phải bây giờ và không phải trong request này.** Bạn để nó ở đâu?
+> **Mục tiêu kỹ sư:** Hàng đợi **pg-boss** trên Postgres cho job AI (embed meal, báo cáo) — retry, dead letter; **cấm** `setTimeout` giả queue.
+> **Tư duy:** AI scaffold workers → Bạn tấn công double-process & mất job, đo throughput/retry, defend Postgres-as-queue.
+> **Bản đồ tháng:** Cầu ORCHESTRATOR → Dec BUILDER (RAG pipeline dùng job embed).
+> **Sản phẩm:** `jobs/embedMeal`, `jobs/dailyReport` (tối thiểu 1 job embed chạy được).
 
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — pg-boss, việc đầu tiên chạy nền |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Thử lại, tính bình phương, hàng đợi chết |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nhắn 3 người quen *(ưu tiên cao từ tháng này)* |
-| **16:30** | **TIẾNG ANH** — Standup |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+**Cấm:** `setTimeout` / in-memory array “queue” cho production path. LLM key chỉ worker/server.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-### 08:30–09:00 · Vì sao không dùng `setTimeout`
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Cài pg-boss; start với cùng `DATABASE_URL`.
+    2. Khi meal create/update text: enqueue `embed-meal` với `{ mealId, userId }` (idempotent key nếu lib hỗ trợ).
+    3. Worker: gọi embed API server-side → UPDATE `meals.embedding` + `embed_status`.
+    4. Retry exponential; sau N lần → dead letter / `failed` + log requestId/jobId.
+    5. Optional: `daily-report` stub enqueue (chưa LLM dài cũng được — chứng minh pattern).
+  - **Ranh giới:** Chưa re-rank RAG full; chưa multi-queue cluster.
+- **Scaffold Code:** AI sinh `src/jobs/*` + wire createMeal + docs ops.
 
-Hôm 19/11 bạn gửi email đặt lại mật khẩu bằng cách gọi hàm rồi không chờ. Nó chạy được. Nó cũng sai. Đây là lý do:
-
-| Cách làm | Hỏng ở đâu |
-| --- | --- |
-| `sendEmail()` không `await` | Tiến trình khởi động lại là mất luôn. Thất bại thì không ai biết |
-| `setTimeout` 5 phút | Render tái khởi động sau 15 phút không dùng — hẹn giờ biến mất |
-| Vòng lặp trong bộ nhớ | Hai instance thì chạy hai lần |
-| **Hàng đợi trong database** | Sống sót qua khởi động lại, có thử lại, có nhật ký |
-
-Nguyên tắc: **nếu việc đó quan trọng, nó phải nằm trong bộ nhớ bền chứ không nằm trong RAM.** Một tiến trình có thể chết bất cứ lúc nào — trên bậc miễn phí thì gần như chắc chắn sẽ chết.
-
-Đây cũng chính là lý do bạn xây hàng đợi ghi ngoại tuyến ở phía mobile hôm 27/10 và lưu nó xuống đĩa thay vì giữ trong state. **Cùng một bài toán, khác phía.** Nói ra được sự đối xứng này khi phỏng vấn là một điểm cộng thật.
-
-### 09:00–10:30 · pg-boss
-
-```bash
-npm i pg-boss
-```
-
-**Vì sao chọn pg-boss chứ không phải BullMQ:** BullMQ cần Redis. Bạn đã có Postgres. Thêm một dịch vụ nữa là thêm một thứ có thể sập, thêm một thứ phải theo dõi, và với khối lượng công việc của bạn thì Postgres thừa sức. Chọn ít bộ phận chuyển động hơn khi chưa có lý do bắt buộc.
-
-*(Nếu người phỏng vấn hỏi khi nào đổi sang BullMQ: khi khối lượng việc bắt đầu cạnh tranh tài nguyên với truy vấn phục vụ người dùng. Với vài nghìn việc mỗi ngày thì chưa tới.)*
-
-```ts
-// src/jobs/index.ts
-export const boss = new PgBoss({ connectionString: env.DATABASE_URL, schema: 'pgboss' });
-
-await boss.start();                       // tự tạo bảng ở lần chạy đầu
-
-await boss.work('send-email', { batchSize: 5 }, async ([job]) => {
-  await resend.emails.send(job.data);     // ném lỗi = pg-boss tự thử lại
-});
-```
-
-Chuyển email đặt lại mật khẩu sang hàng đợi:
-
-```ts
-// Trước:  void sendPasswordReset(email, token);
-await boss.send('send-email', { to: email, template: 'reset', token });
-```
-
-Endpoint bây giờ trả lời trong vài mili giây thay vì chờ nhà cung cấp email. Người dùng thấy nhanh hơn, và nếu Resend đang sập thì việc vẫn nằm đó chờ thử lại — không mất.
-
-**Một tính chất của pg-boss đáng chú ý:** vì hàng đợi nằm trong chính Postgres, bạn có thể **đưa việc vào hàng đợi bên trong transaction**. Nếu transaction rollback, việc cũng biến mất. Với BullMQ trên Redis bạn không làm được điều đó — bạn có thể lưu database thất bại mà email vẫn gửi đi.
-
-Đây là một trong những lập luận kỹ thuật sắc nhất bạn có thể đưa ra về lựa chọn công nghệ. Ghi lại.
-
-```bash
-git add . && git commit -m "feat: hàng đợi việc pg-boss, chuyển gửi email sang chạy nền"
-```
+**Intent 3 dòng:**
+1. Làm gì: pg-boss embed/report + retry/DLQ.
+2. Không làm gì: production RAG chat (Dec).
+3. Xong khi: tạo meal → job chạy → embedding/status đổi; job fail → retry rồi failed rõ.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:30 · Thử lại đúng cách
-
-Thử lại là nơi hàng đợi hoặc cứu bạn hoặc phá bạn.
-
-```ts
-await boss.send('send-email', data, {
-  retryLimit: 5,
-  retryDelay: 30,           // giây
-  retryBackoff: true,       // 30s → 60s → 120s → 240s → 480s
-  expireInMinutes: 15,      // quá lâu coi như thất bại, không treo mãi
-});
-```
-
-**Tính bình phương quan trọng vì:** nếu dịch vụ email đang quá tải, thử lại ngay lập tức làm nó tệ hơn. Bạn góp phần vào sự cố mà mình đang cố vượt qua. Lùi dần cho bên kia thời gian hồi phục.
-
-Đây đúng là logic thử lại bạn cấu hình cho TanStack Query ở tháng 10. **Cùng nguyên tắc, cả hai phía.**
-
-**Nhưng luật quan trọng nhất là:** đừng thử lại thứ sẽ không bao giờ thành công.
-
-| Lỗi | Thử lại? |
-| --- | --- |
-| Hết thời gian mạng | Có |
-| Nhà cung cấp trả 500 | Có |
-| 429 quá tần suất | Có, lùi lâu hơn |
-| **Email sai định dạng** | **Không** — thử 5 lần vẫn sai |
-| **Khoá API không hợp lệ** | **Không** — cần người sửa |
-
-```ts
-class PermanentError extends Error {}
-
-await boss.work('send-email', async ([job]) => {
-  try {
-    await resend.emails.send(job.data);
-  } catch (e) {
-    if (isPermanent(e)) {
-      await boss.fail(job.id, { reason: 'permanent', error: String(e) });
-      return;                       // không thử lại
-    }
-    throw e;                        // thử lại
-  }
-});
-```
-
-Đây chính là nguyên tắc phân biệt lỗi tạm thời và lỗi vĩnh viễn bạn đã dùng hôm 26/11 với biên nhận push. Bạn đang thấy cùng một khuôn mẫu xuất hiện ở chỗ thứ ba.
-
-Giãn cơ 5 phút lúc 14:30.
-
-### 14:30–15:00 · Hàng đợi chết và tính bình thản
-
-**Hàng đợi chết** *(dead letter queue)* là nơi việc thất bại hết số lần thử được chuyển tới. Không có nó, việc hỏng biến mất lặng lẽ và bạn không bao giờ biết.
-
-```ts
-await boss.work('__state__completed__send-email', async ([job]) => {
-  if (job.data.state === 'failed') {
-    logger.error({ jobId: job.data.id, output: job.data.output }, 'việc thất bại hẳn');
-    Sentry.captureMessage('Job failed permanently', { extra: job.data });
-  }
-});
-```
-
-**Tính bình thản** *(idempotency)* — bắt buộc, không phải tuỳ chọn. Một việc **có thể chạy hai lần**: tiến trình chết sau khi gửi email nhưng trước khi đánh dấu xong. Đó không phải giả thuyết, đó là chuyện thường xuyên trên bậc miễn phí.
-
-Cách xử lý là dùng khoá duy nhất:
-
-```ts
-await boss.send('send-email', data, {
-  singletonKey: `reset:${userId}:${tokenId}`,   // trùng khoá thì bỏ qua
-});
-```
-
-Bạn đã gặp khái niệm này hôm 10/11 với `client_id` khi ghi bữa ăn. **Lần thứ ba cùng một ý tưởng: làm sao để chạy hai lần cũng vô hại.**
-
-Khi phỏng vấn, nếu bạn chỉ ra được rằng bạn nhận diện cùng một khuôn mẫu ở ba tầng khác nhau *(ghi dữ liệu, gửi push, chạy việc nền)*, đó là dấu hiệu bạn tư duy theo nguyên tắc chứ không theo công thức.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Tự làm hỏng để kiểm chứng
-
-Đừng tin hàng đợi trước khi phá nó:
-
-| Thử nghiệm | Phải xảy ra gì |
-| --- | --- |
-| Đưa 20 việc vào rồi giết tiến trình | Khởi động lại, cả 20 vẫn chạy xong |
-| Cho worker ném lỗi 3 lần rồi thành công | Thử lại có giãn cách, cuối cùng thành công |
-| Cho worker luôn thất bại | Sau 5 lần, vào hàng đợi chết, có báo Sentry |
-| Gửi 2 việc cùng `singletonKey` | Chỉ chạy một |
-| Gửi việc bên trong transaction rồi rollback | **Việc biến mất** |
-
-Hàng cuối là hàng thú vị nhất và là hàng bạn nên kể lại.
-
-Tạo một trang quản trị nhỏ *(một endpoint JSON là đủ)*: bao nhiêu việc đang chờ, đang chạy, đã thất bại. Không nhìn thấy thì không quản được.
-
-```bash
-git add . && git commit -m "feat: thử lại có giãn cách, hàng đợi chết, việc bình thản"
-```
+- **Kịch bản 1:** Enqueue 2 lần cùng meal — worker có ghi đè an toàn / không nhân đôi cost vô hạn?
+- **Kịch bản 2:** Job payload chứa user khác — worker vẫn check ownership trước embed.
+- **Bằng chứng:** Log job success/fail + embed_status transitions.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Ưu tiên cao
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-Từ tháng 12 khối này **không được bỏ**. Hôm nay nhắn 3 người quen. Dùng mẫu tin ở mục 7 của `Dec/00-context-dec.mdc`.
-
----
-
-## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Standup
-
-> *"Today I moved email out of the request path and into a job queue.*
-> *I'm using pg-boss, which runs on Postgres rather than Redis. I already have Postgres, and adding Redis means adding something else that can go down. But there's a better reason: because the queue lives in the same database, I can enqueue a job inside a transaction. If the transaction rolls back, the job disappears with it. With a Redis queue you can have the database write fail and the email still go out.*
-> *The part I spent most time on was retries. Exponential backoff, because retrying immediately against an overloaded provider makes the outage worse. And a hard rule: don't retry what can never succeed. A malformed email address will still be malformed on the fifth attempt — that goes straight to the dead letter queue.*
-> *Jobs also have to be idempotent, because a process can die after sending the email but before marking the job done. That's the third place this month I've had to make an operation safe to run twice — offline writes, push receipts, and now background jobs. Same idea each time."*
-
-Câu cuối là câu mạnh nhất. Nhận ra một khuôn mẫu lặp lại là dấu hiệu của người hiểu, không phải người thuộc.
-
-**5 từ mới:**
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `the request path` | đường đi của request | *I moved email out of the request path.* |
-| `roll back` | quay lui giao dịch | *If the transaction rolls back, the job disappears.* |
-| `make the outage worse` | làm sự cố tệ hơn | *Retrying immediately makes the outage worse.* |
-| `dead letter queue` | hàng đợi chết | *That goes straight to the dead letter queue.* |
-| `safe to run twice` | chạy hai lần vẫn an toàn | *Make the operation safe to run twice.* |
+- **Công cụ:** Enqueue 50 jobs; đo thời gian drain; quan sát Neon CPU.
+- **Kịch bản:** Mock embed provider để không đốt tiền; inject fail 30% để thấy retry.
+- **Kết quả:** throughput ___ jobs/min · retry count ___ · DLQ count ___
 
 ---
 
-## GHI CHÚ · 17:00–17:30
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Tạo `docs/background-jobs.md`:
-- Bảng 4 cách làm và chỗ hỏng của từng cách
-- **Lý do chọn pg-boss: đưa việc vào hàng đợi trong transaction**
-- Bảng lỗi nào thử lại, lỗi nào không
-- **Ba chỗ trong dự án cần tính bình thản** — liệt kê cả ba
-- Kết quả 5 thử nghiệm phá hoại
+- **Decision Note:**
+  - *Claim:* pg-boss = queue đủ MacroZone; không Redis/Bull bắt buộc; không setTimeout.
+  - *Evidence:* Drain numbers + retry behavior.
+  - *Boundary:* Throughput rất cao / multi-region → xét queue riêng; Dec RAG dùng cùng pattern.
+- **60s Defense Pitch:**
+  > "Job AI nặng không chạy trong request HTTP. pg-boss dùng chính Postgres — retry và dead letter có kiểm soát. Embed meal cập nhật cột vector đã thiết kế 13/11. Ownership vẫn kiểm trong worker. Đây là cầu sang tháng 12 RAG: chunk/embed/search trên nền đã có, không phải tutorial setTimeout giả hàng đợi."
 
 ---
 
-## Checklist cuối ngày
+## 5. Definition of Done (DoD kỹ thuật) — Tháng 11 bridge
 
-- [ ] pg-boss chạy, email đã ra khỏi đường đi của request
-- [ ] Nói được vì sao `setTimeout` không dùng được trên Render
-- [ ] Nối được với hàng đợi ghi ngoại tuyến ở mobile *(27/10)*
-- [ ] Nói được lợi thế **đưa việc vào hàng đợi trong transaction**
-- [ ] Thử lại có tính bình phương, giải thích được vì sao
-- [ ] **Lỗi vĩnh viễn không bị thử lại**
-- [ ] Hàng đợi chết có ghi log và báo Sentry
-- [ ] Việc bình thản bằng `singletonKey`
-- [ ] Chỉ ra được **ba chỗ** cùng dùng nguyên tắc bình thản
-- [ ] **Đã chạy đủ 5 thử nghiệm phá hoại**
-- [ ] Có endpoint xem trạng thái hàng đợi
-- [ ] Đã nhắn 3 người
-- [ ] Ghi âm `2026-11-30.m4a`
-- [ ] 21:30 lên giường
+- [ ] pg-boss embed path chạy; retry/DLQ chứng minh.
+- [ ] Có số throughput; không setTimeout queue.
+- [ ] 60s pitch trôi; sẵn sàng mở `Dec/00-context-dec.mdc`.

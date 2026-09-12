@@ -1,66 +1,101 @@
 ---
-description: Context tháng 10/2026 — ĐÀO SÂU Engineer (Auth, Test, New Arch, Perf, CI) + AI secure-by-default. Đọc trước file ngày.
+description: Context tháng 10/2026 — Tháng AUDITOR. Security boundary, AI evals, on-device SQLite semantic search, Flashlight perf, offline sync + CI/CD. Đọc trước khi mở file ngày.
 alwaysApply: false
 ---
 
-# Tháng 10/2026 — Tháng 2: ĐÀO SÂU (Engineer mode)
+# Tháng 10/2026 — AUDITOR: Mobile Security, Performance & On-Device Intelligence
 
-> MacroZone → **chất lượng kỹ sư**. Không gõ lại tutorial cho thuộc. AI = coworker có review; **bí mật / LLM key không vào app**.
-> **22 ngày** · T2–T6 · T7+CN nghỉ.
-
----
-
-## 0. Luật inherite từ Sep (bắt buộc)
-
-- Không rebuild-from-memory / gõ tay từng dòng cho “cơ bắp”.
-- 3 vòng: **Hiểu → Ship có review → Harden**.
-- Intent 3 dòng trước AI · Reject ≥ thỉnh thoảng · Giải thích được 60s.
-
-**Thêm tháng 10:** mọi “tính năng thông minh” giả định sẽ gọi **backend** (Nov). Client chỉ UI + auth + cache.
+> **Vai trò:** Thẩm định MacroZone AI-Native sau khi Tháng 9 đã ship. Không gõ boilerplate. AI scaffold → bạn tấn công, đo, defend 60s.
+> **Sản phẩm:** MacroZone AI-Native (dinh dưỡng). Mọi diff đóng góp trực tiếp vào app này.
+> **Cấm cứng:** LLM API key trong binary mobile / `app.json` / client `.env` commit. Gọi model qua mock hoặc backend proxy (Nov).
+> **22 ngày làm việc** · T2–T6 · T7+CN nghỉ. Không lịch gym / English / gia đình / tìm việc trong file ngày.
 
 ---
 
-## 1. Lịch cố định
+## 0. Luật inherite từ Tháng 9 + Master Context
 
-Giống Sep sau điều chỉnh: XÂY 08:30–10:30 · HỌC 13:30–16:00 · **Tìm việc 16:00–16:30** · EN 16:30–17:00 · Ghi chú 17:00–17:30 · Gia đình · ngủ 21:30.
+- **3 Không:** không gõ CRUD tay · không học thuộc API docs · không bài tập đồ chơi tách sản phẩm.
+- **3 Đập:** Red-Team → Profiling → Decision Note + 60s Defense.
+- Intent 3 dòng trước khi gọi AI · Reject diff không defend được · số liệu đo ghi vào `docs/decisions/`.
+
+**Thêm tháng 10:** mọi “tính năng thông minh” giả định sẽ gọi **AI Gateway backend (Nov)**. Client tháng này = UI + auth + cache + on-device search + eval/test harness. Không nhét secret model vào APK/IPA.
 
 ---
 
-## 2. Lộ trình
+## 1. Bản đồ tháng — AUDITOR only
 
-| Tuần | Ngày | Chủ đề | AI hòa vào |
+| Tuần | Ngày | Chủ đề | Đập trọng tâm |
 | --- | --- | --- | --- |
-| **5** | 01–02/10 | Auth SecureStore, 401 queue | Token ≠ LLM key; cùng bài học “secret trên thiết bị” |
-| **6** | 05–09/10 | Testing Jest/RNTL/Maestro/MSW | Test **boundary** (kể cả mock AI response sau này) |
-| **7** | 12–16/10 | New Architecture TurboModule | **Hiểu + 1 module theo tutorial Callstack** — không chép 2 lần. Chiều 16/10: đọc Vercel AI SDK overview (chuẩn bị Dec) |
-| **8** | 19–23/10 | Performance đo–sửa–đo | Ngân sách cũng áp cho **streaming UI** sau này |
-| **9** | 26–30/10 | Offline-first + CI/CD | Queue offline = cùng pattern job nền Nov; CI sẵn cho API sau |
+| **W5** | 01–02/10 | **Security Boundary** — SecureStore, session, refresh queue; quét APK/IPA / env rò key | ĐẬP 1 security |
+| **W6** | 05–09/10 | **AI Evals + Automation** — Jest eval MealLog · RNTL · MSW · Maestro E2E | ĐẬP 1+2 quality gate |
+| **W7** | 12–16/10 | **On-Device SQLite** — FTS/semantic schema · vector local · index/knn · boundary embed · wire UI | ĐẬP 2 offline intelligence |
+| **W8** | 19–23/10 | **Performance** — Flashlight/Profiler baseline → re-render → bundle → image/list → perf budget | ĐẬP 2 số liệu |
+| **W9** | 26–30/10 | **Offline sync + CI/CD** — cache trung thực · write queue/conflict · GHA · EAS secrets · v1.1.0 + `docs/ai-boundaries-mobile.md` | ĐẬP 3 ship harden |
+
+### Chi tiết tuần
+
+**Tuần 5 — Security Boundary**
+- Session + SecureStore; AI calls vẫn mock/proxy.
+- 401 refresh queue; scan binary/env không leak LLM/API keys.
+
+**Tuần 6 — AI Evals + Maestro/RNTL/MSW**
+- Pure eval harness cho structured output MealLog.
+- RNTL như user thật · MSW mock parse API · Maestro voice/text→log trên máy.
+- Wrap: suite xanh + TDD một eval fail → fix.
+
+**Tuần 7 — On-Device SQLite semantic/vector**
+- Schema meal + FTS/semantic; lưu embeddings local; search theo nghĩa offline.
+- Đo index/query; tấn công embedding xấu; quyết định JS/ONNX-light vs remote-embed-then-cache (không TurboModule trừ khi bắt buộc).
+- Wire semantic search vào MacroZone UI.
+
+**Tuần 8 — Flashlight profiling**
+- Baseline AI stream + search screens → sửa re-render → bundle/startup → image/list/animation budget → doc ngân sách + regression checklist.
+
+**Tuần 9 — Offline + CI/CD**
+- Offline-first cache + network UI trung thực · write queue + conflict meal logs.
+- GHA: lint/typecheck/test/evals · EAS Build/Update từ CI, secrets chỉ GH Secrets.
+- Ship v1.1.0; chốt `docs/ai-boundaries-mobile.md`; DoD tháng 10.
 
 ---
 
-## 3. Tài nguyên (ray có sẵn — không invent)
+## 2. Ray / tài nguyên (không invent ngoài list)
 
-Giữ bảng Auth / Testing / New Arch / Perf / CI như plan cũ (Supabase, RNTL, Maestro, Callstack TurboModule, Flashlight, GHA, EAS).
-
-**AI đọc thêm (không làm app AI tháng này):**
-
-| Tên | Link |
+| Chủ đề | Ray |
 | --- | --- |
-| Vercel AI SDK (overview) | https://sdk.vercel.ai/docs |
-| OWASP — secrets in mobile | (cheat sheet / mobile top risks) |
+| SecureStore / Auth pattern | Expo SecureStore + session model đã dùng Sep |
+| Refresh / 401 queue | Axios/fetch interceptor + single-flight refresh |
+| Jest / RNTL / MSW | Jest 29+ · `@testing-library/react-native` · `msw` |
+| Maestro | Maestro YAML flows trên máy thật |
+| SQLite / FTS | `expo-sqlite` (hoặc tương đương Expo) |
+| Vector local | embeddings cache trong SQLite (BLOB/JSON) + cosine/knn-ish JS |
+| Perf | React DevTools Profiler · Flashlight |
+| CI/CD | GitHub Actions · EAS Build · EAS Update |
+| AI boundaries | OWASP Mobile · `docs/ai-boundaries-mobile.md` (viết cuối tháng) |
+
+**Đọc thêm (không làm backend tháng này):** Vercel AI SDK overview — chuẩn bị Nov Gateway.
 
 ---
 
-## 4. DoD — 30/10
+## 3. Definition of Done — 30/10
 
-- [ ] Auth + refresh queue nói được ≤60s có story
-- [ ] Test logic + 3 E2E Maestro
-- [ ] 1 TurboModule **một lần** end-to-end (Kotlin+Swift path theo tutorial) + giải thích JSI/Fabric
-- [ ] Case study perf có số
-- [ ] Offline queue + GHA CI xanh
-- [ ] 1 trang `docs/ai-boundaries-mobile.md`: client được/không được làm gì với LLM
-- [ ] Decision notes đều; không ngày nào “gõ lại cho thuộc”
+- [ ] Auth + SecureStore + refresh queue kể được ≤60s; không LLM key trong binary (đã quét).
+- [ ] Eval suite MealLog xanh; RNTL + MSW + ≥1 Maestro flow text/voice→log.
+- [ ] SQLite on-device: FTS hoặc semantic search meal offline chạy trên máy thật.
+- [ ] Case study perf có số (FPS / re-render / bundle) trên màn AI stream + search.
+- [ ] Offline write queue + conflict strategy cho meal logs (document + code path).
+- [ ] GHA CI xanh (lint + typecheck + test + evals); EAS từ CI; secrets chỉ GH Secrets.
+- [ ] `docs/ai-boundaries-mobile.md`: client được / không được làm gì với LLM.
+- [ ] Decision notes W5–W9; không ngày nào “gõ lại cho thuộc”.
+- [ ] Tag / release **v1.1.0** MacroZone AI-Native.
 
 ---
 
-_Thần chú: đo trước khi tối ưu · test cái có rủi ro · native đủ để nói thật · AI chưa vào binary._
+## 4. Honest gaps (own khi defend)
+
+- Backend AI Gateway thật → **Tháng 11**. Tháng 10 chỉ mock/proxy + boundary docs.
+- On-device embed: ưu tiên **JS/ONNX-light hoặc remote-embed-then-cache**; native module chỉ khi đo chứng minh JS không đủ.
+- Không pretend GraphQL / Reanimated custom gesture / full New Arch TurboModule end-to-end — ngoài scope AUDITOR tháng này trừ khi task ngày bắt buộc.
+
+---
+
+_Thần chú tháng 10: zero leak · eval trước ship AI · đo trước tối ưu · offline trung thực · secret chỉ server._

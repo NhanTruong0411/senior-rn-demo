@@ -1,22 +1,88 @@
 ---
-description: Thứ Hai 28/09/2026 — Tuần 4 Ngày 1. Chuẩn bị phát hành — icon, version, env, build.
+description: Thứ Hai 28/09/2026 — Tuần 4 Ngày 1. EAS Build profiles + AI feature flag; no secrets in eas.json.
 alwaysApply: false
 ---
 
-# Thứ Hai · 28/09/2026 · Tuần 4 — Ngày 16/82
+# Thứ Hai 28/09/2026 — EAS Profiles + AI Feature Flag
+
+> **Mục tiêu kỹ sư:** Cấu hình **EAS Build profiles** (development / preview / production); bật AI qua **feature flag**; **zero secrets** trong `eas.json` / repo.
+> **Tư duy:** AI scaffold eas.json + flag wiring → Bạn tấn công secret leak và flag bypass, đo cold start khi flag on/off, defend secret boundary khi PV.
+> **Bản đồ tháng:** Tháng 9 PRODUCER · Tuần 4 — EAS + store ship.
+> **Sản phẩm:** MacroZone AI-Native.
+
+**Cấm:** API key LLM trong `eas.json`, `app.config`, secrets commit. Flag chỉ bật/tắt UI + mock/proxy endpoint public — không nhét key vào extra.
 
 ---
 
-## Lịch
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — Icon, splash, version, env (không secret trong git) |
-| **13:30** | HỌC — EAS Build docs + profile production |
-| **16:30** | EN — Standup |
-| **17:00** | Check list store |
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. `eas.json`: profiles `development`, `preview` (internal), `production`.
+    2. Feature flag `EXPO_PUBLIC_AI_ENABLED` (hoặc `extra.aiEnabled` từ env **không** chứa key) — ẩn/hiện Coach + Parse AI.
+    3. Khi flag off: app vẫn CRUD meal tay bình thường.
+    4. Document: secrets thật chỉ nằm EAS Secrets / CI env — liệt kê tên biến, không giá trị.
+  - **Ranh giới:**
+    - `EXPO_PUBLIC_*` không bao giờ chứa LLM key (public trong bundle).
+    - Preview profile dùng mock hoặc URL proxy không embed secret.
+- **Scaffold Code:** AI sinh eas + flag; bạn `rg` secret trước merge.
 
-## Checklist
+**Intent 3 dòng:**
+1. Làm gì: EAS profiles + AI flag + secret audit.
+2. Không làm gì: Submit store (30/09), Sentry sâu (29/09).
+3. Xong khi: `eas build --profile preview` config sẵn; flag off vẫn dùng app; eas.json sạch secret.
 
-- [ ] `eas build` profile sẵn sàng / đang build
-- [ ] Ghi âm `2026-09-28.m4a`
+---
+
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
+
+- **Kịch bản tấn công 1 (Secret leak):**
+  - Đọc `eas.json`, `app.config.*`, `.env.example` — có token/key không?
+  - Flag on nhưng endpoint trỏ thẳng api.openai.com từ client? → **FAIL**, phải proxy/mock.
+  - Ép: chỉ URL backend/mock; không Authorization header hardcode.
+- **Kịch bản tấn công 2 (Flag bypass):**
+  - User deep link / hidden screen gọi parse khi flag off?
+  - Ép: guard ở navigation + ở `parseMealFromText` entry.
+- **Bằng chứng:** Secret audit checklist trong `docs/decisions/2026-09-28.md`.
+
+---
+
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** Profiler cold start · bundle size thô (`npx expo-doctor` / build size note) · không cần k6.
+- **Kịch bản đo:**
+  1. Cold start flag on vs off — TTI cảm nhận / `performance.now` tới Home interactive.
+  2. Tree AI screens khi flag off — có vẫn mount nặng không? (lazy/hide).
+  3. Ghi kích thước artifact preview nếu build được (hoặc ước lượng JS bundle).
+- **Kết quả đo:**
+  - Cold start flag off → on: ___ ms vs ___ ms
+  - AI routes mounted khi flag off? Có / Không
+  - eas.json secret hits: 0 (bắt buộc)
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note:**
+  - *Claim:* AI feature flag tách ship surface; **không** có LLM secret trên client/eas.json; preview ≠ production credentials.
+  - *Evidence:* Secret audit + cold start + guard bypass test.
+  - *Boundary:* Flag không thay rate limit/cost control (Nov gateway).
+- **60s Defense Pitch:**
+  > "Ship MacroZone nội bộ bằng EAS preview/production profiles. AI bật bằng feature flag public boolean — không phải API key. `eas.json` chỉ có build config; secret nằm EAS Secrets nếu cần URL proxy. Khi flag off, parse AI bị guard ở entry, app vẫn log meal tay. Tôi audit bundle không chứa sk-. Trade-off: EXPO_PUBLIC chỉ cho non-secret; mọi model call đi mock/proxy. Boundary: cost/quota là việc backend tháng 11."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] `eas.json` 3 profiles; AI flag on/off hoạt động.
+- [ ] Secret audit 0 hit; không gọi LLM vendor trực tiếp từ client (ĐẬP 1).
+- [ ] Cold start / mount note (ĐẬP 2).
+- [ ] 60s pitch secret boundary (ĐẬP 3).
+- [ ] `.env.example` chỉ tên biến, không giá trị secret.
+
+---
+
+## 6. Carry-forward
+
+- **29/09:** EAS Update + Sentry; AI error boundary + breadcrumb parse fail.
+- **Không mang:** Redesign UI trước submit.

@@ -1,34 +1,89 @@
 ---
-description: Thứ Tư 16/09/2026 — Tuần 2 Ngày 3. AsyncStorage lớp lưu trữ + CRUD (hiểu boundary).
+description: Thứ Tư 16/09/2026 — Tuần 2 Ngày 3. Multi-item batch Structured Output + storage boundary.
 alwaysApply: false
 ---
 
-# Thứ Tư · 16/09/2026 · Tuần 2 — Ngày 8/82
+# Thứ Tư 16/09/2026 — Batch MealLog + Storage Boundary
 
-> Tách **UI ↔ storage**. Đây là quyết định Engineer, không phải bài gõ API AsyncStorage.
+> **Mục tiêu kỹ sư:** Mở schema nhận **nhiều món / một utterance**; persist rõ ranh giới **AsyncStorage (nhẹ) hoặc SQLite light** — biết *vì sao chọn cái nào*.
+> **Tư duy:** AI scaffold schema + storage layer → Bạn tấn công partial fail / race write, đo list render, defend storage trade-off.
+> **Bản đồ tháng:** Tháng 9 PRODUCER · Tuần 2 — Voice-to-Action & Structured Output.
+> **Sản phẩm:** MacroZone AI-Native.
 
----
-
-## Lịch
-
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — CRUD meal + lớp storage |
-| **13:30** | HỌC — Docs AsyncStorage + khi nào SecureStore (preview tháng 10) |
-| **16:30** | EN — Quyết định thiết kế |
-| **17:00** | Decision note |
+**Cấm:** LLM key trên client. Không dựng sync server hôm nay.
 
 ---
 
-## Harden
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-- [ ] Storage fail → UI có error
-- [ ] Không nhét logic JSON parse trong component màn hình
-- [ ] Nói được: AsyncStorage **không** cho token (tháng 10 SecureStore)
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. `MealLogBatchSchema` = `{ items: z.array(MealLogSchema).min(1).max(N) }` (chọn N, defend được — gợi ý 5–10).
+    2. Text hoặc voice transcript → parse batch → UI review list (accept all / edit từng dòng / reject).
+    3. Persist layer: `mealStorage.save(items)` — AsyncStorage JSON **hoặc** SQLite (expo-sqlite) light; một abstraction `MealRepository`.
+    4. Home tab đọc từ repository; empty / loading / error đủ.
+  - **Ranh giới:**
+    - Partial success: một item Zod fail → không silent drop cả batch (chiến lược: reject all **hoặc** return `valid[]` + `errors[]` — chọn 1 và ghi Decision Note).
+    - Không mã hóa-at-rest sâu hôm nay (Oct security).
+- **Scaffold Code:** AI sinh schema + repository + UI review; bạn reject abstraction leak.
+
+**Intent 3 dòng:**
+1. Làm gì: batch Zod + persist local + Home list.
+2. Không làm gì: sync online, Query remote, theme.
+3. Xong khi: "phở và trà đá" → 2 items review → save → hiện Home.
 
 ---
 
-## Checklist
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-- [ ] CRUD persist qua restart app
-- [ ] Ghi âm `2026-09-16.m4a`
+- **Kịch bản tấn công 1 (Logic / Race):**
+  - Batch 1 item hợp lệ + 1 item calo âm; batch rỗng `items: []`; items > max N.
+  - Save 2 lần liên tiếp cùng batch — duplicate rows?
+  - Ép: transaction-ish save (all-or-nothing nếu chọn reject-all); idempotency key tạm (clientId).
+- **Kịch bản tấn công 2 (Storage / Integrity):**
+  - Corrupt JSON trong AsyncStorage; SQLite disk full mock; schema version cũ.
+  - Ép: migrate/guard parse khi read; không crash app; surface error UI.
+  - Không ghi secret / token vào meal store.
+- **Bằng chứng:** Ma trận batch cases + storage choice trong `docs/decisions/2026-09-16.md`.
+
+---
+
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** Profiler · Flashlight · timing save/load 100 meals.
+- **Kịch bản đo:**
+  1. Seed 100 meal items — scroll Home: FPS? Dùng FlatList/FlashList tạm (FlashList sâu hơn 22/09).
+  2. Parse batch 5 items — re-render review screen bao nhiêu lần?
+  3. Cold start: load storage → first paint Home.
+- **Kết quả đo:**
+  - Load 100 items: ___ ms → ___ ms
+  - Scroll FPS (ước lượng / Flashlight): ___ → ___
+  - Duplicate sau double-save? Có / Không
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note:**
+  - *Claim:* Batch Structured Output + `MealRepository` abstraction; chọn AsyncStorage **hoặc** SQLite với lý do đo được (volume, query, migration).
+  - *Evidence:* Corrupt-read test + FPS 100 rows.
+  - *Boundary:* Local-only; chưa sync/conflict (Oct); chưa vector search.
+- **60s Defense Pitch:**
+  > "User nói nhiều món một câu — tôi không nhét regex. `MealLogBatchSchema` ép model trả mảng; từng item vẫn qua cùng MealLogSchema. Partial fail tôi chọn chiến lược X vì Y. Persist qua `MealRepository` để Home không phụ thuộc AsyncStorage API trần. Đo load 100 rows và scroll trước khi tối ưu list. Trade-off: AsyncStorage đủ khi JSON nhỏ và ít query; SQLite khi cần filter/index. Boundary: offline local, chưa server sync — key LLM vẫn không trên máy."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] Batch parse → review UI → save → Home hiện items.
+- [ ] Partial/max/corrupt cases xử lý có chủ đích (ĐẬP 1).
+- [ ] Có số đo load/scroll (ĐẬP 2).
+- [ ] Decision Note chọn storage + 60s pitch trôi (ĐẬP 3).
+- [ ] Không LLM secret trong storage layer.
+
+---
+
+## 6. Carry-forward
+
+- **17/09:** Streaming AI coach reply UI (token-by-token).
+- **Không mang:** Redesign schema từ zero; GraphQL.

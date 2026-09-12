@@ -1,126 +1,55 @@
 ---
-description: Thứ Hai 07/12/2026 — Tuần 15 Ngày 1. SSE real-time — slot/dữ liệu đổi, client nhận ngay không poll.
+description: Thứ Hai 07/12/2026 — Tuần 15 Ngày 1. SSE realtime — slot/meal đổi, client nhận ngay không poll.
 alwaysApply: false
 ---
 
-# Thứ Hai · 07/12/2026 · Tuần 15 — Ngày 66/82
+# Thứ Hai 07/12/2026 — SSE Realtime cho Slot / Meal Updates
 
-> Mục tiêu tuần: người dùng thấy dữ liệu đổi **ngay**, không bấm kéo để làm mới.
-> Hôm nay chọn **SSE** (đơn giản, một chiều, đủ cho MacroZone). Không tự host Socket.io trên Vercel-style serverless — Render process dài hạn thì SSE ổn.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Server-Sent Events đẩy thay đổi meal/slot; client subscribe + reconnect. Không poll 3 giây.
+> **Tư duy:** AI scaffold SSE route → bạn tấn công auth trên stream + fan-out → đo reconnect → defend SSE vs WS.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Endpoint SSE + publish khi meal đổi |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Client subscribe + invalidate Query |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nhắn 3 người quen |
-| **16:30** | **TIẾNG ANH** — Standup |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+- **System Prompt / Requirements:**
+  - Yêu cầu: `GET /api/v1/events` (SSE) — auth bằng header/query token an toàn theo design đã chốt; event `meal.updated` | `slot.updated` với payload nhỏ (id + version).
+  - Publish: sau mutation service → `eventBus.emit` → SSE clients cùng `userId` (và room merchant nếu có).
+  - Ranh giới: một chiều server→client; không tự host Socket.io trên serverless; Render long-lived connection — ghi timeout/proxy note.
+- **Scaffold Code:** `sse/createSession.ts`, RN `EventSource`/polyfill + TanStack invalidate theo event.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### Vì sao SSE chứ không WebSocket hôm nay
-
-| | SSE | WebSocket |
-| --- | --- | --- |
-| Hướng | Server → client | Hai chiều |
-| HTTP | Một request dài | Protocol riêng |
-| Đủ cho "danh sách meal đổi" | **Có** | Thừa |
-| Auth | Header / cookie quen thuộc | Phải tự gắn |
-
-Khi cần chat hai chiều mới nâng WebSocket. Nói được *"vì sao không"* là điểm fullstack.
-
-```ts
-app.get('/v1/events', { preHandler: authenticate }, async (req, reply) => {
-  reply.hijack();
-  reply.raw.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-  });
-  const userId = req.user.id;
-  const send = (event: string, data: unknown) => {
-    reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-  };
-  send('connected', { ok: true });
-  const unsub = eventBus.subscribe(userId, send);
-  req.raw.on('close', unsub);
-});
-```
-
-Sau `mealService.create/update/delete` → `eventBus.publish(userId, 'meals-changed', { id })`.
-
-**Lưu ý Render sleep:** kết nối SSE đứt khi service ngủ. Client phải reconnect + fallback poll. Đó là bài ngày mai gắn cold start.
-
-```bash
-git add . && git commit -m "feat: SSE /v1/events khi meal thay đổi"
-```
+- **Kịch bản tấn công 1:** Subscribe bằng token user A, lắng nghe id meal user B — phải không nhận.
+- **Kịch bản tấn công 2:** Hàng nghìn event spam / connection leak khi client không đóng; thiếu heartbeat → proxy cắt.
+- **Bằng chứng khắc phục:** filter user; heartbeat comment SSE; giới hạn connection/user.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### Client
-
-```ts
-useEffect(() => {
-  const es = new EventSourcePolyfill(`${API}/v1/events`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  es.addEventListener('meals-changed', () => {
-    queryClient.invalidateQueries({ queryKey: ['meals'] });
-  });
-  return () => es.close();
-}, [token]);
-```
-
-Thử: mở 2 thiết bị / 2 simulator cùng user → thêm meal bên A → bên B cập nhật không kéo.
-
-Giãn cơ 14:30. Nghỉ 15:00. 15:10–16:00: xử lý auth hết hạn trên stream (đóng + refresh + mở lại).
+- **Công cụ:** 50 connection SSE giả; đo RAM process; Flashlight khi UI invalidate liên tục.
+- **Kịch bản đo:** 10 update/s — FPS list meal; thời gian từ write DB → event nhận (p95).
+- **Kết quả:** end-to-end notify p95 …ms; FPS …
 
 ---
 
-## TIẾNG ANH · 16:30–17:00
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-> *"I used Server-Sent Events instead of WebSockets because the app only needs server-to-client invalidation. When a meal changes, the API publishes an event and the phone invalidates TanStack Query. Two-way sockets would be extra moving parts for no gain yet."*
-
-**5 từ:** `invalidate` · `one-way` · `moving parts` · `reconnect` · `fallback poll`
+- **Decision Note:**
+  - *Claim:* SSE đủ cho MacroZone meal/slot; WS khi cần client→server binary/gamey.
+  - *Evidence:* độ trễ notify + complexity ops.
+  - *Boundary:* horizontal scale SSE cần pub/sub (Redis) — chưa có multi-instance thì in-process ok.
+- **60s Defense Pitch:**
+  > "Poll đốt pin và p95. SSE một chiều đủ khi server là nguồn sự thật sau booking/meal sync. Auth vẫn bắt buộc trên stream. Mobile nhận event → invalidate Query, không tự tin state. Khi scale nhiều instance mới thêm Redis pub/sub — chưa sớm tối ưu."
 
 ---
 
-## Checklist
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] SSE chạy local + trên Render
-- [ ] 2 client cùng user thấy cập nhật
-- [ ] Giải thích được vì sao không WebSocket
-- [ ] Ghi âm `2026-12-07.m4a`
-- [ ] 21:30 lên giường
+- [ ] SSE meal/slot demo được trên device/simulator
+- [ ] Isolation + heartbeat có bằng chứng
+- [ ] Có số notify latency / FPS
+- [ ] 60s SSE vs WS trôi

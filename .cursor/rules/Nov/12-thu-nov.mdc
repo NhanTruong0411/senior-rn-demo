@@ -1,247 +1,66 @@
 ---
-description: Thứ Năm 12/11/2026 — Tuần 11 Ngày 4. Chuyển dữ liệu thật từ Supabase sang database của bạn, không mất một dòng nào.
+description: Thứ Năm 12/11/2026 — Tuần 11 Ngày 4. Migrate data path khỏi Supabase sang API của bạn.
 alwaysApply: false
 ---
 
-# Thứ Năm · 12/11/2026 · Tuần 11 — Ngày 49/82
+# Thứ Năm 12/11/2026 — Migrate Path: Off Supabase → Your API
 
-> Hôm nay là ngày rủi ro nhất tháng: **di chuyển dữ liệu thật của người dùng thật**.
-> Bạn có năm người dùng thử. Nếu làm mất dữ liệu của họ, bạn học được bài học đúng với cái giá rẻ nhất có thể.
+> **Mục tiêu kỹ sư:** Mobile đọc/ghi meals **qua `macrozone-api`**, không qua Supabase client trên path này — chuyển dữ liệu/thói quen tích hợp, không mất khái niệm dữ liệu user.
+> **Tư duy:** AI đổi data layer mobile → Bạn tấn công dual-write lệch & mất dữ liệu, đo parity, defend cutover.
+> **Bản đồ tháng:** Tuần 11 — sở hữu data plane.
+> **Sản phẩm:** MacroZone meal CRUD = API bạn.
 
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Script di chuyển dữ liệu, chạy thử trước |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Chuyển thật + đối chiếu + phân trang |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — theo dõi lại |
-| **16:30** | **TIẾNG ANH** — 3 câu hỏi phỏng vấn |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+**Cấm:** Để mobile vừa gọi Supabase vừa gọi API cho cùng một write mà không có chiến lược — chọn cutover rõ.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-### 08:30–08:45 · Sao lưu trước, luôn luôn
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Mobile data module: `mealsApi.list/create/update/delete` → Fastify.
+    2. Script/export one-shot: nếu còn data Supabase demo → import vào Neon qua API hoặc SQL (document bước).
+    3. Feature flag `DATA_SOURCE=api` ; gỡ import `@supabase` khỏi meal screens.
+    4. TanStack Query keys cập nhật; optimistic update tôn trọng 409 version.
+  - **Ranh giới:** Auth có thể vẫn tạm Supabase **chỉ nếu** chưa tới tuần 12 — nhưng meal path không phụ thuộc Supabase DB. Ghi rõ debt trong decision note.
+- **Scaffold Code:** AI refactor mobile + seed script.
 
-```bash
-pg_dump "$SUPABASE_URL" --data-only --table=meals > backup-2026-11-12.sql
-```
-
-**Không bắt đầu khi chưa có bản sao lưu và chưa xác nhận khôi phục được.** Kiểm tra: khôi phục nó vào một nhánh Neon rỗng, đếm số dòng.
-
-Đây không phải sự thận trọng thừa. Đây là quy trình. Người phỏng vấn hỏi *"anh làm gì trước khi migrate"* — câu trả lời đầu tiên phải là *"sao lưu, và xác nhận sao lưu khôi phục được"*.
-
-### 08:45–10:30 · Script chuyển dữ liệu
-
-```ts
-// scripts/migrate-from-supabase.ts
-const DRY_RUN = process.env.DRY_RUN !== 'false';
-
-async function main() {
-  const source = await supabase.from('meals').select('*');
-  console.log(`Nguồn: ${source.data.length} dòng`);
-
-  let ok = 0, skipped = 0;
-  for (const row of source.data) {
-    const mapped = mapRow(row);
-    const parsed = mealSchema.safeParse(mapped);
-    if (!parsed.success) {                        // dữ liệu bẩn có thật, luôn có
-      console.warn(`Bỏ qua ${row.id}:`, parsed.error.flatten());
-      skipped++;
-      continue;
-    }
-    if (!DRY_RUN) await mealRepo.upsert(parsed.data.userId, parsed.data);
-    ok++;
-  }
-  console.log(`Hợp lệ: ${ok}, bỏ qua: ${skipped}`);
-}
-```
-
-**Bốn tính chất của script này, mỗi cái đều cố ý:**
-
-| Tính chất | Vì sao |
-| --- | --- |
-| **Mặc định chạy thử** (`DRY_RUN`) | Phải chủ động tắt mới ghi thật. Không bao giờ vô tình ghi |
-| Kiểm tra từng dòng bằng Zod | Dữ liệu cũ luôn có dòng bẩn — trường null không mong đợi, ngày sai định dạng |
-| Dùng `upsert`, không `insert` | Script **chạy lại được**. Đứt giữa chừng thì chạy lại, không nhân đôi |
-| In số lượng ở cả hai đầu | Đối chiếu được nguồn và đích |
-
-Chạy thử. Đọc danh sách dòng bị bỏ qua. **Với mỗi dòng bẩn, quyết định: sửa nó hay bỏ nó?** Ghi quyết định lại.
-
-```bash
-git add . && git commit -m "feat: script chuyển dữ liệu, mặc định chạy thử"
-```
+**Intent 3 dòng:**
+1. Làm gì: cutover meal data sang API.
+2. Không làm gì: auth tự host hoàn chỉnh (→ 16–20).
+3. Xong khi: app list/create meal không import supabase cho meals.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:15 · Chuyển thật và đối chiếu
-
-```bash
-DRY_RUN=false npx tsx scripts/migrate-from-supabase.ts
-```
-
-Rồi **đối chiếu**, không tin vào log của chính mình:
-
-```sql
--- Đếm phải khớp
-select count(*) from meals;
-
--- Tổng calo phải khớp — bắt được lỗi ánh xạ mà đếm số dòng không bắt được
-select sum(calories) from meals;
-
--- Không được có bản ghi mồ côi
-select count(*) from meals m
-left join users u on u.id = m.user_id
-where u.id is null;
-```
-
-Truy vấn thứ hai quan trọng nhất. Số dòng khớp mà tổng calo lệch nghĩa là bạn ánh xạ sai cột — lỗi này im lặng và rất khó phát hiện sau này.
-
-| Kiểm tra | Supabase | Neon | Khớp? |
-| --- | --- | --- | --- |
-| Số bữa ăn | | | |
-| Tổng calo | | | |
-| Bữa sớm nhất | | | |
-| Bữa muộn nhất | | | |
-| Bản ghi mồ côi | — | 0 | |
-
-Giãn cơ 5 phút lúc 14:15.
-
-### 14:15–15:00 · Phân trang bằng con trỏ
-
-Trước khi chuyển client hẳn sang API mới, sửa nốt endpoint danh sách. Người dùng có 10.000 bữa ăn thì không thể trả hết một lần.
-
-**Đừng dùng `offset`:**
-
-```sql
--- SAI: chậm dần, và bỏ sót bản ghi khi có dòng mới chèn vào
-select * from meals order by eaten_at desc limit 20 offset 1000;
-```
-
-`offset 1000` bắt Postgres đọc và bỏ 1000 dòng. Trang 500 chậm hơn trang 1 rõ rệt. Tệ hơn: nếu có bữa ăn mới được thêm giữa lúc người dùng cuộn, các dòng dịch chuyển và họ **thấy trùng hoặc bị sót**.
-
-**Dùng con trỏ:**
-
-```sql
-select * from meals
-where user_id = $1 and (eaten_at, id) < ($2, $3)     -- con trỏ từ trang trước
-order by eaten_at desc, id desc
-limit 20;
-```
-
-Trả về `{ data: [...], nextCursor: "2026-11-12T10:00:00Z|uuid" }`.
-
-**Vì sao so sánh cả bộ `(eaten_at, id)`:** nếu hai bữa ăn có cùng `eaten_at`, chỉ so `eaten_at` sẽ làm sót hoặc lặp. Thêm `id` để thứ tự luôn xác định duy nhất.
-
-> Nối vào `useInfiniteQuery` bạn đã dùng từ tháng 9 — `getNextPageParam` trả `nextCursor`. Bây giờ bạn hiểu vì sao TanStack Query thiết kế API kiểu đó.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Chuyển client hẳn sang API mới
-
-Đổi mọi thao tác đọc bữa ăn sang API của bạn. **Chưa gỡ Supabase khỏi dự án** — xác thực vẫn đang chạy trên đó tới tuần sau.
-
-Kiểm tra trên máy thật:
-- Danh sách tải đúng, cuộn vô hạn chạy
-- Thống kê đúng số
-- Thêm, sửa, xoá đều chạy
-- Bật máy bay: hàng đợi ngoại tuyến vẫn hoạt động
-- So từng con số với ảnh chụp màn hình trước khi chuyển
-
-**Ảnh chụp màn hình trước khi chuyển là bước kiểm tra cuối.** Chụp màn hình thống kê trước khi migrate, so sau khi migrate. Con số phải giống hệt.
-
-```bash
-git add . && git commit -m "feat: đọc bữa ăn chuyển hẳn sang api riêng, phân trang con trỏ"
-```
+- **Kịch bản 1:** Grep `supabase.from('meals')` → 0 trên meal path.
+- **Kịch bản 2:** Migrate thiếu row / trùng id — idempotent upsert bằng client UUID nếu có.
+- **Bằng chứng:** Grep clean + count rows Neon vs kỳ vọng.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Theo dõi lại
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-Rà bảng theo dõi. Mọi thứ chưa hồi âm sau 7 ngày, nhắc lại một lần.
-
-**Luật nhắc lại:** một lần, ngắn, không trách móc, có thêm thông tin mới.
-
-> *"Chào anh/chị, em nhắn lại về [vị trí]. Tuần này em vừa chuyển toàn bộ dữ liệu app sang backend tự viết, có script kiểm tra đối chiếu. Nếu bên mình vẫn đang tuyển thì em rất mong được trao đổi ạ."*
+- **Công cụ:** So sánh latency list meals cũ (nếu còn) vs API; Profiler mobile refetch.
+- **Kịch bản:** Cold start API + list meals trên device.
+- **Kết quả:** list p95 ___ ms · lỗi mạng UX? (empty/error states)
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Năm: 3 câu hỏi phỏng vấn
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-**Q1. "How do you migrate production data safely?"**
-> *"Back up first and verify the backup restores — that's step one, not step zero. Then write the migration script so it defaults to dry run, so you have to actively opt in to writing. Validate every row on the way through, because old data always has surprises. Make it re-runnable with upsert, so if it dies halfway you just run it again. And reconcile afterwards — not just row counts, but a sum of something numeric, because a mapping error gives you the right count with wrong values."*
-
-**Q2. "Why cursor pagination instead of offset?"**
-> *"Two reasons. Offset gets slower as you go deeper because the database reads and discards every skipped row. And it's incorrect on a list that changes — if a row is inserted while someone is scrolling, everything shifts and they see duplicates or miss items.*
-> *Cursor pagination uses the last row's sort key as the starting point, so it's stable. One detail: I compare the tuple of timestamp and ID, not just the timestamp, because two meals can share a timestamp and then the ordering isn't unique."*
-
-**Q3. "What went wrong during your migration?"**
-> *[Trả lời thật với cái xảy ra hôm nay. Nếu không có gì hỏng, nói vậy — nhưng kể những dòng bị Zod chặn và bạn đã quyết định gì với chúng.]*
-
-**5 từ mới:**
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `dry run` | chạy thử không ghi | *It defaults to a dry run.* |
-| `opt in` | chủ động chọn bật | *You have to actively opt in.* |
-| `re-runnable` | chạy lại được | *Make it re-runnable with upsert.* |
-| `reconcile` (v) | đối chiếu | *Reconcile afterwards.* |
-| `discard` (v) | đọc rồi bỏ | *The database reads and discards skipped rows.* |
+- **Decision Note:**
+  - *Claim:* Một write path duy nhất qua API — tránh dual-write.
+  - *Evidence:* Grep + row counts + latency.
+  - *Boundary:* Auth debt đến tuần 12; rollback plan = flag (nếu còn) document rõ thời hạn.
+- **60s Defense Pitch:**
+  > "Meal data không còn qua Supabase client. Mobile nói chuyện REST với API tôi host — cùng chỗ AI parse tuần trước. Cutover một path để khỏi dual-write lệch. Auth tự host tuần sau. Đây là bước từ BaaS sang sở hữu backend."
 
 ---
 
-## GHI CHÚ · 17:00–17:30
+## 5. Definition of Done (DoD kỹ thuật)
 
-Tạo `docs/migration-log.md`:
-- Ngày giờ, số dòng nguồn, số dòng đích
-- **Bảng đối chiếu 5 dòng ở trên**
-- Danh sách dòng bẩn và quyết định với từng dòng
-- Cái gì hỏng và bạn sửa thế nào
-
-File này là tài liệu vận hành thật. Rất ít ứng viên Middle có thứ như vậy để chỉ tay vào.
-
----
-
-## Checklist cuối ngày
-
-- [ ] Đã sao lưu **và xác nhận khôi phục được**
-- [ ] Script mặc định chạy thử, phải chủ động tắt mới ghi
-- [ ] Mọi dòng đi qua Zod, dòng bẩn được ghi log chứ không nuốt
-- [ ] Script chạy lại được nhờ upsert
-- [ ] **Bảng đối chiếu 5 dòng đã điền, tổng calo khớp**
-- [ ] Không có bản ghi mồ côi
-- [ ] Phân trang con trỏ chạy, so sánh cả `(eaten_at, id)`
-- [ ] Đọc bữa ăn trên app đã dùng API riêng, kiểm trên máy thật
-- [ ] So ảnh chụp màn hình thống kê trước/sau — số giống hệt
-- [ ] `docs/migration-log.md` đã viết
-- [ ] Ghi âm `2026-11-12.m4a`
-- [ ] 21:30 lên giường
+- [ ] Meal screens không dùng Supabase client.
+- [ ] Có bằng chứng count/grep + số latency.
+- [ ] 60s pitch trôi.

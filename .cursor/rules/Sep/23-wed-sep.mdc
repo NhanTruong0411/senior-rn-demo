@@ -1,24 +1,86 @@
 ---
-description: Thứ Tư 23/09/2026 — Tuần 3 Ngày 3. TypeScript chặt + Zod form (cầu nối AI structured output).
+description: Thứ Tư 23/09/2026 — Tuần 3 Ngày 3. Zod refine MealLog + optimistic UI khi save.
 alwaysApply: false
 ---
 
-# Thứ Tư · 23/09/2026 · Tuần 3 — Ngày 13/82
+# Thứ Tư 23/09/2026 — Zod Refine + Optimistic Save
 
-> Zod = biên giới tin cậy. Cùng kỹ năng sau này parse **output LLM** (Dec).
+> **Mục tiêu kỹ sư:** Siết `MealLogSchema` bằng **`.refine` / `.superRefine`**; save món đã parse bằng **optimistic UI** (hiện ngay, rollback nếu persist fail).
+> **Tư duy:** AI scaffold refine rules + optimistic helper → Bạn tấn công false positive/negative và race rollback, đo jank khi insert đầu list.
+> **Bản đồ tháng:** Tháng 9 PRODUCER · Tuần 3.
+> **Sản phẩm:** MacroZone AI-Native.
+
+**Cấm:** LLM key trên client. Không fake success nếu Zod fail.
 
 ---
 
-## Lịch
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — Schema Zod cho meal form + infer type |
-| **13:30** | HỌC — TS utility nhẹ + AI: prompt “generate zod schema” rồi **review** |
-| **16:30** | EN — Quyết định validation client |
-| **17:00** | Decision note — nối Zod ↔ structured AI output |
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Refine: calo ≥ 0; macro tổng không vượt calo * hệ số hợp lý (chọn rule defend được); `mealType` enum; `name` min/max; cấm HTML tags.
+    2. `saveMealOptimistic(meal)`: insert temp id vào list → persist → replace id thật / rollback + toast nếu fail.
+    3. Parsing vẫn `safeParse` trước mọi optimistic path.
+  - **Ranh giới:**
+    - Optimistic chỉ sau Zod pass.
+    - Không optimistic cho batch cả chục item nếu chưa đo (được giới hạn N nhỏ).
+- **Scaffold Code:** AI thêm refine + optimistic; bạn reject bypass schema.
 
-## Checklist
+**Intent 3 dòng:**
+1. Làm gì: refine MealLog + optimistic save path.
+2. Không làm gì: TanStack Query sâu (24/09), EAS.
+3. Xong khi: save cảm nhận tức thì; persist fail → rollback đúng.
 
-- [ ] Submit invalid → lỗi rõ, không crash
-- [ ] Ghi âm `2026-09-23.m4a`
+---
+
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
+
+- **Kịch bản tấn công 1 (Refine / Logic):**
+  - protein*4 + carbs*4 + fat*9 >> calories; calories = 0 nhưng macro > 0; name `<img onerror=...>`.
+  - Ép: `superRefine` message field-level; UI map issue.path.
+- **Kịch bản tấn công 2 (Optimistic race):**
+  - Fail persist sau khi UI đã hiện; user xóa temp item trong lúc đang save; double-tap save.
+  - Ép: rollback idempotent; disable save khi `isSaving`; không nhân đôi row.
+- **Bằng chứng:** Bảng refine cases + rollback demo trong `docs/decisions/2026-09-23.md`.
+
+---
+
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** Profiler · Flashlight khi insert đầu FlashList.
+- **Kịch bản đo:**
+  1. 20 optimistic saves liên tiếp — FPS / dropped frames.
+  2. Rollback giữa list 100 items — có full relayout không?
+  3. Thời gian cảm nhận tap Save → row xuất hiện.
+- **Kết quả đo:**
+  - Time-to-row-visible: ___ ms
+  - FPS khi 20 inserts: ___
+  - Rollback còn orphan temp id? Có / Không
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note:**
+  - *Claim:* Zod refine = business invariants ở biên; optimistic UI chỉ sau gate schema.
+  - *Evidence:* Refine attack matrix + rollback tests + insert FPS.
+  - *Boundary:* Optimistic local persist ≠ optimistic sync server (Oct conflict).
+- **60s Defense Pitch:**
+  > "Model trả JSON chưa đủ — `MealLogSchema.refine` bắt invariant dinh dưỡng và sanitize name trước khi vào state. Optimistic save chỉ chạy sau `safeParse` thành công: UI hiện temp id, persist xong replace, fail thì rollback. Tôi red-team macro lệch calo và double-save. Đo FlashList insert để optimistic không đổi UX lấy giật. Trade-off: rule refine có thể false-negative với món đặc biệt — để escape hatch edit tay. Boundary: chưa conflict sync online."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] Refine rules + field errors UI.
+- [ ] Optimistic save + rollback + anti double-submit (ĐẬP 1).
+- [ ] Số time-to-visible / FPS ghi note (ĐẬP 2).
+- [ ] 60s pitch (ĐẬP 3).
+- [ ] Không LLM secret; không optimistic khi Zod fail.
+
+---
+
+## 6. Carry-forward
+
+- **24/09:** TanStack Query boundary — meal list cache vs Zustand AI UI.
+- **Không mang:** Viết lại toàn bộ form library.

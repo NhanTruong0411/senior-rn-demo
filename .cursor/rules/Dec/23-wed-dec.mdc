@@ -1,76 +1,55 @@
 ---
-description: Thứ Tư 23/12/2026 — Tuần 17 Ngày 3. Deep link + phát hành v2.1.0. Nghỉ 24–25/12.
+description: Thứ Tư 23/12/2026 — Tuần 17 Ngày 3. Deep link meal/AI answer; ship v2.1.0; nghỉ 24–25.
 alwaysApply: false
 ---
 
-# Thứ Tư · 23/12/2026 · Tuần 17 — Ngày 78/82
+# Thứ Tư 23/12/2026 — Deep Link · Ship v2.1.0 · Nghỉ 24–25
 
-> Deep link một ngày (phần khó server/push đã xong). Phát hành **v2.1.0**. Sau đó nghỉ 24–25/12.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Deep link mở meal detail / AI thread; phát hành **v2.1.0**; ghi chú nghỉ 24–25/12 (không file ngày).
+> **Tư duy:** AI scaffold linking config → bạn tấn công auth gate + stale id → smoke store build → defend.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | **KHỐI XÂY** — Expo Router linking + cold start |
-| **13:30** | **KHỐI HỌC** — Verify store + submit v2.1.0 |
-| **16:00** | **TÌM VIỆC** — nhắn ngắn / không nộp ồ ạt trước lễ |
-| **16:30** | **TIẾNG ANH** — Quyết định thiết kế |
-| **17:00** | **GHI CHÚ** |
+- **System Prompt / Requirements:**
+  - Yêu cầu: scheme/universal link `macrozone://meal/:id`, `macrozone://ai/:threadId`; Expo Router linking; nếu chưa login → redirect login rồi resume.
+  - Ship: bump version 2.1.0, changelog ngắn (RAG, SSE, lock, AI gateway, deep link); EAS build internal.
+  - Ranh giới: không deep link chứa token; không mở resource user khác.
+- **Scaffold Code:** linking map; auth resume; `CHANGELOG` mục 2.1.0.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-Cấu hình scheme + universal link path tối thiểu:
-
-- `macrozone://meal/:id`
-- `https://macrozone.app/reset-password?token=...` *(khớp email 02/12)*
-- Mở từ notification data.url *(26/11)*
-
-**Cold start:** giữ URL/notification response đến khi navigation ready *(cùng pattern đã học)*.
-
-Validate params bằng Zod trước khi navigate — deep link là input kẻ tấn công.
-
-```bash
-git add . && git commit -m "feat: deep link meal + reset password, validate params"
-```
+- **Kịch bản tấn công 1:** Link meal id user khác — 404/403, không leak existence thừa nếu policy yêu cầu.
+- **Kịch bản tấn công 2:** Link mở lúc cold start + SSE reconnect — không crash.
+- **Bằng chứng khắc phục:** manual test matrix links.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### v2.1.0 checklist
-
-- [ ] API health + migration prod
-- [ ] Reminders + SSE + AI proxy hoạt động trên build prod
-- [ ] Deep link reset password trên máy thật
-- [ ] Sentry release version khớp
-- [ ] `eas build` + `eas submit`
-
-Release notes ngắn cho user (không cho eng):
-
-> **v2.1.0** — Nhắc bữa ăn đúng giờ của bạn, đồng bộ tức thời giữa thiết bị, gợi ý bữa ăn, mở được từ link và thông báo.
-
-**24–25/12: nghỉ hoàn toàn. Không code. Không "chỉ sửa một chút".**
+- **Công cụ:** cold open via link; đo time-to-interactive màn đích; smoke checklist store.
+- **Kết quả:** TTI …; build số buildId ghi lại.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-> *"Deep links are untrusted input. I validate with Zod, and I defer navigation until the router is ready so cold start from a notification still lands on the right screen."*
-
-**5 từ:** `untrusted input` · `defer` · `cold start` · `land on` · `scheme`
+- **Decision Note:**
+  - *Claim:* v2.1.0 = fullstack AI-assisted nutrition app có RAG + realtime + resilience.
+  - *Evidence:* changelog + stores internal.
+  - *Boundary:* Nghỉ 24–25; tuần 18 chỉ mock/retro kỹ thuật.
+- **60s Defense Pitch:**
+  > "v2.1.0 không phải thêm màn hình. Nó đóng pipeline RAG server-side, SSE, conflict, gateway AI, deep link. Mobile stream UI, key trên Node. Đó là câu chuyện ship 4 tháng AI-Native — PRODUCER → AUDITOR → ORCHESTRATOR → BUILDER."
+- **Ghi chú lịch:** **24–25/12 nghỉ** — không tạo file ngày; không nhồi task “cho đủ”.
 
 ---
 
-## Checklist
+## 5. Definition of Done (DoD kỹ thuật) — Tuần 17
 
-- [ ] Deep link + notification cold start OK
-- [ ] v2.1.0 đã submit
-- [ ] Lịch nghỉ 24–25 đã chốt với bản thân
-- [ ] Ghi âm `2026-12-23.m4a`
+- [ ] Deep link meal + AI OK có auth gate
+- [ ] v2.1.0 build nộp internal
+- [ ] Changelog + 60s pitch ship trôi
+- [ ] Đã note nghỉ 24–25

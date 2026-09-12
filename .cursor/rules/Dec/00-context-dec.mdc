@@ -1,222 +1,103 @@
 ---
-description: Context tháng 12/2026 — Tháng FULLSTACK THẬT. Việc nền, real-time, AI qua backend riêng, quan sát được, và đi xin việc thật. Đọc trước khi mở file ngày.
+description: Context tháng 12/2026 — Tháng BUILDER. Production RAG, realtime/resilience, observability, Tech Lead defense. Đọc trước khi mở file ngày.
 alwaysApply: false
 ---
 
-# Tháng 12/2026 — Tháng 4: FULLSTACK THẬT + AI Application
+# Tháng 12/2026 — BUILDER: Production RAG · Real-Time · Tech Lead Readiness
 
-> API → **hệ thống** (jobs, realtime, cache, observability) + **AI Application Developer** trên product MacroZone có sẵn.
-> Không invent app AI mới. Không train model. Không Intern AI.
-> Xin việc thật song song. **21 ngày** · Nghỉ 24–25/12 · T7+CN nghỉ.
+> **Tôn chỉ:** Hoàn thiện MacroZone Fullstack có thể thương mại hóa. Không thợ gõ. AI scaffold → bạn ĐẬP (red-team, đo, defend 60s).
+> **Phạm vi:** 100% kỹ thuật. Không lịch gym / tiếng Anh / gia đình / tìm việc hàng ngày.
+> **Ranh giới AI cứng:** API key **chỉ trên Node**. RAG / LangChain / AI SDK chạy **trên backend**. RN chỉ **stream UI** + Abort. Tutorial “RN gọi OpenAI trực tiếp” = phản giáo khoa.
 
-### Luật Engineer
-
-- Hiểu → Ship (khóa/docs có ray) → Harden (cost, rate limit, Zod output, eval tay).
-- LangChain.js / AI SDK chạy trên **Node**, RN chỉ stream UI.
-- Tutorial YouTube “RN + OpenAI trực tiếp” = **tài liệu phản giáo khoa** — chỉ học streaming UI pattern, key vẫn server.
+Đọc `Last4Months.mdc` trước mọi file ngày. Template ngày = Khối 0 → 1 → 2 → 3 + DoD kỹ thuật.
 
 ---
 
-## 1. Bạn đang ở đâu vào ngày 01/12
+## 1. Bạn đang ở đâu vào 01/12
 
-Kiểm lại trước khi bắt đầu. Nếu mục nào chưa có, đó là nợ kỹ thuật phải trả trong tuần 14.
+Nợ kỹ thuật phải rõ trước khi mở RAG:
 
-- Ứng dụng mobile trên TestFlight và Play Internal, v2.0.0
-- API Node trên Render, Postgres trên Neon
-- Xác thực tự viết, có xoay refresh token
-- Bộ test cả hai đầu, CI chạy trên mọi PR
-- TurboModule tự viết bằng Kotlin và Swift
-- 3 bài viết kỹ thuật
-- 82 ngày dậy lúc 4:30 *(đến cuối tháng)*
+- Mobile TestFlight / Play Internal, v2.0.0 (sau tháng 11)
+- Fastify AI Gateway trên Render, Postgres + pgvector (Neon), auth tự viết + refresh rotate
+- pg-boss đã khởi động từ **30/11** (jobs nền — nền tảng cho embedding job tuần 14)
+- CI + test hai đầu; TurboModule đã viết; Observability cơ bản (`requestId`) từ tuần 13
 
----
-
-## 2. Lịch cố định — có một thay đổi
-
-Giống tháng 11, trừ **khối 16:00–16:30 đổi vai trò**. Tháng 12 việc tìm việc không còn là phụ.
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30–10:30** | **KHỐI XÂY** |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30–16:00** | **KHỐI HỌC** (nghỉ 10 phút lúc 15:00) |
-| **16:00–16:30** | **TÌM VIỆC — ưu tiên cao, không được bỏ** |
-| **16:30–17:00** | **TIẾNG ANH** |
-| **17:00–17:30** | **Ghi chú kỹ thuật / chuẩn bị phỏng vấn** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
-
-**Ngoại lệ:** nếu có lịch phỏng vấn thật, nó **thắng mọi khối khác**. Dời khối xây sang chiều, không huỷ phỏng vấn vì lịch học.
+Nếu thiếu pg-boss hoặc pgvector → trả nợ trước ngày 02/12, không nhảy retrieve.
 
 ---
 
-## 3. Lộ trình 5 tuần
+## 2. Bản đồ tháng — BUILDER (khớp Last4Months, không dùng map cũ)
 
 | Tuần | Ngày | Chủ đề | Kết quả |
 | --- | --- | --- | --- |
-| **14** | 30/11 – 04/12 | Jobs: pg-boss, cron, email, nhắc | Nhắc tự động từ server |
-| **15** | 07–11/12 | SSE, cold start, cache có đo, optimistic lock | p95 + realtime |
-| **16** | 14–18/12 | **AI Application:** API proxy model, **RAG** (khóa JS free), eval tay, OpenAPI, Docker, runbook | Gợi ý meal + chat theo tài liệu user — **key server-only** |
-| **17** | 21–23/12 | Deep link, animation nén, polish | v2.1.0 · nghỉ 24–25 |
-| **18** | 28–31/12 | Mock fullstack (+ câu AI applied), tổng kết 82 ngày | Sẵn sàng PV thật |
+| **14** | 01–04/12 | **Production RAG Pipeline** — chunk → embed (job) → retrieve/re-rank → inject context | Chat theo tài liệu dinh dưỡng user; key server-only |
+| **15** | 07–11/12 | **SSE realtime + cold start + cache có đo + optimistic lock** | Slot/meal live; client chịu ngủ Render; p95 có số |
+| **16** | 14–18/12 | **Observability p95, OpenAPI, Docker, RAG eval harden** | Runbook chậm; schema không drift; Docker local API+DB |
+| **17** | 21–23/12 | **Polish** — deep link + animation nhẹ; ship **v2.1.0** | Nghỉ **24–25/12** (ghi chú, không file ngày) |
+| **18** | 28–31/12 | **Tech Lead mock** (architecture, data/conflict/perf, behavioral/trade-offs) + retrospective kỹ thuật | Defense 4 bài toán; kế hoạch skill 2027 |
 
-### Khóa AI có thực hành (ray → gắn MacroZone)
-
-| Khóa | Dùng khi |
-| --- | --- |
-| DeepLearning.AI Prompt Eng *(đã Sep)* | Ôn trước khi viết system prompt |
-| LangChain.js beginners / freeCodeCamp LangChain | 14–15/12 — orchestration trên API |
-| freeCodeCamp — Build RAG Chatbot with JavaScript | 15–16/12 — RAG; vector: ưu tiên **pgvector trên Neon** (đỡ thêm dịch vụ) thay DataStax nếu free tier đủ |
-| Vercel AI SDK docs — streaming | 14/12 — stream về RN |
+> **30/11** thuộc tuần 14 về nội dung jobs (pg-boss) — đã nằm ở `Nov/30`. Tháng 12 mở bằng **chunking RAG** (01/12), không lặp lịch cron/email.
 
 ---
 
-## 4. Đánh đổi — đọc trước khi bắt đầu
+## 3. Luật Engineer tháng này
 
-Thêm backend nghĩa là có thứ bị cắt. Nói rõ để bạn không tưởng mình quên:
-
-| Bị cắt / nén | Từ | Còn lại | Lý do |
-| --- | --- | --- | --- |
-| Reanimated + Gesture | 5 ngày | **2 ngày** (21–22/12) | Giá trị thương mại thấp hơn backend nhiều |
-| Deep link + push client | 5 ngày | **1 ngày** (23/12) + phần server ở 26–27/11 | Phần khó nằm ở server, đã học rồi |
-| Phỏng vấn thử | 5 buổi | **3 buổi** (28–30/12) | Phỏng vấn thật thay thế được phỏng vấn thử |
-| Offline-first nâng cao | giữ nguyên tháng 10 | — | Không cắt, nó ghép tốt với backend |
-
-> Nếu đến cuối tháng 12 bạn vẫn muốn Reanimated sâu, làm nó tháng 1 khi đã có việc. Nó không phải thứ chặn bạn được tuyển.
+1. **Không embed / gọi LLM trong request path nóng** — enqueue pg-boss; trả 202 + job id khi cần.
+2. **Đo trước khi cache** — không Redis “cho vui”. ETag/Redis chỉ sau khi có p95 / EXPLAIN chứng minh bottleneck.
+3. **SSE trước WebSocket** — một chiều server→client đủ cho meal/slot update; tự host `ws` chỉ khi có lý do.
+4. **Eval tay ≥ 5 câu** cho RAG trước khi khoe “có AI”. Cite nguồn trong answer.
+5. **Decision Note** mỗi ngày: Claim → Evidence → Boundary. Nói to ≤60s.
 
 ---
 
-## 5. Tech stack bổ sung — vẫn miễn phí
+## 4. Tech stack bổ sung (vẫn free-tier mindset)
 
-| Lớp | Chọn | Free tier | Ghi chú |
-| --- | --- | --- | --- |
-| Hàng đợi + cron | **pg-boss** | — | Dùng chính Postgres. Không thêm dịch vụ |
-| Email | **Resend** | 3.000/tháng | Xác thực, đặt lại mật khẩu, nhắc lịch |
-| Cache | **Upstash Redis** | 10.000 lệnh/ngày | Chỉ dùng khi đã đo và thấy cần |
-| Real-time | **WebSocket (`ws`)** trên Render, hoặc **SSE** | — | SSE đơn giản hơn, đủ cho một chiều |
-| Log | **pino** → **Better Stack** | 1 GB/tháng | Log JSON có `requestId` xuyên suốt |
-| Chỉ số | **Prometheus format** + Grafana Cloud | 10k series | Chỉ nếu còn thời gian |
-| LLM | **Google AI Studio (Gemini)** hoặc **Groq** | Có bậc miễn phí thật | Rẻ hơn OpenAI cho việc học |
-| Lưu file | **Cloudflare R2** | 10 GB | Ảnh bữa ăn |
-| Tài liệu API | **Scalar** + OpenAPI sinh từ Zod | — | Giao diện đẹp, không tốn gì |
-| Container | **Docker** cục bộ | — | Chỉ để hiểu, không cần đăng ký |
-
-**Nếu Render ngủ làm bạn khó chịu:** đó là bài học chứ không phải lỗi. Ngày 08/12 sẽ xử lý bằng cron đánh thức và bằng cách thiết kế client chịu được cold start.
+| Lớp | Chọn | Ghi chú |
+| --- | --- | --- |
+| Queue | **pg-boss** (đã có) | Embedding, báo cáo, push — không `setTimeout` |
+| Vector | **pgvector trên Neon** | Không thêm cloud vector nếu free tier đủ |
+| Realtime | **SSE** | Cold start: client reconnect + UX “đang thức server” |
+| Cache | **ETag** → **Upstash Redis** chỉ khi đo cần | |
+| LLM | Gemini / Groq qua Gateway | Cost + rate limit đã có từ Nov |
+| Docs API | OpenAPI từ Zod + Scalar | Không drift schema tay |
+| Container | Docker local API + Postgres | Hiểu container, không K8s |
+| Trace | `requestId` xuyên Mobile → Fastify → LLM → DB | p95, không average |
 
 ---
 
-## 6. Bốn câu hỏi phỏng vấn fullstack bạn phải trả lời được
+## 5. Bốn câu hỏi Tech Lead — phải defend được cuối tháng
 
-Đây là bốn câu quyết định bạn có được coi là fullstack thật hay không. Mỗi tuần trong tháng 12 trả lời được thêm một câu.
-
-1. **"Một request đi từ ngón tay người dùng đến database rồi quay lại — kể hết cho tôi."**
-   *Trả lời được sau tuần 14.* Phải nói được: chạm màn hình → TanStack Query → HTTP → Render load balancer → Fastify → middleware xác thực → route → service → Drizzle → connection pool → Postgres → và toàn bộ đường về, kèm chỗ nào có thể hỏng.
-
-2. **"Hai người dùng cùng sửa một bản ghi. Chuyện gì xảy ra?"**
-   *Trả lời được sau tuần 15.* Transaction, mức cô lập, khoá lạc quan bằng cột version, và bạn đã chọn gì.
-
-3. **"API của anh chậm. Anh tìm nguyên nhân thế nào?"**
-   *Trả lời được sau tuần 16.* Log có `requestId`, đo p95 chứ không đo trung bình, `EXPLAIN ANALYZE`, tìm N+1, rồi mới nghĩ tới cache.
-
-4. **"Vì sao anh không dùng microservice / Kubernetes / GraphQL?"**
-   *Trả lời được ngay hôm nay.* Vì sản phẩm có 5 người dùng và một người phát triển. Chọn kiến trúc theo bài toán, không theo CV.
+1. **Đường đi 1 request** (ngón tay → DB → UI), kèm chỗ hỏng và chỗ có AI/RAG.
+2. **Hai người sửa một bản ghi** — optimistic lock + realtime conflict.
+3. **API chậm** — tìm bằng `requestId`, p95, EXPLAIN, rồi mới cache.
+4. **Vì sao không microservice / K8s / GraphQL / key trên mobile** — chọn theo bài toán MacroZone + AI-era boundary.
 
 ---
 
-## 7. Tìm việc — tháng này là thật
-
-**Mục tiêu tháng 12:** ít nhất **3 buổi phỏng vấn thật**. Không phải 3 offer — 3 buổi.
-
-| Thứ | Việc (16:00–16:30) |
-| --- | --- |
-| T2 | Nhắn 3 người quen. Ưu tiên người đang làm ở công ty bạn muốn vào |
-| T3 | Nộp 3 đơn có viết thư riêng, không copy |
-| T4 | Nhắn 2 người lạ có chọn lọc *(người viết bài kỹ thuật bạn đọc, người tổ chức meetup)* |
-| T5 | Theo dõi lại mọi thứ chưa hồi âm sau 7 ngày |
-| T6 | Cập nhật CV + chuẩn bị riêng cho các buổi phỏng vấn tuần sau |
-
-**Mẫu tin nhắn xin giới thiệu — dùng thật, đừng chế thêm:**
-
-> *"Chào anh/chị [tên], em là Nhân, trước làm React Native ở Firegroup. Em thấy [công ty] đang tuyển [vị trí]. Bốn tháng qua em tự làm một app dinh dưỡng chạy trên TestFlight và Play, viết luôn cả backend Node — có repo và app tải được ở đây: [link]. Em muốn hỏi anh/chị có thể cho em một lời giới thiệu nội bộ không ạ? Nếu không tiện thì cũng không sao, em cảm ơn anh/chị đã đọc."*
-
-Ba điểm khiến tin nhắn này hoạt động: có bằng chứng kiểm chứng được ngay, hỏi thẳng điều mình muốn, và cho người ta đường lui.
-
-**Về tiền và thời gian:** tháng 12 là tháng thứ 10 không lương. Nếu đến 15/12 áp lực tài chính thành nghiêm trọng, nhận một công việc dưới mong muốn **không phải thất bại** — đó là quyết định hợp lý, và bạn vẫn tìm tiếp được khi đã có thu nhập. Quyết định đó nên cân nhắc lúc bình tĩnh, giống như con số rời bàn.
-
----
-
-## 8. Tiếng Anh — vòng cuối
-
-| Thứ | Dạng bài |
-| --- | --- |
-| T2 | Standup |
-| T3 | Giải thích một khái niệm hệ thống *(hàng đợi, cache, transaction)* |
-| T4 | Dẫn người khác đi qua kiến trúc của bạn, 3 phút |
-| T5 | 3 câu phỏng vấn, có câu backend |
-| T6 | Nghe lại, so với bản ghi ngày 07/09 |
-
-Ngày 31/12 nghe lại bản ghi đầu tiên của ngày 07/09. Đó là thước đo duy nhất trong 4 tháng mà bạn nghe thấy được bằng tai.
-
----
-
-## 9. Định nghĩa hoàn thành — 31/12/2026
+## 6. Definition of Done — 31/12/2026 (kỹ thuật)
 
 **Sản phẩm**
-- [ ] v2.1.0 trên cả hai kho
-- [ ] Nhắc bữa ăn tự động chạy từ server, tôn trọng giờ yên lặng
-- [ ] Cập nhật real-time khi dữ liệu đổi
-- [ ] Tính năng AI qua backend, RAG có eval tay 5 câu, khoá không nằm trong app
-- [ ] `docs/rag.md` + prompt playbook nối Dec
+- [ ] v2.1.0 trên store nội bộ
+- [ ] RAG production path: chunk → embed job → retrieve → cite → stream UI
+- [ ] Eval tay 5 câu + `docs/rag.md`
+- [ ] SSE cập nhật meal/slot; client chịu cold start
+- [ ] Deep link tới meal / AI answer
 
-**Kỹ thuật**
-- [ ] Hàng đợi việc có thử lại và hàng đợi chết
-- [ ] Log có `requestId` truy được xuyên suốt một request
-- [ ] `EXPLAIN ANALYZE` ít nhất 3 truy vấn, có thêm index và đo lại
-- [ ] Ngân sách độ trễ API: p95 dưới ngưỡng bạn tự đặt
-- [ ] Tài liệu OpenAPI sinh tự động
-- [ ] Dockerfile chạy được cục bộ
+**Hệ thống**
+- [ ] p95 API dưới ngân sách tự đặt; có số trước/sau
+- [ ] OpenAPI sinh từ Zod, không drift
+- [ ] Docker Compose local API + DB chạy được
+- [ ] Optimistic lock + conflict path có demo
+- [ ] 3 buổi mock Tech Lead tự chấm rubric (28–30/12)
 
-**Hồ sơ**
-- [ ] CV có mục Backend đầy đủ, định vị "Fullstack Mobile Engineer"
-- [ ] README hai repo, có sơ đồ kiến trúc
-- [ ] 5 bài viết kỹ thuật *(3 cũ + 2 mới về backend)*
-- [ ] `docs/interview-cheatsheet.md` phiên bản fullstack, in ra giấy
-
-**Việc làm**
-- [ ] Ít nhất 3 buổi phỏng vấn thật
-- [ ] Ít nhất 50 người đã nhắn tính từ tháng 11
-- [ ] Kế hoạch tháng 1/2027 đã viết
+**Không nằm trong DoD ngày:** lịch tìm việc / gym / English — nếu cần theo dõi apply, một dòng ngoài curriculum, không nhồi vào file ngày.
 
 ---
 
-## 10. Sau 31/12
+## 7. Sau 31/12 (kỹ thuật)
 
-Chương trình 82 ngày kết thúc. Ba khả năng:
-
-**Đã có offer.** Nhận. Tháng 1 tập trung vào 90 ngày đầu ở chỗ mới, không học thêm gì mới.
-
-**Đang trong quy trình.** Tháng 1 giữ nguyên lịch nhưng đảo tỉ lệ: buổi sáng chuẩn bị riêng cho từng công ty, buổi chiều bảo trì sản phẩm. Không thêm tính năng.
-
-**Chưa có gì.** Vấn đề gần như chắc chắn nằm ở kênh tiếp cận, không ở năng lực — vì đến lúc đó năng lực đã có bằng chứng công khai. Ba việc đổi: nhờ giới thiệu trực tiếp thay vì nộp lạnh, mở rộng sang công ty gia công có khách nước ngoài, và cân nhắc nghiêm túc việc nhận mức thấp hơn để quay lại thị trường.
-
-> Trong cả ba trường hợp, thứ bạn xây trong 82 ngày vẫn còn nguyên. Nó không hết hạn vào ngày 31/12.
+Chương trình 4 tháng AI-Native kết thúc về mặt curriculum. Giữ repo + runbook + cheatsheet fullstack. Skill 2027 ghi ở ngày 31 — chỉ chiều sâu kỹ thuật (không lifestyle).
 
 ---
 
-_Đọc file này trước khi mở bất kỳ file ngày nào của tháng 12._
+_Đọc file này trước khi mở bất kỳ `Dec/DD-*-dec.mdc` nào._

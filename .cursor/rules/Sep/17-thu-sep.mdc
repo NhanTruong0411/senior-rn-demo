@@ -1,32 +1,87 @@
 ---
-description: Thứ Năm 17/09/2026 — Tuần 2 Ngày 4. Haptics, Share, Clipboard, Notifications + EAS profile đầu.
+description: Thứ Năm 17/09/2026 — Tuần 2 Ngày 4. Streaming AI coach reply UI token-by-token.
 alwaysApply: false
 ---
 
-# Thứ Năm · 17/09/2026 · Tuần 2 — Ngày 9/82
+# Thứ Năm 17/09/2026 — Streaming Coach UI (Token-by-Token)
+
+> **Mục tiêu kỹ sư:** Render phản hồi coach AI **từng token** mượt; **không** re-render cả cây màn hình mỗi chunk.
+> **Tư duy:** AI scaffold stream consumer + bubble UI → Bạn tấn công backpressure/cancel stub, đo Profiler, defend streaming pattern.
+> **Bản đồ tháng:** Tháng 9 PRODUCER · Tuần 2.
+> **Sản phẩm:** MacroZone AI-Native — coach gắn meal context (calo/protein đã log), không chat app generic.
+
+**Cấm:** LLM key trên client. Stream từ mock ReadableStream / local SSE stub hôm nay; Abort sâu = 22/09.
 
 ---
 
-## Lịch
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — Native modules Expo theo STEPS (haptics/share/…) |
-| **13:30** | HỌC — Notifications: **xin quyền đúng lúc** (không first launch) + đọc EAS docs |
-| **16:30** | EN — PV ≤60s notifications |
-| **17:00** | Decision note |
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Màn / sheet **AI Coach**: gửi context meal hôm nay (đã parse) → nhận stream text tư vấn ngắn.
+    2. UI: bubble cập nhật theo chunk; cursor/typing indicator khi `streaming`.
+    3. Mock stream: emit token mỗi 30–50ms; hỗ trợ `onChunk` / `onDone` / `onError`.
+    4. Tách component `StreamingText` (nhận `text` hoặc append ref) khỏi list meal / tabs.
+  - **Ranh giới:**
+    - Không append chunk bằng cách clone toàn bộ screen state nếu tránh được.
+    - Zustand session đầy đủ = Tuần 3; hôm nay được dùng `useState` + ref tối thiểu **hoặc** slice nhỏ — ghi rõ trong Decision Note.
+- **Scaffold Code:** AI sinh mock stream + UI; bạn reject full-tree setState mỗi token.
+
+**Intent 3 dòng:**
+1. Làm gì: token-by-token coach UI không giật.
+2. Không làm gì: AbortController hoàn chỉnh, Zustand machine, voice.
+3. Xong khi: stream 200 token FPS ổn; Profiler không highlight cả App.
 
 ---
 
-## Engineer
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-Permission timing = product judgment. Ghi playbook 5 dòng nối với Prompt Eng: “specific intent”.
-
-`eas build:configure` nếu STEPS tới — chưa cần production store.
+- **Kịch bản tấn công 1 (Logic / Edge):**
+  - Chunk rỗng; chunk cực lớn (1KB); `onError` giữa stream; double-start 2 stream chồng.
+  - Ép: chỉ một stream active; reset buffer khi start mới; error → UI + giữ partial text có nhãn "incomplete".
+- **Kịch bản tấn công 2 (Prompt / Data leak):**
+  - Context meal có HTML/script trong name; user ép coach trả lại system prompt.
+  - Ép: sanitize context trước gửi mock; không echo secret; max context length.
+- **Bằng chứng:** Stream lifecycle diagram ngắn trong `docs/decisions/2026-09-17.md`.
 
 ---
 
-## Checklist
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-- [ ] Ít nhất 2 native feature STEPS chạy máy thật
-- [ ] Ghi âm `2026-09-17.m4a`
+- **Công cụ:** React DevTools Profiler (bắt buộc) · Flashlight khi scroll + stream đồng thời.
+- **Kịch bản đo:**
+  1. Stream 300 tokens — đếm commits trên `StreamingText` vs parent Screen vs Tab navigator.
+  2. Vừa stream vừa scroll Home (nếu cùng tree) — FPS drop?
+  3. So A: `setState(prev + chunk)` mỗi token vs B: buffer + rAF/`unstable_batchedUpdates` / ref+force selective — chọn 1, đo lại.
+- **Kết quả đo:**
+  - Parent re-render / 100 tokens: ___ → ___
+  - FPS khi stream: ___ → ___
+  - JS thread busy (cảm nhận / Flashlight): ___
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note:**
+  - *Claim:* Streaming UI cô lập vào component/`ref` path; meal list không subscribe từng token.
+  - *Evidence:* Số commit Profiler trước/sau.
+  - *Boundary:* Mock stream; production qua backend SSE/proxy (Nov); cancel mid-stream hardening Tuần 3.
+- **60s Defense Pitch:**
+  > "Coach MacroZone stream từng token vì UX cảm nhận nhanh hơn đợi full completion. Quan trọng hơn tốc độ model là không để mỗi chunk re-render cả tab tree — tôi tách `StreamingText` và đo Profiler: parent commits phải gần như phẳng. Double-start bị chặn; error giữa chừng giữ partial có nhãn. Trade-off: mock stream hôm nay để khóa pattern UI; AbortController và Zustand session status machine sang tuần sau. Key LLM không bao giờ nằm trên điện thoại."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] Mock stream → bubble token-by-token chạy máy thật.
+- [ ] Double-start / mid-error xử lý (ĐẬP 1).
+- [ ] Profiler chứng minh không full-tree re-render (ĐẬP 2) — số ghi note.
+- [ ] 60s pitch trôi (ĐẬP 3).
+- [ ] Không LLM secret trên client.
+
+---
+
+## 6. Carry-forward
+
+- **18/09:** Week 2 harden — voice + Zod + stream E2E audit.
+- **Tuần 3:** Zustand session + AbortController.

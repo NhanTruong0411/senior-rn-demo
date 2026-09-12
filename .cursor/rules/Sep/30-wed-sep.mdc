@@ -1,27 +1,88 @@
 ---
-description: Thứ Tư 30/09/2026 — Tuần 4 Ngày 3. Nộp store + tổng kết tháng 9 Engineer.
+description: Thứ Tư 30/09/2026 — Tuần 4 Ngày 3. Ship TestFlight + Play Internal; AI workflow note tháng 9.
 alwaysApply: false
 ---
 
-# Thứ Tư · 30/09/2026 · Tuần 4 — Ngày 18/82
+# Thứ Tư 30/09/2026 — Ship Internal + AI Workflow Note
 
-> **Ship:** TestFlight + Play Internal. Tổng kết — không feature mới.
+> **Mục tiêu kỹ sư:** Đưa MacroZone AI-Native lên **TestFlight + Google Play Internal**; viết `docs/ai-native-sep.md` — quy trình AI-Native tháng PRODUCER (intent → scaffold → 3 Đập).
+> **Tư duy:** Ship là bài kiểm tra hệ thống — không gõ feature mới. Audit cuối, đo smoke, defend toàn tháng 60s.
+> **Bản đồ tháng:** Tháng 9 PRODUCER · chốt tháng.
+> **Sản phẩm:** MacroZone AI-Native.
+
+**Cấm:** LLM key trên client / eas.json. Không rebuild app từ zero ngày ship.
 
 ---
 
-## Lịch
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — Submit + smoke test build store |
-| **13:30** | HỌC — Tick DoD `00-context-sep` + plan tháng 10 (đọc Oct context) |
-| **16:30** | EN — “What I shipped in September” 3 phút |
-| **17:00** | Đóng sổ tháng 9 |
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Checklist submit: version/build number, icon/splash, privacy permission strings (mic nếu voice), AI flag preview on.
+    2. Build & upload: iOS TestFlight + Android Internal (hoặc tương đương EAS Submit).
+    3. AI sinh `docs/ai-native-sep.md`: 3 Không–3 Đập áp dụng Sep; sơ đồ NL → Zod → Query/Zustand; secret rule; link decision notes tuần 2–4.
+    4. Smoke script 10 bước trên build store (không chỉ Expo Go).
+  - **Ranh giới:** Không merge feature branch lớn ngày ship; chỉ hotfix blocker.
+- **Scaffold Code:** AI viết docs + checklist; bạn chạy submit / điền kết quả.
 
-## DoD tháng
+**Intent 3 dòng:**
+1. Làm gì: ship internal + AI workflow note tháng 9.
+2. Không làm gì: RAG, backend, redesign.
+3. Xong khi: link TestFlight/Play internal + `docs/ai-native-sep.md` merged.
 
-- [ ] TestFlight + Play Internal
-- [ ] Prompt playbook + AI workflow
-- [ ] Không còn thói quen rebuild-from-memory trong plan
-- [ ] Ghi âm `2026-09-30.m4a`
-- [ ] Nghỉ tới 01/10
+---
+
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
+
+- **Kịch bản tấn công 1 (Store binary audit):**
+  - Cài build nội bộ — bật AI: parse text/voice (nếu có), stream, abort, save meal.
+  - Flag off build (nếu có) — AI entry bị chặn.
+  - Secret sweep trên artifact notes / env used for build.
+- **Kịch bản tấn công 2 (Regression ship):**
+  - Permission mic deny trên máy thật.
+  - Offline: mở app, đọc meals đã persist, stream fail có UI.
+  - Sentry: ép 1 parse_fail — event sạch PII.
+- **Bằng chứng:** Smoke 10/10 hoặc danh sách blocker + quyết trong `docs/decisions/2026-09-30.md`.
+
+---
+
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** Flashlight / Profiler trên **release/preview build** (không chỉ dev).
+- **Kịch bản đo:**
+  1. Cold start release build.
+  2. Scroll 100 meals + one stream session.
+  3. So nhanh với số Tuần 3 — có regression không?
+- **Kết quả đo:**
+  - Cold start release: ___ ms
+  - FPS scroll+stream release: ___
+  - Regression vs 25/09? Có / Không — nếu Có, ghi nguyên nhân
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note (Month close):**
+  - *Claim:* Tháng 9 PRODUCER = AI-Native mobile UX đã ship nội bộ với Structured Output, stream, Abort, Query/Zustand boundary, EAS, Sentry — **không** LLM key trên client.
+  - *Evidence:* Store links + smoke + metrics release.
+  - *Boundary:* Chưa security audit sâu / vector / gateway — Oct–Nov.
+- **60s Defense Pitch:**
+  > "Tôi ship MacroZone AI-Native lên TestFlight và Play Internal. User nói hoặc gõ → Zod Structured Output vào meal log; coach stream token-by-token trên Zustand có AbortController; meal list cache bằng TanStack Query. EAS profiles + feature flag; Sentry breadcrumb không gửi transcript. Đo release build cold start và FPS trước khi gọi là xong. Trade-off tháng 9: mock/proxy model để khóa UX mobile; backend AI gateway là tháng 11. Ba Không ba Đập — AI scaffold, tôi tấn công, đo, và defend."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] TestFlight build available cho tester nội bộ.
+- [ ] Play Internal (hoặc EAS Android internal) available.
+- [ ] Smoke 10 bước trên store build (ĐẬP 1).
+- [ ] Metric release ghi note (ĐẬP 2).
+- [ ] `docs/ai-native-sep.md` hoàn chỉnh; 60s month pitch trôi (ĐẬP 3).
+- [ ] Zero LLM secret trong client / eas.json.
+
+---
+
+## 6. Carry-forward
+
+- **Tháng 10 AUDITOR:** Security boundary, evals/Maestro, on-device vector, perf, offline sync — xem `Last4Months.mdc`.
+- **Không mang sang Oct:** Gõ lại MacroZone từ tutorial zero.

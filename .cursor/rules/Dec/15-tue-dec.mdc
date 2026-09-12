@@ -3,39 +3,52 @@ description: Thứ Ba 15/12/2026 — Tuần 16 Ngày 2. RAG theo khóa JS free +
 alwaysApply: false
 ---
 
-# Thứ Ba · 15/12/2026 · Tuần 16 — Ngày 72/82
+# Thứ Ba 15/12/2026 — pgvector RAG Path E2E + Slow Runbook
 
-> **RAG** theo khóa JS free → gắn MacroZone. Vector: **pgvector/Neon**. Runbook API chậm song song.
-> **Engineer mode:** Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
-
----
-
-## Lịch
-
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — Ingest 1 bộ tài liệu dinh dưỡng/user notes → embeddings → retrieve |
-| **13:30** | HỌC — Khóa RAG JS (90p) + map vào MacroZone (`/v1/ai/ask`) |
-| **16:00** | Nộp đơn |
-| **16:30** | EN — Giải thích RAG claim→evidence→boundary |
-| **17:00** | `docs/rag.md` |
+> **Mục tiêu kỹ sư:** Chạy lại toàn pipeline RAG trên Neon/pgvector end-to-end; viết runbook khi chậm (retrieve / embed / LLM).
+> **Tư duy:** Học pattern từ khóa JS free → **gắn MacroZone**, không fork app chatbot riêng. Đo chỗ chậm.
 
 ---
 
-## Engineer focus
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Phải có | Không cần hôm nay |
-| --- | --- |
-| Chunk + embed + top-k + cite nguồn | Agent đa tool phức tạp |
-| Đo 5 câu hỏi tay (đúng/sai) | Benchmark học thuật |
-| Rate limit + max token | Fine-tune |
-
-Boundary nói PV: *RAG giảm bịa khi có corpus; không magically đúng.*
+- **System Prompt / Requirements:**
+  - Yêu cầu: checklist E2E `upload → chunk → job embed → ready → ask → citations → stream`; script smoke một lệnh.
+  - `docs/runbook-slow.md`: triệu chứng → `requestId` → phân nhánh (DB EXPLAIN / queue lag / provider latency / cold start).
+  - Ranh giới: không thêm DataStax nếu pgvector đủ; không fine-tune.
+- **Scaffold Code:** `scripts/rag-smoke.ts`; template runbook.
 
 ---
 
-## Checklist
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-- [ ] Hỏi được 1 câu dựa trên tài liệu đã nạp
-- [ ] 5 câu eval tay ghi bảng
-- [ ] Ghi âm `2026-12-15.m4a`
+- **Kịch bản tấn công 1:** Smoke với user khác token — phải fail isolation.
+- **Kịch bản tấn công 2:** Job embed fail giữa chừng — document không `ready` giả; ask không đọc half-embed silently sai.
+- **Bằng chứng khắc phục:** status machine rõ; smoke assert.
+
+---
+
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** chia timing spans: embed job, retrieve, LLM; EXPLAIN vector; so với W14.
+- **Kết quả:** waterfall ms từng đoạn; cập nhật perf doc.
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note:**
+  - *Claim:* Neon pgvector là vector store mặc định MacroZone.
+  - *Evidence:* smoke E2E + latency spans.
+  - *Boundary:* scale triệu vector → xem HNSW params / store chuyên dụng.
+- **60s Defense Pitch:**
+  > "RAG production là pipeline có trạng thái và runbook, không phải demo notebook. MacroZone: chunk, embed job, pgvector, cite, stream. Khi chậm: requestId → xem queue, EXPLAIN, provider, cold start — đúng thứ tự, không đoán. Key server-only."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] Smoke E2E xanh trên staging
+- [ ] `docs/runbook-slow.md` có nhánh xử lý
+- [ ] Waterfall latency ghi số
+- [ ] 60s pitch trôi

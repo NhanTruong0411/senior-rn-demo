@@ -1,261 +1,67 @@
 ---
-description: Thứ Sáu 27/11/2026 — Tuần 13 Ngày 5. Quan sát được — một requestId đi xuyên từ điện thoại tới database. Phát hành v2.0.0 fullstack.
+description: Thứ Sáu 27/11/2026 — Tuần 13 Ngày 5. requestId tracing mobile→API→DB; v2.0.0; ghi chú chỗ gắn AI SDK.
 alwaysApply: false
 ---
 
-# Thứ Sáu · 27/11/2026 · Tuần 13 — Ngày 60/82
+# Thứ Sáu 27/11/2026 — requestId Tracing + v2.0.0 + AI SDK Attach Point
 
-> Hôm nay bạn làm một thứ mà mobile developer gần như không bao giờ có: **nhìn thấy một request duy nhất đi từ ngón tay người dùng tới database và quay về** — trong một dòng tìm kiếm.
-> Rồi phát hành v2.0.0: phiên bản đầu tiên chạy hoàn toàn trên hạ tầng của chính bạn.
+> **Mục tiêu kỹ sư:** Một `requestId` xuyên **mobile → Fastify → DB/log (và LLM call)**; phát hành **v2.0.0**; ghi chú chỗ gắn AI SDK cho Dec — không invent agent platform hôm nay.
+> **Tư duy:** AI hoàn thiện tracing + release checklist → Bạn audit correlation, đo p95 có id, defend observability tối thiểu.
+> **Bản đồ tháng:** Kết thúc Tuần 13 / tháng ORCHESTRATOR core; 30/11 = cầu jobs.
+> **Sản phẩm:** MacroZone fullstack v2.0.0.
 
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Truy vết một request xuyên hệ thống |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Sentry hai đầu + phát hành v2.0.0 |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tổng kết tuần 13 |
-| **16:00** | **TÌM VIỆC** — cập nhật CV mục Backend |
-| **16:30** | **TIẾNG ANH** — Nghe lại, so sánh |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+**Cấm:** Key LLM trên mobile. Release mà không có health + auth + parse path.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-### 08:30–09:30 · Một mã định danh, xuyên suốt cả hệ thống
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Mobile: generate/propagate `x-request-id` mỗi gọi API; log/crash breadcrumb kèm id.
+    2. API: nhận hoặc tạo id; child logger; truyền vào service; optional SET comment/session var khi query (nếu tiện).
+    3. LLM calls log cùng requestId + latency + tokens.
+    4. Release: bump mobile **v2.0.0** + tag API; checklist TestFlight/Play Internal.
+    5. Doc ngắn `docs/ai-sdk-attach-point.md`: nơi sẽ gắn Vercel AI SDK / LangChain sau — route `/v1/ai/*` đã là biên.
+  - **Ranh giới:** Chưa OpenTelemetry full exporter bắt buộc; correlation id đủ tháng 11.
+- **Scaffold Code:** AI hoàn thiện middleware + release notes.
 
-Hôm 05/11 bạn đã sinh `requestId` ở server. Hôm nay bạn kéo nó dài ra hai đầu.
-
-**Phía mobile — sinh mã và gắn vào mọi request:**
-
-```ts
-const api = ky.create({
-  hooks: {
-    beforeRequest: [(req) => {
-      req.headers.set('x-request-id', crypto.randomUUID());
-    }],
-  },
-});
-```
-
-**Phía server — dùng lại mã của client nếu có:**
-
-```ts
-const app = Fastify({
-  genReqId: (req) => (req.headers['x-request-id'] as string) ?? crypto.randomUUID(),
-});
-```
-
-**Truyền nó xuống tận tầng dưới** bằng `AsyncLocalStorage` — không phải bằng cách nhét thêm tham số vào mọi hàm:
-
-```ts
-import { AsyncLocalStorage } from 'node:async_hooks';
-export const ctx = new AsyncLocalStorage<{ requestId: string }>();
-
-app.addHook('onRequest', (req, _reply, done) => {
-  ctx.run({ requestId: req.id }, done);
-});
-
-// Ở bất cứ đâu sâu trong service hoặc repo:
-logger.info({ requestId: ctx.getStore()?.requestId, durationMs }, 'truy vấn xong');
-```
-
-`AsyncLocalStorage` là thứ đáng học riêng. Nó cho bạn cái mà React Context cho bạn ở phía client: giá trị theo ngữ cảnh, không phải truyền tay qua từng tầng. Đây là một trong những phép so sánh mobile-sang-backend hay nhất bạn có thể nói ra khi phỏng vấn.
-
-Cuối cùng, **trả mã về client** trong header phản hồi và **hiện nó ở màn hình lỗi**:
-
-```tsx
-<Text style={styles.muted}>Mã lỗi: {error.requestId}</Text>
-```
-
-Bây giờ người dùng chụp màn hình gửi bạn, và bạn dán một chuỗi vào ô tìm kiếm log để thấy chính xác chuyện gì đã xảy ra. Đó là khác biệt giữa "để tôi thử tái hiện" và "tôi thấy rồi".
-
-### 09:30–10:30 · Better Stack và ba truy vấn
-
-Nối pino vào Better Stack *(1 GB/tháng miễn phí)*. Rồi tự tạo một lỗi thật từ điện thoại và tìm nó bằng `requestId`.
-
-Ba truy vấn cần lưu sẵn:
-
-| Truy vấn | Trả lời câu hỏi gì |
-| --- | --- |
-| `requestId = "..."` | Chuyện gì xảy ra với **một** người dùng |
-| `level >= 50` trong 24 giờ | Đang có gì hỏng ngay bây giờ |
-| `durationMs > 1000` | Endpoint nào chậm |
-
-**Nguyên tắc phải nhớ khi ghi log:** không bao giờ ghi mật khẩu, token, hay email đầy đủ. Bạn đã cấu hình `redact` hôm 05/11 — hôm nay đọc thử log thật và **kiểm chứng** nó thật sự che. Đừng tin cấu hình mà chưa nhìn thấy đầu ra.
-
-```bash
-git add . && git commit -m "feat: requestId xuyên suốt client-server, log tập trung"
-```
+**Intent 3 dòng:**
+1. Làm gì: tracing e2e + v2.0.0 + AI SDK note.
+2. Không làm gì: RAG production (Dec).
+3. Xong khi: 1 requestId tìm thấy trên mobile log + server log cho cùng 1 parse.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:15 · Sentry ở đầu server
-
-```ts
-Sentry.init({
-  dsn: env.SENTRY_DSN,
-  tracesSampleRate: 0.1,          // 10% là đủ, và giữ trong hạn mức miễn phí
-  beforeSend(event) {
-    delete event.request?.headers?.authorization;   // đừng gửi token cho bên thứ ba
-    return event;
-  },
-});
-```
-
-**Quyết định quan trọng: cái gì nên báo cho Sentry?**
-
-| Loại | Gửi Sentry? | Vì sao |
-| --- | --- | --- |
-| Lỗi 500 | **Có** | Bug của bạn |
-| Lỗi 400 xác thực dữ liệu | Không | Hành vi mong đợi, không phải lỗi |
-| 401 / 403 | Không | Hoạt động bình thường |
-| 429 | Không, nhưng **đếm** | Nhiều bất thường thì mới đáng xem |
-| Truy vấn quá 1 giây | Có, mức cảnh báo | Chưa hỏng nhưng đang xấu đi |
-
-Nếu gửi hết, Sentry thành đống rác và bạn ngừng đọc nó. **Cảnh báo mà không ai đọc còn tệ hơn không có cảnh báo** — vì nó tạo cảm giác an toàn giả.
-
-Gắn `requestId` vào tag của Sentry. Bây giờ từ một lỗi trong Sentry bạn nhảy thẳng sang toàn bộ log của request đó.
-
-Giãn cơ 5 phút lúc 14:15.
-
-### 14:15–15:00 · Phát hành v2.0.0
-
-**Vì sao là 2.0.0 chứ không phải 1.5.0:** backend đã đổi hoàn toàn. Không phải thêm tính năng — là thay nền móng. Số phiên bản nên nói thật về mức độ thay đổi.
-
-```bash
-# Kiểm tra trước khi phát hành
-npm run test && npm run test:integration     # API
-npx expo-doctor                              # mobile
-```
-
-- [ ] API trên Render, health check xanh
-- [ ] Migration đã chạy trên database sản xuất
-- [ ] Mobile trỏ vào URL API sản xuất, không phải localhost
-- [ ] **Đã thử luồng đăng ký → thêm bữa ăn → đăng xuất → đăng nhập lại trên máy thật**
-- [ ] Sentry nhận được sự kiện từ cả hai đầu
-
-```bash
-eas build --profile production --platform all
-eas submit --platform all
-```
-
-Viết ghi chú phát hành thật, cho người dùng đọc chứ không cho lập trình viên đọc:
-
-> **v2.0.0** — Dữ liệu của bạn giờ được đồng bộ giữa các thiết bị. Đăng nhập trên điện thoại khác và mọi bữa ăn vẫn ở đó. Nhắc bữa ăn hoạt động ngay cả khi ứng dụng đóng.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Tổng kết tuần 13
-
-**Tuần này bạn đã có:** (giữ bảng test/CI/OWASP/push/requestId/v2.0.0)
-
-Thêm **30 phút:** đọc Vercel AI SDK overview + phác `/v1/ai/meal-suggest` trên giấy (chưa code nếu chưa kịp). Ghi `docs/ai-boundaries-mobile.md` nếu tháng 10 chưa có: client không giữ LLM key.
-
-| Ngày | Kết quả |
-| --- | --- |
-| T2 | Test tích hợp trên Postgres thật, 7 kịch bản bảo mật |
-| T3 | CI có nhánh database riêng cho mỗi PR |
-| T4 | Giới hạn tài nguyên đủ 6 loại, bảng OWASP đã điền hết |
-| T5 | Push notification gửi từ server, dọn token chết |
-| T6 | `requestId` xuyên suốt, Sentry hai đầu, **v2.0.0** |
-
-**Bài viết thứ tư — viết trong 30 phút, đừng cầu toàn:**
-
-*"Tracing one request from a phone to Postgres and back"*
-
-Cấu trúc: vấn đề *(người dùng báo lỗi, bạn không tái hiện được)* → cách làm *(một mã định danh, ba chặng)* → `AsyncLocalStorage` và vì sao nó giống React Context → hiện mã lỗi cho người dùng → kết quả.
-
-**Bài này là bài dễ được chú ý nhất trong bốn bài**, vì rất ít người viết về truy vết xuyên client-server từ góc nhìn mobile.
-
-**Ba câu tự hỏi:**
-1. Test bảo mật của tôi có thật sự bắt được lỗi không, hay tôi chỉ tin là có? *(T3 đã kiểm chứng — có bằng chứng)*
-2. Nếu API sập lúc 3 giờ sáng, tôi biết bằng cách nào?
-3. Trong bốn câu hỏi phỏng vấn fullstack ở context tháng 12, tôi trả lời được mấy câu rồi?
-
-Câu 3 quan trọng. Đọc lại mục 6 của `Dec/00-context-dec.mdc` và tự chấm thẳng thắn.
+- **Kịch bản 1:** Client gửi requestId siêu dài/lạ — sanitize/validate format.
+- **Kịch bản 2:** Log có PII + requestId? Redact body nhạy cảm.
+- **Bằng chứng:** Hai dòng log matched by same id (screenshot/paste redact).
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — CV có mục Backend
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-Định vị lại dòng tiêu đề:
-
-> **Fullstack Mobile Engineer** — React Native · Node.js · PostgreSQL
-
-Thêm mục Backend, viết bằng **kết quả có số**, không viết bằng tên công nghệ:
-
-- Thiết kế và vận hành REST API bằng Fastify + PostgreSQL, phục vụ ứng dụng di động đang chạy trên App Store và Google Play
-- Tự viết xác thực có xoay refresh token và **phát hiện tái sử dụng token**
-- Test tích hợp chạy trên database thật, mỗi pull request được cấp một nhánh database riêng
-- Truy vết một request xuyên suốt từ client tới database bằng mã định danh chung
-
-Dòng thứ hai và thứ tư là hai dòng khiến người đọc CV dừng lại. Rất ít ứng viên mobile có chúng.
+- **Công cụ:** pino + mobile timing; k6 nhẹ health/parse mock.
+- **Kịch bản:** 20 request — 100% có requestId xuyên suốt?
+- **Kết quả:** coverage correlation ___% · p95 parse ___ · release build size/time note
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Sáu: Nghe lại
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Nghe `2026-11-02.m4a` *(ngày đầu tháng)* rồi nghe `2026-11-26.m4a`.
-
-| Đo | 02/11 | 26/11 |
-| --- | --- | --- |
-| Số lần "ừm" mỗi phút | | |
-| Nói được bao lâu không dừng | | |
-| Từ vựng backend dùng tự nhiên | | |
-
-Ghi âm 3 phút cuối cùng của tháng: *"What I built in November."*
+- **Decision Note:**
+  - *Claim:* Correlation id một process + mobile header là observability tối thiểu trước OTel full.
+  - *Evidence:* Matched logs + v2.0.0 shipped.
+  - *Boundary:* Distributed tracing multi-service → Dec nếu tách worker; AI SDK gắn tại gateway đã có.
+- **60s Defense Pitch:**
+  > "v2.0.0: mobile nói chuyện API tự host — auth, meals, AI parse/tools, push từ server. Mọi request có requestId từ máy tới log API. Key model không bao giờ trên device. AI SDK tháng 12 gắn vào biên `/v1/ai` đã dựng. Tuần tới: pg-boss cho job embed — không setTimeout giả hàng đợi."
 
 ---
 
-## GHI CHÚ · 17:00–17:30
+## 5. Definition of Done (DoD kỹ thuật) — Tuần 13 / v2.0.0
 
-- Đăng bài viết thứ tư
-- Cập nhật `docs/interview-cheatsheet.md`: thêm mục Backend
-- Viết `docs/observability.md`: ba truy vấn lưu sẵn, quy tắc cái gì báo Sentry
-
----
-
-## Checklist cuối tuần
-
-- [ ] `requestId` sinh ở mobile, server dùng lại, **hiện trên màn hình lỗi**
-- [ ] `AsyncLocalStorage` truyền ngữ cảnh xuống tầng dưới
-- [ ] Nối được `AsyncLocalStorage` với React Context khi giải thích
-- [ ] Log tập trung, **đã kiểm chứng bằng mắt rằng `redact` che thật**
-- [ ] Ba truy vấn log đã lưu sẵn
-- [ ] Sentry hai đầu, **có quy tắc rõ cái gì báo cái gì không**
-- [ ] **v2.0.0 đã nộp cả hai kho**
-- [ ] Đã thử luồng đầy đủ trên máy thật trước khi nộp
-- [ ] Bài viết thứ tư đã đăng
-- [ ] CV định vị **Fullstack Mobile Engineer**, có 4 dòng backend
-- [ ] Đã tự chấm 4 câu hỏi phỏng vấn fullstack
-- [ ] Ghi âm `2026-11-27.m4a`
-- [ ] **Cuối tuần nghỉ hoàn toàn. Không mở máy.**
+- [ ] requestId e2e chứng minh được.
+- [ ] v2.0.0 release checklist tick.
+- [ ] `ai-sdk-attach-point.md` có; 60s pitch trôi.

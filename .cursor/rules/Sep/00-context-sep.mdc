@@ -1,125 +1,69 @@
 ---
-description: Context tháng 9/2026 — SHIP product + tư duy React Native Engineer (AI era). Đọc trước mọi file ngày.
+description: Context tháng 9/2026 — PRODUCER: MacroZone AI-Native Mobile & Streaming. Đọc trước mọi file ngày Sep.
 alwaysApply: false
 ---
 
-# Tháng 9/2026 — Tháng 1: SHIP (Engineer mode)
+# Tháng 9/2026 — PRODUCER: MacroZone AI-Native Mobile & Streaming
 
-> **Mục tiêu tháng:** Một app thật trên **TestFlight + Play Internal** — MacroZone (theo khóa Traversy, không invent app).
-> **Danh xưng luyện:** React Native Engineer, không phải thợ gõ theo tutorial.
-> **Nhịp:** T2–T6 · T7+CN nghỉ · Bắt đầu **07/09/2026**.
+> **Mục tiêu tháng:** Biến MacroZone từ app CRUD tĩnh thành **AI-Native mobile** — Structured Output, Voice-to-Action, streaming UI, Zustand async, Abort/Cancel — rồi ship **TestFlight + Play Internal**.
+> **Vai trò luyện:** AI-Native Fullstack Architect (Producer phase) — ra lệnh scaffold, tấn công, đo đạc, thẩm định.
+> **Nhịp:** T2–T6 · bắt đầu **07/09/2026** · chốt ship **30/09**.
+> **Master rule:** `Last4Months.mdc` — **3 Không · 3 Đập** bắt buộc mỗi ngày.
 
 ---
 
-## 0. Luật thời đại AI (áp dụng cả Sep–Dec)
+## 0. 3 Không — 3 Đập (pointer)
 
-### Không làm nữa
+Chi tiết đầy đủ: [`.cursor/rules/Last4Months.mdc`](../Last4Months.mdc).
 
-| Cấm | Vì sao |
+| | Nội dung |
 | --- | --- |
-| Gõ lại tutorial từng dòng “cho thuộc” | AI gõ nhanh hơn; thuê người vì **phán đoán**, không vì tốc độ gõ |
-| Dựng lại cùng app từ trí nhớ (vd. `sticker-smash-v2`) | Busywork; không tạo portfolio mới |
-| Invent app từ ý tưởng trống | Bạn đã chốt: chỉ khóa có thực hành → product có sẵn đường ray |
-| Nhét API key LLM vào app mobile | Anti-pattern; AI gọi qua backend (tháng 11–12) |
+| **3 Không** | Không gõ boilerplate tay · Không học thuộc API docs · Không làm bài tập đồ chơi |
+| **ĐẬP 1** | Red-team schema, prompt injection, race / double-submit, secret boundary |
+| **ĐẬP 2** | Profiler / Flashlight — FPS, re-render, memory khi stream / parse |
+| **ĐẬP 3** | Decision Note (Claim → Evidence → Boundary) + 60s Defense Pitch |
 
-### Làm thay thế — Quy tắc 3 vòng (Engineer)
-
-| Vòng | Làm gì | Khối ưu tiên |
-| --- | --- | --- |
-| **1 — Hiểu** | Đọc/xem khóa hoặc docs. Chạy code mẫu. Viết **Decision note** 5–10 dòng: claim → evidence → boundary. **Không** bắt buộc gõ tay. | Chiều (HỌC) |
-| **2 — Ship** | Đưa bài học vào **MacroZone** (hoặc StickerSmash tuần 1). Được dùng AI/scaffold/copy có chủ đích — **bắt buộc review mọi diff** như code review PR. | Sáng (XÂY) |
-| **3 — Harden** | Thêm lớp khóa học không dạy: loading/error/empty, quyền bị từ chối, secure storage, TypeScript chặt, đo trước khi tối ưu. | Sáng hoặc cuối tuần |
-
-**Luật AI-as-coworker (mọi ngày):**
-
-1. Trước khi nhờ AI code: viết 3 dòng *intent* (làm gì / không làm gì / tiêu chí xong).
-2. Sau khi AI trả code: bạn phải nói được *vì sao chấp nhận* hoặc *chỗ reject*.
-3. Không merge thứ bạn không giải thích được trong 60 giây.
+**Cấm cứng tháng 9:** LLM API key trong mobile client / `eas.json` / bundle. Gọi model qua mock hoặc proxy local; backend thật → Nov.
 
 ---
 
-## 1. Lịch cố định (giữ pattern)
+## 1. Lộ trình tháng 9 (MacroZone AI-Native)
 
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. **Không chạm điện thoại** |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê *(1 ly)* |
-| 06:30–08:00 | Bé + nhà |
-| **08:30–10:30** | **KHỐI XÂY** — Ship / Harden / review AI. Giãn cơ 09:30 |
-| 10:30–13:00 | Bé / thư giãn / ăn |
-| 13:00 | Ngủ 30 phút |
-| **13:30–16:00** | **KHỐI HỌC** — khóa/docs + Decision notes (nghỉ 10p lúc 15:00) |
-| **16:00–16:30** | **TÌM VIỆC** nhẹ *(từ giữa tháng; tuần 1 có thể = ghi chú kỹ thuật)* |
-| **16:30–17:00** | **TIẾNG ANH** |
-| **17:00–17:30** | **ĐỌC / GHI CHÚ ENGINEER** — sách hoặc `docs/decisions/` |
-| 17:30–21:30 | Gia đình · ngủ 21:30 |
-
----
-
-## 2. Lộ trình tháng 9 (có AI nhẹ)
-
-| Tuần | Ngày | Nội dung | Product / bằng chứng |
+| Tuần | Ngày | Trọng tâm | Bằng chứng ship |
 | --- | --- | --- | --- |
-| **1** | 07–11/09 | Expo Tutorial **một lần** (hiểu + ship StickerSmash) + **Prompt Engineering** (DeepLearning.AI) | StickerSmash chạy máy thật · sổ prompt |
-| **2** | 14–18/09 | Traversy **MacroZone** theo STEPS — Engineer review, không gõ mù | MacroZone CRUD + EAS profile |
-| **3** | 21–25/09 | Harden MacroZone: theme, stats, Zod, TanStack Query, Zustand | App “Middle-shaped” |
-| **4** | 28–30/09 | EAS Build/Update + store + **AI workflow note** (dùng AI thế nào trong sprint) | **TestFlight + Play Internal** |
+| **W1** | 07–11/09 | **Streaming UI scaffold** (legacy week — StickerSmash + prompt mental model; giữ nhẹ, không rebuild) | App chạy máy thật · hiểu file-based routing · intent→review AI |
+| **W2** | 14–18/09 | **Voice-to-Action + Structured Output (Zod)** — text/voice → `MealLogSchema` → form; multi-item; stream coach UI | Pipeline Zod gate · voice STT · stream token-by-token |
+| **W3** | 21–25/09 | **Zustand async AI stream + Abort/Cancel** — session store, FlashList history, Query boundary | Status machine · cancel mid-stream · Zustand vs Query rõ |
+| **W4** | 28–30/09 | **EAS + TestFlight/Play + AI feature ship** | Build profiles · EAS Update · Sentry · store internal |
 
-**AI tháng này = nền tảng ứng dụng (prompt + tư duy điều khiển model) + thói quen review AI code.** Chưa RAG, chưa LangChain — để Nov/Dec khi có Node API.
+**Không mang sang tháng 9:** RAG, LangChain, Fastify gateway, pgvector — để Oct–Dec.
 
 ---
 
-## 3. Tài nguyên (khóa có đường ray → product)
+## 2. Sản phẩm & ranh giới
 
-### Product chính
-| Tên | Link |
+| Mục | Quyết định |
 | --- | --- |
-| Expo Official Tutorial (StickerSmash) | https://docs.expo.dev/tutorial/introduction/ |
-| Traversy MacroZone STEPS | https://github.com/bradtraversy/macrozone/blob/master/STEPS.md |
-| Traversy MacroZone repo | https://github.com/bradtraversy/macrozone |
-
-### AI (tháng 9)
-| Tên | Link |
-| --- | --- |
-| DeepLearning.AI — ChatGPT Prompt Engineering for Developers | https://www.deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers/ |
-| OpenAI — Prompt engineering guide (đọc) | https://platform.openai.com/docs/guides/prompt-engineering |
-
-### Docs Engineer (Vòng 1–3)
-Expo Router · Expo SDK · RN · TypeScript · Zod · TanStack Query · Zustand · FlashList · EAS Build/Update — như cũ trên docs chính thức.
+| Product | **MacroZone AI-Native** (dinh dưỡng / meal log) |
+| Ray tham chiếu | Traversy MacroZone STEPS — hiểu architecture, không copy mù từng dòng |
+| State tháng này | Zod Structured Output · Zustand (AI session UI) · TanStack Query (meal list cache) · FlashList |
+| Secret | Zero LLM key trên client; feature flag AI qua env không commit secret |
 
 ---
 
-## 4. Tiếng Anh (30 phút — giữ)
+## 3. Định nghĩa hoàn thành — 30/09
 
-Shadowing 10p · Nói ghi âm 15p · 5 từ 5p.  
-Chủ đề T2 standup / T3 khái niệm / T4 nghe chép / T5 PV ≤60s / T6 review tuần.  
-**Thêm góc Engineer:** mỗi tuần ≥1 câu có *trade-off* và *what I rejected from AI*.
-
----
-
-## 5. Đọc / ghi chú 17:00
-
-Ưu tiên ngắn, dùng được khi PV:
-
-1. Decision notes trong `docs/decisions/YYYY-MM-DD.md` (5–10 dòng/ngày học)
-2. Sách: *A Philosophy of Software Design* (Ousterhout) — không bắt kịp trang nếu đang ship store
+- [ ] MacroZone AI-Native: text + voice → Zod `MealLog` → persist; parse fail có UI + Sentry breadcrumb
+- [ ] Streaming coach reply: token-by-token, không full-tree re-render; AbortController cancel được
+- [ ] Decision notes: Zustand vs Query, Structured Output gate, EAS secret boundary
+- [ ] **TestFlight + Play Internal** với AI feature flag bật trên internal track
+- [ ] `docs/ai-native-sep.md` — AI workflow note tháng 9 (intent → scaffold → 3 Đập)
+- [ ] Không có LLM secret trong repo / eas.json / binary
 
 ---
 
-## 6. Định nghĩa hoàn thành — 30/09
+## 4. Câu thần chú khi mở file ngày
 
-- [ ] StickerSmash **hiểu và giải thích được** kiến trúc file-based routing (không cần repo v2 từ trí nhớ)
-- [ ] MacroZone theo Traversy đã harden (theme/stats/API/Zod/Query)
-- [ ] **TestFlight + Play Internal**
-- [ ] Hoàn thành short course Prompt Engineering + 1 trang `docs/prompt-playbook.md`
-- [ ] ≥15 decision notes; ghi âm EN có tiến bộ vs 07/09
-- [ ] Commit ngày làm việc — message nói *why*, không chỉ *what*
+> *"AI scaffold trong 5 phút. Tôi ĐẬP schema/stream/secret, đo Profiler, rồi defend 60s. Không gõ CRUD cho vui."*
 
----
-
-## 7. Câu thần chú khi mở file ngày
-
-> *"Hôm nay tôi ship / harden / hiểu — không gõ lại cho vui. Mọi dòng AI sinh ra tôi review như PR."*
-
-_Đọc file này trước mọi `DD-*-sep.mdc`._
+_Đọc file này trước mọi `DD-*-sep.mdc`. Chi tiết triết lý: `Last4Months.mdc`._

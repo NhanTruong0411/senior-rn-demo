@@ -1,75 +1,56 @@
 ---
-description: Thứ Sáu 11/12/2026 — Tuần 15 Ngày 5. EXPLAIN ANALYZE lại, chốt p95, tổng kết real-time.
+description: Thứ Sáu 11/12/2026 — Tuần 15 Ngày 5. EXPLAIN lại; p95 budget; DoD tuần 15.
 alwaysApply: false
 ---
 
-# Thứ Sáu · 11/12/2026 · Tuần 15 — Ngày 70/82
+# Thứ Sáu 11/12/2026 — EXPLAIN Lại · p95 Budget · Week 15 DoD
 
-> Đo → sửa index nếu cần → đo lại. Chốt ngân sách. Tổng kết tuần real-time.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Chốt ngân sách độ trễ; EXPLAIN ANALYZE lại các query nóng sau SSE/cache/lock; đóng tuần 15 bằng số, không bằng cảm giác.
+> **Tư duy:** Đo → index/sửa → đo lại. Không mở feature mới hôm nay.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | **KHỐI XÂY** — 3 truy vấn EXPLAIN ANALYZE |
-| **13:30** | **KHỐI HỌC** — Bài viết ngắn + tổng kết tuần 15 |
-| **16:00** | **TÌM VIỆC** — cập nhật CV (real-time + perf) |
-| **16:30** | **TIẾNG ANH** — Nghe lại |
-| **17:00** | **GHI CHÚ** |
+- **System Prompt / Requirements:**
+  - Yêu cầu: script/load test `bench:p95` — 3 endpoint nóng (list meal, ask retrieve-only, PATCH version); output markdown ngân sách.
+  - Ghi `docs/perf-budget-w15.md`: p95 target tự đặt (vd warm API < 300ms, notify < 500ms).
+  - Ranh giới: tách cold/warm; không gộp average.
+- **Scaffold Code:** bench script + chỗ dán EXPLAIN trước/sau.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-Bắt buộc 3 truy vấn (copy plan vào docs):
-
-1. List meals theo user + khoảng ngày
-2. Dispatch reminders (`now() at time zone …`)
-3. Stats theo ngày
-
-Với mỗi cái: Seq Scan hay Index Scan? Thêm index nếu có chứng minh. **Đo lại sau khi thêm.**
-
-Cập nhật bảng p95 tuần này (warm, có cron ping).
+- **Kịch bản tấn công 1:** Index mới có làm chậm write version update quá không?
+- **Kịch bản tấn công 2:** Endpoint “tối ưu” có bỏ filter `userId` không? — audit lại WHERE.
+- **Bằng chứng khắc phục:** checklist security trên query đã đổi.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### Checklist tuần 15
-
-| Mục | Xong? |
-| --- | --- |
-| SSE meals-changed | |
-| Cold start UX + cron ping | |
-| Cache có đo / hoặc quyết định không cache | |
-| Optimistic lock + 409 demo | |
-| p95 dưới ngân sách tự đặt | |
-| Câu hỏi #1 và #2 nói được | |
-
-### Ghi chú kỹ thuật 20 phút
-
-`docs/realtime.md`: SSE vs WS, reconnect, cold start.
-
-Không đăng bài dài nếu đã đăng tuần 14 — chỉ cập nhật README kiến trúc có nhánh events.
+- **Công cụ:** EXPLAIN ANALYZE × ≥3 query; k6 warm p95; so với đầu tuần.
+- **Kết quả:** bảng query / Seq Scan→Index / p95 before→after; tick đạt/không đạt budget.
 
 ---
 
-## TÌM VIỆC
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Bullet CV:
-
-> SSE invalidate cache client; đo p95 API; optimistic locking khi đồng bộ đa thiết bị.
+- **Decision Note:**
+  - *Claim:* Ngân sách p95 W15 = …; SSE + optimistic lock + cache decision giữ nguyên hoặc chỉnh.
+  - *Evidence:* `docs/perf-budget-w15.md`.
+  - *Boundary:* Chưa distributed tracing full — tuần 16 harden.
+- **60s Defense Pitch:**
+  > "Tuần realtime không chỉ 'có SSE'. Mình chốt p95 warm/cold, EXPLAIN lại query nóng, và không để optimize phá isolation. Conflict có 409, cache chỉ khi đo. Đó là cách đóng sprint hệ thống."
 
 ---
 
-## Checklist cuối tuần
+## 5. Definition of Done (DoD kỹ thuật) — Tuần 15
 
-- [ ] 3 EXPLAIN đã lưu + trước/sau
-- [ ] Ngân sách p95 đạt hoặc có lý do chưa đạt + plan
-- [ ] **T7–CN nghỉ**
-- [ ] Ghi âm `2026-12-11.m4a`
+- [ ] SSE meal/slot + reconnect
+- [ ] Cold start UX + số cold/warm
+- [ ] Cache decision có evidence
+- [ ] Optimistic lock + 409 demo
+- [ ] p95 budget doc + EXPLAIN ≥3
+- [ ] 60s pitch tuần 15 trôi

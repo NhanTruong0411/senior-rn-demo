@@ -1,242 +1,65 @@
 ---
-description: Thứ Tư 25/11/2026 — Tuần 13 Ngày 3. Giới hạn tần suất, bảo vệ tài nguyên, và tự tấn công API của mình bằng tải.
+description: Thứ Tư 25/11/2026 — Tuần 13 Ngày 3. Rate limit + cost guard /v1/ai/*; load test k6.
 alwaysApply: false
 ---
 
-# Thứ Tư · 25/11/2026 · Tuần 13 — Ngày 58/82
+# Thứ Tư 25/11/2026 — Rate Limit + Cost Guard + k6
 
-> Ô còn trống trong bảng OWASP hôm 18/11: **tiêu thụ tài nguyên không giới hạn**.
-> Hôm nay bạn tự tấn công API của mình bằng tải, xem nó gãy ở đâu, rồi vá.
+> **Mục tiêu kỹ sư:** Bảo vệ `/v1/ai/*` bằng rate limit và **cost guard** (trần token/ngày/user); tự tấn công bằng k6.
+> **Tư duy:** AI gắn middleware → Bạn đỏ-team bypass, đo p95 dưới tải + 429 rate, defend giới hạn tiền model.
+> **Bản đồ tháng:** Tuần 13 — Gateway không cháy tiền.
+> **Sản phẩm:** AI routes chịu tải có kiểm soát.
 
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Bắn tải, tìm chỗ gãy |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Giới hạn tần suất + các giới hạn khác |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
-| **16:30** | **TIẾNG ANH** — Quyết định thiết kế |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+**Cấm:** Unlimited live LLM trong k6. Dùng mock mode hoặc trần thấp khi bắn tải.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-### 08:30–09:15 · Bắn tải vào chính mình
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Rate limit theo IP + userId trên `/v1/ai/*` (vd Redis Upstash hoặc memory store document limitation multi-instance).
+    2. Cost guard: đếm estimated tokens / ngày; vượt → 429 `COST_LIMIT`.
+    3. Headers: `Retry-After` khi 429.
+    4. k6 script: ramp VU, assert tỷ lệ 429 khi quá trần.
+  - **Ranh giới:** Memory limiter OK single Render instance — note boundary multi-instance.
+- **Scaffold Code:** AI sinh plugin + `scripts/k6-ai.js` + decision note.
 
-```bash
-npm i -g autocannon
-autocannon -c 50 -d 20 https://macrozone-api.onrender.com/v1/meals -H "Authorization: Bearer $TOKEN"
-```
-
-50 kết nối đồng thời trong 20 giây. Ghi lại:
-
-| Chỉ số | Con số |
-| --- | --- |
-| Yêu cầu mỗi giây | |
-| Độ trễ trung bình | |
-| **Độ trễ p99** | |
-| Lỗi | |
-| Timeout | |
-
-**Nhìn p99, không nhìn trung bình.** Trung bình giấu mất trải nghiệm tệ nhất. Nếu 99% dưới 200 ms nhưng p99 là 5 giây, thì cứ 100 người dùng có 1 người nghĩ app của bạn hỏng. Đây là cùng bài học đo đạc từ tháng 10 — trung bình nói dối.
-
-Rồi thử tấn công đăng nhập:
-
-```bash
-autocannon -c 20 -d 10 -m POST .../v1/auth/login -b '{"email":"a@x.com","password":"sai"}'
-```
-
-**Cái này sẽ giết server của bạn.** Mỗi lần thử băm argon2 mất ~100 ms và ngốn 19 MiB bộ nhớ. Hai mươi kết nối đồng thời là 380 MiB và event loop nghẹt.
-
-Đây chính là điều bạn học hôm 02/11: chặn event loop làm **mọi người** phải chờ. Hôm nay bạn thấy nó bị khai thác như một đường tấn công từ chối dịch vụ.
-
-Ghi lại chuyện gì xảy ra. **Đây là câu chuyện phỏng vấn hay nhất trong tuần.**
-
-### 09:15–10:30 · Giới hạn tần suất
-
-```bash
-npm i @fastify/rate-limit @upstash/redis
-```
-
-**Vì sao phải dùng Redis chứ không dùng bộ nhớ:** nếu Render chạy 2 instance, bộ đếm trong bộ nhớ chỉ đếm được một nửa lưu lượng mỗi cái. Kẻ tấn công được gấp đôi hạn mức. *Bạn đã nói về chính bẫy này hôm 02/11 khi học về nhiều tiến trình.*
-
-Đặt hạn mức khác nhau theo mức độ nhạy cảm:
-
-```ts
-await app.register(rateLimit, {
-  redis: upstash,
-  global: true,
-  max: 100,
-  timeWindow: '1 minute',
-  keyGenerator: (req) => req.user?.id ?? req.ip,       // theo người dùng, không theo IP
-});
-
-// Đăng nhập chặt hơn nhiều
-app.post('/v1/auth/login', {
-  config: { rateLimit: { max: 5, timeWindow: '15 minutes', keyGenerator: (r) => r.ip } },
-}, handler);
-```
-
-**Vì sao đăng nhập tính theo IP mà endpoint khác tính theo người dùng:** ở endpoint đăng nhập bạn **chưa biết** họ là ai — đó chính là điều họ đang cố chứng minh. Chi tiết nhỏ này là dấu hiệu bạn nghĩ thật chứ không dán cấu hình.
-
-Trả header đúng chuẩn để client biết đường lùi:
-
-```
-RateLimit-Limit: 100
-RateLimit-Remaining: 12
-RateLimit-Reset: 45
-Retry-After: 45
-```
-
-Phía mobile: khi nhận **429**, đọc `Retry-After` và chờ đúng thời gian đó thay vì thử lại theo lịch mù. Nối vào cấu hình `retry` của TanStack Query.
-
-```bash
-git add . && git commit -m "feat: giới hạn tần suất theo redis, chặt hơn ở endpoint đăng nhập"
-```
+**Intent 3 dòng:**
+1. Làm gì: rate + cost guard + k6.
+2. Không làm gì: push (→ 26).
+3. Xong khi: vượt trần → 429 có số liệu k6.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:30 · Các giới hạn khác — không chỉ có tần suất
-
-Giới hạn tần suất chỉ là một trong sáu. Rà đủ:
-
-| Giới hạn | Không có thì sao | Cách đặt |
-| --- | --- | --- |
-| Kích thước body | Ai đó gửi JSON 500 MB, hết bộ nhớ | `bodyLimit: 1_048_576` (1 MB) |
-| `limit` khi phân trang | `?limit=1000000` kéo cả bảng | Chặn cứng ở 100, kể cả khi client xin hơn |
-| Độ sâu / độ dài chuỗi | Chuỗi 10 MB trong tên bữa ăn | Zod `.max()` ở **mọi** trường chuỗi |
-| Timeout truy vấn | Truy vấn chậm giữ kết nối mãi | `statement_timeout = '5s'` |
-| Timeout kết nối | Client mở kết nối rồi bỏ đó | `connectionTimeout` của Fastify |
-| Số kết nối database | Hết pool, mọi request treo | `max` trong pool *(đã đặt 10/11)* |
-
-Dòng thứ hai đáng nhấn mạnh. Client gửi `?limit=1000000` — nếu bạn tin con số đó, một request kéo cả bảng và làm hết bộ nhớ. **Chặn cứng ở server**, đừng tin client.
-
-Đây là nguyên tắc chung: **mọi con số đến từ client đều là đầu vào của kẻ tấn công.**
-
-Giãn cơ 5 phút lúc 14:30.
-
-### 14:30–15:00 · Bắn tải lại
-
-Chạy lại đúng hai lệnh sáng nay. So sánh:
-
-| | Trước | Sau |
-| --- | --- | --- |
-| Tấn công đăng nhập — server còn sống? | | |
-| Yêu cầu mỗi giây khi tải bình thường | | |
-| p99 | | |
-| Số 429 trả về | | |
-
-**Bảng này là bằng chứng.** Nó cho thấy bạn tấn công, đo, vá, đo lại. Đó là quy trình, không phải may mắn.
-
-**Một điều phải trung thực khi phỏng vấn:** giới hạn tần suất không chống được tấn công phân tán từ hàng nghìn IP. Cái đó cần tầng CDN hoặc WAF phía trước. Bạn giải quyết được kẻ tấn công đơn lẻ và người dùng vô tình bấm nút liên tục — không giải quyết được botnet. Nói ra ranh giới đó.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Hoàn tất bảng OWASP
-
-Quay lại bảng hôm 18/11, điền nốt ô số 4:
-
-| # | Rủi ro | Đã làm gì |
-| --- | --- | --- |
-| 4 | Tiêu thụ tài nguyên không giới hạn | Giới hạn tần suất theo Redis, giới hạn body, chặn cứng phân trang, timeout truy vấn, kích thước pool |
-
-**Toàn bộ bảng giờ đã điền.** In ra một trang. Mang theo khi phỏng vấn.
-
-Thêm vào bộ test hôm qua:
-
-```ts
-it('giới hạn số lần thử đăng nhập', async () => {
-  for (let i = 0; i < 5; i++) await login('a@x.com', 'sai');
-  const res = await login('a@x.com', 'sai');
-  expect(res.status).toBe(429);
-  expect(res.headers['retry-after']).toBeDefined();
-});
-```
-
-```bash
-git add . && git commit -m "feat: đủ 6 loại giới hạn tài nguyên, có test"
-```
+- **Kịch bản 1:** Đổi IP header giả (`X-Forwarded-For`) — tin proxy đúng cách; không tin client header mù.
+- **Kịch bản 2:** User tạo nhiều account để bypass cost — note; tối thiểu theo userId authenticated.
+- **Bằng chứng:** k6 summary + config trần.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Nộp 3 đơn
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** k6 (bắt buộc hôm nay).
+- **Kịch bản:** Ramp 1→50 VU vào `/v1/ai/parse` (mock); đo latency và 429.
+- **Kết quả:** p95 ___ · 429 rate ___ · error khác ___ · chi phí $ live = 0 nếu mock
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Tư: Quyết định thiết kế
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-> *"Today I attacked my own API with a load generator, and the interesting part is what killed it.*
-> *Normal traffic was fine. But twenty concurrent requests against the login endpoint took the whole thing down. The reason is argon2 — it's deliberately slow and deliberately memory-hungry, about a hundred milliseconds and nineteen megabytes per attempt. That's exactly what you want against offline password cracking. It's also a denial of service vector, because it's expensive work an unauthenticated stranger can ask me to do.*
-> *So login is rate limited to five attempts per fifteen minutes per IP — much tighter than everything else, which is a hundred per minute per user.*
-> *One detail I want to call out: login is limited by IP and everything else by user ID. On the login endpoint I don't know who they are yet — that's the thing they're trying to establish.*
-> *The counters live in Redis, not in process memory, because I run more than one instance. An in-memory counter would give an attacker double the allowance.*
-> *And to be honest about the limit: this stops one attacker and it stops a user hammering a button. It does not stop a distributed attack from a thousand IPs. That needs something in front of my server, which I don't have."*
-
-Đoạn cuối — thừa nhận ranh giới — là đoạn tăng độ tin cậy nhiều nhất.
-
-**5 từ mới:**
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `memory-hungry` | ngốn bộ nhớ | *It's deliberately memory-hungry.* |
-| `denial of service vector` | đường tấn công từ chối dịch vụ | *It's also a DoS vector.* |
-| `call out` (v) | nêu bật ra | *One detail I want to call out.* |
-| `allowance` | hạn mức được cấp | *That gives an attacker double the allowance.* |
-| `hammer a button` | bấm nút liên tục | *It stops a user hammering a button.* |
+- **Decision Note:**
+  - *Claim:* AI gateway bắt buộc rate+cost trước public; k6 chứng minh hành vi 429.
+  - *Evidence:* k6 numbers.
+  - *Boundary:* In-memory limit không đủ multi-instance → Upstash khi scale.
+- **60s Defense Pitch:**
+  > "Mọi `/v1/ai/*` có rate limit và trần token theo user. Quá giới hạn trả 429 có Retry-After — không im lặng trừ tiền. Tôi bắn k6 trên mock để không đốt API key. In-memory đủ một instance Render; scale ngang thì chuyển store tập trung. Gateway tồn tại trước hết để kiểm soát cost."
 
 ---
 
-## GHI CHÚ · 17:00–17:30
+## 5. Definition of Done (DoD kỹ thuật)
 
-Tạo `docs/security.md`:
-- Kết quả bắn tải **trước và sau**
-- Sáu loại giới hạn tài nguyên, kèm giá trị đã đặt
-- **Bảng OWASP đầy đủ đã điền**
-- Ranh giới trung thực: cái gì bạn không chống được
-
----
-
-## Checklist cuối ngày
-
-- [ ] Đã bắn tải và **ghi p99, không chỉ ghi trung bình**
-- [ ] Đã tái hiện được việc endpoint đăng nhập giết server
-- [ ] Giới hạn tần suất chạy trên **Redis**, không phải bộ nhớ
-- [ ] Nói được vì sao bộ nhớ không dùng được khi có nhiều instance
-- [ ] Đăng nhập giới hạn theo **IP**, endpoint khác theo **người dùng** — giải thích được
-- [ ] Trả đủ header `RateLimit-*` và `Retry-After`
-- [ ] Client đọc `Retry-After` thay vì thử lại mù
-- [ ] **Đủ 6 loại giới hạn tài nguyên**
-- [ ] Đã bắn tải lại, **bảng trước/sau đã điền**
-- [ ] Bảng OWASP đầy đủ, đã in một trang
-- [ ] Nói được ranh giới: không chống được tấn công phân tán
-- [ ] Ghi âm `2026-11-25.m4a`
-- [ ] 21:30 lên giường
+- [ ] Rate + cost guard hoạt động; k6 script + số liệu.
+- [ ] 60s pitch trôi.

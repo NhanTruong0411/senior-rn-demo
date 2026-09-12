@@ -1,253 +1,67 @@
 ---
-description: Thứ Ba 03/11/2026 — Tuần 10 Ngày 2. Thiết kế REST tử tế, kiểm tra đầu vào bằng Zod, và lỗi có cấu trúc.
+description: Thứ Ba 03/11/2026 — Tuần 10 Ngày 2. REST + Zod validation + structured errors cho /v1/meals và /v1/ai/parse.
 alwaysApply: false
 ---
 
-# Thứ Ba · 03/11/2026 · Tuần 10 — Ngày 42/82
+# Thứ Ba 03/11/2026 — REST + Zod + Structured Errors (Meals & AI Parse)
 
-> Hôm nay bạn thiết kế API mà **chính bạn của ba năm trước** sẽ thấy dễ chịu khi phải gọi.
-> Đây là lợi thế lớn nhất của bạn so với người học backend thuần: bạn đã chịu đựng API tệ đủ lâu để biết cái gì làm người dùng API khổ.
+> **Mục tiêu kỹ sư:** Thiết kế REST tử tế với Zod validate + lỗi có cấu trúc cho `/v1/meals` và stub `/v1/ai/parse` — cùng schema mobile đã dùng tháng 9.
+> **Tư duy:** AI scaffold → Bạn tấn công validation bypass & error shape, đo p95 validate path, defend status code đúng.
+> **Bản đồ tháng:** Tuần 10 — Fastify AI Gateway · validation là cửa trước proxy model.
+> **Sản phẩm:** Gateway nhận meal/parse; **chưa** gắn LLM key — parse có thể mock deterministic hôm nay.
 
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Thiết kế bảng endpoint + mã trạng thái |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Zod ở biên + lỗi có cấu trúc |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — nhắn 2 người ở công ty mục tiêu |
-| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
-| **17:00** | **GHI CHÚ** — `docs/api-design.md` |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+**Cấm:** Key model trên client. `/v1/ai/parse` chỉ sống trên server.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-### 08:30–09:30 · Bảng endpoint — viết trước khi code
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Zod: `MealCreateSchema`, `AiParseRequestSchema` (`text` max length), `MealLogSchema` output.
+    2. `POST /v1/meals` — validate body → service create (in-memory/array OK hôm nay).
+    3. `GET /v1/meals` — list (pagination query `limit`/`cursor` tối thiểu).
+    4. `POST /v1/ai/parse` — validate text → service trả MealLog (mock OK; interface sẵn cho LLM sau).
+    5. Lỗi thống nhất: `{ error: { code, message, details? } }` + HTTP status đúng (400/404/500).
+  - **Ranh giới:** Không DB thật; không auth; không gọi OpenAI thật trừ khi env server có key và bạn chủ động bật.
+- **Scaffold Code:** AI sinh routes + services + `lib/errors.ts`.
 
-Mở giấy. Liệt kê mọi thứ app mobile cần, rồi mới thiết kế endpoint.
-
-| Phương thức | Đường dẫn | Việc | Mã thành công | Mã lỗi có thể |
-| --- | --- | --- | --- | --- |
-| `GET` | `/v1/meals?date=2026-11-03` | Danh sách bữa ăn theo ngày | 200 | 400, 401 |
-| `GET` | `/v1/meals/:id` | Chi tiết một bữa | 200 | 401, 403, 404 |
-| `POST` | `/v1/meals` | Tạo bữa ăn | **201** + header `Location` | 400, 401, 409 |
-| `PATCH` | `/v1/meals/:id` | Sửa một phần | 200 | 400, 401, 403, 404 |
-| `DELETE` | `/v1/meals/:id` | Xoá | **204** không body | 401, 403, 404 |
-| `GET` | `/v1/stats?from=&to=` | Thống kê | 200 | 400, 401 |
-| `GET` | `/healthz` | Kiểm tra sống | 200 | — |
-
-**Sáu quyết định trong bảng này, mỗi cái đều có lý do:**
-
-| Quyết định | Vì sao |
-| --- | --- |
-| Tiền tố `/v1` ngay từ đầu | Đổi API sau này mà không làm hỏng app cũ đang chạy trên máy người dùng. Mobile **không** ép cập nhật được như web |
-| `POST` trả **201** kèm `Location` | Chuẩn HTTP; client biết tài nguyên mới nằm ở đâu |
-| `DELETE` trả **204**, không body | Không có gì để trả. Trả `{ success: true }` là thừa |
-| `PATCH` chứ không `PUT` | Client chỉ gửi phần thay đổi. `PUT` buộc gửi cả object |
-| Phân biệt **403** và **404** | 403 = có tồn tại nhưng không phải của bạn; 404 = không tồn tại |
-| `/healthz` không có `/v1` | Nó phục vụ hạ tầng, không phục vụ app |
-
-> **Bẫy 403 vs 404 đáng nói riêng.** Trả 403 cho tài nguyên của người khác nghĩa là bạn vừa xác nhận nó tồn tại — đó là rò rỉ thông tin. Với dữ liệu nhạy cảm, trả **404 cho cả hai trường hợp**. Bạn sẽ áp dụng điều này ngày 12/11 khi làm phân quyền. Ghi lại quyết định vào `api-design.md`.
-
-### 09:30–10:30 · Sai lầm API mà bạn từng phải chịu
-
-Viết ra 5 thứ khiến bạn khổ ở Firegroup, và cách bạn tránh:
-
-| Sai lầm từng gặp | Cách bạn làm khác |
-| --- | --- |
-| Trả 200 kèm `{ error: "..." }` | Mã trạng thái luôn đúng. Client kiểm `res.ok` là đủ |
-| Thông báo lỗi tiếng Anh kỹ thuật dội thẳng lên UI | Trả `code` máy đọc được, client tự dịch |
-| Trường lúc có lúc không | Trường tuỳ chọn luôn là `null`, không phải biến mất |
-| Ngày giờ ba định dạng khác nhau | ISO 8601 UTC ở mọi nơi, không ngoại lệ |
-| Danh sách trả thẳng mảng | Bọc trong `{ data: [], nextCursor: null }` để sau này thêm phân trang không vỡ |
-
-**Cột bên phải chính là đoạn hay nhất bạn kể trong phỏng vấn tháng 12.**
-
-```bash
-git checkout -b feat/rest-design
-```
+**Intent 3 dòng:**
+1. Làm gì: REST meals + ai/parse với Zod + structured errors.
+2. Không làm gì: Postgres, JWT, deploy.
+3. Xong khi: body sai → 400 có `details` field; parse mock → JSON hợp MealLogSchema.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:30 · Zod ở biên — một schema, hai đầu
-
-Bạn đã biết Zod từ 23/09. Nay dùng nó ở chỗ nó thuộc về nhất: **biên của hệ thống**.
-
-```ts
-// src/schemas/meal.ts
-export const createMealSchema = z.object({
-  name: z.string().min(1).max(120),
-  calories: z.number().int().min(0).max(10_000),
-  protein: z.number().min(0).max(1_000),
-  eatenAt: z.string().datetime(),          // ISO 8601, ép ngay tại biên
-  clientId: z.string().uuid(),             // UUID sinh phía client — nhớ 27/10
-});
-
-export type CreateMealInput = z.infer<typeof createMealSchema>;
-```
-
-**Nguyên tắc: dữ liệu chưa qua kiểm tra không được đi quá lớp route.** Service nhận `CreateMealInput`, không nhận `unknown`. Sau biên đó, TypeScript nói thật.
-
-Đây chính là nguyên tắc mà cuốn *A Philosophy of Software Design* gọi là "định nghĩa lỗi không tồn tại" — bạn không rải kiểm tra khắp nơi, bạn chặn một lần ở cửa.
-
-**Cùng schema dùng cho cả hai đầu.** Sao chép `schemas/` sang mobile, và form React Hook Form dùng đúng schema đó. Không thể lệch, vì chỉ có một nguồn.
-
-Giãn cơ 5 phút lúc 14:30.
-
-### 14:30–15:00 · Lỗi có cấu trúc
-
-Một lớp lỗi, một chỗ xử lý:
-
-```ts
-// src/lib/errors.ts
-export class AppError extends Error {
-  constructor(
-    public status: number,
-    public code: string,          // máy đọc, ổn định, không đổi
-    message: string,              // người đọc, có thể đổi
-    public details?: unknown,
-  ) {
-    super(message);
-  }
-}
-
-export const notFound = (what: string) =>
-  new AppError(404, 'NOT_FOUND', `Không tìm thấy ${what}`);
-
-export const conflict = (msg: string) =>
-  new AppError(409, 'CONFLICT', msg);
-```
-
-Xử lý tập trung một chỗ:
-
-```ts
-app.use((err, req, res, _next) => {
-  if (err instanceof ZodError) {
-    return res.status(400).json({
-      error: { code: 'VALIDATION_ERROR', message: 'Dữ liệu không hợp lệ',
-               details: err.flatten().fieldErrors },
-    });
-  }
-  if (err instanceof AppError) {
-    return res.status(err.status).json({
-      error: { code: err.code, message: err.message, details: err.details },
-    });
-  }
-  // Lỗi không lường trước: ghi log đầy đủ, trả về ít nhất có thể
-  logger.error({ err, requestId: req.id }, 'lỗi chưa xử lý');
-  res.status(500).json({
-    error: { code: 'INTERNAL', message: 'Có lỗi xảy ra', requestId: req.id },
-  });
-});
-```
-
-**Ba điều trong đoạn này đáng nói khi phỏng vấn:**
-
-1. **`code` ổn định, `message` thì không.** Client `switch` trên `code`. Đổi câu chữ tiếng Việt không làm hỏng app đang chạy.
-2. **Lỗi 500 không lộ chi tiết.** Stack trace vào log, không vào response. Đây là lỗ hổng bảo mật rất phổ biến.
-3. **`requestId` trả về cho client.** Người dùng báo lỗi kèm mã đó, bạn tìm được đúng log. Bạn sẽ nối đầy đủ ngày 16/12.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Nối vào client
-
-Mở app mobile. Viết hàm ánh xạ lỗi API sang lỗi ứng dụng — nối với `errorMessage()` bạn đã viết hôm 19/11 trong kế hoạch cũ, nay làm sớm hơn:
-
-```ts
-function toAppError(res: Response, body: ApiErrorBody): AppError {
-  switch (body.error.code) {
-    case 'VALIDATION_ERROR': return { kind: 'validation', fields: body.error.details };
-    case 'NOT_FOUND':        return { kind: 'notFound' };
-    case 'CONFLICT':         return { kind: 'conflict' };
-    default:                 return { kind: 'server', requestId: body.error.requestId };
-  }
-}
-```
-
-**Giờ bạn thấy trọn vòng.** Bạn thiết kế hợp đồng lỗi ở server và tiêu thụ nó ở client trong cùng một ngày. Rất ít lập trình viên Middle làm được điều này, và nó là toàn bộ điểm mạnh của định vị fullstack.
-
-```bash
-git add . && git commit -m "feat: schema zod ở biên, lớp lỗi có cấu trúc, ánh xạ sang client"
-```
+- **Kịch bản 1 (Edge):** Body thiếu field, calo âm, text 100k ký tự, JSON sai kiểu, query `limit=-1`.
+- **Kịch bản 2 (Security):** Prompt injection trong `text`; phản hồi lỗi có lộ stack/internal path không? Code `INTERNAL_ERROR` không echo raw exception.
+- **Bằng chứng:** Bảng 8 request tấn công (status + code) trong decision note.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-Nhắn 2 người **ở công ty bạn muốn vào**, kể cả khi họ không đăng tuyển. Nhiều vị trí không bao giờ được đăng công khai.
-
-Cách tìm: LinkedIn, lọc theo công ty + chức danh mobile/fullstack, ưu tiên người từng học cùng trường hoặc từng làm chung công ty.
-
----
-
-## TIẾNG ANH · 16:30–17:00 — Thứ Ba: Giải thích khái niệm
-
-**Chủ đề: vì sao mã trạng thái HTTP quan trọng.**
-
-> *"This sounds like a small thing but it's the API decision I feel most strongly about, because I spent three years on the receiving end of it.*
-> *The pattern I kept hitting was an API that returns 200 OK with an error object in the body. Every single call site then needs to check two things — did the request succeed, and did the operation succeed. People forget the second check. Bugs ship.*
-> *So in my API the status code is always honest. The client checks whether the response is ok, and if it isn't, there's a structured error with a stable machine-readable code.*
-> *The reason the code is separate from the message: the code is a contract and never changes, the message is human-facing and I want to be able to reword it without breaking an app that's already installed on someone's phone. That's a mobile-specific concern — I can't force everyone to update.*
-> *One more thing I'd mention: 403 versus 404. Returning 403 for someone else's record confirms it exists, which leaks information. For anything sensitive I return 404 for both cases."*
-
-**5 từ mới:**
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `on the receiving end` | ở phía phải hứng chịu | *I was on the receiving end of it.* |
-| `call site` | chỗ gọi hàm | *Every call site needs two checks.* |
-| `honest` (về mã lỗi) | phản ánh đúng sự thật | *The status code is always honest.* |
-| `reword` (v) | viết lại câu chữ | *I want to reword it without breaking anything.* |
-| `leak information` | rò rỉ thông tin | *Returning 403 leaks information.* |
+- **Công cụ:** autocannon/k6 vào `POST /v1/ai/parse` (mock).
+- **Kịch bản:** 30 VU × 20s; so sánh body hợp lệ vs body fail validation.
+- **Kết quả:** p95 OK path ___ ms · p95 400 path ___ ms · có memory leak mock store không?
 
 ---
 
-## GHI CHÚ · 17:00–17:30
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Thêm vào `docs/api-design.md`: bảng endpoint đầy đủ, và mục **"Năm sai lầm API tôi từng phải chịu và cách tôi tránh"**.
-
-Mục đó sẽ thành một bài viết kỹ thuật vào tháng 12. Viết dần từ hôm nay.
+- **Decision Note:**
+  - *Claim:* Zod là hợp đồng duy nhất ở biên API; lỗi structured để mobile map UI (đã đau vì API 200+error trước đây).
+  - *Evidence:* Bảng tấn công + p95.
+  - *Boundary:* Mock parse ≠ production LLM; cost/rate → 05–06 và 25/11.
+- **60s Defense Pitch:**
+  > "Mọi input qua Zod trước service. `/v1/ai/parse` nằm trên server vì key và cost. Lỗi có code ổn định để client không parse message. Status HTTP đúng — không 200 kèm error. Trade-off: schema chặt hơn thì DX chậm hơn lúc đầu, nhưng giảm bug production."
 
 ---
 
-## Checklist cuối ngày
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] Bảng endpoint đã thiết kế **trước khi** viết code
-- [ ] Giải thích được 6 quyết định trong bảng
-- [ ] Nói được khi nào trả 403, khi nào trả 404 cho tài nguyên của người khác
-- [ ] Zod chặn ở biên, service nhận type đã kiểm tra
-- [ ] Lớp `AppError` với `code` ổn định tách khỏi `message`
-- [ ] Lỗi 500 **không** lộ stack trace ra response
-- [ ] Client ánh xạ được `code` sang lỗi ứng dụng
-- [ ] Đã nhắn 2 người ở công ty mục tiêu
-- [ ] **Có commit hôm nay**
-- [ ] Ghi âm `2026-11-03.m4a`
-- [ ] 21:30 lên giường
+- [ ] `/v1/meals` + `/v1/ai/parse` validate + structured errors.
+- [ ] Có bảng tấn công + số p95.
+- [ ] 60s pitch trôi.

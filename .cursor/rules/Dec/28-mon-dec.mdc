@@ -3,65 +3,53 @@ description: Thứ Hai 28/12/2026 — Tuần 18 Ngày 1. Mock interview fullstac
 alwaysApply: false
 ---
 
-# Thứ Hai · 28/12/2026 · Tuần 18 — Ngày 79/82
+# Thứ Hai 28/12/2026 — Mock #1: Architecture + Request Path
 
-> Ba buổi mock (28–30). Hôm nay: **kiến trúc + đường đi request**. Ghi âm như phỏng vấn thật 45 phút.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Tự mock Tech Lead 45 phút — đường đi 1 request (có AI/RAG) + kiến trúc MacroZone; tự chấm rubric.
+> **Tư duy:** Không học thêm lib. Defend hệ thống đã ship. Ghi điểm thẳng.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | **KHỐI XÂY** — Cheatsheet 1 trang + sơ đồ vẽ lại tay |
-| **13:30** | **KHỐI HỌC** — Mock 45 phút (tự hỏi / AI chấm) |
-| **16:00** | **TÌM VIỆC** — nhắn 3 người + xin giới thiệu |
-| **16:30** | **TIẾNG ANH** — Standup bằng EN cả buổi mock excerpt |
-| **17:00** | **GHI CHÚ** — chấm rubric |
+- **System Prompt / Requirements:**
+  - Yêu cầu: AI đóng vai Tech Lead — hỏi đúng 4–6 câu xoay quanh kiến trúc + 1 request path; không gợi ý đáp án.
+  - Bạn trả lời nói to ≤60–90s/câu; ghi âm nếu được.
+  - Ranh giới: không mở docs lúc trả lời vòng 1; chỉ xem cheatsheet sau khi chấm.
+- **Scaffold Code:** không code — `docs/mock-w18-1.md` template điểm số.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-In / viết tay `docs/interview-cheatsheet.md` phiên bản fullstack:
+*Ở đây “tấn công” = câu follow-up của interviewer.*
 
-- 60s pitch
-- Sơ đồ mobile → API → Neon (+ jobs, SSE, Resend, Sentry)
-- Salary range + walkaway
-- 4 câu Dec context + gạch đầu dòng trả lời
-- 3 honest gaps
-
-Không mở laptop chỉnh feature.
+- **Kịch bản tấn công 1:** “Token hết hạn giữa lúc stream RAG — chuyện gì xảy ra?”
+- **Kịch bản tấn công 2:** “Vì sao key không nằm trên mobile? Ai proxy?”
+- **Bằng chứng khắc phục:** câu trả lời có claim→evidence→boundary; ghi chỗ panic.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### Mock set A (45 phút)
+*Đo bản thân, không đo server.*
 
-1. Tell me about yourself (fullstack + AI application angle)
-2. Walk a request finger → DB → back
-3. Why Fastify over Express in production?
-4. How do you add LLM features without putting keys on the phone? (+ RAG boundary)
-5. Why leaving / why this company (behavioral ngắn)
-
-**Rubric** (mỗi câu 1–5 × 5 trục như coding-context): Decision · Example · Honesty · Time · Follow-up. Tổng <15 drill lại.
-
-Ghi âm cả buổi: `2026-12-28-mock.m4a`.
+- **Công cụ:** đồng hồ; rubric 5 trục (1–5): Decision-shape, Concrete example, Honesty, Time control, Follow-up readiness.
+- **Kịch bản:** 5 câu; tổng điểm; câu <3 điểm → drill lại ngay 10 phút.
+- **Kết quả:** tổng …/25; liệt kê 2 câu yếu.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Ưu tiên giới thiệu nội bộ. Dán link TestFlight/Play + 2 repo.
+- **Decision Note:** điểm mạnh/yếu mock #1.
+- **60s Defense Pitch (bắt buộc thuộc):**
+  > "Một request MacroZone: UI → TanStack Query → HTTPS → Render → Fastify auth middleware → route → service → (optional) retrieve pgvector scoped user → LLM qua gateway → stream về RN. Chỗ hỏng: cold start, 401 giữa stream, queue embed lag, N+1. requestId nối log. Key chỉ server. Đó là đường đi fullstack AI-native, không slide kiến trúc."
 
 ---
 
-## Checklist
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] Cheatsheet in ra
-- [ ] Mock A ghi âm + tự chấm
-- [ ] Ghi âm standup `2026-12-28.m4a`
+- [ ] Đã trả lời nói to ≥5 câu
+- [ ] Rubric tự chấm ghi `docs/mock-w18-1.md`
+- [ ] 60s request-path pitch thuộc lòng

@@ -1,67 +1,53 @@
 ---
-description: Thứ Ba 22/12/2026 — Tuần 17 Ngày 2. Animation ngày 2 + đánh bóng UX loading/empty/error.
+description: Thứ Ba 22/12/2026 — Tuần 17 Ngày 2. Loading/empty/error UX dưới độ trễ AI.
 alwaysApply: false
 ---
 
-# Thứ Ba · 22/12/2026 · Tuần 17 — Ngày 77/82
+# Thứ Ba 22/12/2026 — Loading / Empty / Error dưới AI Latency
 
-> Ngày animation thứ hai — và ngày **đánh bóng state**. App fullstack mà empty/error xấu vẫn trông junior.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Ba trạng thái trung thực khi RAG/LLM chậm, fail, hoặc corpus rỗng — không spinner vô hạn, không che lỗi bằng text giả.
+> **Tư duy:** AI scaffold state machine UI → bạn tấn công timeout/401 giữa stream → đo thời gian tới first feedback → defend.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | **KHỐI XÂY** — Mọi màn chính đủ 4 state |
-| **13:30** | **KHỐI HỌC** — Microcopy + accessibility tối thiểu |
-| **16:00** | **TÌM VIỆC** — nộp 3 đơn |
-| **16:30** | **TIẾNG ANH** — Giải thích khái niệm |
-| **17:00** | **GHI CHÚ** |
+- **System Prompt / Requirements:**
+  - Yêu cầu: states `idle | submitting | streaming | empty_corpus | error | aborted`; copy tiếng Việt rõ (cold start / rate limit / insufficient docs).
+  - Retry có kiểm soát; giữ partial stream nếu đã có token (quyết định product ghi rõ).
+  - Ranh giới: không fake answer khi error.
+- **Scaffold Code:** `AiChatStateView`; map error code từ Gateway.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-Audit từng màn: Home, Add meal, Stats, Settings, Auth.
-
-| State | Có chưa? |
-| --- | --- |
-| Loading (skeleton, không spinner full màn vô hạn) | |
-| Empty (CTA rõ) | |
-| Error (có requestId + thử lại) | |
-| Success | |
-
-Sửa chỗ thiếu. Animation chỉ thêm nếu giúp hiểu state (không trang trí).
-
-```bash
-git add . && git commit -m "fix: đủ loading empty error trên màn chính"
-```
+- **Kịch bản tấn công 1:** 401 giữa stream — đưa về login, không loop retry ẩn.
+- **Kịch bản tấn công 2:** Empty retrieve — UI insufficient, không gọi “model vẫn trả lời hay”.
+- **Bằng chứng khắc phục:** storybook/manual matrix 6 trạng thái.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-- `accessibilityLabel` nút chính
-- Dynamic type: không cắt chữ font lớn
-- Dark mode còn đúng không sau khi thêm animation
-
-Chuẩn bị checklist phát hành cho ngày mai.
+- **Công cụ:** đo time-to-first-feedback (skeleton/copy) khi cold; khảo sát 1 user thật nếu có.
+- **Kết quả:** perceived feedback < 1s; error path < 2s hiện message.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-> *"Fullstack doesn't excuse weak client states. Every primary screen has loading, empty, error with a retry and a request id, and success. That's what I polish before a store bump."*
-
-**5 từ:** `excuse` · `polish` · `store bump` · `empty state` · `retry`
+- **Decision Note:**
+  - *Claim:* Honest empty/error > optimistic fake AI.
+  - *Evidence:* matrix trạng thái + số perceived.
+  - *Boundary:* Offline queue cho chat AI — thường không cần; chat cần mạng.
+- **60s Defense Pitch:**
+  > "AI latency là UX problem trước khi là model problem. MacroZone có state rõ, copy cold start, insufficient corpus, abort. User tin app hơn khi app thừa nhận thiếu dữ liệu thay vì bịa. Đó là product sense gắn RAG."
 
 ---
 
-## Checklist
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] Bảng 4 state đã tick hết màn chính
-- [ ] Ghi âm `2026-12-22.m4a`
+- [ ] Matrix 6 trạng thái demo được
+- [ ] Có số time-to-first-feedback
+- [ ] 60s pitch trôi

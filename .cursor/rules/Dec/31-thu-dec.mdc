@@ -1,75 +1,55 @@
 ---
-description: Thứ Năm 31/12/2026 — Tuần 18 Ngày 4. Tổng kết 82 ngày, nghe lại bản ghi 07/09, kế hoạch 2027.
+description: Thứ Năm 31/12/2026 — Tuần 18 Ngày 4. Retrospective kỹ thuật 4 tháng AI-Native; kế hoạch skill 2027.
 alwaysApply: false
 ---
 
-# Thứ Năm · 31/12/2026 · Tuần 18 — Ngày 82/82
+# Thứ Năm 31/12/2026 — Technical Retro 4 Tháng · Skill Plan 2027
 
-> Ngày cuối chương trình. Không ship feature. Đo bằng tai, bằng checklist, bằng kế hoạch tháng 1.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Đóng curriculum BUILDER — retrospective **chỉ kỹ thuật** (Sep PRODUCER → Oct AUDITOR → Nov ORCHESTRATOR → Dec BUILDER); kế hoạch skill 2027. Không lifestyle / gym / English schedule.
+> **Tư duy:** Evidence từ repo + docs + số đo; không tự phong Senior.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | **KHỐI XÂY** — Tick Definition of Done Dec context mục 9 |
-| **13:30** | **KHỐI HỌC** — Nghe 07/09 vs hôm nay + viết kế hoạch 2027 |
-| **16:00** | **TÌM VIỆC** — pipeline: đang chờ / follow-up / bỏ |
-| **16:30** | **TIẾNG ANH** — Ghi âm cuối "Who I am after 82 days" |
-| **17:00** | **GHI CHÚ** — đóng sổ |
-| 17:30+ | Gia đình · năm mới — **không mở IDE** |
+- **System Prompt / Requirements:**
+  - Yêu cầu: AI giúp cấu trúc `docs/retro-2026-ai-native.md` — 4 tháng × (ship, ĐẬP mạnh nhất, gap còn lại); và `docs/skill-plan-2027.md` — 3–5 skill kỹ thuật ưu tiên (vd: deeper tracing, eval tự động, slot race harden, native module 1 cái thật, CI E2E).
+  - Ranh giới: không kế hoạch “4:30 dậy”; không job-search calendar trong file này.
+- **Scaffold:** hai file docs trên + cập nhật cheatsheet fullstack 1 trang nếu thiếu.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-Mở `Dec/00-context-dec.mdc` mục 9 — tick từng dòng. Mục đỏ = nợ tháng 1, không tự lừa.
-
-Kiểm nhanh sản phẩm còn sống: TestFlight/Play + API health.
-
----
-
-## KHỐI HỌC · 13:30–16:00
-
-### Nghe lại
-
-`2026-09-07.m4a` (hoặc bản EN đầu tháng 9) → `2026-12-30-mock.m4a`.
-
-Ghi 5 dòng: giọng, từ vựng, độ dài câu, tự tin, chỗ vẫn vấp.
-
-### Ba kịch bản (Dec context mục 10)
-
-Viết vào `docs/plan-2027-01.md` **một** trong ba:
-
-1. Đã có offer → 90 ngày đầu job
-2. Đang trong pipeline → sáng prep công ty, chiều maintain
-3. Chưa có gì → đổi kênh (referral, outsourcing foreign client, cân nhắc nhận mức thấp hơn để quay lại thị trường)
-
-### Ranh giới danh xưng
-
-Sau 82 ngày mặc định: **Strong Middle Fullstack Mobile Engineer**.  
-"Senior Fullstack" chỉ khi JD khớp **và** bạn defend được vận hành/production depth — đừng tự gắn trên CV nếu chưa.
+- **Kịch bản tấn công 1 (tự audit):** Feature nào over-claim trên README? — sửa wording hoặc cắt.
+- **Kịch bản tấn công 2:** Secret nào còn rủi ro (key trong git history, log PII)? — checklist cuối năm.
+- **Bằng chứng khắc phục:** PR/docs chỉnh; secret scan note.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-Ghi âm 3 phút: *"Who I am after 82 days."* Giữ file — đây là thước đo.
-
----
-
-## Checklist cuối chương trình
-
-- [ ] DoD tháng 12 đã tick trung thực
-- [ ] `plan-2027-01.md` đã viết
-- [ ] Cheatsheet + walkaway sẵn sàng
-- [ ] Ghi âm `2026-12-31.m4a`
-- [ ] **Đóng máy. Ăn Tết dương lịch với gia đình.**
+- **Công cụ:** đọc lại số p95 / eval RAG / cold TTFB / FPS stream đã ghi trong tháng 12; điền bảng “metric giữ lại”.
+- **Kết quả:** bảng metric cuối năm trong retro doc; thiếu số = ghi “chưa đo” (honesty).
 
 ---
 
-_82 ngày kết thúc. Thứ bạn xây không hết hạn hôm nay._
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note (4 tháng):**
+  - *Claim:* Đã chuyển từ thợ feature RN sang AI-Native Fullstack builder có ranh giới key/RAG/jobs/realtime.
+  - *Evidence:* v2.1.0 + docs rag/runbook/openapi/docker + 3 mock scores.
+  - *Boundary:* Chưa Staff; chưa K8s; chưa collab CRDT; chưa native sâu.
+- **60s Defense Pitch (năm):**
+  > "Bốn tháng: PRODUCER streaming UX, AUDITOR security/offline/perf, ORCHESTRATOR gateway+pgvector+jobs, BUILDER production RAG+SSE+observability+defense. Luật cứng: AI sinh scaffold, mình ĐẬP. Key server-only. Đó là câu chuyện tuyển dụng có repo chứng minh — không certificate nhồi."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật) — Tháng 12 / 4 tháng
+
+- [ ] `docs/retro-2026-ai-native.md` xong (technical only)
+- [ ] `docs/skill-plan-2027.md` — 3–5 skill kỹ thuật
+- [ ] README không over-claim
+- [ ] 3 file mock W18 có điểm
+- [ ] 60s pitch năm nói trôi
+- [ ] Curriculum Dec khớp `Last4Months.mdc` BUILDER — đóng

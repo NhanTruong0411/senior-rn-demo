@@ -1,277 +1,68 @@
 ---
-description: Thứ Năm 05/11/2026 — Tuần 10 Ngày 4. Đưa API lên mạng thật — Render, biến môi trường, log có cấu trúc, và bài học cold start.
+description: Thứ Năm 05/11/2026 — Tuần 10 Ngày 4. Deploy Render; env secrets; pino logs; cold start note.
 alwaysApply: false
 ---
 
-# Thứ Năm · 05/11/2026 · Tuần 10 — Ngày 44/82
+# Thứ Năm 05/11/2026 — Deploy Render + Secrets + pino + Cold Start
 
-> Hôm nay API của bạn rời khỏi máy tính. Có địa chỉ công khai, có HTTPS, có log thật.
-> Và bạn gặp bài học đầu tiên của việc vận hành: **máy chủ miễn phí thì ngủ**.
+> **Mục tiêu kỹ sư:** Đưa `macrozone-api` lên Render; secrets chỉ trên host; pino structured logs; **viết note cold start** — bài học resilience cho mobile client.
+> **Tư duy:** AI scaffold deploy config → Bạn tấn công secret leak & log PII, đo cold vs warm latency, defend free-tier trade-off.
+> **Bản đồ tháng:** Tuần 10 — Gateway lên mạng thật.
+> **Sản phẩm:** HTTPS public URL cho mobile gọi ngày mai.
 
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Triển khai lên Render |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Log có cấu trúc + cold start |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — theo dõi lại |
-| **16:30** | **TIẾNG ANH** — 3 câu hỏi phỏng vấn |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+**Cấm:** Commit `.env` có key. LLM key (nếu đã có) chỉ Render env.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-### 08:30–09:00 · Cấu hình an toàn từ đầu
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. `PORT` từ env; `HOST=0.0.0.0` cho Render.
+    2. pino logger (level từ `LOG_LEVEL`); redact authorization headers.
+    3. Checklist env: `NODE_ENV`, `LOG_LEVEL`, (optional) `OPENAI_API_KEY` — **không** log giá trị.
+    4. `docs/ops/cold-start.md`: Render sleep ~15 phút → cold start; client phải timeout/retry/backoff.
+  - **Ranh giới:** Chưa Neon production bắt buộc hôm nay; health check path cho Render.
+- **Scaffold Code:** AI sinh `render.yaml` hoặc docs deploy + pino setup.
 
-Trước khi triển khai, xử lý biến môi trường cho đúng. **Đây là chỗ rò rỉ bí mật hay xảy ra nhất.**
-
-```ts
-// src/lib/env.ts
-const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']),
-  PORT: z.coerce.number().default(3000),
-  DATABASE_URL: z.string().url(),
-  JWT_SECRET: z.string().min(32),
-});
-
-export const env = envSchema.parse(process.env);
-```
-
-**Vì sao kiểm tra biến môi trường bằng Zod:** server **không khởi động** nếu thiếu biến, thay vì chạy được rồi sập lúc 2 giờ sáng khi ai đó gọi đúng endpoint cần biến đó. Sập lúc khởi động là sập tử tế.
-
-Ba luật về bí mật:
-1. `.env` vào `.gitignore` **ngay bây giờ**, trước commit đầu tiên
-2. Có `.env.example` với tên biến nhưng giá trị rỗng, commit file này
-3. Sinh `JWT_SECRET` bằng `openssl rand -base64 48`, không tự nghĩ chuỗi
-
-### 09:00–10:30 · Triển khai
-
-```bash
-# package.json
-"scripts": {
-  "build": "tsc",
-  "start": "node dist/index.js",
-  "dev": "tsx watch src/index.ts"
-}
-```
-
-Trên Render — https://render.com/docs/web-services — tạo **Web Service** miễn phí, nối GitHub repo:
-
-| Cấu hình | Giá trị |
-| --- | --- |
-| Build Command | `npm ci && npm run build` |
-| Start Command | `npm start` |
-| Health Check Path | `/healthz` |
-| Environment | thêm từng biến, **không** dán cả file `.env` |
-
-**Hai thứ phải làm đúng ngay:**
-
-```ts
-// Nghe ở 0.0.0.0, không phải localhost — container cần thế
-app.listen({ port: env.PORT, host: '0.0.0.0' });
-
-// Tắt tử tế khi Render gửi tín hiệu dừng
-for (const signal of ['SIGTERM', 'SIGINT'] as const) {
-  process.on(signal, async () => {
-    app.log.info('đang tắt');
-    await app.close();          // ngừng nhận request mới, đợi request đang chạy xong
-    process.exit(0);
-  });
-}
-```
-
-**Tắt tử tế (graceful shutdown) là chi tiết phân biệt người đã vận hành thật.** Không có nó, mỗi lần triển khai lại sẽ có vài request bị cắt giữa chừng. Người phỏng vấn backend hay hỏi câu này.
-
-Triển khai. Chờ. Đọc log build. Gọi thử:
-
-```bash
-curl -i https://macrozone-api.onrender.com/healthz
-```
-
-```bash
-git add . && git commit -m "feat: triển khai render, kiểm tra env, tắt tử tế"
-```
+**Intent 3 dòng:**
+1. Làm gì: deploy + secrets + logs + cold start doc.
+2. Không làm gì: DB migrate, auth hoàn chỉnh.
+3. Xong khi: curl public `/health` OK; cold-start note có số đo.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:30 · Log có cấu trúc
-
-`console.log` không dùng được ở sản xuất. Bạn không tìm kiếm được, không lọc được, không nối được các dòng cùng một request.
-
-```bash
-npm i pino pino-pretty
-```
-
-```ts
-const app = Fastify({
-  logger: {
-    level: env.NODE_ENV === 'production' ? 'info' : 'debug',
-    transport: env.NODE_ENV === 'production' ? undefined : { target: 'pino-pretty' },
-    redact: ['req.headers.authorization', 'req.body.password'],   // bắt buộc
-  },
-  genReqId: () => crypto.randomUUID(),
-});
-```
-
-**Ba điều quan trọng:**
-
-| Điều | Vì sao |
-| --- | --- |
-| `redact` | Nếu không, mật khẩu và token **nằm trong log vĩnh viễn**. Đây là sự cố bảo mật thật, xảy ra thường xuyên |
-| `genReqId` | Mọi dòng log của cùng một request có chung `reqId` → truy được cả hành trình |
-| JSON ở production, đẹp mắt ở dev | Máy đọc ở trên mạng, người đọc ở máy mình |
-
-Dùng `req.log` chứ không dùng logger toàn cục — nó tự mang theo `reqId`:
-
-```ts
-async (req, reply) => {
-  req.log.info({ mealId: meal.id }, 'đã tạo bữa ăn');
-}
-```
-
-**Luật viết log:** ghi *dữ liệu* ở tham số thứ nhất, ghi *câu chuyện* ở tham số thứ hai. Đừng nhét biến vào chuỗi — nhét vào thì không lọc được.
-
-Giãn cơ 5 phút lúc 14:30.
-
-### 14:30–15:00 · Cold start — bài học của bậc miễn phí
-
-Gọi API sau 20 phút không dùng. Đo thời gian:
-
-```bash
-time curl -s https://macrozone-api.onrender.com/healthz > /dev/null
-```
-
-**Có thể mất 30–60 giây.** Render tắt dịch vụ miễn phí sau 15 phút không có lưu lượng.
-
-Đây không phải lỗi cần né. Đây là **ràng buộc kỹ thuật thật cần thiết kế quanh nó** — và là một câu chuyện phỏng vấn tốt hơn nhiều so với "em trả tiền nên không gặp vấn đề đó".
-
-Ba cách xử lý, cân nhắc từng cái:
-
-| Cách | Được | Mất |
-| --- | --- | --- |
-| Cron GitHub Actions ping mỗi 10 phút | Đơn giản, miễn phí | Tốn giờ chạy, và hơi gian lận với điều khoản |
-| Client chịu được cold start | Trung thực, cải thiện UX thật | Người dùng vẫn chờ lần đầu |
-| Đổi sang Cloudflare Workers | Không cold start | Không phải Node, phải viết lại |
-
-**Chọn cách 2 làm chính, cách 1 làm phụ.** Phía mobile:
-
-```ts
-// Timeout dài hơn cho request đầu tiên sau khi mở app
-const client = ky.create({
-  timeout: 45_000,
-  retry: { limit: 2, backoffLimit: 5_000 },
-  hooks: {
-    beforeRetry: [() => setWakingServer(true)],   // hiện "đang khởi động máy chủ..."
-  },
-});
-```
-
-Và hiện thông báo trung thực thay vì vòng xoay im lặng: *"Máy chủ đang khởi động, mất khoảng 30 giây."*
-
-> Đây đúng nguyên tắc bạn học hôm 26/10 về giao diện trung thực khi ngoại tuyến. Người dùng chịu được chờ đợi nếu biết mình đang chờ cái gì. Họ không chịu được vòng xoay không lời giải thích.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Nối app mobile vào API thật
-
-Đổi `EXPO_PUBLIC_API_URL` sang địa chỉ Render. Chạy app trên máy thật, không phải máy ảo.
-
-Kiểm ba tình huống:
-1. Gọi lần đầu sau khi server ngủ — có hiện thông báo đúng không?
-2. Bật máy bay giữa chừng — hàng đợi ngoại tuyến từ 27/10 còn chạy đúng không?
-3. Server trả 500 — client hiện đúng thông báo, có `requestId` không?
-
-Tình huống 3 là lúc bạn thấy công sức hôm qua trả lãi: bạn lấy `requestId` từ màn hình lỗi, tìm trong log Render, và thấy đúng dòng.
-
-```bash
-git add . && git commit -m "feat: log có cấu trúc, xử lý cold start ở client"
-```
+- **Kịch bản 1:** `git grep` secret patterns; env example chỉ placeholder.
+- **Kịch bản 2:** Log có in body chứa email/token không? Redact. Health không expose dependency secrets.
+- **Bằng chứng:** Screenshot/log sample đã redact + URL public (không kèm key).
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Theo dõi lại
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-Rà mọi tin nhắn và đơn đã gửi trong tuần chưa có hồi âm. Nhắc lại một lần, ngắn gọn.
-
-Lập bảng theo dõi nếu chưa có — Google Sheet là đủ:
-
-| Ngày | Công ty | Vị trí | Kênh | Trạng thái | Theo dõi lần cuối |
-| --- | --- | --- | --- | --- | --- |
-
----
-
-## TIẾNG ANH · 16:30–17:00 — Thứ Năm: 3 câu hỏi phỏng vấn
-
-**Q1. "Walk me through what happens when you deploy."**
-> *"I push to main. GitHub triggers Render, which runs npm ci and a TypeScript build, then starts the new instance and waits for the health check to pass before routing traffic to it. The old instance gets a SIGTERM, and I handle that — I stop accepting new requests and let in-flight ones finish before exiting. Without that, every deploy cuts off a few requests mid-flight."*
-
-**Q2. "Your API is slow on the first call. Why?"**
-> *"That's a cold start. I'm on a free tier that spins the service down after fifteen minutes of no traffic, so the first request pays for the container starting up — thirty to sixty seconds.*
-> *I decided not to hide it. The client has a longer timeout on the first call after launch and shows a message saying the server is waking up. People tolerate waiting when they know what they're waiting for. I also have a scheduled job that pings the health endpoint, but I treat the honest client behavior as the real fix, not the ping."*
-
-**Q3. "How do you debug a problem a user reports?"**
-> *"Every request gets a UUID. It goes into every log line for that request, and it comes back to the client in the error response. So the user gives me that ID, I search the logs, and I have the whole request. Before I had that, debugging was guessing based on a timestamp."*
-
-**5 từ mới:**
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `in-flight` | đang giữa chừng | *Let in-flight requests finish.* |
-| `spin down / spin up` | tắt bớt / khởi động lên | *The free tier spins down after 15 minutes.* |
-| `cut off mid-flight` | cắt giữa chừng | *Every deploy cuts requests off mid-flight.* |
-| `tolerate` (v) | chịu được | *People tolerate waiting when they know why.* |
-| `route traffic` | dẫn lưu lượng | *It waits before routing traffic to the new instance.* |
+- **Công cụ:** curl + `time`; k6 nhẹ vào URL public (cẩn thận free tier).
+- **Kịch bản:**
+  1. Warm: 10 request liên tiếp — p95.
+  2. Cold: đợi sleep (hoặc restart service) — đo TTFB first request.
+- **Kết quả:** warm p95 ___ ms · cold TTFB ___ ms · ghi vào `cold-start.md`.
 
 ---
 
-## GHI CHÚ · 17:00–17:30
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Thêm mục **"Ràng buộc của bậc miễn phí"** vào `docs/api-design.md`. Ghi con số cold start thật bạn đo được, ba cách xử lý, và cách bạn chọn kèm lý do.
-
-Mục này có giá trị đặc biệt: nó cho thấy bạn thiết kế **trong ràng buộc**, chứ không chỉ thiết kế trong điều kiện lý tưởng. Đó là kỹ năng của người làm thật.
+- **Decision Note:**
+  - *Claim:* Free Render OK giai 11 nếu mobile chịu cold start (timeout/retry); secrets chỉ host.
+  - *Evidence:* Số cold/warm.
+  - *Boundary:* Production trả tiền / always-on khi có user thật; Dec harden cron wake nếu cần.
+- **60s Defense Pitch:**
+  > "API MacroZone trên Render free — chấp nhận cold start. Client có timeout và retry, không treo UI. Secret chỉ env server; pino redact header. Đo được warm vs cold nên không đoán. Trade-off: tiết kiệm tiền đổi lấy latency lần đầu — đúng giai học, sai nếu pretend zero-downtime."
 
 ---
 
-## Checklist cuối ngày
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] API có địa chỉ công khai, HTTPS chạy
-- [ ] Biến môi trường kiểm tra bằng Zod, thiếu là **không khởi động**
-- [ ] `.env` trong `.gitignore`, có `.env.example`
-- [ ] `JWT_SECRET` sinh bằng `openssl`, không tự nghĩ
-- [ ] Nghe ở `0.0.0.0`, có tắt tử tế
-- [ ] Log JSON có `reqId`, có `redact` cho authorization và password
-- [ ] **Đã đo thời gian cold start thật, ghi con số lại**
-- [ ] Client hiện thông báo trung thực khi server đang khởi động
-- [ ] Đã lấy `requestId` từ màn hình lỗi và tìm được trong log Render
-- [ ] Bảng theo dõi tìm việc đã lập
-- [ ] Ghi âm `2026-11-05.m4a`
-- [ ] 21:30 lên giường
+- [ ] Public `/health` OK; không secret trong git.
+- [ ] `cold-start.md` có số warm/cold.
+- [ ] 60s pitch trôi.

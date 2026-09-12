@@ -1,52 +1,54 @@
 ---
-description: Thứ Hai 14/12/2026 — Tuần 16 Ngày 1. AI Application — khóa AI SDK/LangChain trên Node, key không trong app.
+description: Thứ Hai 14/12/2026 — Tuần 16 Ngày 1. AI SDK/LangChain trên Node gateway harden.
 alwaysApply: false
 ---
 
-# Thứ Hai · 14/12/2026 · Tuần 16 — Ngày 71/82
+# Thứ Hai 14/12/2026 — AI SDK / LangChain trên Node Gateway (Harden)
 
-> **AI Application Developer** trên MacroZone có sẵn. Học theo khóa (AI SDK / LangChain.js free) — ship vào `/v1/ai/*`. RN không giữ key.
-> **Engineer mode:** Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
-
----
-
-## Lịch
-
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — Endpoint `meal-suggest` + rate limit + Zod output |
-| **13:30** | HỌC — Vercel AI SDK **hoặc** LangChain.js beginners (ray khóa free) — hiểu generateObject/stream |
-| **16:00** | Tìm việc — 3 người |
-| **16:30** | EN — Standup AI boundary |
-| **17:00** | Decision note |
+> **Mục tiêu kỹ sư:** Siết AI Gateway: streaming ổn định, cost/rate limit, Zod output, abort khi client hủy — key không bao giờ xuống RN.
+> **Tư duy:** AI scaffold adapter AI SDK hoặc LangChain.js trên Fastify → bạn red-team token storm & injection → đo TTFB stream → defend.
 
 ---
 
-## KHỐI XÂY
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-- Key chỉ `env` Render
-- Rate limit chặt (vd 10/giờ/user)
-- Output `z.object({...})` — model rác → 502 có cấu trúc
-- Mobile: nút gợi ý → **xác nhận** trước khi tạo meal
-
-```bash
-git commit -m "feat: ai meal-suggest via server, zod-parsed"
-```
-
-**Cấm:** copy tutorial “OpenAI key in Expo app”.
+- **System Prompt / Requirements:**
+  - Yêu cầu: route stream `/api/v1/ai/*` dùng AI SDK hoặc LangChain trên **Node only**; pipeline RAG ask đi qua cùng gateway; abort signal từ request destroy.
+  - Hardening: max tokens, timeout, per-user rate limit, cost log (`tokens_in/out`, `requestId`); structured output Zod khi cần action.
+  - Ranh giới: RN chỉ consume SSE/fetch stream; không import SDK LLM trên mobile.
+- **Scaffold Code:** `ai/gateway.ts`, middleware cost, playbook prompt trong `docs/prompt-playbook.md` (rút gọn).
 
 ---
 
-## KHỐI HỌC
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-Làm **bài trong khóa**, rồi map vào service của bạn (không giữ demo tách đời sống).
-
-Decision note: *vì sao AI SDK vs fetch thuần / vì sao chưa agent*.
+- **Kịch bản tấn công 1:** Client hủy giữa stream — server dừng gọi provider (không chảy tiền).
+- **Kịch bản tấn công 2:** Prompt injection + tool/function call cố ghi meal user khác — authZ trong tool bắt buộc.
+- **Bằng chứng khắc phục:** test abort; tool handler check ownership.
 
 ---
 
-## Checklist
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-- [ ] Không key trong EAS/client
-- [ ] Streaming UI nếu khóa dạy — qua API bạn
-- [ ] Ghi âm `2026-12-14.m4a`
+- **Công cụ:** đo TTFB stream; k6 concurrent streams (giới hạn thấp); Flashlight khi RN render token.
+- **Kết quả:** TTFB …; tokens/$ ước lượng 1 phiên; FPS stream UI …
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note:**
+  - *Claim:* Một gateway Node cho mọi LLM; RN dumb pipe.
+  - *Evidence:* abort tiết kiệm; rate limit chặn storm.
+  - *Boundary:* Edge streaming (Vercel) khác ops — đang Render long request.
+- **60s Defense Pitch:**
+  > "AI Application không phải nhét OpenAI vào app. MacroZone gateway giữ key, limit, cost, Zod, RAG retrieve. Mobile stream UI và abort. Cùng một requestId xuyên log. Đó là ranh giới Strong Middle AI-era — không Intern dán key vào Expo."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] Stream + abort + rate/cost log hoạt động
+- [ ] Không có secret trong bundle mobile (grep/checklist)
+- [ ] Có số TTFB / FPS
+- [ ] 60s pitch trôi

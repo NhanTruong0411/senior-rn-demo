@@ -1,104 +1,57 @@
 ---
-description: Thứ Sáu 04/12/2026 — Tuần 14 Ngày 5. Tổng kết việc nền, bài viết kỹ thuật, chuẩn bị tuần real-time.
+description: Thứ Sáu 04/12/2026 — Tuần 14 Ngày 4. RAG eval 5 câu; DoD tuần 14; outline bài viết kỹ thuật.
 alwaysApply: false
 ---
 
-# Thứ Sáu · 04/12/2026 · Tuần 14 — Ngày 65/82
+# Thứ Sáu 04/12/2026 — RAG Eval · Week 14 DoD · Tech Writeup Outline
 
-> Chốt tuần việc nền. Viết bài. Không thêm tính năng mới — củng cố và nói được.
-
-
-> **Engineer mode:** Fullstack + AI Application trên MacroZone có sẵn. Không invent app. Không key LLM trên mobile. `Dec/00` · `Sep/00` §0.
+> **Mục tiêu kỹ sư:** Chốt eval tay 5 câu cố định; tick DoD tuần 14; phác outline bài viết RAG production (không ship bài dài hôm nay nếu hết giờ — outline đủ).
+> **Tư duy:** Eval là ĐẬP 2 chất lượng, không cảm tính “trả lời hay”.
 
 ---
 
-## Lịch hôm nay
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Dọn nợ kỹ thuật tuần 14 |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Bài viết + tổng kết tuần |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:00** | **TÌM VIỆC** — cập nhật CV + README (background jobs) |
-| **16:30** | **TIẾNG ANH** — Nghe lại tuần |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+- **System Prompt / Requirements:**
+  - Yêu cầu: `rag/eval/cases.json` — 5 case: (1) hỏi meal hôm qua có trong DB, (2) hỏi doc user, (3) hỏi ngoài corpus → phải refuse/insufficient, (4) câu tiếng Việt nhập nhằng, (5) cố prompt-inject qua question.
+  - Script `npm run rag:eval` — gọi ask nội bộ, chấm pass/fail theo rubric: grounded? có cite? không leak?
+  - Ranh giới: không dùng LLM-as-judge phức tạp hôm nay; chấm tay + checklist.
+- **Scaffold Code:** eval script + bảng kết quả markdown trong `docs/rag-eval-w14.md`.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-Danh sách nợ — chỉ sửa cái đang cháy:
-
-- [ ] Worker crash khi payload thiếu field → Zod trong worker
-- [ ] README API: cách chạy pg-boss local
-- [ ] Health check `/healthz` báo cả `boss` started hay chưa
-- [ ] Xóa endpoint admin tạm nếu lộ trên production không auth
-
-Không bắt đầu WebSocket hôm nay.
+- **Kịch bản tấn công 1:** Case (3) và (5) — nếu model vẫn trả lời tự tin → FAIL tuần, sửa prompt/guard trước khi đóng tuần.
+- **Kịch bản tấn công 2:** Đổi user giữa eval — citations không được thuộc corpus user khác.
+- **Bằng chứng khắc phục:** 5/5 checklist ghi pass/fail; ít nhất case insufficient + injection = pass.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### Bài viết thứ 5 (30–40 phút)
-
-*"Why I put background jobs in Postgres instead of Redis"*
-
-Cấu trúc: setTimeout chết trên free tier → pg-boss → enqueue trong transaction → idempotency key nhắc bữa → ranh giới khi nào mới cần Redis queue.
-
-### Tổng kết tuần 14
-
-| Ngày | Kết quả |
-| --- | --- |
-| 30/11 | pg-boss, retry, dead letter |
-| 01/12 | timezone + quiet hours |
-| 02/12 | email giao dịch |
-| 03/12 | vòng kín nhắc trên máy thật |
-| 04/12 | bài viết + dọn nợ |
-
-**Tự chấm câu hỏi #1** (Dec context mục 6): 1–5. Dưới 4 thì ghi 3 chỗ còn vấp.
+- **Công cụ:** chạy eval 3 lần; ghi TTFB / total; so sánh k=5 vs k=10 trên cùng 5 câu (chất lượng + latency).
+- **Kết quả:** bảng 5 câu × pass/fail × latency; chọn k mặc định có evidence.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Thêm 1 bullet CV:
-
-> Xây hàng đợi việc nền trên Postgres (pg-boss): email giao dịch, nhắc bữa ăn theo múi giờ, retry có backoff và dead letter.
-
----
-
-## TIẾNG ANH · 16:30–17:00
-
-Nghe `2026-11-30` → `2026-12-03`. Ghi số lần "ừm"/phút. Ghi âm *"What I shipped in week 14."*
+- **Decision Note:**
+  - *Claim:* Tuần 14 đóng khi pipeline chunk→embed job→retrieve→cite + eval 5 câu có số.
+  - *Evidence:* `docs/rag-eval-w14.md`.
+  - *Boundary:* Chưa production re-rank nặng / multi-index; harden thêm tuần 16.
+- **60s Defense Pitch:**
+  > "Có RAG mà không eval là demo. MacroZone giữ 5 câu vàng: grounded, cite, refuse ngoài corpus, tiếng Việt, chống inject. Fail thì sửa pipeline chứ không chỉnh câu cho đẹp. Embed qua job, retrieve có user scope, mobile chỉ UI. Đó là production mindset Middle/Strong Middle."
+- **Outline bài viết (ĐẬP 3 artifact):** tiêu đề + 5 H2 (vì sao không embed sync, chunk, pgvector, cite, eval) — lưu `docs/outline-rag-article.md`.
 
 ---
 
-## Checklist cuối tuần
+## 5. Definition of Done (DoD kỹ thuật) — Tuần 14
 
-- [ ] Nhắc bữa ăn chạy tự động từ server
-- [ ] Bài viết đã đăng
-- [ ] CV có bullet jobs
-- [ ] Câu hỏi fullstack #1 tự chấm ≥4 hoặc có plan drill
-- [ ] **Cuối tuần nghỉ. Không mở máy T7–CN.**
-- [ ] Ghi âm `2026-12-04.m4a`
+- [ ] Chunk strategy merged + documented
+- [ ] Embed chỉ qua pg-boss
+- [ ] Retrieve + cite hoạt động trên staging
+- [ ] Eval 5 câu ghi pass/fail + latency
+- [ ] Outline bài RAG xong
+- [ ] 60s pitch tuần 14 nói trôi

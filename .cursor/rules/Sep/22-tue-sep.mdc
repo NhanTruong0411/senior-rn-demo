@@ -1,26 +1,88 @@
 ---
-description: Thứ Ba 22/09/2026 — Tuần 3 Ngày 2. Stats + FlashList — đo trước khi tối ưu.
+description: Thứ Ba 22/09/2026 — Tuần 3 Ngày 2. AbortController cancel mid-stream + FlashList meal history.
 alwaysApply: false
 ---
 
-# Thứ Ba · 22/09/2026 · Tuần 3 — Ngày 12/82
+# Thứ Ba 22/09/2026 — Abort Mid-Stream + FlashList History
 
-> Stats screen theo nhu cầu MacroZone. List: **đo cảm nhận** rồi mới FlashList — không tối ưu mù.
+> **Mục tiêu kỹ sư:** **AbortController** hủy stream giữa chừng an toàn; meal history dùng **FlashList** chịu được update khi AI session đổi status.
+> **Tư duy:** AI wire abort vào store + FlashList props → Bạn tấn công race cancel/complete, đo scroll FPS khi stream chạy nền.
+> **Bản đồ tháng:** Tháng 9 PRODUCER · Tuần 3.
+> **Sản phẩm:** MacroZone AI-Native.
+
+**Cấm:** LLM key trên client.
 
 ---
 
-## Lịch
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — Màn thống kê |
-| **13:30** | HỌC — FlashList docs + đổi list nếu cần |
-| **16:30** | EN — Giải thích virtualization |
-| **17:00** | Decision note |
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. `startStream` tạo `AbortController`; mock fetch/stream tôn trọng `signal`.
+    2. UI nút **Stop** → `abort()` → status `cancelled`; không gọi `complete` sau abort.
+    3. Home/History: `FlashList` (`estimatedItemSize`, `keyExtractor` ổn định); item memo.
+    4. Khi stream status đổi, list meals không remount toàn bộ.
+  - **Ranh giới:**
+    - Abort không xóa meal đã save; chỉ cắt session text.
+    - Không tối ưu micro-benchmark FlashList nếu FPS đã ≥ 55 trên máy thật với 100 rows.
+- **Scaffold Code:** AI nối signal + FlashList; bạn reject `key={index}` và ignore abort.
 
-Boundary: FlatList đủ với N nhỏ → nói được vì sao chưa FlashList.
+**Intent 3 dòng:**
+1. Làm gì: cancel mid-stream + FlashList history dưới cập nhật session.
+2. Không làm gì: Zod refine, Query boundary.
+3. Xong khi: Stop → cancelled trong <100ms cảm nhận; scroll 100 rows mượt khi stream.
 
-## Checklist
+---
 
-- [ ] Stats hiển thị số thật từ storage/API stub
-- [ ] Ghi âm `2026-09-22.m4a`
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
+
+- **Kịch bản tấn công 1 (Race abort):**
+  - Abort cùng lúc chunk cuối đến → status cuối phải `cancelled` hoặc `done` nhất quán (chọn 1 rule: abort wins nếu signal.aborted trước complete).
+  - Start stream mới ngay sau abort — controller cũ không append vào session mới (`sessionId`).
+  - Double-tap Stop.
+- **Kịch bản tấn công 2 (List integrity):**
+  - Thêm meal khi đang scroll; update 1 row — có nhầm key / flicker không?
+  - Ép: ổn định id; không dùng index key.
+- **Bằng chứng:** Race matrix abort×complete trong `docs/decisions/2026-09-22.md`.
+
+---
+
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** Flashlight (ưu tiên) · Profiler · scroll perf monitor.
+- **Kịch bản đo:**
+  1. Abort sau 50 tokens — còn timer/chunk leak không?
+  2. Scroll FlashList 100 items trong lúc stream 200 tokens nền — FPS.
+  3. So FlatList vs FlashList cùng data (nếu còn FlatList) — một lần đo đủ để defend.
+- **Kết quả đo:**
+  - Time-to-cancelled: ___ ms
+  - FPS scroll + stream: ___ → ___
+  - Chunk leak sau abort? Có / Không
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note:**
+  - *Claim:* Mọi AI I/O bất đồng bộ phải nhận `AbortSignal`; list dài dùng FlashList + stable keys.
+  - *Evidence:* Race tests + FPS Flashlight.
+  - *Boundary:* Mock stream abort ≠ hủy request server thật (Nov gateway phải honor signal).
+- **60s Defense Pitch:**
+  > "User bấm Stop giữa stream — tôi không chỉ set flag UI, mà `AbortController.abort()` để dừng nguồn chunk. Status chuyển `cancelled`; sessionId chặn chunk stale từ request cũ. Meal history dùng FlashList với key ổn định để scroll không chết khi session status đổi. Đo Flashlight: scroll + stream nền vẫn giữ FPS. Trade-off: abort client-side hôm nay; server phải hủy generation thật ở backend sau. Boundary: abort không rollback meal đã persist."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] Stop → `cancelled`; không complete sau abort (ĐẬP 1).
+- [ ] FlashList history + stable keys; không full remount khi stream.
+- [ ] Số FPS / time-to-cancel ghi note (ĐẬP 2).
+- [ ] 60s pitch trôi (ĐẬP 3).
+- [ ] Không LLM secret.
+
+---
+
+## 6. Carry-forward
+
+- **23/09:** Zod refine MealLog + optimistic UI khi save parsed meal.
+- **Không mang:** Viết lại toàn bộ navigation.

@@ -1,23 +1,88 @@
 ---
-description: Thứ Ba 29/09/2026 — Tuần 4 Ngày 2. EAS Update + Sentry; AI workflow note tháng 9.
+description: Thứ Ba 29/09/2026 — Tuần 4 Ngày 2. EAS Update + Sentry; AI error boundary + breadcrumb parse fail.
 alwaysApply: false
 ---
 
-# Thứ Ba · 29/09/2026 · Tuần 4 — Ngày 17/82
+# Thứ Ba 29/09/2026 — EAS Update + Sentry AI Observability
+
+> **Mục tiêu kỹ sư:** Bật **EAS Update** (OTA) cho JS; gắn **Sentry**; **AI error boundary** + **breadcrumb** khi Zod/parse/stream fail — không gửi PII/transcript thô.
+> **Tư duy:** AI scaffold Sentry + boundary → Bạn tấn công PII leak trong event, đo overhead init, defend privacy vs observability.
+> **Bản đồ tháng:** Tháng 9 PRODUCER · Tuần 4.
+> **Sản phẩm:** MacroZone AI-Native.
+
+**Cấm:** LLM key trên client. Không `Sentry.captureMessage(transcript)`. DSN qua env/EAS Secrets — không commit DSN nếu policy team cấm (ít nhất không commit auth token).
 
 ---
 
-## Lịch
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — Sentry + EAS Update |
-| **13:30** | HỌC — Viết `docs/ai-workflow-sep.md`: cách dùng AI tháng này (intent → review → reject) |
-| **16:30** | EN — Giải thích OTA vs store build |
-| **17:00** | Decision note |
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. EAS Update channel gắn preview/production profiles.
+    2. Sentry RN init: release = app version + update id nếu có.
+    3. `AiErrorBoundary` bọc Coach / Parse — fallback UI, `captureException`.
+    4. Breadcrumb: `ai.parse_fail` với **reason code** (zod_invalid, aborted, network) — **không** full user text; truncate hash/length only nếu cần.
+  - **Ranh giới:**
+    - beforeSend scrub: strip Authorization, email, raw meal name nếu policy chặt.
+    - OTA không đẩy native module mới — hiểu boundary EAS Update.
+- **Scaffold Code:** AI wire Sentry + boundary; bạn review scrub rules.
 
-## Checklist
+**Intent 3 dòng:**
+1. Làm gì: EAS Update + Sentry + AI boundary/breadcrumb an toàn.
+2. Không làm gì: Store submit cuối (30/09).
+3. Xong khi: ép parse fail → Sentry có event sạch PII; OTA config hiểu được.
 
-- [ ] Crash test hiện trên Sentry
-- [ ] AI workflow 1 trang
-- [ ] Ghi âm `2026-09-29.m4a`
+---
+
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
+
+- **Kịch bản tấn công 1 (PII / Prompt leak):**
+  - Parse fail với input chứa SĐT/email — event Sentry có lộ không?
+  - Stream error có đính kèm full chunks không?
+  - Ép: scrub + breadcrumb tối thiểu; test fixture assert payload.
+- **Kịch bản tấn công 2 (Boundary crash):**
+  - Throw trong render Coach — boundary bắt; app không trắng toàn cục.
+  - Double fault trong fallback.
+- **Bằng chứng:** Sample scrubbed event (redacted) trong `docs/decisions/2026-09-29.md`.
+
+---
+
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** Profiler · cold start với/không Sentry · Flashlight optional.
+- **Kịch bản đo:**
+  1. Init Sentry overhead lên TTI.
+  2. 50 parse_fail breadcrumbs liên tiếp — có spam / rate issue không (sample)?
+  3. OTA update check lúc startup — có block UI thread đáng kể không?
+- **Kết quả đo:**
+  - Cold start ± Sentry: ___ vs ___ ms
+  - Payload size breadcrumb parse_fail: ___ bytes (ước)
+  - UI block khi check update? Có / Không
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note:**
+  - *Claim:* Observability bắt buộc cho AI path; **privacy-first breadcrumbs**; OTA cho JS harden nhanh, native vẫn cần store build.
+  - *Evidence:* Scrub test + TTI overhead.
+  - *Boundary:* Sentry không thay eval chất lượng model (Oct); OTA không fix native crash.
+- **60s Defense Pitch:**
+  > "AI path MacroZone có error boundary riêng và Sentry breadcrumb theo reason code — không gửi transcript thô. EAS Update cho phép vá JS sau khi đã có native binary; tôi hiểu OTA không thay native module. Đo cold start với Sentry để chấp nhận overhead. Trade-off: ít context debug hơn khi scrub PII — đổi bằng privacy. Boundary: DSN/token không nằm cạnh LLM key; model call vẫn không từ client thẳng vendor."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] EAS Update config theo channel; Sentry init theo release.
+- [ ] AiErrorBoundary + parse_fail breadcrumb đã scrub (ĐẬP 1).
+- [ ] Số overhead TTI ghi note (ĐẬP 2).
+- [ ] 60s pitch privacy vs observe (ĐẬP 3).
+- [ ] Không LLM secret; không raw transcript trên Sentry.
+
+---
+
+## 6. Carry-forward
+
+- **30/09:** Ship TestFlight + Play Internal; `docs/ai-native-sep.md`.
+- **Không mang:** Thêm analytics SDK thứ 3 cùng ngày nếu chưa ổn định Sentry.

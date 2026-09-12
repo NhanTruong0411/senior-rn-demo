@@ -1,223 +1,84 @@
 ---
-description: Thứ Hai 26/10/2026 — Tuần 9 Ngày 1. Offline-first — lưu cache xuống đĩa, phát hiện mạng, giao diện trung thực.
+description: Thứ Hai 26/10/2026 — Tuần 9 Ngày 1. Offline-first cache + UI mạng trung thực.
 alwaysApply: false
 ---
 
-# Thứ Hai · 26/10/2026 · Tuần 9 — Ngày 36/82
+# Thứ Hai 26/10/2026 — Offline-First Cache + Honest Network UI
 
-> **Tuần cuối tháng 10.** Offline-first không phải tính năng phụ — ở Việt Nam, mạng 4G chập chờn trong thang máy, hầm gửi xe, hay vùng ngoại ô là chuyện hằng ngày.
+> **Mục tiêu kỹ sư:** Cache meal/search đủ dùng offline; UI **trung thực** về mạng (không giả online khi mất mạng).
+> **Tư duy:** AI sinh NetInfo + cache layer → Bạn tấn công stale-as-fresh lừa user, đo đọc cache, defend offline-first.
+> **Bản đồ tháng:** Tháng 10 AUDITOR · Tuần 9 — Offline Sync + CI/CD.
+> **Sản phẩm:** MacroZone AI-Native.
 
-
-> **Engineer mode:** Hiểu → Ship (khóa/docs có ray) → Harden. Không gõ lại cho thuộc. AI = coworker — intent 3 dòng, review mọi diff, reject được. Chi tiết: `Sep/00-context-sep.mdc` §0 + `Oct/00-context-oct.mdc`.
-
-**Docs:** https://tanstack.com/query/latest/docs/framework/react/plugins/persistQueryClient
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Lưu cache query xuống đĩa |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Phát hiện mạng + giao diện trung thực |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tiếp tục |
-| **16:30** | **TIẾNG ANH** — Daily standup |
-| **17:00** | **ĐỌC SÁCH** — ch.16 |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+**Cấm:** Nút Parse AI báo success khi chỉ là cache cũ không nói rõ; LLM key trên device để “offline AI”.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30 — Cache bền vững
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-```bash
-git checkout -b feat/offline
-npm install @tanstack/react-query-persist-client @tanstack/query-async-storage-persister
-```
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Detect network (`NetInfo` hoặc Expo tương đương).
+    2. Source of truth local = SQLite meal (Tuần 7); remote sync flag `pending` tùy chọn skeleton.
+    3. Banner/UI: Offline / Syncing / Online — không che.
+    4. AI parse khi offline: disable hoặc queue intent (chưa full write queue — 27/10) + message rõ.
+    5. TanStack Query: `networkMode` / staleTime hợp lý cho list; hydrate từ SQLite.
+  - **Ranh giới:** Conflict resolution chi tiết = 27; GHA = 28.
+- **Scaffold Code:** `network/` + banner + cache read path.
 
-### 08:30–09:30 · Nối persister
-
-```ts
-const persister = createAsyncStoragePersister({
-  storage: AsyncStorage,
-  throttleTime: 1000,          // không ghi đĩa quá 1 lần/giây
-});
-
-<PersistQueryClientProvider
-  client={queryClient}
-  persistOptions={{
-    persister,
-    maxAge: 1000 * 60 * 60 * 24,        // giữ cache 24 giờ
-    buster: appVersion,                  // đổi version → bỏ cache cũ
-    dehydrateOptions: {
-      shouldDehydrateQuery: (q) => q.state.status === 'success',
-    },
-  }}
->
-```
-
-**Ba tùy chọn, ba lý do:**
-
-| Tùy chọn | Vì sao cần |
-| --- | --- |
-| `throttleTime` | Không có nó, mỗi lần cache đổi là một lần ghi đĩa. Trên máy yếu điều này làm giật thấy rõ |
-| `buster` | Đổi hình dạng dữ liệu ở phiên bản mới mà cache cũ còn nguyên → crash. `buster` là app version thì cache tự bỏ khi cập nhật |
-| `shouldDehydrateQuery` | Chỉ lưu query thành công. Lưu cả query lỗi thì mở app lại thấy ngay màn hình lỗi |
-
-**`buster` là chi tiết mà rất ít người nghĩ tới, và nó gây crash thật trên production.** Nhớ để kể khi phỏng vấn.
-
-Giãn cơ 5 phút lúc 09:30.
-
-### 09:30–10:30 · Kiểm chứng
-
-1. Mở app có mạng, để dữ liệu tải xong
-2. Đóng hẳn app
-3. **Bật chế độ máy bay**
-4. Mở lại app
-
-Phải thấy: danh sách bữa ăn hiện ra bình thường, kèm dấu hiệu cho biết dữ liệu là bản lưu. **Không được** thấy màn hình lỗi hay danh sách rỗng.
-
-```bash
-git add . && git commit -m "feat: lưu cache query xuống đĩa với buster theo phiên bản"
-```
+**Intent 3 dòng:**
+1. Làm gì: offline cache + honest UI.
+2. Không làm gì: write queue đầy đủ (27).
+3. Xong khi: airplane mode vẫn xem logs; Parse AI không lừa user.
 
 ---
 
-## KHỐI HỌC · 13:30–16:30
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:15 · Phát hiện trạng thái mạng
-
-```bash
-npx expo install @react-native-community/netinfo
-```
-
-```ts
-import NetInfo from '@react-native-community/netinfo';
-import { onlineManager } from '@tanstack/react-query';
-
-onlineManager.setEventListener((setOnline) =>
-  NetInfo.addEventListener((state) => {
-    setOnline(!!state.isConnected && state.isInternetReachable !== false);
-  }),
-);
-```
-
-**`isConnected` khác `isInternetReachable` — phân biệt cho rõ:**
-
-| | Nghĩa |
-| --- | --- |
-| `isConnected` | Có kết nối Wi-Fi hoặc di động |
-| `isInternetReachable` | Kết nối đó **thật sự ra được internet** |
-
-Trường hợp kinh điển: nối vào Wi-Fi quán cà phê nhưng chưa đăng nhập cổng — `isConnected` là `true`, `isInternetReachable` là `false`. Chỉ kiểm tra cái đầu là app tưởng có mạng và mọi request treo cho tới khi hết giờ.
-
-### 14:15–15:00 · Giao diện trung thực
-
-**Nguyên tắc: đừng giả vờ.** Nếu dữ liệu là bản lưu, hãy nói rõ.
-
-```tsx
-{!isOnline && (
-  <View style={styles.offlineBanner}>
-    <Text>Đang ngoại tuyến · dữ liệu lúc {formatRelative(dataUpdatedAt)}</Text>
-  </View>
-)}
-```
-
-Ba trạng thái cần phân biệt cho người dùng:
-
-| Trạng thái | Hiển thị |
-| --- | --- |
-| Trực tuyến, dữ liệu mới | Bình thường |
-| Ngoại tuyến, có dữ liệu lưu | Thanh báo + thời điểm dữ liệu |
-| Ngoại tuyến, chưa có dữ liệu nào | Màn hình trống có giải thích, không phải màn hình lỗi |
-
-TanStack Query cho sẵn `dataUpdatedAt` — dùng nó để hiện "cập nhật 12 phút trước".
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:30 · Vô hiệu hóa đúng chỗ
-
-Khi ngoại tuyến, những thao tác không làm được phải bị chặn **trước khi** người dùng bấm, không phải báo lỗi sau khi bấm:
-
-```tsx
-<Button
-  title="Thêm bữa ăn"
-  disabled={!isOnline && !supportsOfflineQueue}
-  onPress={...}
-/>
-```
-
-Nhưng ngày mai bạn sẽ làm hàng đợi đồng bộ, nên đa số thao tác **sẽ** làm được khi ngoại tuyến. Hôm nay chỉ cần đảm bảo app không hứa điều nó không làm được.
-
-**Thử đủ 5 tình huống:**
-1. Mở app khi đang ngoại tuyến, đã có cache → hiện dữ liệu lưu + thanh báo
-2. Mở app khi ngoại tuyến, chưa có cache → màn hình trống có giải thích
-3. Đang dùng thì mất mạng → thanh báo xuất hiện, dữ liệu vẫn còn
-4. Có mạng lại → tự làm mới, thanh báo biến mất
-5. Wi-Fi có nhưng không ra internet → phải nhận ra là ngoại tuyến
-
-```bash
-git add . && git commit -m "feat: phát hiện mạng và giao diện trạng thái ngoại tuyến"
-```
+- **Kịch bản tấn công 1:**
+  - Flapping mạng: online↔offline nhanh — banner flicker / state sai?
+  - Cache hit hiển thị như “AI vừa parse” — cấm; label nguồn dữ liệu.
+- **Kịch bản tấn công 2:**
+  - Offline không bypass auth gate.
+  - Không đọc LLM key từ đâu đó “fallback offline”.
+- **Bằng chứng:** Manual airplane matrix.
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Thứ Hai: Daily Standup
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-### 16:30–16:40 · Shadowing
-
-### 16:40–16:55 · Standup có ghi âm
-
-> *"Morning. Last week was performance — I've got before and after numbers documented for everything, including the changes that made no difference.*
-> *This week is offline support and CI. Today I persisted the query cache to disk so the app opens with data even in airplane mode, and wired up network detection.*
-> *One detail I hadn't thought about before: there's a difference between being connected and actually reaching the internet. Captive portals — hotel or café wifi where you haven't logged in yet — report as connected, so if you only check that flag, every request hangs until it times out.*
-> *Tomorrow I'll add a mutation queue so writes made offline sync when the connection comes back."*
-
-### 16:55–17:00 · 5 từ mới
-
-| Từ / cụm | Nghĩa | Câu mẫu |
-| --- | --- | --- |
-| `captive portal` | cổng đăng nhập Wi-Fi công cộng | *Captive portals report as connected.* |
-| `hang` (v) | treo, không phản hồi | *Every request hangs.* |
-| `time out` | hết thời gian chờ | *…until it times out.* |
-| `stale data` | dữ liệu cũ | *We show stale data with a timestamp.* |
-| `come back` (mạng) | có lại | *…when the connection comes back.* |
+- **Công cụ:** Timing đọc SQLite list · Profiler banner · toggle airplane.
+- **Kịch bản đo:**
+  1. Cold start offline → time to Home list.
+  2. Toggle mạng 20 lần — CPU/jank banner.
+  3. Search offline p95 (đã có) vẫn trong budget.
+- **Kết quả đo:**
+  - Offline Home TTI: ___ ms
+  - Banner thrash ok? Có / Không
 
 ---
 
-## ĐỌC SÁCH · 17:00–17:30
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-**The Pragmatic Programmer** — chương 16.
+- **Decision Note** (`docs/decisions/2026-10-26.md`):
+  - *Claim:* SQLite = offline source; network UI trung thực; AI parse cần mạng/proxy hoặc queue rõ ràng.
+  - *Evidence:* airplane matrix + TTI.
+  - *Boundary:* Write queue/conflict = ngày mai.
+- **60s Defense Pitch:**
+  > "MacroZone offline-first thật: meal trong SQLite, mất mạng vẫn xem và search. Banner nói đúng trạng thái mạng — không giả AI offline có key. Parse khi offline bị disable hoặc báo sẽ queue. Tôi đo TTI Home offline. Trade-off: chưa conflict merge. Boundary: cache không được gắn nhãn như kết quả model mới."
 
 ---
 
-## Checklist cuối ngày
+## 5. Definition of Done (DoD kỹ thuật)
 
-- [ ] Cache query lưu xuống đĩa, mở app ngoại tuyến vẫn thấy dữ liệu
-- [ ] `buster` gắn với app version
-- [ ] Chỉ lưu query thành công, không lưu query lỗi
-- [ ] Phân biệt được `isConnected` và `isInternetReachable`
-- [ ] Thanh báo ngoại tuyến có hiện thời điểm dữ liệu
-- [ ] Thử đủ 5 tình huống mạng
-- [ ] **Có commit hôm nay**
-- [ ] Ghi âm `2026-10-26.m4a`
-- [ ] Đọc xong ch.16
-- [ ] 21:30 lên giường
+- [ ] Airplane: xem list + search OK.
+- [ ] Banner/network honesty.
+- [ ] AI parse offline không lừa.
+- [ ] Decision note + 60s pitch.
+
+---
+
+## 6. Carry-forward
+
+- **27/10:** Write queue offline + conflict resolution meal logs.
+- **Không mang sang:** Fake offline AI bằng key local.

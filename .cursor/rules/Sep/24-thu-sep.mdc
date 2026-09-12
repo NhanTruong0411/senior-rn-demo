@@ -1,25 +1,88 @@
 ---
-description: Thứ Năm 24/09/2026 — Tuần 3 Ngày 4. Supabase + TanStack Query — server state (ray có sẵn).
+description: Thứ Năm 24/09/2026 — Tuần 3 Ngày 4. TanStack Query meal list vs Zustand AI UI state.
 alwaysApply: false
 ---
 
-# Thứ Năm · 24/09/2026 · Tuần 3 — Ngày 14/82
+# Thứ Năm 24/09/2026 — TanStack Query Boundary vs Zustand AI
 
-> Thay AsyncStorage bằng API thật qua **Supabase** (khóa/docs có đường). Query = server state.  
-> AI key: **không** — chỉ data meals.
+> **Mục tiêu kỹ sư:** Tách rõ **server-ish cache meal list (TanStack Query)** khỏi **AI session UI state (Zustand)**; invalidate/refetch đúng lúc sau save — không trộn stream chunks vào Query.
+> **Tư duy:** AI scaffold `useMealsQuery` + mutation → Bạn tấn công stale cache / dual source of truth, đo refetch jank, defend ranh giới.
+> **Bản đồ tháng:** Tháng 9 PRODUCER · Tuần 3.
+> **Sản phẩm:** MacroZone AI-Native.
+
+**Cấm:** LLM key trên client. Không đưa `chunks[]` vào React Query.
 
 ---
 
-## Lịch
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — Query/mutation meals |
-| **13:30** | HỌC — TanStack Query v5 docs: cache, invalidation, optimistic (ý niệm) |
-| **16:30** | EN — PV Redux vs Query ≤60s |
-| **17:00** | Decision note |
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. `useMealsQuery`: queryKey `['meals', date]`; `queryFn` đọc `MealRepository`.
+    2. `useSaveMealMutation`: optimistic (từ 23/09) + `onSuccess` → `invalidateQueries` / `setQueryData`.
+    3. Zustand chỉ giữ AI session (status/chunks/abort); Home list lấy từ Query.
+    4. Loading / error / empty từ Query status — không duplicate flag trong Zustand.
+  - **Ranh giới:**
+    - Hôm nay repository local = "server-ish"; khi có API (Nov) chỉ đổi `queryFn`.
+    - Không cache transcript/stream trong QueryClient.
+- **Scaffold Code:** AI tách nguồn dữ liệu; bạn reject `useQuery` cho streaming text.
 
-## Checklist
+**Intent 3 dòng:**
+1. Làm gì: Query cho meals; Zustand cho AI UI; mutation invalidate.
+2. Không làm gì: remote API thật, EAS.
+3. Xong khi: sơ đồ 2 nguồn state + demo save → list cập nhật không đụng stream store.
 
-- [ ] List/create meal qua mạng trên máy thật
-- [ ] Ghi âm `2026-09-24.m4a`
+---
+
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
+
+- **Kịch bản tấn công 1 (Dual source of truth):**
+  - Vừa mutate meals vừa append chunk — list có bị rerender theo chunk vì import nhầm store không?
+  - Save thành công nhưng quên invalidate → list stale.
+  - Ép: một nguồn cho list; assert selector không cross-wire.
+- **Kịch bản tấn công 2 (Cache / Consistency):**
+  - Đổi ngày (queryKey) giữa lúc mutation pending; stale closure date.
+  - Ép: mutation mang `date` trong variables; invalidate đúng key.
+- **Bằng chứng:** Diagram Query vs Zustand trong `docs/decisions/2026-09-24.md`.
+
+---
+
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** Profiler · React Query Devtools (nếu có) · Flashlight.
+- **Kịch bản đo:**
+  1. Invalidate sau save — số re-render Home vs AI coach (coach phải 0 nếu không mở).
+  2. Refetch khi focus screen — có flash empty không (`placeholderData` / `keepPreviousData`)?
+  3. Stream 200 tokens + meals query mounted — commits trên FlashList.
+- **Kết quả đo:**
+  - Home re-renders on chunk: ___ (target 0)
+  - Time list update after save: ___ ms
+  - Empty-flash on refetch? Có / Không
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note:**
+  - *Claim:* **Server state (meals) → TanStack Query; Client ephemeral AI UI → Zustand.** Không trộn.
+  - *Evidence:* Dual-source attack + Profiler isolation.
+  - *Boundary:* Local repository vẫn qua Query để thói quen đúng khi có HTTP; AI stream không bao giờ là Query.
+- **60s Defense Pitch:**
+  > "Câu interview kinh điển Redux vs Query — ở MacroZone tôi tách theo loại state. Meal list là dữ liệu bền, cache theo ngày, invalidate sau save → TanStack Query. AI stream là ephemeral UI với status machine và AbortSignal → Zustand. Tôi đo Profiler để chứng minh chunk không làm FlashList meals re-render. Trade-off hôm nay queryFn đọc local repository; Nov chỉ thay endpoint. Boundary: không nhét chunks vào QueryClient."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] `useMealsQuery` + save mutation + invalidate đúng key.
+- [ ] Zustand AI session không chứa meal list (ĐẬP 1).
+- [ ] Profiler chứng minh isolation (ĐẬP 2).
+- [ ] Decision Note + 60s pitch (ĐẬP 3).
+- [ ] Không LLM secret; không stream trong Query.
+
+---
+
+## 6. Carry-forward
+
+- **25/09:** Week 3 audit — Zustand vs Query decision chốt + stream cancel DoD.
+- **Không mang:** Thêm Redux "cho đủ bộ".

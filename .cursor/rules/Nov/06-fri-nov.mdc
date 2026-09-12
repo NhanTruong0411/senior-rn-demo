@@ -1,202 +1,66 @@
 ---
-description: Thứ Sáu 06/11/2026 — Tuần 10 Ngày 5. Nối app mobile vào API thật cho một luồng hoàn chỉnh, tổng kết tuần đầu backend.
+description: Thứ Sáu 06/11/2026 — Tuần 10 Ngày 5. Mobile nói chuyện API thật cho parse meal (không Supabase client path này).
 alwaysApply: false
 ---
 
-# Thứ Sáu · 06/11/2026 · Tuần 10 — Ngày 45/82
+# Thứ Sáu 06/11/2026 — Mobile → Real API Parse Meal
 
-> Hôm nay lần đầu tiên bạn thấy **cả hai đầu do chính mình viết** nói chuyện với nhau.
-> Đây là khoảnh khắc chuyển từ "mobile dev đang học backend" sang "người làm được cả hệ thống".
+> **Mục tiêu kỹ sư:** Mobile gọi `POST /v1/ai/parse` trên Render — **một luồng hoàn chỉnh** text→MealLog qua API của bạn; path này không dùng Supabase client.
+> **Tư duy:** AI nối client HTTP → Bạn tấn công key leak & double-submit, đo latency end-to-end + cold start trên máy thật, defend boundary Gateway.
+> **Bản đồ tháng:** Kết thúc Tuần 10 — Fastify AI Gateway usable.
+> **Sản phẩm:** MacroZone Add Meal dùng YOUR API.
 
-
-> **Engineer mode:** Hiểu HTTP/DB/auth — không thuộc tay framework. AI scaffold OK nếu review được. LLM chỉ gọi từ API này (Dec). Luật: `Sep/00` §0 · `Nov/00`.
-
----
-
-## Lịch hôm nay
-
-| Giờ | Việc |
-| --- | --- |
-| 04:30 | Dậy, vệ sinh. Không chạm điện thoại |
-| 04:45 | Gym (30 phút cardio) |
-| 05:45 | Về nhà, tắm, cà phê |
-| 06:30 | Chuẩn bị bữa sáng cho bé |
-| 07:00 | Cho bé ăn, vitamin D |
-| 07:30 | Tắm nắng cùng bé |
-| 07:45 | Tắm cho bé |
-| 08:00 | Rửa bình sữa, dọn dẹp |
-| **08:30** | **KHỐI XÂY** — Một luồng chạy trọn vẹn qua API của bạn |
-| 10:30 | Giữ bé để bà nội chuẩn bị bữa |
-| 11:00 | Thư giãn |
-| 11:30 | Giữ bé cho bà nội ăn trưa |
-| 12:30 | Ăn trưa, dọn dẹp |
-| 13:00 | Ngủ 30 phút |
-| **13:30** | **KHỐI HỌC** — Chia sẻ type + tổng kết tuần |
-| 15:00 | Nghỉ 10 phút |
-| 15:10 | Tự chấm |
-| **16:00** | **TÌM VIỆC** — cập nhật CV theo tuần vừa học |
-| **16:30** | **TIẾNG ANH** — nghe lại 5 bản ghi |
-| **17:00** | **GHI CHÚ** |
-| 17:30 | Trọn vẹn với con gái |
-| 19:00 | Ăn tối cùng vợ, dọn bếp |
-| 20:00 | Tắm con, ru con ngủ |
-| 20:30 | Thời gian với con |
-| 21:15 | Chuẩn bị đồ gym |
-| 21:30 | Ngủ |
+**Cấm:** `OPENAI_API_KEY` / Gemini key trong app.json, SecureStore, hoặc bundle. Client chỉ biết `API_BASE_URL`.
 
 ---
 
-## KHỐI XÂY · 08:30–10:30 — Một luồng trọn vẹn
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-Chưa có database thật *(tuần sau)*. Hôm nay API vẫn giữ dữ liệu trong bộ nhớ — **và đó là chủ ý**. Bạn kiểm chứng hợp đồng giữa hai đầu trước, thêm database sau. Mỗi lần chỉ đổi một biến.
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Mobile: `parseMealFromText` → `fetch(`${API_BASE_URL}/v1/ai/parse`)` với Zod safeParse response.
+    2. Loading / error / empty đủ; disable double-tap; timeout (vd 15–30s) vì cold start.
+    3. Server: nếu có key → gọi model; không có → mock rõ ràng qua flag `AI_MODE=mock|live`.
+    4. Log server: requestId + latency + (nếu live) ước lượng token — chưa cần billing đầy đủ.
+  - **Ranh giới:** Chưa auth bắt buộc trên parse (gắn tuần 12); rate limit thô optional; Supabase meal path cũ có thể còn — path **parse AI** phải qua API bạn.
+- **Scaffold Code:** AI sửa mobile client + xác nhận server route.
 
-### 08:30–09:30 · Luồng "thêm bữa ăn" đi qua API của bạn
-
-Trong app mobile, đổi `useAddMeal` từ Supabase sang API của bạn:
-
-```ts
-export function useAddMeal() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: CreateMealInput) => api.post('v1/meals', { json: input }).json<Meal>(),
-    onMutate: async (input) => { /* cập nhật lạc quan — giữ nguyên từ 24/09 */ },
-    onError: (_e, _v, ctx) => { /* khôi phục ảnh chụp */ },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['meals'] }),
-  });
-}
-```
-
-**Chú ý phần cập nhật lạc quan không đổi gì cả.** Bạn đổi nguồn dữ liệu, không đổi kiến trúc. Đó là phần thưởng của việc tách lớp dữ liệu khỏi giao diện từ tháng 9.
-
-Giãn cơ 5 phút lúc 09:30.
-
-### 09:30–10:30 · Đi hết ba đường thất bại
-
-Đường thành công dễ. Ba đường này mới là chỗ hệ thống lộ ra:
-
-| Tình huống | Cách gây ra | Phải thấy gì |
-| --- | --- | --- |
-| Dữ liệu sai | Gửi `calories: -5` | 400, giao diện chỉ đúng ô sai, không sập |
-| Server chết | Tắt dịch vụ trên Render | Thông báo trung thực, dữ liệu vẫn còn trên máy |
-| Server chậm | Thêm `await sleep(10_000)` tạm thời | Client không treo mãi, có timeout, huỷ được |
-
-Tình huống thứ ba đáng làm kỹ. Thêm độ trễ giả vào một endpoint, xem client xử lý ra sao. Nếu vòng xoay quay vô tận thì bạn thiếu timeout.
-
-```bash
-git add . && git commit -m "feat: thêm bữa ăn chạy qua api riêng, xử lý 3 đường thất bại"
-```
+**Intent 3 dòng:**
+1. Làm gì: mobile ↔ real `/v1/ai/parse`.
+2. Không làm gì: full migrate DB off Supabase (→ 12/11).
+3. Xong khi: nhập tiếng Việt trên máy thật → form fill từ response API.
 
 ---
 
-## KHỐI HỌC · 13:30–16:00
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
 
-### 13:30–14:15 · Chia sẻ type giữa hai repo
-
-Bạn có `Meal` định nghĩa ở hai nơi. Chúng sẽ lệch nhau — chỉ là vấn đề thời gian.
-
-Ba cách, chọn cái đơn giản nhất cho tháng này:
-
-| Cách | Công sức | Khi nào hợp |
-| --- | --- | --- |
-| Sao chép tay | Thấp | Một người viết, đổi ít |
-| Script đồng bộ khi build | Trung bình | **Chọn cái này tháng 11** |
-| Package npm dùng chung / monorepo | Cao | Có đội, hoặc từ tháng 12 |
-
-Script đơn giản:
-
-```json
-"scripts": {
-  "sync:types": "cp -r ../macrozone-api/src/schemas ./src/shared/"
-}
-```
-
-Chạy nó trong CI của app mobile và **báo lỗi nếu có khác biệt chưa commit**. Như vậy sự lệch bị bắt ở PR chứ không bị bắt ở sản xuất.
-
-> Đây là một ví dụ hay về nguyên tắc "làm cho trạng thái sai không biểu diễn được". Bạn không dựa vào kỷ luật của bản thân để nhớ đồng bộ — bạn để CI thất bại.
-
-### 14:15–15:00 · Tổng kết Tuần 10
-
-Bốn ngày, tự chấm 1–5:
-
-| Mục | Điểm | Ghi chú |
-| --- | --- | --- |
-| Giải thích được event loop và hệ quả của việc chặn nó | | |
-| Thiết kế được bảng endpoint kèm lý do từng mã trạng thái | | |
-| Nói được vì sao tách route khỏi service | | |
-| Triển khai được và đọc được log sản xuất | | |
-| Truy được một request từ lỗi trên máy về đúng dòng log | | |
-| Nói được lý do **thật** khi chọn Fastify | | |
-
-**Ba câu tự trả lời, viết ra:**
-1. Điều gì về backend khác với tưởng tượng của tôi trước tuần này?
-2. Chỗ nào tôi thấy dễ hơn dự kiến vì đã biết TypeScript và HTTP từ phía client?
-3. Chỗ nào tôi vẫn chưa thật sự hiểu, chỉ đang làm theo?
-
-Câu số 3 là câu quan trọng nhất. Ghi lại, nó là danh sách phải quay lại.
-
-### 15:00–15:10 · Nghỉ
-
-### 15:10–16:00 · Đọc lại code của chính mình
-
-Mở `git diff` toàn tuần. Đọc như đang review PR của người khác.
-
-Tìm ba thứ:
-- Chỗ nào có logic nghiệp vụ lọt vào route?
-- Chỗ nào bắt lỗi rồi nuốt im lặng?
-- File nào đã vượt 200 dòng?
-
-Sửa ngay hôm nay, đừng để sang tuần.
+- **Kịch bản 1:** Grep mobile repo tìm `sk-` / `AIza` / provider SDK direct call → phải = 0.
+- **Kịch bản 2:** Double submit; abort khi unmount; server nhận text injection — response vẫn đúng schema, không execute instruction nguy hiểm.
+- **Bằng chứng:** Grep clean + video/screenshot 1 parse thành công trên device/simulator.
 
 ---
 
-## TÌM VIỆC · 16:00–16:30 — Cập nhật CV
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
 
-Thêm vào phần dự án:
-
-```
-Backend (Node.js) — từ 11/2026
-- API REST bằng Fastify + TypeScript, Zod kiểm tra ở biên, lỗi có cấu trúc
-- Triển khai Render, log JSON có request ID truy được, tắt tử tế
-- Kiến trúc route/service/repo — service không phụ thuộc HTTP, test được độc lập
-```
-
-**Cập nhật CV mỗi tuần, không đợi cuối tháng.** Việc viết ra ép bạn diễn đạt cái vừa làm, và đó cũng chính là luyện trả lời phỏng vấn.
+- **Công cụ:** React DevTools Profiler (mobile) + server pino latency; optional Flashlight.
+- **Kịch bản:** 10 lần parse liên tiếp (warm) + 1 lần sau idle dài (cold).
+- **Kết quả:** e2e warm p95 ___ ms · cold ___ ms · re-render Add Meal khi fill: ___ → ___
 
 ---
 
-## TIẾNG ANH · 16:30–17:00 — Nghe lại 5 bản ghi
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
 
-Nghe `2026-11-02` đến `2026-11-06`.
-
-Ghi ba điều:
-1. Từ vựng backend nào tôi dùng được tự nhiên rồi:
-2. Chỗ nào tôi còn phải dịch trong đầu trước khi nói:
-3. Một câu tôi sẽ dùng nguyên văn trong phỏng vấn thật:
-
----
-
-## GHI CHÚ · 17:00–17:30
-
-`docs/api-design.md` phải xong bốn mục sau tuần này:
-- Vì sao viết backend riêng, và cái giá phải trả
-- Bảng endpoint kèm lý do từng mã trạng thái
-- Năm sai lầm API tôi từng phải chịu và cách tôi tránh
-- Ràng buộc của bậc miễn phí và cách thiết kế quanh nó
+- **Decision Note:**
+  - *Claim:* Client → Your API → Model là kiến trúc cố định từ tuần 10; zero key trên device.
+  - *Evidence:* Grep clean + số e2e latency.
+  - *Boundary:* Chưa auth/cost cap cứng — tuần 12–13; mock mode để dev offline.
+- **60s Defense Pitch:**
+  > "Mobile không gọi LLM trực tiếp. Mọi parse đi qua Fastify gateway trên Render — chỗ giữ key, log, và sau này rate limit. Tôi đo cold start nên UI có timeout rõ. Tuần 10 xong khi một câu tiếng Việt trên máy thật thành MealLog qua API của tôi. Tiếp theo: Postgres thay in-memory/Supabase."
 
 ---
 
-## Checklist cuối ngày
+## 5. Definition of Done (DoD kỹ thuật) — Tuần 10
 
-- [ ] Thêm bữa ăn chạy trọn vẹn qua API của bạn trên máy thật
-- [ ] Đã thử cả ba đường thất bại: dữ liệu sai, server chết, server chậm
-- [ ] Client **không** treo vô tận khi server chậm
-- [ ] Script đồng bộ type chạy được, CI bắt được lệch
-- [ ] Tổng kết Tuần 10 xong, **có trả lời câu "chỗ nào tôi chỉ làm theo"**
-- [ ] Đã đọc lại toàn bộ diff của tuần, sửa chỗ gợn
-- [ ] CV đã thêm mục Backend
-- [ ] Đã nghe lại 5 bản ghi
-- [ ] 21:30 lên giường
-
----
-
-> Tuần sau là tuần khó nhất tháng: SQL và thiết kế cơ sở dữ liệu. Đây là chỗ mobile developer thường hổng nhất, và cũng là chỗ SQL đứng hạng 3 trong 20 kỹ năng được tìm nhiều nhất ở Việt Nam.
+- [ ] Device/sim parse qua public API thành công.
+- [ ] Không secret trên client; có số warm/cold e2e.
+- [ ] Decision note tuần 10 + 60s pitch trôi.

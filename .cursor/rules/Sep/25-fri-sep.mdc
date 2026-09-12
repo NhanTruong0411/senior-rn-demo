@@ -1,27 +1,84 @@
 ---
-description: Thứ Sáu 25/09/2026 — Tuần 3 Ngày 5. Zustand client state + ranh giới Query; tổng kết.
+description: Thứ Sáu 25/09/2026 — Tuần 3 Ngày 5. Audit Zustand vs Query + stream cancel DoD.
 alwaysApply: false
 ---
 
-# Thứ Sáu · 25/09/2026 · Tuần 3 — Ngày 15/82
+# Thứ Sáu 25/09/2026 — Week 3 Audit (Zustand · Query · Cancel)
 
-> **Query = server. Zustand = client.** Câu PV #1 thị trường VN — luyện nói, không viết lại app.
+> **Mục tiêu kỹ sư:** Chốt **Decision Note Zustand vs Query**; đóng DoD **stream cancel**; audit E2E Tuần 3 — không feature mới.
+> **Tư duy:** Tech Lead gate trước tuần ship EAS — regression, đo lại, pitch gộp.
+> **Bản đồ tháng:** Tháng 9 PRODUCER · kết thúc Tuần 3.
+> **Sản phẩm:** MacroZone AI-Native.
+
+**Cấm:** Scope creep theme/EAS (28/09). Không LLM key.
 
 ---
 
-## Lịch
+## 1. Khối 0: AI Fast-Scaffold Spec (5 phút)
 
-| Giờ | Việc |
-| --- | --- |
-| **08:30** | XÂY — Theme/UI flags vào Zustand; meals giữ ở Query |
-| **13:30** | HỌC — Sơ đồ 1 trang state + audit kiến trúc thư mục |
-| **16:30** | EN — Review tuần |
-| **17:00** | Tổng kết tuần 3 |
+- **System Prompt / Requirements:**
+  - **Yêu cầu chức năng:**
+    1. Checklist E2E Tuần 3: status machine, abort mid-stream, FlashList+stream, refine+optimistic, Query invalidate, isolation selectors.
+    2. AI chỉ patch bug; cập nhật `docs/decisions/2026-09-25.md` rollup.
+    3. Một sơ đồ ASCII: Input NL → Zod → Mutation/Query meals || Coach → Zustand stream.
+  - **Ranh giới:** Không đổi architecture lớn ngày cuối tuần.
+- **Scaffold Code:** Patch-only.
 
-**Cấm** nhét meals vào Zustand “cho tiện”.
+**Intent 3 dòng:**
+1. Làm gì: audit + chốt decision + cancel DoD.
+2. Không làm gì: EAS, store submit, feature mới.
+3. Xong khi: checklist pass; pitch Zustand vs Query ≤60s thuộc lòng.
 
-## Checklist
+---
 
-- [ ] Nói trôi Redux/Query/Zustand boundary
-- [ ] **T7–CN nghỉ**
-- [ ] Ghi âm `2026-09-25.m4a`
+## 2. Khối 1: ĐẬP 1 — Red-Teaming & Security/Logic Audit (30 phút)
+
+- **Kịch bản tấn công 1 (Cancel DoD):**
+  - Stop giữa stream → `cancelled` · không append sau · session mới sạch · không leak timer.
+  - Start → abort → start lại trong <1s × 10 lần.
+- **Kịch bản tấn công 2 (Boundary sweep):**
+  - Confirm không có meal list trong Zustand; không có chunks trong QueryClient.
+  - Secret sweep lại `apiKey|sk-|OPENAI`.
+- **Bằng chứng:** Cancel DoD tick list + boundary sweep trong note.
+
+---
+
+## 3. Khối 2: ĐẬP 2 — Stress Test & Profiling (30 phút)
+
+- **Công cụ:** Profiler · Flashlight — chụp lại baseline tuần.
+- **Kịch bản đo:** Bảng tổng hợp:
+
+  | Scenario | Metric | Target | Thực tế |
+  | --- | --- | --- | --- |
+  | Abort | time-to-cancelled | < 150ms cảm nhận | ___ |
+  | Stream + scroll | FPS | ≥ 55 | ___ |
+  | Chunk vs Home | Home re-renders | 0 | ___ |
+  | Save optimistic | time-to-row | < 100ms UI | ___ |
+
+---
+
+## 4. Khối 3: ĐẬP 3 — Architecture Decision & 60s Defense (20 phút)
+
+- **Decision Note (chốt):**
+  - *Claim:* Zustand = AI session ephemeral; Query = meals cache; Zod = NL gate; AbortSignal = mọi AI I/O.
+  - *Evidence:* Bảng ĐẬP 2 + cancel stress.
+  - *Boundary:* Chưa gateway/cost tracking (Nov); chưa offline conflict (Oct).
+- **60s Defense Pitch:**
+  > "Tuần 3 MacroZone khóa async AI: Zustand status machine cho stream, AbortController hủy giữa chừng, FlashList chịu update nền. Meal list đi Query với invalidate sau optimistic save — không trộn chunks vào cache. Zod refine giữ invariant trước khi lạc quan. Tôi đo abort latency, FPS scroll+stream, và zero re-render Home khi chunk tới. Trade-off: local repository sau Query API shape; production LLM qua backend. Tuần 4: EAS ship internal với feature flag AI."
+
+---
+
+## 5. Definition of Done (DoD kỹ thuật)
+
+- [ ] Cancel DoD: abort sạch × 10 (ĐẬP 1).
+- [ ] Boundary Zustand/Query sạch; secret sweep sạch.
+- [ ] Bảng metric tuần điền số (ĐẬP 2).
+- [ ] Decision chốt + 60s pitch thuộc (ĐẬP 3).
+- [ ] Không feature mới.
+
+---
+
+## 6. Carry-forward
+
+- **28/09:** EAS Build profiles + AI feature flag; no secrets in eas.json.
+- **Carry bugs:** ___.
